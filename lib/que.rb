@@ -1,5 +1,6 @@
 require 'que/version'
 
 module Que
-  # Your code goes here...
+  autoload :Job,    'que/job'
+  autoload :Worker, 'que/worker'
 end
