@@ -76,7 +76,7 @@ module Que
 
             # Track how long different jobs take to process.
             ms = time_ms{model.work}.round(1)
-            Rails.logger.info "Worked job in #{ms} ms: #{model.inspect}"
+            Que.logger.info "Worked job in #{ms} ms: #{model.inspect}"
 
             # Most jobs destroy themselves transactionally in #work. If not,
             # take care of them. Jobs that don't destroy themselves run the risk

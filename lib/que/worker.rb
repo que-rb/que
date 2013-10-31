@@ -64,14 +64,12 @@ module Que
         q.pop
         job = nil
 
-        Rails.logger.tagged 'worker', '%02i' % @thread.number do
-          loop do
-            sleep! unless work_job
+        loop do
+          sleep! unless work_job
 
-            if @thread[:directive] == :sleep
-              @thread[:state] = :sleeping
-              sleep
-            end
+          if @thread[:directive] == :sleep
+            @thread[:state] = :sleeping
+            sleep
           end
         end
       end
@@ -145,7 +143,7 @@ module Que
     class << self
       def state=(state)
         synchronize do
-          Rails.logger.info "Setting Worker to #{state}..."
+          Que.logger.info "Setting Worker to #{state}..."
           case state
           when :async
             # If this is the first time starting up Worker, start up all workers
@@ -160,7 +158,7 @@ module Que
             raise "Bad Worker state! #{state.inspect}"
           end
 
-          Rails.logger.info "Set Worker to #{state}"
+          Que.logger.info "Set Worker to #{state}"
           @state = state
         end
       end
@@ -189,7 +187,7 @@ module Que
 
       def notify_error(message, error)
         log_error message, error
-        ExceptionNotifier.notify_exception(error)
+        #ExceptionNotifier.notify_exception(error)
       rescue => error
         log_error "Error notification error!", error
       end
@@ -205,7 +203,7 @@ module Que
       end
 
       def log_error(message, error)
-        Rails.logger.error <<-ERROR
+        Que.logger.error <<-ERROR
           #{message}
           #{error.message}
           #{error.backtrace.join("\n")}
