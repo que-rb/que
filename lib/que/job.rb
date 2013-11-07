@@ -120,7 +120,7 @@ module Que
 
     # Send the args attribute to the perform() method.
     def work
-      perform(*args)
+      perform(*JSON.parse(args))
     end
 
     # Call perform on a job to run it. No perform method means NOOP.

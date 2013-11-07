@@ -22,6 +22,7 @@ SQL
 RSpec.configure do |config|
   config.before do
     Que::Worker.state = :off
+    DB[:jobs].delete
   end
 end
 
