@@ -1,3 +1,5 @@
+require 'json'
+
 module Que
   class Job < Sequel::Model
     # The Job priority scale:
@@ -10,7 +12,7 @@ module Que
     unrestrict_primary_key
 
     plugin :single_table_inheritance, :type, :key_map   => proc(&:to_s),
-                                             :model_map => proc(&:constantize)
+                                             :model_map => proc(&method(:const_get))
 
     class Retry < StandardError; end
 
@@ -30,7 +32,8 @@ module Que
 
         multi_insert array.map { |element|
           args = Array.wrap(element)
-          args << args.extract_options!.merge(options)
+          opts = args.last.is_a? Hash ? args.pop : {}
+          args << opts.merge(options)
           values_for_args(*args).tap do |values|
             values[:type] = to_s
             values[:args] = values[:args].to_json
@@ -42,12 +45,6 @@ module Que
             when :sync  then DB.after_commit { {} while Job.work }
             when :async then DB.after_commit { Worker.wake!      }
           end
-        end
-      end
-
-      def values_for_args(*args)
-        args.extract_options!.tap do |attrs|
-          attrs[:args] = args << attrs.slice!(:run_at, :priority)
         end
       end
 
@@ -75,13 +72,15 @@ module Que
             model = sti_load(job)
 
             # Track how long different jobs take to process.
-            ms = time_ms{model.work}.round(1)
-            Que.logger.info "Worked job in #{ms} ms: #{model.inspect}"
+            start = Time.now
+            model.work
+            time = Time.now - start
+            Que.logger.info "Worked job in #{(time * 1000).round(1)} ms: #{model.inspect}"
 
             # Most jobs destroy themselves transactionally in #work. If not,
             # take care of them. Jobs that don't destroy themselves run the risk
             # of being repeated after a crash.
-            model.destroy if model.persisted?
+            model.destroy unless model.destroyed?
 
             # Make sure to return the finished job.
             model
@@ -89,8 +88,8 @@ module Que
             # Don't destroy the job or mark it as having errored. It can be
             # retried as soon as it is unlocked.
           rescue => error
-            if job && job[:data]
-              count = (job[:data][:error_count] || 0) + 1
+            if job && data = JSON.load(job[:data])
+              count = (data['error_count'] || 0) + 1
 
               this.update :run_at => (count ** 4 + 3).seconds.from_now,
                           :data   => {:error_count => count, :error_message => error.message, :error_backtrace => error.backtrace.join("\n")}.pg_json
@@ -102,6 +101,21 @@ module Que
           end
         end
       end
+
+      private
+
+      def values_for_args(*args)
+        opts = args.last.is_a?(Hash) ? args.pop : {}
+
+        result = {}
+        result[:run_at]   = opts.delete(:run_at)   if opts[:run_at]
+        result[:priority] = opts.delete(:priority) if opts[:priority]
+
+        args << opts if opts.any?
+        result[:args] = JSON.dump(args)
+
+        result
+      end
     end
 
     # Send the args attribute to the perform() method.
@@ -111,6 +125,10 @@ module Que
 
     # Call perform on a job to run it. No perform method means NOOP.
     def perform(*args)
+    end
+
+    def destroyed?
+      !!@destroyed
     end
 
     private
@@ -132,60 +150,42 @@ module Que
       super
     end
 
-    LOCK = DB.query {
-      with_recursive :cte,
-        DB.query {
-          select { [job.pg_row.*, pg_try_advisory_lock(job.pg_row[:job_id]).as(:locked)] }
-          from DB.query {
-            select :job
-            from :jobs => :job
-            where { run_at <= now{} }
-            where { priority <= :$priority }
-            order_by :priority, :run_at, :job_id
-            limit 1
-          }
-        },
-        DB.query {
-          select { [job.pg_row.*, pg_try_advisory_lock(job.pg_row[:job_id]).as(:locked)] }
-          from DB.query {
-            select DB.query {
-              select :job
-              from :jobs => :job
-              where { run_at <= now{} }
-              where { priority <= :$priority }
-              where { self.> [:priority, :run_at, :job_id], [:cte__priority, :cte__run_at, :cte__job_id] }
-              order_by :priority, :run_at, :job_id
-              limit 1
-            } => :job
-            from :cte
-            exclude :cte__locked
-            limit 1
-          }
-        }
-      from :cte
-      where :locked
-    }.prepare :first, :lock_job
+    def after_destroy
+      super
+      @destroyed = true
+    end
 
-    # This query was slightly adapted from one by RhodiumToad in #postgresql:
+    sql = <<-SQL
+      WITH RECURSIVE cte AS (
+        SELECT (job).*, pg_try_advisory_lock((job).job_id) AS locked
+        FROM (
+          SELECT job
+          FROM jobs AS job
+          WHERE ((run_at <= now()) AND (priority <= ?))
+          ORDER BY priority, run_at, job_id
+          LIMIT 1
+        ) AS t1
+        UNION ALL (
+        SELECT (job).*, pg_try_advisory_lock((job).job_id) AS locked
+        FROM (
+          SELECT (
+            SELECT job
+            FROM jobs AS job
+            WHERE ((run_at <= now()) AND (priority <= ?) AND ((priority, run_at, job_id) > (cte.priority, cte.run_at, cte.job_id)))
+            ORDER BY priority, run_at, job_id
+            LIMIT 1
+          ) AS job
+          FROM cte
+          WHERE NOT cte.locked
+          LIMIT 1
+        ) AS t1)
+      )
+      SELECT *
+      FROM cte
+      WHERE locked
+    SQL
 
-    # with recursive
-    #  t as (select (j).*, pg_try_advisory_lock((j).job_id) as locked
-    #          from (select j from jobs j
-    #                 where run_at >= now()
-    #                 order by priority, run_at, job_id limit 1) s
-    #        union all
-    #        select (j).*, pg_try_advisory_lock((j).job_id)
-    #          from (select (select j from jobs j
-    #                         where run_at >= now()
-    #                           and (priority,run_at,job_id) > (t.priority,t.run_at,t.job_id)
-    #                         order by priority, run_at, job_id limit 1) as j
-    #                  from t
-    #                 where not t.locked limit 1) s)
-    # select * from t where locked;
-    # -- for best results create an index on jobs (priority,run_at,job_id) but unlike other approaches,
-    # -- this one is guaranteed not to lock more than one row even if the index is absent or unused
-
-
+    LOCK = DB[sql, :$priority, :$priority].prepare(:first, :lock_job)
 
     # An alternate scheme using LATERAL, which will arrive in Postgres 9.3.
     # Basically the same, but benchmark to see if it's faster/just as reliable.

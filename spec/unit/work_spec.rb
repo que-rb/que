@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe "Job.work" do
   it "should pass a job's arguments to its perform method and delete it from the DB" do
-    class JobWorkTest < Job
+    class JobWorkTest < Que::Job
       def perform(*args)
         $passed_args = args
       end
@@ -106,7 +106,7 @@ describe "Job.work" do
   it "that raises a Job::Retry should cancel the job, leaving it to be retried" do
     class RetryJob < Que::Job
       def perform(*args)
-        raise Job::Retry
+        raise Que::Job::Retry
       end
     end
 
