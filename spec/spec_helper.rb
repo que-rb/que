@@ -25,3 +25,10 @@ RSpec.configure do |config|
     DB[:jobs].delete
   end
 end
+
+Que::Worker.state = :async # Boot up.
+
+# For use when debugging specs:
+# require 'logger'
+# Que.logger = Logger.new(STDOUT)
+# DB.loggers << Logger.new(STDOUT)

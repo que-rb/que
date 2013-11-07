@@ -111,9 +111,9 @@ module Que
 
     def awake?
       synchronize do
-        @thread[:state].in?(%i(sleeping working)) &&
-        @thread[:directive].in?(%i(sleep work)) &&
-        @thread.status.in?(%w(sleep run))
+        %w(sleeping working).include?(@thread[:state].to_s) &&
+        %w(sleep work).include?(@thread[:directive].to_s) &&
+        %w(sleep run).include?(@thread.status)
       end
     end
 
@@ -127,7 +127,7 @@ module Que
       Job.work(:priority => priority)
     rescue => error
       self.class.notify_error "Worker error!", error
-      sleep ERROR_PERIOD if error.class.to_s.in? DELAYABLE_ERRORS
+      sleep ERROR_PERIOD if DELAYABLE_ERRORS.include?(error.class.to_s)
       return true # There's work available.
     end
 
