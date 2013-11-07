@@ -12,7 +12,7 @@ module Que
     unrestrict_primary_key
 
     plugin :single_table_inheritance, :type, :key_map   => proc(&:to_s),
-                                             :model_map => proc(&method(:const_get))
+                                             :model_map => proc{|s| const_get "::#{s}"}
 
     class Retry < StandardError; end
 
@@ -91,8 +91,8 @@ module Que
             if job && data = JSON.load(job[:data])
               count = (data['error_count'] || 0) + 1
 
-              this.update :run_at => (count ** 4 + 3).seconds.from_now,
-                          :data   => {:error_count => count, :error_message => error.message, :error_backtrace => error.backtrace.join("\n")}.pg_json
+              this.update :run_at => Time.now + (count ** 4 + 3),
+                          :data   => JSON.dump(:error_count => count, :error_message => error.message, :error_backtrace => error.backtrace.join("\n"))
             end
 
             raise
