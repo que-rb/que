@@ -1,7 +1,15 @@
 require 'spec_helper'
 
-describe "Job.work" do
-  it "should pass a job's arguments to its perform method and delete it from the DB" do
+describe "Que::Job.work" do
+  it "should automatically delete jobs from the database's queue" do
+    Que::Job.count.should be 0
+    Que::Job.queue
+    Que::Job.count.should be 1
+    Que::Job.work
+    Que::Job.count.should be 0
+  end
+
+  it "should pass a job's arguments to its perform method" do
     class JobWorkTest < Que::Job
       def perform(*args)
         $passed_args = args
@@ -10,9 +18,7 @@ describe "Job.work" do
 
     JobWorkTest.queue 5, 'ferret', :lazy => true
 
-    Que::Job.count.should be 1
     Que::Job.work
-    Que::Job.count.should be 0
     $passed_args.should == [5, 'ferret', {'lazy' => true}]
   end
 
@@ -66,46 +72,33 @@ describe "Job.work" do
   it "should lock the job it selects" do
     $q1, $q2 = Queue.new, Queue.new
 
-    class SleepJob < Que::Job
+    class LockJob < Que::Job
       def perform(*args)
         $q1.push nil
         $q2.pop
       end
     end
 
-    SleepJob.queue
+    job = LockJob.queue
     @thread = Thread.new { Que::Job.work }
 
+    # Wait until job is being worked.
     $q1.pop
-    {} until Que::Job.work.nil?
 
-    $q2.push nil
-    @thread.join # Make sure there aren't any errors.
-  end
+    # Job should be advisory-locked...
+    DB.select{pg_try_advisory_lock(job.job_id)}.single_value.should be false
 
-  it "should skip jobs that are advisory locked" do
-    job    = Que::Job.queue
-    main   = Thread.current
-    locked = false
-
-    thread = Thread.new do
-      DB.transaction do
-        DB.select{pg_advisory_xact_lock(job.job_id)}.single_value
-        locked = true
-        main.wakeup
-        Thread.stop
-      end
-    end
-
-    Thread.stop unless locked
-
+    # ...and Job.work should ignore advisory-locked jobs.
     Que::Job.work.should be nil
-    thread.wakeup
-    thread.join
-    Que::Job.work.should == job.tap { |job| job[:locked] = true }
+
+    # Let LockJob finish.
+    $q2.push nil
+
+    # Make sure there aren't any errors.
+    @thread.join
   end
 
-  it "that raises a Que::Job::Retry should cancel the job, leaving it to be retried" do
+  it "that raises a Que::Job::Retry should abort the job, leaving it to be retried" do
     class RetryJob < Que::Job
       def perform(*args)
         raise Que::Job::Retry
@@ -119,7 +112,7 @@ describe "Job.work" do
 
     same_job = Que::Job.first
     same_job.job_id.should == job.job_id
-    same_job.run_at.should be_within(1).of Time.now
+    same_job.run_at.should == job.run_at
     same_job.data['error_count'].should be nil
   end
 
