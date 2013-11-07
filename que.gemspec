@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.version       = Que::VERSION
   spec.authors       = ["Chris Hanks"]
   spec.email         = ['christopher.m.hanks@gmail.com']
-  spec.description   = %q{TODO: Write a gem description}
-  spec.summary       = %q{TODO: Write a gem summary}
+  spec.description   = %q{Durable job queueing with PostgreSQL.}
+  spec.summary       = %q{Durable, efficient job queueing with PostgreSQL.}
   spec.homepage      = ''
   spec.license       = 'MIT'
 
