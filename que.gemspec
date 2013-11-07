@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ['christopher.m.hanks@gmail.com']
   spec.description   = %q{Durable job queueing with PostgreSQL.}
   spec.summary       = %q{Durable, efficient job queueing with PostgreSQL.}
-  spec.homepage      = ''
+  spec.homepage      = 'https://github.com/chanks/que'
   spec.license       = 'MIT'
 
   spec.files         = `git ls-files`.split($/)
