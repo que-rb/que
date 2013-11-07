@@ -164,21 +164,5 @@ describe "Que::Job.work" do
       messages.length.should == 1
       messages[0].should =~ /\AWorked job in/
     end
-
-    it "should write error messages to the logger" do
-      pending
-
-      # class ErrorJob < Que::Job
-      #   def perform
-      #     raise "Boo!"
-      #   end
-      # end
-
-      # ErrorJob.queue
-      # Que::Job.work rescue nil
-      # messages.should be_an_instance_of Array
-      # messages.length.should == 1
-      # messages[0].should =~ /\AWorked job in/
-    end
   end
 end
