@@ -75,7 +75,7 @@ module Que
             start = Time.now
             model.work
             time = Time.now - start
-            Que.logger.info "Worked job in #{(time * 1000).round(1)} ms: #{model.inspect}"
+            Que.logger.info "Worked job in #{(time * 1000).round(1)} ms: #{model.inspect}" if Que.logger
 
             # Most jobs destroy themselves transactionally in #work. If not,
             # take care of them. Jobs that don't destroy themselves run the risk

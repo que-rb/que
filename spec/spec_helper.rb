@@ -25,6 +25,3 @@ RSpec.configure do |config|
     DB[:jobs].delete
   end
 end
-
-require 'logger'
-Que.logger = Logger.new(STDOUT)

@@ -137,4 +137,48 @@ describe "Que::Job.work" do
     Que::Job.work
     $class_job_array.should == [1, 2]
   end
+
+  describe "should support a logger" do
+    before do
+      @logger = Object.new
+      def @logger.method_missing(m, message)
+        @messages ||= []
+        @messages << message
+      end
+      Que.logger = @logger
+    end
+
+    after do
+      Que.logger = nil
+    end
+
+    def messages
+      @logger.instance_variable_get(:@messages)
+    end
+
+    it "should write messages to the logger" do
+      Que::Job.queue
+      Que::Job.work
+
+      messages.should be_an_instance_of Array
+      messages.length.should == 1
+      messages[0].should =~ /\AWorked job in/
+    end
+
+    it "should write error messages to the logger" do
+      pending
+
+      # class ErrorJob < Que::Job
+      #   def perform
+      #     raise "Boo!"
+      #   end
+      # end
+
+      # ErrorJob.queue
+      # Que::Job.work rescue nil
+      # messages.should be_an_instance_of Array
+      # messages.length.should == 1
+      # messages[0].should =~ /\AWorked job in/
+    end
+  end
 end

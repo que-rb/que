@@ -143,7 +143,7 @@ module Que
     class << self
       def state=(state)
         synchronize do
-          Que.logger.info "Setting Worker to #{state}..."
+          Que.logger.info "Setting Worker to #{state}..." if Que.logger
           case state
           when :async
             # If this is the first time starting up Worker, start up all workers
@@ -158,7 +158,7 @@ module Que
             raise "Bad Worker state! #{state.inspect}"
           end
 
-          Que.logger.info "Set Worker to #{state}"
+          Que.logger.info "Set Worker to #{state}" if Que.logger
           @state = state
         end
       end
@@ -203,11 +203,13 @@ module Que
       end
 
       def log_error(message, error)
-        Que.logger.error <<-ERROR
-          #{message}
-          #{error.message}
-          #{error.backtrace.join("\n")}
-        ERROR
+        if Que.logger
+          Que.logger.error <<-ERROR
+#{message}
+#{error.message}
+#{error.backtrace.join("\n")}
+          ERROR
+        end
       end
     end
   end
