@@ -26,28 +26,6 @@ module Que
         create values_for_args *args
       end
 
-      def queue_array(array, options = {})
-        # Since this is a direct insert, we have to special-case the callbacks.
-        options[:priority] ||= default_priority
-
-        multi_insert array.map { |element|
-          args = Array.wrap(element)
-          opts = args.last.is_a? Hash ? args.pop : {}
-          args << opts.merge(options)
-          values_for_args(*args).tap do |values|
-            values[:type] = to_s
-            values[:args] = values[:args].to_json
-          end
-        }
-
-        if array.any? && !options[:run_at]
-          case Worker.state
-            when :sync  then DB.after_commit { {} while Job.work }
-            when :async then DB.after_commit { Worker.wake!      }
-          end
-        end
-      end
-
       def work(options = {})
         # Since we're taking session-level advisory locks, we have to hold the
         # same connection throughout the process of getting a job, working it,
