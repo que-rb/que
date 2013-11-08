@@ -9,7 +9,7 @@ module Que
   #   :sync  => Work jobs immediately, as they're queued, in the current thread. Used in testing.
   #   :off   => Don't work jobs at all. Must use Job#work or Job.work explicitly.
 
-  # Worker.wake! will wake up the sleeping worker with the lowest minimum job
+  # Worker.wake! will wake up the sleeping worker with the least minimum job
   # priority. Worker.wake! may be run by another thread handling a web request,
   # or by the wrangler thread (which wakes a worker every five seconds, to
   # handle scheduled jobs). It only has an effect when running in async mode.
@@ -37,8 +37,8 @@ module Que
     )
 
     # How long the wrangler thread should wait between pings of the database.
-    # Future directions: when we have multiple dynos, add rand() to this value
-    # in the wrangler loop below, so that the dynos' checks will be spaced out.
+    # Consider adding rand() to this value in the wrangler loop below, so that
+    # different process' checks will be spaced out.
     SLEEP_PERIOD = 5
 
     # How long to sleep, in repeated increments, for something to happen.
@@ -128,7 +128,7 @@ module Que
     rescue => error
       self.class.notify_error "Worker error!", error
       sleep ERROR_PERIOD if DELAYABLE_ERRORS.include?(error.class.to_s)
-      return true # There's work available.
+      return true # There may be work available, so don't sleep.
     end
 
     def sleeping?
@@ -143,12 +143,16 @@ module Que
     class << self
       def state=(state)
         synchronize do
-          Que.logger.info "Setting Worker to #{state}..." if Que.logger
           case state
           when :async
-            # If this is the first time starting up Worker, start up all workers
-            # immediately, for the case of a restart during heavy app usage.
+            # Make sure all workers are initialized. This means that the first
+            # time the state is set to :async in the life of a process, all
+            # the workers will hit the DB looking for work immediately, and
+            # then go to sleep if they can't find any. This is valuable if the
+            # app is rebooting during a busy period - there won't be a lag as
+            # the workers spool up one by one.
             workers
+
             # Make sure the wrangler thread is running, it'll do the rest.
             @wrangler ||= Thread.new { loop { wrangle } }
           when :sync, :off

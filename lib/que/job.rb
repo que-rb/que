@@ -2,13 +2,6 @@ require 'json'
 
 module Que
   class Job < Sequel::Model
-    # The Job priority scale:
-    #   1 = Urgent. Somebody's staring at a spinner waiting on this.
-    #   2 = ASAP. Should happen within a few minutes of the run_at time.
-    #   3 = Time-sensitive. Sooner is better than later.
-    #   4 = Time-insensitive. Shouldn't get delayed forever, though.
-    #   5 = Whenever. Timing doesn't matter. May be a huge backlog of these.
-
     unrestrict_primary_key
 
     plugin :single_table_inheritance, :type, :key_map   => proc(&:to_s),
@@ -41,9 +34,9 @@ module Que
             # exist), but didn't actually attempt to lock it until the job was
             # finished (making it appear to be unlocked). Now that we have the
             # job lock, we know that a previous worker would have deleted it by
-            # now, so we just make sure it still exists before working it.
-            this = dataset.where(:priority => job[:priority], :run_at => job[:run_at], :job_id => job[:job_id])
-            return if this.empty?
+            # now, so we just check that it still exists before working it.
+            ds = dataset.where(:priority => job[:priority], :run_at => job[:run_at], :job_id => job[:job_id])
+            return if ds.empty?
 
             # Split up model instantiation from the DB query, so that model
             # instantiation errors can be caught.
@@ -69,8 +62,8 @@ module Que
             if job && data = JSON.load(job[:data])
               count = (data['error_count'] || 0) + 1
 
-              this.update :run_at => Time.now + (count ** 4 + 3),
-                          :data   => JSON.dump(:error_count => count, :error_message => error.message, :error_backtrace => error.backtrace.join("\n"))
+              ds.update :run_at => Time.now + (count ** 4 + 3),
+                        :data   => JSON.dump(:error_count => count, :error_message => error.message, :error_backtrace => error.backtrace.join("\n"))
             end
 
             raise
@@ -101,7 +94,7 @@ module Que
       perform(*JSON.parse(args))
     end
 
-    # Call perform on a job to run it. No perform method means NOOP.
+    # Call perform on a job to run it. No perform method means nothing happens.
     def perform(*args)
     end
 
@@ -111,8 +104,6 @@ module Que
 
     private
 
-    # If we add any more callbacks here, make sure to also special-case them in
-    # queue_array above.
     def before_create
       self.priority ||= self.class.default_priority
 
@@ -163,7 +154,7 @@ module Que
       WHERE locked
     SQL
 
-    LOCK = DB[sql, :$priority, :$priority].prepare(:first, :lock_job)
+    LOCK = DB[sql, :$priority, :$priority].prepare(:first, :lock_que_job)
 
     # An alternate scheme using LATERAL, which will arrive in Postgres 9.3.
     # Basically the same, but benchmark to see if it's faster/just as reliable.
