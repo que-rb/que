@@ -16,8 +16,11 @@ module Que
           :args => JSON.dump(args)
         }
 
-        attrs[:run_at]   = run_at   if run_at
-        attrs[:priority] = priority if priority
+        attrs[:run_at] = run_at if run_at
+
+        if p = priority || @default_priority
+          attrs[:priority] = p
+        end
 
         Que.execute *insert_sql(attrs)
       end

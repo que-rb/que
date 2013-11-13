@@ -119,7 +119,26 @@ shared_examples "a Que backend" do
     end
 
     it "should respect a default (but overridable) priority for the job class" do
-      pending
+      class DefaultPriorityJob < Que::Job
+        @default_priority = 3
+      end
+
+      DB[:que_jobs].count.should be 0
+      DefaultPriorityJob.queue 1
+      DefaultPriorityJob.queue 1, :priority => 4
+      DB[:que_jobs].count.should be 2
+
+      first, second = DB[:que_jobs].order(:job_id).all
+
+      first[:priority].should be 3
+      first[:run_at].should be_within(1).of Time.now
+      first[:type].should == "DefaultPriorityJob"
+      JSON.load(first[:args]).should == [1]
+
+      second[:priority].should be 4
+      second[:run_at].should be_within(1).of Time.now
+      second[:type].should == "DefaultPriorityJob"
+      JSON.load(second[:args]).should == [1]
     end
 
     it "should respect a default (but overridable) run_at for the job class" do
