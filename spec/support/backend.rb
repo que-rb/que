@@ -89,7 +89,18 @@ shared_examples "a Que backend" do
     end
 
     it "should be able to queue a job with a specific priority" do
-      pending
+      class PriorityJob < Que::Job
+      end
+
+      DB[:que_jobs].count.should be 0
+      PriorityJob.queue 1, :string => "string", :priority => 4
+      DB[:que_jobs].count.should be 1
+
+      job = DB[:que_jobs].first
+      job[:priority].should be 4
+      job[:run_at].should be_within(1).of Time.now
+      job[:type].should == "PriorityJob"
+      JSON.load(job[:args]).should == [1, {'string' => 'string'}]
     end
 
     it "should be able to queue a job with queueing options in addition to argument options" do

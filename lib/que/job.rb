@@ -5,8 +5,9 @@ module Que
     class << self
       def queue(*args)
         if args.last.is_a?(Hash)
-          options = args.pop
-          run_at = options.delete(:run_at)
+          options  = args.pop
+          run_at   = options.delete(:run_at)
+          priority = options.delete(:priority)
           args << options
         end
 
@@ -15,7 +16,8 @@ module Que
           :args => JSON.dump(args)
         }
 
-        attrs[:run_at] = run_at if run_at
+        attrs[:run_at]   = run_at   if run_at
+        attrs[:priority] = priority if priority
 
         Que.execute *insert_sql(attrs)
       end
