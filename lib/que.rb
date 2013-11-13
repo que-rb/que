@@ -28,10 +28,6 @@ module Que
       end
     end
 
-    def execute(sql)
-      connection.execute(sql)
-    end
-
     def create!
       execute SQL.create_sql
     end
@@ -42,6 +38,12 @@ module Que
 
     def clear!
       execute SQL.clear_sql
+    end
+
+    private
+
+    def execute(sql)
+      connection.execute(sql)
     end
   end
 end
