@@ -23,3 +23,16 @@ QUE_CONNECTIONS = {
                       :dbname   => uri.path[1..-1]
                     )
 }
+
+# There are two Sequel database instances - one in the QUE_CONNECTIONS hash
+# that's used to test Que's Sequel integration, and one in the DB constant
+# that's used to in the specs to introspect/manipulate the database directly.
+DB = Sequel.connect(url)
+DB.drop_table? :que_jobs
+DB.run Que::SQL.create_sql
+
+RSpec.configure do |config|
+  config.before do
+    DB[:que_jobs].delete
+  end
+end

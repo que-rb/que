@@ -5,6 +5,7 @@ module Que
   autoload :ActiveRecord, 'que/adapters/active_record'
   autoload :PG,           'que/adapters/pg'
   autoload :Sequel,       'que/adapters/sequel'
+  autoload :SQL,          'que/sql'
 
   class << self
     def connection=(connection)
@@ -29,6 +30,18 @@ module Que
 
     def execute(sql)
       connection.execute(sql)
+    end
+
+    def create!
+      execute SQL.create_sql
+    end
+
+    def drop!
+      execute SQL.drop_sql
+    end
+
+    def clear!
+      execute SQL.clear_sql
     end
   end
 end
