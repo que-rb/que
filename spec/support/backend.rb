@@ -15,23 +15,52 @@ shared_examples "a Que backend" do
   end
 
   describe "when queueing jobs" do
-    it "should be able to queue a job with arguments" do
+    it "should be able to queue a job" do
       class QueueableJob < Que::Job
       end
 
       DB[:que_jobs].count.should be 0
-      QueueableJob.queue 1, 'two', :string => "string",
-                                   :integer => 5,
-                                   :array => [1, "two", {:three => 3}],
-                                   :hash => {:one => 1, :two => 'two', :three => [3]}
-
+      QueueableJob.queue
       DB[:que_jobs].count.should be 1
 
       job = DB[:que_jobs].first
       job[:priority].should be 1
       job[:run_at].should be_within(1).of Time.now
       job[:type].should == "QueueableJob"
+      JSON.load(job[:args]).should == []
+    end
 
+    it "should be able to queue a job with arguments" do
+      class ArgumentJob < Que::Job
+      end
+
+      DB[:que_jobs].count.should be 0
+      ArgumentJob.queue 1, 'two'
+      DB[:que_jobs].count.should be 1
+
+      job = DB[:que_jobs].first
+      job[:priority].should be 1
+      job[:run_at].should be_within(1).of Time.now
+      job[:type].should == "ArgumentJob"
+      JSON.load(job[:args]).should == [1, 'two']
+    end
+
+    it "should be able to queue a job with complex arguments" do
+      class ComplexArgumentJob < Que::Job
+      end
+
+      DB[:que_jobs].count.should be 0
+      ComplexArgumentJob.queue 1, 'two', :string => "string",
+                                         :integer => 5,
+                                         :array => [1, "two", {:three => 3}],
+                                         :hash => {:one => 1, :two => 'two', :three => [3]}
+
+      DB[:que_jobs].count.should be 1
+
+      job = DB[:que_jobs].first
+      job[:priority].should be 1
+      job[:run_at].should be_within(1).of Time.now
+      job[:type].should == "ComplexArgumentJob"
       JSON.load(job[:args]).should == [
         1,
         'two',
@@ -56,7 +85,6 @@ shared_examples "a Que backend" do
       job[:priority].should be 1
       job[:run_at].should be_within(1).of Time.now + 60
       job[:type].should == "SchedulableJob"
-
       JSON.load(job[:args]).should == [1, {'string' => 'string'}]
     end
 

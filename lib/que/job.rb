@@ -4,9 +4,11 @@ module Que
   class Job
     class << self
       def queue(*args)
-        options = args.last.is_a?(Hash) ? args.pop : {}
-        run_at = options.delete(:run_at)
-        args << options
+        if args.last.is_a?(Hash)
+          options = args.pop
+          run_at = options.delete(:run_at)
+          args << options
+        end
 
         attrs = {
           :type => to_s,
