@@ -4,8 +4,8 @@ module Que
       @db = db
     end
 
-    def execute(sql)
-      @db[sql].all
+    def execute(*args)
+      @db.synchronize { |conn| conn.async_exec(*args).to_a }
     end
   end
 end

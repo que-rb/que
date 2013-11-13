@@ -3,14 +3,14 @@ module Que
     def initialize
     end
 
-    def execute(sql)
-      connection.execute(sql).to_a
+    def execute(*args)
+      connection.async_exec(*args).to_a
     end
 
     private
 
     def connection
-      ::ActiveRecord::Base.connection
+      ::ActiveRecord::Base.connection.raw_connection
     end
   end
 end

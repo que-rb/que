@@ -4,7 +4,7 @@ module Que
       raise NotImplementedError
     end
 
-    def execute(sql)
+    def execute(*args)
       raise NotImplementedError
     end
   end
