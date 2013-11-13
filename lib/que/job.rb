@@ -16,7 +16,9 @@ module Que
           :args => JSON.dump(args)
         }
 
-        attrs[:run_at] = run_at if run_at
+        if t = run_at || @default_run_at && @default_run_at.call
+          attrs[:run_at] = t
+        end
 
         if p = priority || @default_priority
           attrs[:priority] = p

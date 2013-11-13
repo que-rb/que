@@ -142,7 +142,26 @@ shared_examples "a Que backend" do
     end
 
     it "should respect a default (but overridable) run_at for the job class" do
-      pending
+      class DefaultRunAtJob < Que::Job
+        @default_run_at = -> { Time.now + 60 }
+      end
+
+      DB[:que_jobs].count.should be 0
+      DefaultRunAtJob.queue 1
+      DefaultRunAtJob.queue 1, :run_at => Time.now + 30
+      DB[:que_jobs].count.should be 2
+
+      first, second = DB[:que_jobs].order(:job_id).all
+
+      first[:priority].should be 1
+      first[:run_at].should be_within(1).of Time.now + 60
+      first[:type].should == "DefaultRunAtJob"
+      JSON.load(first[:args]).should == [1]
+
+      second[:priority].should be 1
+      second[:run_at].should be_within(1).of Time.now + 30
+      second[:type].should == "DefaultRunAtJob"
+      JSON.load(second[:args]).should == [1]
     end
 
     it "should raise an error if given arguments that can't convert to and from JSON unambiguously" do
