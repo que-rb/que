@@ -45,7 +45,19 @@ shared_examples "a Que backend" do
     end
 
     it "should be able to queue a job with a specific time to run" do
-      pending
+      class SchedulableJob < Que::Job
+      end
+
+      DB[:que_jobs].count.should be 0
+      SchedulableJob.queue 1, :string => "string", :run_at => Time.now + 60
+      DB[:que_jobs].count.should be 1
+
+      job = DB[:que_jobs].first
+      job[:priority].should be 1
+      job[:run_at].should be_within(1).of Time.now + 60
+      job[:type].should == "SchedulableJob"
+
+      JSON.load(job[:args]).should == [1, {'string' => 'string'}]
     end
 
     it "should be able to queue a job with a specific priority" do
