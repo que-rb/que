@@ -163,9 +163,5 @@ shared_examples "a Que backend" do
       second[:type].should == "DefaultRunAtJob"
       JSON.load(second[:args]).should == [1]
     end
-
-    it "should raise an error if given arguments that can't convert to and from JSON unambiguously" do
-      pending
-    end
   end
 end
