@@ -8,7 +8,7 @@ module Que
           options  = args.pop
           run_at   = options.delete(:run_at)
           priority = options.delete(:priority)
-          args << options
+          args << options if options.any?
         end
 
         attrs = {

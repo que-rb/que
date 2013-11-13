@@ -78,14 +78,14 @@ shared_examples "a Que backend" do
       end
 
       DB[:que_jobs].count.should be 0
-      SchedulableJob.queue 1, :string => "string", :run_at => Time.now + 60
+      SchedulableJob.queue 1, :run_at => Time.now + 60
       DB[:que_jobs].count.should be 1
 
       job = DB[:que_jobs].first
       job[:priority].should be 1
       job[:run_at].should be_within(1).of Time.now + 60
       job[:type].should == "SchedulableJob"
-      JSON.load(job[:args]).should == [1, {'string' => 'string'}]
+      JSON.load(job[:args]).should == [1]
     end
 
     it "should be able to queue a job with a specific priority" do
@@ -93,18 +93,29 @@ shared_examples "a Que backend" do
       end
 
       DB[:que_jobs].count.should be 0
-      PriorityJob.queue 1, :string => "string", :priority => 4
+      PriorityJob.queue 1, :priority => 4
       DB[:que_jobs].count.should be 1
 
       job = DB[:que_jobs].first
       job[:priority].should be 4
       job[:run_at].should be_within(1).of Time.now
       job[:type].should == "PriorityJob"
-      JSON.load(job[:args]).should == [1, {'string' => 'string'}]
+      JSON.load(job[:args]).should == [1]
     end
 
     it "should be able to queue a job with queueing options in addition to argument options" do
-      pending
+      class ComplexOptionJob < Que::Job
+      end
+
+      DB[:que_jobs].count.should be 0
+      ComplexOptionJob.queue 1, :string => "string", :run_at => Time.now + 60, :priority => 4
+      DB[:que_jobs].count.should be 1
+
+      job = DB[:que_jobs].first
+      job[:priority].should be 4
+      job[:run_at].should be_within(1).of Time.now + 60
+      job[:type].should == "ComplexOptionJob"
+      JSON.load(job[:args]).should == [1, {'string' => 'string'}]
     end
 
     it "should respect a default (but overridable) priority for the job class" do
