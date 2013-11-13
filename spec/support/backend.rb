@@ -16,7 +16,32 @@ shared_examples "a Que backend" do
 
   describe "when queueing jobs" do
     it "should be able to queue a job with arguments" do
-      pending
+      class QueueableJob < Que::Job
+      end
+
+      DB[:que_jobs].count.should be 0
+      QueueableJob.queue 1, 'two', :string => "string",
+                                   :integer => 5,
+                                   :array => [1, "two", {:three => 3}],
+                                   :hash => {:one => 1, :two => 'two', :three => [3]}
+
+      DB[:que_jobs].count.should be 1
+
+      job = DB[:que_jobs].first
+      job[:priority].should be 1
+      job[:run_at].should be_within(1).of Time.now
+      job[:type].should == "QueueableJob"
+
+      JSON.load(job[:args]).should == [
+        1,
+        'two',
+        {
+          'string' => 'string',
+          'integer' => 5,
+          'array' => [1, "two", {"three" => 3}],
+          'hash' => {'one' => 1, 'two' => 'two', 'three' => [3]}
+        }
+      ]
     end
 
     it "should be able to queue a job with a specific time to run" do

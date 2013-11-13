@@ -1,11 +1,13 @@
 require 'que/version'
 
 module Que
-  autoload :Adapter,      'que/adapter'
+  autoload :Adapter, 'que/adapter'
+  autoload :Job,     'que/job'
+  autoload :SQL,     'que/sql'
+
   autoload :ActiveRecord, 'que/adapters/active_record'
   autoload :PG,           'que/adapters/pg'
   autoload :Sequel,       'que/adapters/sequel'
-  autoload :SQL,          'que/sql'
 
   class << self
     def connection=(connection)
@@ -40,10 +42,8 @@ module Que
       execute SQL.clear_sql
     end
 
-    private
-
-    def execute(sql)
-      connection.execute(sql)
+    def execute(*args)
+      connection.execute(*args)
     end
   end
 end
