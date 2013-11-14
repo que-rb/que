@@ -261,7 +261,28 @@ shared_examples "a Que backend" do
     end
 
     it "should handle subclasses of other jobs" do
-      pending
+      class SubClassJob < Que::Job
+        def run
+          $job_spec_result << :sub
+        end
+      end
+
+      class SubSubClassJob < SubClassJob
+        def run
+          super
+          $job_spec_result << :subsub
+        end
+      end
+
+      $job_spec_result = []
+      SubClassJob.queue
+      Que::Job.work.should be_an_instance_of SubClassJob
+      $job_spec_result.should == [:sub]
+
+      $job_spec_result = []
+      SubSubClassJob.queue
+      Que::Job.work.should be_an_instance_of SubSubClassJob
+      $job_spec_result.should == [:sub, :subsub]
     end
   end
 end
