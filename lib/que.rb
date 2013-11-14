@@ -16,18 +16,16 @@ module Que
 
   class << self
     def connection=(connection)
-      @connection = if connection.to_s == "ActiveRecord"
+      @connection = if connection.to_s == 'ActiveRecord'
         Que::ActiveRecord.new
-      elsif connection.class.to_s == "Sequel::Postgres::Database"
-        Que::Sequel.new(connection)
-      elsif connection.class.to_s == "PG::Connection"
-        Que::PG.new(connection)
-      elsif connection.class.to_s == "ConnectionPool"
-        Que::ConnectionPool.new(connection)
-      elsif connection.nil?
-        connection
       else
-        raise "Que connection not recognized: #{connection.inspect}"
+        case connection.class.to_s
+          when 'Sequel::Postgres::Database' then Que::Sequel.new(connection)
+          when 'ConnectionPool'             then Que::ConnectionPool.new(connection)
+          when 'PG::Connection'             then Que::PG.new(connection)
+          when 'NilClass'                   then connection
+          else raise "Que connection not recognized: #{connection.inspect}"
+        end
       end
     end
 
