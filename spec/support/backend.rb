@@ -25,7 +25,7 @@ shared_examples "a Que backend" do
 
       job = DB[:que_jobs].first
       job[:priority].should be 1
-      job[:run_at].should be_within(1).of Time.now
+      job[:run_at].should be_within(3).of Time.now
       job[:type].should == "QueueableJob"
       JSON.load(job[:args]).should == []
     end
@@ -40,7 +40,7 @@ shared_examples "a Que backend" do
 
       job = DB[:que_jobs].first
       job[:priority].should be 1
-      job[:run_at].should be_within(1).of Time.now
+      job[:run_at].should be_within(3).of Time.now
       job[:type].should == "ArgumentJob"
       JSON.load(job[:args]).should == [1, 'two']
     end
@@ -59,7 +59,7 @@ shared_examples "a Que backend" do
 
       job = DB[:que_jobs].first
       job[:priority].should be 1
-      job[:run_at].should be_within(1).of Time.now
+      job[:run_at].should be_within(3).of Time.now
       job[:type].should == "ComplexArgumentJob"
       JSON.load(job[:args]).should == [
         1,
@@ -83,7 +83,7 @@ shared_examples "a Que backend" do
 
       job = DB[:que_jobs].first
       job[:priority].should be 1
-      job[:run_at].should be_within(1).of Time.now + 60
+      job[:run_at].should be_within(3).of Time.now + 60
       job[:type].should == "SchedulableJob"
       JSON.load(job[:args]).should == [1]
     end
@@ -98,7 +98,7 @@ shared_examples "a Que backend" do
 
       job = DB[:que_jobs].first
       job[:priority].should be 4
-      job[:run_at].should be_within(1).of Time.now
+      job[:run_at].should be_within(3).of Time.now
       job[:type].should == "PriorityJob"
       JSON.load(job[:args]).should == [1]
     end
@@ -113,7 +113,7 @@ shared_examples "a Que backend" do
 
       job = DB[:que_jobs].first
       job[:priority].should be 4
-      job[:run_at].should be_within(1).of Time.now + 60
+      job[:run_at].should be_within(3).of Time.now + 60
       job[:type].should == "ComplexOptionJob"
       JSON.load(job[:args]).should == [1, {'string' => 'string'}]
     end
@@ -131,12 +131,12 @@ shared_examples "a Que backend" do
       first, second = DB[:que_jobs].order(:job_id).all
 
       first[:priority].should be 3
-      first[:run_at].should be_within(1).of Time.now
+      first[:run_at].should be_within(3).of Time.now
       first[:type].should == "DefaultPriorityJob"
       JSON.load(first[:args]).should == [1]
 
       second[:priority].should be 4
-      second[:run_at].should be_within(1).of Time.now
+      second[:run_at].should be_within(3).of Time.now
       second[:type].should == "DefaultPriorityJob"
       JSON.load(second[:args]).should == [1]
     end
@@ -154,12 +154,12 @@ shared_examples "a Que backend" do
       first, second = DB[:que_jobs].order(:job_id).all
 
       first[:priority].should be 1
-      first[:run_at].should be_within(1).of Time.now + 60
+      first[:run_at].should be_within(3).of Time.now + 60
       first[:type].should == "DefaultRunAtJob"
       JSON.load(first[:args]).should == [1]
 
       second[:priority].should be 1
-      second[:run_at].should be_within(1).of Time.now + 30
+      second[:run_at].should be_within(3).of Time.now + 30
       second[:type].should == "DefaultRunAtJob"
       JSON.load(second[:args]).should == [1]
     end
