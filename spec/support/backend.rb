@@ -167,7 +167,28 @@ shared_examples "a Que backend" do
 
   describe "when working jobs" do
     it "should pass a job's arguments to the run method and delete it from the database" do
-      pending
+      $passed_args = nil
+
+      class RunTest < Que::Job
+        def run(*args)
+          $passed_args = args
+        end
+      end
+
+      DB[:que_jobs].count.should be 0
+      RunTest.queue 1, 'two', {'three' => 3}
+      DB[:que_jobs].count.should be 1
+      Que::Job.work.should be_an_instance_of RunTest
+      DB[:que_jobs].count.should be 0
+      $passed_args.should == [1, 'two', {'three' => 3}]
+
+      # Should clear advisory lock.
+      DB[:pg_locks].where(:locktype => 'advisory').should be_empty
+    end
+
+    it "should not fail if there are no jobs to work" do
+      Que::Job.work.should be nil
+      DB[:pg_locks].where(:locktype => 'advisory').should be_empty
     end
 
     it "should prefer a job with a higher priority" do

@@ -27,6 +27,17 @@ module Que
         Que.execute *insert_sql(attrs)
       end
 
+      def work
+        if row = Que.execute(SQL.lock_job_sql).first
+          job = const_get(row['type']).new
+          job.run(*JSON.load(row['args']))
+          Que.execute "DELETE FROM que_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [row['priority'], row['run_at'], row['job_id']]
+          job
+        end
+      ensure
+        Que.execute "SELECT pg_advisory_unlock($1)", [row['job_id']] if row
+      end
+
       private
 
       # Column names are not escaped, so this method should not be called with untrusted hashes.
