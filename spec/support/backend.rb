@@ -164,4 +164,42 @@ shared_examples "a Que backend" do
       JSON.load(second[:args]).should == [1]
     end
   end
+
+  describe "when working jobs" do
+    it "should pass a job's arguments to the run method and delete it from the database" do
+      pending
+    end
+
+    it "should prefer a job with a higher priority" do
+      pending
+    end
+
+    it "should prefer a job that was scheduled to run longer ago" do
+      pending
+    end
+
+    it "should prefer a job that was queued earlier, judging by the job_id" do
+      pending
+    end
+
+    it "should only work a job whose scheduled time to run has passed" do
+      pending
+    end
+
+    it "should lock the job it selects" do
+      pending
+    end
+
+    it "should not work jobs that are advisory-locked" do
+      pending
+    end
+
+    it "should respect a Job::Retry error and leave the job to be processed over again" do
+      pending
+    end
+
+    it "should handle subclasses of other jobs" do
+      pending
+    end
+  end
 end
