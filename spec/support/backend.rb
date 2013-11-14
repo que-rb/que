@@ -249,11 +249,39 @@ shared_examples "a Que backend" do
     end
 
     it "should lock the job it selects" do
-      pending
+      $q1, $q2 = Queue.new, Queue.new
+
+      class AdvisoryLockJob < Que::Job
+        def run(*args)
+          $q1.push nil
+          $q2.pop
+        end
+      end
+
+      AdvisoryLockJob.queue
+      id = DB[:que_jobs].get(:job_id)
+      thread = Thread.new { Que::Job.work }
+
+      $q1.pop
+      DB[:pg_locks].where(:locktype => 'advisory', :objid => id).count.should be 1
+      $q2.push nil
+
+      thread.join
     end
 
     it "should not work jobs that are advisory-locked" do
-      pending
+      class AdvisoryLockBlockJob < Que::Job
+      end
+
+      AdvisoryLockBlockJob.queue
+      id = DB[:que_jobs].get(:job_id)
+
+      begin
+        DB.select{pg_advisory_lock(id)}.single_value
+        Que::Job.work.should be nil
+      ensure
+        DB.select{pg_advisory_unlock(id)}.single_value
+      end
     end
 
     it "should handle subclasses of other jobs" do
