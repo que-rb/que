@@ -4,8 +4,8 @@ module Que
       @pool = pool
     end
 
-    def execute(*args)
-      @pool.with { |conn| conn.async_exec(*args) }
+    def checkout(&block)
+      @pool.with(&block)
     end
   end
 end

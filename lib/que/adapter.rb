@@ -4,8 +4,12 @@ module Que
       raise NotImplementedError
     end
 
-    def execute(*args)
+    def checkout(&block)
       raise NotImplementedError
+    end
+
+    def execute(*args)
+      checkout { |conn| conn.async_exec(*args) }
     end
   end
 end

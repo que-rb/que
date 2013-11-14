@@ -3,8 +3,8 @@ module Que
     def initialize
     end
 
-    def execute(*args)
-      ::ActiveRecord::Base.connection.raw_connection.async_exec(*args)
+    def checkout
+      ::ActiveRecord::Base.connection_pool.with_connection { |conn| yield conn.raw_connection }
     end
   end
 end
