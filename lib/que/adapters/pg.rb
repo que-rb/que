@@ -1,12 +1,14 @@
+require 'monitor'
+
 module Que
   class PG < Adapter
     def initialize(pg)
-      @pg    = pg
-      @mutex = Mutex.new
+      @pg      = pg
+      @monitor = Monitor.new
     end
 
     def checkout
-      @mutex.synchronize { yield @pg }
+      @monitor.synchronize { yield @pg }
     end
   end
 end
