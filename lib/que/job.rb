@@ -50,10 +50,8 @@ module Que
               check = Que.execute "SELECT 1 AS one FROM que_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3;", [row['priority'], row['run_at'], row['job_id']]
               return true if check.none?
 
-              job = const_get(row['type']).new
-              job.run(*JSON.load(row['args']))
-              Que.execute "DELETE FROM que_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [row['priority'], row['run_at'], row['job_id']]
-
+              job = const_get(row['type']).new(row)
+              job._run
               job
             end
           ensure
@@ -81,8 +79,24 @@ module Que
       end
     end
 
+    def initialize(attrs)
+      @attrs = attrs
+    end
+
+    def _run
+      run *JSON.load(@attrs['args'])
+      destroy unless @destroyed
+    end
+
     # A job without a run method defined doesn't do anything. This is useful in testing.
     def run(*args)
+    end
+
+    private
+
+    def destroy
+      @destroyed = true
+      Que.execute "DELETE FROM que_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [@attrs['priority'], @attrs['run_at'], @attrs['job_id']]
     end
   end
 end

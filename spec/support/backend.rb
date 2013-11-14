@@ -309,5 +309,18 @@ shared_examples "a Que backend" do
       Que::Job.work.should be_an_instance_of SubSubClassJob
       $job_spec_result.should == [:sub, :subsub]
     end
+
+    it "should make it easy to destroy the job within the same transaction as other changes" do
+      class TransactionJob < Que::Job
+        def run
+          destroy
+        end
+      end
+
+      TransactionJob.queue
+      DB[:que_jobs].count.should be 1
+      Que::Job.work
+      DB[:que_jobs].count.should be 0
+    end
   end
 end
