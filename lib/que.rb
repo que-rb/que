@@ -4,9 +4,10 @@ module Que
   autoload :Adapter, 'que/adapter'
   autoload :Job,     'que/job'
 
-  autoload :ActiveRecord, 'que/adapters/active_record'
-  autoload :PG,           'que/adapters/pg'
-  autoload :Sequel,       'que/adapters/sequel'
+  autoload :ActiveRecord,   'que/adapters/active_record'
+  autoload :ConnectionPool, 'que/adapters/connection_pool'
+  autoload :PG,             'que/adapters/pg'
+  autoload :Sequel,         'que/adapters/sequel'
 
   root = File.expand_path '..', File.dirname(__FILE__)
 
@@ -21,6 +22,8 @@ module Que
         Que::Sequel.new(connection)
       elsif connection.class.to_s == "PG::Connection"
         Que::PG.new(connection)
+      elsif connection.class.to_s == "ConnectionPool"
+        Que::ConnectionPool.new(connection)
       elsif connection.nil?
         connection
       else

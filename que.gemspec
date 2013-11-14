@@ -26,4 +26,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'sequel'
   spec.add_development_dependency 'activerecord'
   spec.add_development_dependency 'pg'
+  spec.add_development_dependency 'connection_pool'
 end
