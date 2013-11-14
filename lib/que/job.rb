@@ -56,5 +56,9 @@ module Que
         ["INSERT INTO que_jobs (#{columns.join(', ')}) VALUES (#{placeholders.join(', ')});", values]
       end
     end
+
+    # A job without a run method defined doesn't do anything. This is useful in testing.
+    def run(*args)
+    end
   end
 end

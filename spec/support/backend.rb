@@ -192,19 +192,60 @@ shared_examples "a Que backend" do
     end
 
     it "should prefer a job with a higher priority" do
-      pending
+      class PriorityWorkJob < Que::Job
+      end
+
+      PriorityWorkJob.queue :priority => 5
+      PriorityWorkJob.queue :priority => 1
+      PriorityWorkJob.queue :priority => 5
+      DB[:que_jobs].order(:job_id).select_map(:priority).should == [5, 1, 5]
+
+      Que::Job.work.should be_an_instance_of PriorityWorkJob
+      DB[:que_jobs].select_map(:priority).should == [5, 5]
     end
 
     it "should prefer a job that was scheduled to run longer ago" do
-      pending
+      class ScheduledWorkJob < Que::Job
+      end
+
+      ScheduledWorkJob.queue :run_at => Time.now - 30
+      ScheduledWorkJob.queue :run_at => Time.now - 60
+      ScheduledWorkJob.queue :run_at => Time.now - 30
+
+      recent1, old, recent2 = DB[:que_jobs].order(:job_id).select_map(:run_at)
+
+      Que::Job.work.should be_an_instance_of ScheduledWorkJob
+      DB[:que_jobs].order_by(:job_id).select_map(:run_at).should == [recent1, recent2]
     end
 
     it "should prefer a job that was queued earlier, judging by the job_id" do
-      pending
+      class EarlyWorkJob < Que::Job
+      end
+
+      run_at = Time.now - 30
+      EarlyWorkJob.queue :run_at => run_at
+      EarlyWorkJob.queue :run_at => run_at
+      EarlyWorkJob.queue :run_at => run_at
+
+      first, second, third = DB[:que_jobs].select_order_map(:job_id)
+
+      Que::Job.work.should be_an_instance_of EarlyWorkJob
+      DB[:que_jobs].select_order_map(:job_id).should == [second, third]
     end
 
     it "should only work a job whose scheduled time to run has passed" do
-      pending
+      class ScheduledWorkJob < Que::Job
+      end
+
+      ScheduledWorkJob.queue :run_at => Time.now + 30
+      ScheduledWorkJob.queue :run_at => Time.now - 30
+      ScheduledWorkJob.queue :run_at => Time.now + 30
+
+      future1, past, future2 = DB[:que_jobs].order(:job_id).select_map(:run_at)
+
+      Que::Job.work.should be_an_instance_of ScheduledWorkJob
+      Que::Job.work.should be nil
+      DB[:que_jobs].order_by(:job_id).select_map(:run_at).should == [future1, future2]
     end
 
     it "should lock the job it selects" do
