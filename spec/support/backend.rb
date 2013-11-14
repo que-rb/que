@@ -168,6 +168,32 @@ shared_examples "a Que backend" do
 
   describe "when working jobs" do
     it "should pass a job's arguments to the run method and delete it from the database" do
+      $passed_number = nil
+      $passed_string = nil
+      $passed_hash   = nil
+
+      class RunJob < Que::Job
+        def run(number, string, hash)
+          $passed_number = number
+          $passed_string = string
+          $passed_hash   = hash
+        end
+      end
+
+      DB[:que_jobs].count.should be 0
+      RunJob.queue 1, 'two', {'three' => 3}
+      DB[:que_jobs].count.should be 1
+      Que::Job.work.should be_an_instance_of RunJob
+      DB[:que_jobs].count.should be 0
+      $passed_number.should == 1
+      $passed_string.should == 'two'
+      $passed_hash.should   == {'three' => 3}
+
+      # Should clear advisory lock.
+      DB[:pg_locks].where(:locktype => 'advisory').should be_empty
+    end
+
+    it "should make a job's argument hashes indifferently accessible" do
       $passed_args = nil
 
       class RunJob < Que::Job
@@ -177,11 +203,12 @@ shared_examples "a Que backend" do
       end
 
       DB[:que_jobs].count.should be 0
-      RunJob.queue 1, 'two', {'three' => 3}
+      RunJob.queue 1, 'two', {'array' => [{'number' => 3}]}
       DB[:que_jobs].count.should be 1
       Que::Job.work.should be_an_instance_of RunJob
       DB[:que_jobs].count.should be 0
-      $passed_args.should == [1, 'two', {'three' => 3}]
+
+      $passed_args.last[:array].first[:number].should == 3
 
       # Should clear advisory lock.
       DB[:pg_locks].where(:locktype => 'advisory').should be_empty

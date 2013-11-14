@@ -84,7 +84,7 @@ module Que
     end
 
     def _run
-      run *JSON.load(@attrs['args'])
+      run *_indifferentiate(JSON.load(@attrs['args']))
       destroy unless @destroyed
     end
 
@@ -97,6 +97,28 @@ module Que
     def destroy
       @destroyed = true
       Que.execute "DELETE FROM que_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [@attrs['priority'], @attrs['run_at'], @attrs['job_id']]
+    end
+
+    def _indifferentiate(input)
+      case input
+      when Hash
+        h = _indifferent_hash
+        input.each { |k, v| h[k] = _indifferentiate(v) }
+        h
+      when Array
+        input.map { |v| _indifferentiate(v) }
+      else
+        input
+      end
+    end
+
+    def _indifferent_hash
+      # Tiny hack to better support Rails.
+      if {}.respond_to?(:with_indifferent_access)
+        {}.with_indifferent_access
+      else
+        Hash.new { |hash, key| hash[key.to_s] if Symbol === key }
+      end
     end
   end
 end
