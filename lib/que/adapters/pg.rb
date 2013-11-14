@@ -6,7 +6,7 @@ module Que
     end
 
     def execute(*args)
-      @pg.async_exec(*args).to_a
+      @pg.async_exec(*args)
     end
   end
 end

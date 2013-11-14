@@ -4,13 +4,7 @@ module Que
     end
 
     def execute(*args)
-      connection.async_exec(*args).to_a
-    end
-
-    private
-
-    def connection
-      ::ActiveRecord::Base.connection.raw_connection
+      ::ActiveRecord::Base.connection.raw_connection.async_exec(*args)
     end
   end
 end

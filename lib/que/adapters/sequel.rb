@@ -5,7 +5,7 @@ module Que
     end
 
     def execute(*args)
-      @db.synchronize { |conn| conn.async_exec(*args).to_a }
+      @db.synchronize { |conn| conn.async_exec(*args) }
     end
   end
 end
