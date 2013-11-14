@@ -24,6 +24,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'pry'
 
   spec.add_development_dependency 'sequel'
-  spec.add_development_dependency 'active_record'
+  spec.add_development_dependency 'activerecord'
   spec.add_development_dependency 'pg'
 end
