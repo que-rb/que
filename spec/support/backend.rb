@@ -256,10 +256,6 @@ shared_examples "a Que backend" do
       pending
     end
 
-    it "should respect a Job::Retry error and leave the job to be processed over again" do
-      pending
-    end
-
     it "should handle subclasses of other jobs" do
       class SubClassJob < Que::Job
         def run
