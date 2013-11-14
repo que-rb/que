@@ -4,7 +4,7 @@ Dir["./spec/support/**/*.rb"].sort.each &method(:require)
 
 QUE_URL = ENV["DATABASE_URL"] || "postgres://postgres:@localhost/que-test"
 
-# Sequel is used to introspect the database in specs.
+# We use Sequel to introspect the database in specs.
 require 'sequel'
 
 DB = Sequel.connect(QUE_URL)

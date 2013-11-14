@@ -169,16 +169,16 @@ shared_examples "a Que backend" do
     it "should pass a job's arguments to the run method and delete it from the database" do
       $passed_args = nil
 
-      class RunTest < Que::Job
+      class RunJob < Que::Job
         def run(*args)
           $passed_args = args
         end
       end
 
       DB[:que_jobs].count.should be 0
-      RunTest.queue 1, 'two', {'three' => 3}
+      RunJob.queue 1, 'two', {'three' => 3}
       DB[:que_jobs].count.should be 1
-      Que::Job.work.should be_an_instance_of RunTest
+      Que::Job.work.should be_an_instance_of RunJob
       DB[:que_jobs].count.should be 0
       $passed_args.should == [1, 'two', {'three' => 3}]
 

@@ -21,17 +21,15 @@ module Que
         Que::Sequel.new(connection)
       elsif connection.class.to_s == "PG::Connection"
         Que::PG.new(connection)
+      elsif connection.nil?
+        connection
       else
         raise "Que connection not recognized: #{connection.inspect}"
       end
     end
 
     def connection
-      @connection ||= if defined?(::ActiveRecord::Base)
-        Que::ActiveRecord.new
-      else
-        raise "Que connection not established!"
-      end
+      @connection || raise("Que connection not established!")
     end
 
     def create!
