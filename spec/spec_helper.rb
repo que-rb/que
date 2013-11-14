@@ -9,7 +9,7 @@ require 'sequel'
 
 DB = Sequel.connect(QUE_URL)
 DB.drop_table? :que_jobs
-DB.run Que::SQL.create_sql
+DB.run Que::CreateTableSQL
 
 RSpec.configure do |config|
   config.before do

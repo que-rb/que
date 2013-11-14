@@ -28,7 +28,7 @@ module Que
       end
 
       def work
-        if row = Que.execute(SQL.lock_job_sql).first
+        if row = Que.execute(LockSQL).first
           job = const_get(row['type']).new
           job.run(*JSON.load(row['args']))
           Que.execute "DELETE FROM que_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [row['priority'], row['run_at'], row['job_id']]

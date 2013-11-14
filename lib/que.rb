@@ -3,11 +3,15 @@ require 'que/version'
 module Que
   autoload :Adapter, 'que/adapter'
   autoload :Job,     'que/job'
-  autoload :SQL,     'que/sql'
 
   autoload :ActiveRecord, 'que/adapters/active_record'
   autoload :PG,           'que/adapters/pg'
   autoload :Sequel,       'que/adapters/sequel'
+
+  root = File.expand_path '..', File.dirname(__FILE__)
+
+  CreateTableSQL = File.read(File.join(root, '/sql/create.sql')).freeze
+  LockSQL        = File.read(File.join(root, '/sql/lock.sql')).freeze
 
   class << self
     def connection=(connection)
@@ -31,15 +35,15 @@ module Que
     end
 
     def create!
-      execute SQL.create_sql
+      execute CreateTableSQL
     end
 
     def drop!
-      execute SQL.drop_sql
+      execute "DROP TABLE que_jobs"
     end
 
     def clear!
-      execute SQL.clear_sql
+      execute "DELETE FROM que_jobs"
     end
 
     def execute(*args)
