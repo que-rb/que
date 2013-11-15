@@ -374,5 +374,50 @@ shared_examples "a Que backend" do
       Que::Job.work
       DB[:que_jobs].count.should be 0
     end
+
+    describe "when encountering an error" do
+      class ErrorJob < Que::Job
+        def run
+          raise "ErrorJob!"
+        end
+      end
+
+      it "should exponentially back off the job" do
+        ErrorJob.queue
+
+        Que::Job.work.should be true
+
+        job = DB[:que_jobs].first
+        job[:error_count].should be 1
+        job[:last_error].should =~ /\AErrorJob!\n/
+        job[:run_at].should be_within(3).of Time.now + 4
+
+        DB[:que_jobs].update :error_count => 5,
+                             :run_at => Time.now - 60
+
+        Que::Job.work.should be true
+        job = DB[:que_jobs].first
+        job[:error_count].should be 6
+        job[:last_error].should =~ /\AErrorJob!\n/
+        job[:run_at].should be_within(3).of Time.now + 1299
+      end
+
+      it "should pass it to an error handler, if one is defined" do
+        begin
+          errors = []
+          Que.error_handler = proc { |error| errors << error }
+
+          ErrorJob.queue
+          Que::Job.work.should be true
+
+          errors.count.should be 1
+          error = errors[0]
+          error.should be_an_instance_of RuntimeError
+          error.message.should == "ErrorJob!"
+        ensure
+          Que.error_handler = nil
+        end
+      end
+    end
   end
 end

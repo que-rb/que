@@ -59,6 +59,16 @@ module Que
 
               job
             end
+          rescue => error
+            if row
+              count   = row['error_count'].to_i + 1
+              message = "#{error.message}\n#{error.backtrace.join("\n")}"
+              run_at  = Time.now + (count ** 4 + 3)
+              Que.execute "UPDATE que_jobs SET error_count = $1, last_error = $2, run_at = $3 WHERE priority = $4 AND run_at = $5 AND job_id = $6;", [count, message, run_at, row['priority'], row['run_at'], row['job_id']]
+            end
+
+            Que.error_handler.call(error) if Que.error_handler && Que.error_handler.respond_to?(:call)
+            return true
           ensure
             Que.execute "SELECT pg_advisory_unlock($1)", [row['job_id']] if row
           end

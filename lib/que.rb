@@ -15,7 +15,7 @@ module Que
   LockSQL        = File.read(File.join(root, '/sql/lock.sql')).freeze
 
   class << self
-    attr_accessor :logger
+    attr_accessor :logger, :error_handler
 
     def log(level, text)
       logger.send level, text if logger
