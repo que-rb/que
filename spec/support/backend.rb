@@ -314,12 +314,16 @@ shared_examples "a Que backend" do
 
     it "should handle subclasses of other jobs" do
       class SubClassJob < Que::Job
+        @default_priority = 2
+
         def run
           $job_spec_result << :sub
         end
       end
 
       class SubSubClassJob < SubClassJob
+        @default_priority = 4
+
         def run
           super
           $job_spec_result << :subsub
@@ -328,11 +332,13 @@ shared_examples "a Que backend" do
 
       $job_spec_result = []
       SubClassJob.queue
+      DB[:que_jobs].select_map(:priority).should == [2]
       Que::Job.work.should be_an_instance_of SubClassJob
       $job_spec_result.should == [:sub]
 
       $job_spec_result = []
       SubSubClassJob.queue
+      DB[:que_jobs].select_map(:priority).should == [4]
       Que::Job.work.should be_an_instance_of SubSubClassJob
       $job_spec_result.should == [:sub, :subsub]
     end
