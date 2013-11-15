@@ -418,6 +418,16 @@ shared_examples "a Que backend" do
           Que.error_handler = nil
         end
       end
+
+      it "should not do anything if the error handler itelf throws an error" do
+        begin
+          Que.error_handler = proc { |error| raise "Another error!" }
+          ErrorJob.queue
+          Que::Job.work.should be true
+        ensure
+          Que.error_handler = nil
+        end
+      end
     end
   end
 end
