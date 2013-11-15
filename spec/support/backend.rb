@@ -219,6 +219,25 @@ shared_examples "a Que backend" do
       DB[:pg_locks].where(:locktype => 'advisory').should be_empty
     end
 
+    it "should write messages to the logger" do
+      Que::Job.queue
+      Que::Job.work
+
+      $logger.messages.length.should == 1
+      $logger.messages[0].should =~ /\AWorked job in/
+    end
+
+    it "should not fail if there's no logger assigned" do
+      begin
+        Que.logger = nil
+
+        Que::Job.queue
+        Que::Job.work
+      ensure
+        Que.logger = $logger
+      end
+    end
+
     it "should prefer a job with a higher priority" do
       class PriorityWorkJob < Que::Job
       end

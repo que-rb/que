@@ -51,7 +51,12 @@ module Que
               return true if check.none?
 
               job = const_get(row['type']).new(row)
+
+              start = Time.now
               job._run
+              time = Time.now - start
+              Que.log :info, "Worked job in #{(time * 1000).round(1)} ms: #{job.inspect}"
+
               job
             end
           ensure

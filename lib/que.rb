@@ -15,6 +15,12 @@ module Que
   LockSQL        = File.read(File.join(root, '/sql/lock.sql')).freeze
 
   class << self
+    attr_accessor :logger
+
+    def log(level, text)
+      logger.send level, text if logger
+    end
+
     def connection=(connection)
       @connection = if connection.to_s == 'ActiveRecord'
         Que::ActiveRecord.new
