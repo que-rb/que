@@ -47,7 +47,7 @@ module Que
               # that there is currently no spec for this behavior, since I'm not
               # sure how to deterministically commit a transaction that deletes a
               # job between these two queries.
-              check = Que.execute "SELECT 1 AS one FROM que_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3;", [row['priority'], row['run_at'], row['job_id']]
+              check = Que.execute(:check_job, [row['priority'], row['run_at'], row['job_id']])
               return true if check.none?
 
               job = const_get(row['type']).new(row)
@@ -62,9 +62,9 @@ module Que
           rescue => error
             if row
               count   = row['error_count'].to_i + 1
-              message = "#{error.message}\n#{error.backtrace.join("\n")}"
               run_at  = Time.now + (count ** 4 + 3)
-              Que.execute "UPDATE que_jobs SET error_count = $1, last_error = $2, run_at = $3 WHERE priority = $4 AND run_at = $5 AND job_id = $6;", [count, message, run_at, row['priority'], row['run_at'], row['job_id']]
+              message = "#{error.message}\n#{error.backtrace.join("\n")}"
+              Que.execute :set_error, [count, run_at, message, row['priority'], row['run_at'], row['job_id']]
             end
 
             if Que.error_handler
@@ -113,7 +113,7 @@ module Que
 
     def destroy
       @destroyed = true
-      Que.execute "DELETE FROM que_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [@attrs['priority'], @attrs['run_at'], @attrs['job_id']]
+      Que.execute :destroy_job, [@attrs['priority'], @attrs['run_at'], @attrs['job_id']]
     end
 
     def _indifferentiate(input)
