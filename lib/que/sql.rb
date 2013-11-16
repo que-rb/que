@@ -2,7 +2,6 @@ module Que
   SQL = {
     # Thanks to RhodiumToad in #postgresql for the job lock CTE and its lateral
     # variant. They were modified only slightly from his design.
-
     :lock_job => (
       <<-SQL
         WITH RECURSIVE cte AS (

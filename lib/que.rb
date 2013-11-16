@@ -17,7 +17,7 @@ module Que
     end
 
     def connection=(connection)
-      @connection = if connection.to_s == 'ActiveRecord'
+      @adapter = if connection.to_s == 'ActiveRecord'
         Que::ActiveRecord.new
       else
         case connection.class.to_s
@@ -30,8 +30,8 @@ module Que
       end
     end
 
-    def connection
-      @connection || raise("Que connection not established!")
+    def adapter
+      @adapter || raise("Que connection not established!")
     end
 
     def create!
@@ -48,8 +48,8 @@ module Que
 
     def execute(command, *args)
       case command
-        when Symbol then connection.execute_prepared(command, *args)
-        when String then connection.execute(command, *args)
+        when Symbol then adapter.execute_prepared(command, *args)
+        when String then adapter.execute(command, *args)
       end
     end
   end
