@@ -5,7 +5,7 @@ require 'que/version'
 
 Gem::Specification.new do |spec|
   spec.name          = 'que'
-  spec.version       = Que::VERSION
+  spec.version       = Que::Version
   spec.authors       = ["Chris Hanks"]
   spec.email         = ['christopher.m.hanks@gmail.com']
   spec.description   = %q{Durable job queueing with PostgreSQL.}

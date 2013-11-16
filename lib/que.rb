@@ -1,9 +1,8 @@
-require 'que/version'
-
 module Que
   autoload :Adapter, 'que/adapter'
   autoload :Job,     'que/job'
   autoload :SQL,     'que/sql'
+  autoload :Version, 'que/version'
 
   autoload :ActiveRecord,   'que/adapters/active_record'
   autoload :ConnectionPool, 'que/adapters/connection_pool'
