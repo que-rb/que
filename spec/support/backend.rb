@@ -430,4 +430,30 @@ shared_examples "a Que backend" do
       end
     end
   end
+
+  describe "when running a Worker" do
+    it "should work jobs when started until there are none available" do
+      pending
+    end
+
+    it "should work jobs when woken until there are none available" do
+      pending
+    end
+
+    it "should not be deterred by a job that raises an error" do
+      pending
+    end
+
+    it "should not spam the connection when there's a disconnection error" do
+      pending
+    end
+
+    it "should receive and respect a notification to shut down when it is working, after its current job completes" do
+      pending
+    end
+
+    it "should receive and respect a notification to shut down when it is asleep" do
+      pending
+    end
+  end
 end
