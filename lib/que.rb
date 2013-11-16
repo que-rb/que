@@ -3,6 +3,7 @@ require 'que/version'
 module Que
   autoload :Adapter, 'que/adapter'
   autoload :Job,     'que/job'
+  autoload :SQL,     'que/sql'
 
   autoload :ActiveRecord,   'que/adapters/active_record'
   autoload :ConnectionPool, 'que/adapters/connection_pool'
@@ -12,7 +13,6 @@ module Que
   root = File.expand_path '..', File.dirname(__FILE__)
 
   CreateTableSQL = File.read(File.join(root, '/sql/create.sql')).freeze
-  LockSQL        = File.read(File.join(root, '/sql/lock.sql')).freeze
 
   class << self
     attr_accessor :logger, :error_handler
@@ -51,8 +51,11 @@ module Que
       execute "DELETE FROM que_jobs"
     end
 
-    def execute(*args)
-      connection.execute(*args)
+    def execute(command, *args)
+      case command
+        when Symbol then connection.execute_prepared(command, *args)
+        when String then connection.execute(command, *args)
+      end
     end
   end
 end

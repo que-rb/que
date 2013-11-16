@@ -36,7 +36,7 @@ module Que
         # deleting it, and removing the lock.
         Que.connection.checkout do
           begin
-            if row = Que.execute(LockSQL).first
+            if row = Que.execute(:lock_job).first
               # Edge case: It's possible for the lock statement to have grabbed a
               # job that's already been worked, if the statement took its MVCC
               # snapshot while the job was processing (making it appear to still
