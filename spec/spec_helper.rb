@@ -6,7 +6,6 @@ QUE_URL = ENV["DATABASE_URL"] || "postgres://postgres:@localhost/que-test"
 
 # We use Sequel to introspect the database in specs.
 require 'sequel'
-
 DB = Sequel.connect(QUE_URL)
 DB.drop_table? :que_jobs
 DB.run Que::SQL[:create_table]
@@ -19,17 +18,9 @@ RSpec.configure do |config|
 end
 
 # Set up a dummy logger.
-$logger = Object.new
-
-def $logger.messages
-  @messages ||= []
-end
-
-def $logger.method_missing(m, message)
-  messages << message
-end
-
-Que.logger = $logger
+Que.logger = $logger = Object.new
+def $logger.messages; @messages ||= []; end
+def $logger.method_missing(m, message); messages << message; end
 
 # Helper for testing threaded code.
 def sleep_until(timeout = 2)
