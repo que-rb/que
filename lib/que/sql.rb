@@ -39,19 +39,36 @@ module Que
     # Here's an alternate scheme using LATERAL, which will work in Postgres 9.3+.
     # Basically the same, but benchmark to see if it's faster/just as reliable.
 
-    # with recursive
-    #   t as (select *, pg_try_advisory_lock(s.job_id) as locked
-    #           from (select * from jobs j
-    #                  where run_at >= now()
-    #                  order by priority, run_at, job_id limit 1) s
-    #         union all
-    #         select j.*, pg_try_advisory_lock(j.job_id)
-    #           from (select * from t where not locked) t,
-    #                lateral (select * from jobs
-    #                          where run_at >= now()
-    #                            and (priority,run_at,job_id) > (t.priority,t.run_at,t.job_id)
-    #                          order by priority, run_at, job_id limit 1) j
-    #  select * from t where locked limit 1;
+    # WITH RECURSIVE cte AS (
+    #   SELECT *, pg_try_advisory_lock(s.job_id) AS locked
+    #   FROM (
+    #     SELECT *
+    #     FROM que_jobs
+    #     WHERE run_at <= now()
+    #     ORDER BY priority, run_at, job_id
+    #     LIMIT 1
+    #   ) s
+    #   UNION ALL (
+    #     SELECT j.*, pg_try_advisory_lock(j.job_id) AS locked
+    #     FROM (
+    #       SELECT *
+    #       FROM cte
+    #       WHERE NOT locked
+    #     ) t,
+    #     LATERAL (
+    #       SELECT *
+    #       FROM que_jobs
+    #       WHERE run_at <= now()
+    #       AND (priority, run_at, job_id) > (t.priority, t.run_at, t.job_id)
+    #       ORDER BY priority, run_at, job_id
+    #       LIMIT 1
+    #     ) j
+    #   )
+    # )
+    # SELECT *
+    # FROM cte
+    # WHERE locked
+    # LIMIT 1
 
     :create_table => (
       <<-SQL
