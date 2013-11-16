@@ -3,6 +3,7 @@ module Que
   autoload :Job,      'que/job'
   autoload :SQL,      'que/sql'
   autoload :Version,  'que/version'
+  autoload :Worker,   'que/worker'
 
   class << self
     attr_accessor :logger, :error_handler
