@@ -55,3 +55,5 @@ module Que
     end
   end
 end
+
+require 'que/railtie' if defined? Rails::Railtie
