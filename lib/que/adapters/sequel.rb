@@ -1,11 +1,13 @@
 module Que
-  class Sequel < Adapter
-    def initialize(db)
-      @db = db
-    end
+  module Adapters
+    class Sequel < Base
+      def initialize(db)
+        @db = db
+      end
 
-    def checkout(&block)
-      @db.synchronize(&block)
+      def checkout(&block)
+        @db.synchronize(&block)
+      end
     end
   end
 end

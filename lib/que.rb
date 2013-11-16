@@ -1,13 +1,8 @@
 module Que
-  autoload :Adapter, 'que/adapter'
-  autoload :Job,     'que/job'
-  autoload :SQL,     'que/sql'
-  autoload :Version, 'que/version'
-
-  autoload :ActiveRecord,   'que/adapters/active_record'
-  autoload :ConnectionPool, 'que/adapters/connection_pool'
-  autoload :PG,             'que/adapters/pg'
-  autoload :Sequel,         'que/adapters/sequel'
+  autoload :Adapters, 'que/adapters/base'
+  autoload :Job,      'que/job'
+  autoload :SQL,      'que/sql'
+  autoload :Version,  'que/version'
 
   class << self
     attr_accessor :logger, :error_handler
@@ -18,12 +13,12 @@ module Que
 
     def connection=(connection)
       @adapter = if connection.to_s == 'ActiveRecord'
-        Que::ActiveRecord.new
+        Adapters::ActiveRecord.new
       else
         case connection.class.to_s
-          when 'Sequel::Postgres::Database' then Que::Sequel.new(connection)
-          when 'ConnectionPool'             then Que::ConnectionPool.new(connection)
-          when 'PG::Connection'             then Que::PG.new(connection)
+          when 'Sequel::Postgres::Database' then Adapters::Sequel.new(connection)
+          when 'ConnectionPool'             then Adapters::ConnectionPool.new(connection)
+          when 'PG::Connection'             then Adapters::PG.new(connection)
           when 'NilClass'                   then connection
           else raise "Que connection not recognized: #{connection.inspect}"
         end

@@ -1,14 +1,16 @@
 require 'monitor'
 
 module Que
-  class PG < Adapter
-    def initialize(pg)
-      @pg      = pg
-      @monitor = Monitor.new
-    end
+  module Adapters
+    class PG < Base
+      def initialize(pg)
+        @pg      = pg
+        @monitor = Monitor.new
+      end
 
-    def checkout
-      @monitor.synchronize { yield @pg }
+      def checkout
+        @monitor.synchronize { yield @pg }
+      end
     end
   end
 end
