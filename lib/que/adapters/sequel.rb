@@ -3,6 +3,7 @@ module Que
     class Sequel < Base
       def initialize(db)
         @db = db
+        super
       end
 
       def checkout(&block)

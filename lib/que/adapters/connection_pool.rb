@@ -3,6 +3,7 @@ module Que
     class ConnectionPool < Base
       def initialize(pool)
         @pool = pool
+        super
       end
 
       def checkout(&block)

@@ -7,9 +7,12 @@ module Que
 
     class Base
       def initialize(thing = nil)
-        raise NotImplementedError
+        @statement_mutex = Mutex.new
       end
 
+      # The only method that adapters really need to implement. Should lock a
+      # PG::Connection (or something that acts like a PG::Connection) so that
+      # no other threads are using it and yield it to the block.
       def checkout(&block)
         raise NotImplementedError
       end
@@ -35,10 +38,8 @@ module Que
       # which statements. This is a shared data structure, so protect it. We
       # assume that the hash of statements for a particular connection is only
       # being accessed by the thread that's checked it out, though.
-      @@mutex = Mutex.new
-
       def statements_prepared(conn)
-        @@mutex.synchronize do
+        @statement_mutex.synchronize do
           @statements_prepared       ||= {}
           @statements_prepared[conn] ||= {}
         end

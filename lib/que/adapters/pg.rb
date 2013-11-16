@@ -4,12 +4,13 @@ module Que
   module Adapters
     class PG < Base
       def initialize(pg)
-        @pg      = pg
-        @monitor = Monitor.new
+        @pg   = pg
+        @lock = Monitor.new # Must be re-entrant.
+        super
       end
 
       def checkout
-        @monitor.synchronize { yield @pg }
+        @lock.synchronize { yield @pg }
       end
     end
   end
