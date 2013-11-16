@@ -34,7 +34,7 @@ FROM cte
 WHERE locked
 LIMIT 1;
       SQL
-    ).freeze
+    ).freeze,
 
     # Here's an alternate scheme using LATERAL, which will work in Postgres 9.3+.
     # Basically the same, but benchmark to see if it's faster/just as reliable.
@@ -52,6 +52,23 @@ LIMIT 1;
     #                            and (priority,run_at,job_id) > (t.priority,t.run_at,t.job_id)
     #                          order by priority, run_at, job_id limit 1) j
     #  select * from t where locked limit 1;
+
+    :create_table => (
+      <<-SQL
+CREATE TABLE que_jobs
+(
+  priority    integer     NOT NULL DEFAULT 1,
+  run_at      timestamptz NOT NULL DEFAULT now(),
+  job_id      bigserial   NOT NULL,
+  type        text        NOT NULL,
+  args        json        NOT NULL DEFAULT '[]'::json,
+  error_count integer     NOT NULL DEFAULT 0,
+  last_error  text,
+
+  CONSTRAINT jobs_pkey PRIMARY KEY (priority, run_at, job_id)
+);
+    SQL
+    ).freeze
 
   }
 end

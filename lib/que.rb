@@ -10,10 +10,6 @@ module Que
   autoload :PG,             'que/adapters/pg'
   autoload :Sequel,         'que/adapters/sequel'
 
-  root = File.expand_path '..', File.dirname(__FILE__)
-
-  CreateTableSQL = File.read(File.join(root, '/sql/create.sql')).freeze
-
   class << self
     attr_accessor :logger, :error_handler
 
@@ -40,7 +36,7 @@ module Que
     end
 
     def create!
-      execute CreateTableSQL
+      execute SQL[:create_table]
     end
 
     def drop!
