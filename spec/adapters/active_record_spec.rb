@@ -2,10 +2,9 @@ require 'spec_helper'
 
 require 'active_record'
 
-ActiveRecord::Base.establish_connection(QUE_URL)
-
 describe "Que using ActiveRecord's connection" do
-  before do
+  before :all do
+    ActiveRecord::Base.establish_connection(QUE_URL)
     Que.connection = ActiveRecord
   end
 
