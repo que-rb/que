@@ -15,5 +15,5 @@ QUE_ADAPTERS[:connection_pool] = Que.adapter
 describe "Que using a PG connection wrapped in a connection pool" do
   before { Que.adapter = QUE_ADAPTERS[:connection_pool] }
 
-  it_behaves_like "a Que backend"
+  it_behaves_like "a Que adapter"
 end

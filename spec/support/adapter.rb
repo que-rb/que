@@ -1,4 +1,4 @@
-shared_examples "a Que backend" do
+shared_examples "a Que adapter" do
   it "should be able to drop and create the jobs table" do
     DB.table_exists?(:que_jobs).should be true
     Que.drop!

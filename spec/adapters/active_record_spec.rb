@@ -8,5 +8,5 @@ QUE_ADAPTERS[:active_record] = Que.adapter
 describe "Que using ActiveRecord's connection" do
   before { Que.adapter = QUE_ADAPTERS[:active_record] }
 
-  it_behaves_like "a Que backend"
+  it_behaves_like "a Que adapter"
 end

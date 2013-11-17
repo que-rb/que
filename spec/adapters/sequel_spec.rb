@@ -6,5 +6,5 @@ QUE_ADAPTERS[:sequel] = Que.adapter
 describe "Que using a Sequel database's connection" do
   before { Que.adapter = QUE_ADAPTERS[:sequel] }
 
-  it_behaves_like "a Que backend"
+  it_behaves_like "a Que adapter"
 end
