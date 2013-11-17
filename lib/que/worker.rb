@@ -56,12 +56,12 @@ module Que
       q.push :go!
     end
 
-    def asleep?
+    def sleeping?
       synchronize do
         if @thread[:state] == :sleeping
           # There's a very small period of time between when the Worker marks
           # itself as sleeping and when it actually goes to sleep. Only report
-          # #asleep? as true when we're certain the thread is sleeping.
+          # true when we're certain the thread is sleeping.
           sleep 0.0001 until @thread.status == 'sleep'
           true
         end
@@ -76,7 +76,7 @@ module Que
 
     def wake!
       synchronize do
-        if asleep?
+        if sleeping?
           # Have to set the state here so that another thread checking
           # immediately after this won't see the worker as asleep.
           @thread[:state] = :working
@@ -89,7 +89,7 @@ module Que
     def stop!
       synchronize do
         @thread[:directive] = :stop
-        wake! if asleep?
+        wake! if sleeping?
       end
     end
 

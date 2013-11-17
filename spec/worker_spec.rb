@@ -8,7 +8,7 @@ describe Que::Worker do
       DB[:que_jobs].count.should be 2
 
       @worker = Que::Worker.new
-      sleep_until { @worker.asleep? }
+      sleep_until { @worker.sleeping? }
       DB[:que_jobs].count.should be 0
     ensure
       if @worker
@@ -21,14 +21,14 @@ describe Que::Worker do
   it "#wake! should return truthy if the worker was asleep and is woken up, at which point it should work until no jobs are available" do
     begin
       @worker = Que::Worker.new
-      sleep_until { @worker.asleep? }
+      sleep_until { @worker.sleeping? }
 
       Que::Job.queue
       Que::Job.queue
       DB[:que_jobs].count.should be 2
 
       @worker.wake!.should be true
-      sleep_until { @worker.asleep? }
+      sleep_until { @worker.sleeping? }
       DB[:que_jobs].count.should be 0
     ensure
       if @worker
@@ -61,7 +61,7 @@ describe Que::Worker do
 
       @worker = Que::Worker.new
 
-      sleep_until { @worker.asleep? }
+      sleep_until { @worker.sleeping? }
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
@@ -103,7 +103,7 @@ describe Que::Worker do
   it "should receive and respect a notification to shut down when it is asleep" do
     begin
       @worker = Que::Worker.new
-      sleep_until { @worker.asleep? }
+      sleep_until { @worker.sleeping? }
 
       @worker.stop!
       @worker.wait_until_stopped

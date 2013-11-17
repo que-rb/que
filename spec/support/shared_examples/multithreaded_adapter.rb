@@ -32,11 +32,11 @@ shared_examples "a multithreaded Que adapter" do
     DB[:que_jobs].count.should be 2
 
     worker_2 = Que::Worker.new
-    sleep_until { worker_2.asleep? }
+    sleep_until { worker_2.sleeping? }
     DB[:que_jobs].count.should be 1
 
     $q2.push nil
-    sleep_until { worker_1.asleep? }
+    sleep_until { worker_1.sleeping? }
     DB[:que_jobs].count.should be 0
   end
 end

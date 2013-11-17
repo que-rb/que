@@ -23,7 +23,7 @@ describe "Managing the Worker pool" do
       Que.mode = :async
       workers = Que::Worker.workers
       workers.count.should be 4
-      sleep_until { workers.all?(&:asleep?) }
+      sleep_until { workers.all?(&:sleeping?) }
     end
 
     it "then Que.worker_count = 2 should gracefully decrease the number of workers" do
@@ -33,7 +33,7 @@ describe "Managing the Worker pool" do
 
       Que.worker_count = 2
       Que::Worker.workers.count.should be 2
-      sleep_until { Que::Worker.workers.all?(&:asleep?) }
+      sleep_until { Que::Worker.workers.all?(&:sleeping?) }
 
       workers[0..1].should == Que::Worker.workers
       workers[2..3].each do |worker|
@@ -49,7 +49,7 @@ describe "Managing the Worker pool" do
 
       Que.worker_count = 6
       Que::Worker.workers.count.should be 6
-      sleep_until { workers.all?(&:asleep?) }
+      sleep_until { workers.all?(&:sleeping?) }
 
       workers.should == Que::Worker.workers[0..3]
     end
@@ -68,18 +68,18 @@ describe "Managing the Worker pool" do
 
     it "then Que::Worker.wake! should wake up a single worker" do
       Que.mode = :async
-      sleep_until { Que::Worker.workers.all? &:asleep? }
+      sleep_until { Que::Worker.workers.all? &:sleeping? }
 
       BlockJob.queue
       Que::Worker.wake!
 
       $q1.pop
       Que::Worker.workers.first.should be_working
-      Que::Worker.workers[1..3].each { |w| w.should be_asleep }
+      Que::Worker.workers[1..3].each { |w| w.should be_sleeping }
       DB[:que_jobs].count.should be 1
       $q2.push nil
 
-      sleep_until { Que::Worker.workers.all? &:asleep? }
+      sleep_until { Que::Worker.workers.all? &:sleeping? }
       DB[:que_jobs].count.should be 0
     end
 
@@ -88,7 +88,7 @@ describe "Managing the Worker pool" do
       Que.adapter = QUE_ADAPTERS[:connection_pool]
 
       Que.mode = :async
-      sleep_until { Que::Worker.workers.all? &:asleep? }
+      sleep_until { Que::Worker.workers.all? &:sleeping? }
 
       4.times { BlockJob.queue }
       Que::Worker.wake_all!
@@ -97,7 +97,7 @@ describe "Managing the Worker pool" do
       Que::Worker.workers.each{ |worker| worker.should be_working }
       4.times { $q2.push nil }
 
-      sleep_until { Que::Worker.workers.all? &:asleep? }
+      sleep_until { Que::Worker.workers.all? &:sleeping? }
       DB[:que_jobs].count.should be 0
     end if QUE_ADAPTERS[:connection_pool]
 
@@ -105,7 +105,7 @@ describe "Managing the Worker pool" do
       begin
         Que.sleep_period = 0.001 # 1 ms
         Que.mode = :async
-        sleep_until { Que::Worker.workers.all? &:asleep? }
+        sleep_until { Que::Worker.workers.all? &:sleeping? }
         Que::Job.queue
         sleep_until { DB[:que_jobs].count == 0 }
       ensure
