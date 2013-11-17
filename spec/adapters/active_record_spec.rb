@@ -24,4 +24,18 @@ describe "Que using the ActiveRecord adapter" do
 
     $pid1.should == $pid2
   end
+
+  it "should instantiate args as ActiveSupport::HashWithIndifferentAccess" do
+    class HWIAJob < Que::Job
+      def run(args)
+        $passed_args = args
+      end
+    end
+
+    $passed_args = nil
+    HWIAJob.queue :param => 2
+    Que::Job.work
+    $passed_args[:param].should == 2
+    $passed_args.should be_an_instance_of ActiveSupport::HashWithIndifferentAccess
+  end
 end
