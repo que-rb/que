@@ -13,7 +13,7 @@ module Que
     end
 
     def connection=(connection)
-      @adapter = if connection.to_s == 'ActiveRecord'
+      self.adapter = if connection.to_s == 'ActiveRecord'
         Adapters::ActiveRecord.new
       else
         case connection.class.to_s
@@ -25,6 +25,8 @@ module Que
         end
       end
     end
+
+    attr_writer :adapter
 
     def adapter
       @adapter || raise("Que connection not established!")
