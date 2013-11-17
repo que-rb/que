@@ -4,6 +4,18 @@ Dir["./spec/support/**/*.rb"].sort.each &method(:require)
 
 QUE_URL = ENV["DATABASE_URL"] || "postgres://postgres:@localhost/que-test"
 
+# Handy proc to instantiate new PG connections:
+require 'uri'
+require 'pg'
+NEW_PG_CONNECTION = proc do
+  uri = URI.parse(QUE_URL)
+  PG::Connection.open :host     => uri.host,
+                      :user     => uri.user,
+                      :password => uri.password,
+                      :port     => uri.port || 5432,
+                      :dbname   => uri.path[1..-1]
+end
+
 # Adapters track information about their connections like which statements
 # have been prepared, and if Que.connection= is called before each spec, we're
 # constantly creating new adapters and losing that information, which is bad.
@@ -12,14 +24,7 @@ QUE_URL = ENV["DATABASE_URL"] || "postgres://postgres:@localhost/que-test"
 
 # Also, let Que initialize the adapter itself, to make sure that the
 # recognition logic works. Similar code can be found in the adapter specs.
-require 'uri'
-require 'pg'
-uri = URI.parse(QUE_URL)
-Que.connection = PG::Connection.open :host     => uri.host,
-                                     :user     => uri.user,
-                                     :password => uri.password,
-                                     :port     => uri.port || 5432,
-                                     :dbname   => uri.path[1..-1]
+Que.connection = NEW_PG_CONNECTION.call
 QUE_ADAPTERS = {:pg => Que.adapter}
 
 # We use Sequel to introspect the database in specs.
