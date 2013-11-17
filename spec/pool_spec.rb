@@ -101,7 +101,15 @@ describe "Managing the Worker pool" do
     end if QUE_ADAPTERS[:connection_pool]
 
     it "should poke a worker every Que.sleep_period seconds" do
-      pending
+      begin
+        Que.sleep_period = 0.001 # 1 ms
+        Que.mode = :async
+        sleep_until { Que::Worker.workers.all? &:asleep? }
+        Que::Job.queue
+        sleep_until { DB[:que_jobs].count == 0 }
+      ensure
+        Que.sleep_period = nil
+      end
     end
   end
 end

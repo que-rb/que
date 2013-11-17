@@ -14,6 +14,7 @@ module Que
     # Defaults for the Worker pool.
     @mode         = :off
     @worker_count = 4
+    @sleep_period = 5
 
     attr_reader :thread
 
@@ -113,11 +114,12 @@ module Que
 
     class << self
       attr_writer :worker_count
-      attr_reader :mode
+      attr_reader :mode, :sleep_period
 
       def mode=(mode)
         case mode
         when :async
+          wrangler # Make sure the wrangler thread is initialized.
           self.worker_count = 4
         else
           self.worker_count = 0
@@ -142,12 +144,28 @@ module Que
         end
       end
 
+      def sleep_period=(period)
+        @sleep_period = period
+        wrangler.wakeup
+      end
+
       def wake!
         workers.find &:wake!
       end
 
       def wake_all!
         workers.each &:wake!
+      end
+
+      private
+
+      def wrangler
+        @wrangler ||= Thread.new do
+          loop do
+            sleep(*sleep_period)
+            wake!
+          end
+        end
       end
     end
   end

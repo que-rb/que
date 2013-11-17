@@ -44,6 +44,14 @@ module Que
       Worker.worker_count = count
     end
 
+    def sleep_period
+      Worker.sleep_period
+    end
+
+    def sleep_period=(period)
+      Worker.sleep_period = period
+    end
+
     def create!
       execute SQL[:create_table]
     end
