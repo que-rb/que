@@ -1,7 +1,6 @@
 require 'spec_helper'
 require 'connection_pool'
 
-uri = URI.parse(QUE_URL)
 Que.connection = ConnectionPool.new &NEW_PG_CONNECTION
 QUE_ADAPTERS[:connection_pool] = Que.adapter
 
