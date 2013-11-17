@@ -9,4 +9,5 @@ describe "Que using ActiveRecord's connection" do
   before { Que.adapter = QUE_ADAPTERS[:active_record] }
 
   it_behaves_like "a Que adapter"
+  it_behaves_like "a multithreaded Que adapter"
 end

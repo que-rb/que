@@ -16,4 +16,5 @@ describe "Que using a PG connection wrapped in a connection pool" do
   before { Que.adapter = QUE_ADAPTERS[:connection_pool] }
 
   it_behaves_like "a Que adapter"
+  it_behaves_like "a multithreaded Que adapter"
 end
