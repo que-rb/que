@@ -3,7 +3,7 @@ require 'spec_helper'
 Que.connection = SEQUEL_ADAPTER_DB = Sequel.connect(QUE_URL)
 QUE_ADAPTERS[:sequel] = Que.adapter
 
-describe "Que using a Sequel database's connection" do
+describe "Que using the Sequel adapter" do
   before { Que.adapter = QUE_ADAPTERS[:sequel] }
 
   it_behaves_like "a Que adapter"

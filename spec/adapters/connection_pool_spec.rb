@@ -5,7 +5,7 @@ uri = URI.parse(QUE_URL)
 Que.connection = ConnectionPool.new :size => 2, &NEW_PG_CONNECTION
 QUE_ADAPTERS[:connection_pool] = Que.adapter
 
-describe "Que using a PG connection wrapped in a connection pool" do
+describe "Que using the ConnectionPool adapter" do
   before { Que.adapter = QUE_ADAPTERS[:connection_pool] }
 
   it_behaves_like "a Que adapter"
