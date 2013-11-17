@@ -22,4 +22,21 @@ shared_examples "a multithreaded Que adapter" do
     thread.join
     one.should_not == two
   end
+
+  it "should allow multiple workers to complete jobs simultaneously" do
+    BlockJob.queue
+    worker_1 = Que::Worker.new
+    $q1.pop
+
+    Que::Job.queue
+    DB[:que_jobs].count.should be 2
+
+    worker_2 = Que::Worker.new
+    sleep_until { worker_2.asleep? }
+    DB[:que_jobs].count.should be 1
+
+    $q2.push nil
+    sleep_until { worker_1.asleep? }
+    DB[:que_jobs].count.should be 0
+  end
 end
