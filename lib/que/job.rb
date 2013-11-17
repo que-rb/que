@@ -21,7 +21,11 @@ module Que
           attrs[:priority] = p
         end
 
-        Que.execute *insert_sql(attrs)
+        if Que.mode == :sync
+          run_job(attrs)
+        else
+          Que.execute *insert_sql(attrs)
+        end
       end
 
       def work
@@ -51,13 +55,7 @@ module Que
               # check queries.
               return true if Que.execute(:check_job, [row['priority'], row['run_at'], row['job_id']]).none?
 
-              # Actually work the job, log it, and return it.
-              job = const_get(row['type']).new(row)
-              start = Time.now
-              job._run
-              time = Time.now - start
-              Que.log :info, "Worked job in #{(time * 1000).round(1)} ms: #{job.inspect}"
-              job
+              run_job(row)
             end
           rescue => error
             if row
@@ -102,6 +100,34 @@ module Que
 
         ["INSERT INTO que_jobs (#{columns.join(', ')}) VALUES (#{placeholders.join(', ')})", values]
       end
+
+      def run_job(attrs)
+        attrs = indifferentiate(attrs)
+        attrs[:args] = indifferentiate(JSON.load(attrs[:args]))
+        const_get(attrs[:type]).new(attrs).tap(&:_run)
+      end
+
+      def indifferentiate(input)
+        case input
+        when Hash
+          h = indifferent_hash
+          input.each { |k, v| h[k] = indifferentiate(v) }
+          h
+        when Array
+          input.map { |v| indifferentiate(v) }
+        else
+          input
+        end
+      end
+
+      def indifferent_hash
+        # Tiny hack to better support Rails.
+        if {}.respond_to?(:with_indifferent_access)
+          {}.with_indifferent_access
+        else
+          Hash.new { |hash, key| hash[key.to_s] if Symbol === key }
+        end
+      end
     end
 
     def initialize(attrs)
@@ -109,8 +135,12 @@ module Que
     end
 
     def _run
-      run *_indifferentiate(JSON.load(@attrs['args']))
+      start = Time.now
+
+      run *@attrs[:args]
       destroy unless @destroyed
+
+      Que.log :info, "Worked job in #{((Time.now - start) * 1000).round(1)} ms: #{inspect}"
     end
 
     # A job without a run method defined doesn't do anything. This is useful in testing.
@@ -122,28 +152,6 @@ module Que
     def destroy
       Que.execute :destroy_job, [@attrs['priority'], @attrs['run_at'], @attrs['job_id']]
       @destroyed = true
-    end
-
-    def _indifferentiate(input)
-      case input
-      when Hash
-        h = _indifferent_hash
-        input.each { |k, v| h[k] = _indifferentiate(v) }
-        h
-      when Array
-        input.map { |v| _indifferentiate(v) }
-      else
-        input
-      end
-    end
-
-    def _indifferent_hash
-      # Tiny hack to better support Rails.
-      if {}.respond_to?(:with_indifferent_access)
-        {}.with_indifferent_access
-      else
-        Hash.new { |hash, key| hash[key.to_s] if Symbol === key }
-      end
     end
   end
 end

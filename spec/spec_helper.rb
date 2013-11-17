@@ -44,6 +44,7 @@ RSpec.configure do |config|
     DB[:que_jobs].delete
     $logger.messages.clear
     Que.adapter = QUE_ADAPTERS[:pg]
+    Que.mode = :off
   end
 end
 

@@ -5,8 +5,10 @@ module Que
   autoload :Version,  'que/version'
   autoload :Worker,   'que/worker'
 
+  @mode = :off
+
   class << self
-    attr_accessor :logger, :error_handler
+    attr_accessor :logger, :error_handler, :mode
 
     def log(level, text)
       logger.send level, text if logger

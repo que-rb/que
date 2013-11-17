@@ -2,7 +2,14 @@ require 'spec_helper'
 
 describe "Managing the Worker pool" do
   it "Que.mode = :sync should make jobs run in the same thread as they are queued" do
-    pending
+    Que.mode = :sync
+
+    ArgsJob.queue(5, :testing => "synchronous").should be_an_instance_of ArgsJob
+    $passed_args.should == [5, {'testing' => "synchronous"}]
+    DB[:que_jobs].count.should be 0
+
+    $logger.messages.length.should be 1
+    $logger.messages[0].should =~ /\AWorked job in/
   end
 
   describe "Que.mode = :async" do
