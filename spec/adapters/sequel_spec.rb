@@ -22,4 +22,8 @@ describe "Que using the Sequel adapter" do
 
     $pid1.should == $pid2
   end
+
+  it "with Que.mode = :async should poke a worker after a transaction in which a job was queued commits" do
+    pending
+  end
 end

@@ -38,4 +38,8 @@ describe "Que using the ActiveRecord adapter" do
     $passed_args[:param].should == 2
     $passed_args.should be_an_instance_of ActiveSupport::HashWithIndifferentAccess
   end
+
+  it "with Que.mode = :async should poke a worker after a transaction in which a job was queued commits" do
+    pending
+  end
 end
