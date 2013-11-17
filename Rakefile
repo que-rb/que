@@ -6,8 +6,9 @@ RSpec::Core::RakeTask.new :default do |spec|
   spec.pattern = './spec/**/*_spec.rb'
 end
 
-# Shortcut to run only the pg specs. I use this occasionally to make sure
-# ActiveRecord isn't loaded, and so any accidental Rails-isms are caught.
+# Shortcut to skip the adapter specs, and run only with the basic PG
+# connection. I use this occasionally to make sure ActiveRecord isn't loaded,
+# so any accidental Rails-isms are caught.
 RSpec::Core::RakeTask.new :pg do |spec|
-  spec.pattern = './spec/adapters/pg_spec.rb'
+  spec.pattern = './spec/*_spec.rb'
 end
