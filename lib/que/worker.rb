@@ -11,6 +11,10 @@ module Que
     # @thread[:state] and @thread[:directive].
     include MonitorMixin
 
+    # Defaults for the Worker pool.
+    @mode         = :off
+    @worker_count = 4
+
     attr_reader :thread
 
     def initialize
@@ -99,6 +103,38 @@ module Que
 
     def wait
       sleep WaitPeriod
+    end
+
+    class << self
+      attr_writer :worker_count
+      attr_reader :mode
+
+      def mode=(mode)
+        case mode
+        when :async
+          self.worker_count = 4
+        else
+          self.worker_count = 0
+        end
+
+        @mode = mode
+        Que.log :info, "Set Que mode to #{mode.inspect}"
+      end
+
+      def workers
+        @workers ||= []
+      end
+
+      def worker_count=(count)
+        if count > workers.count
+          (count - workers.count).times { workers << new }
+        elsif count < workers.count
+          workers.last(workers.count - count).each(&:stop!).each do |worker|
+            worker.wait_until_stopped
+            workers.delete(worker)
+          end
+        end
+      end
     end
   end
 end

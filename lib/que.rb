@@ -5,10 +5,8 @@ module Que
   autoload :Version,  'que/version'
   autoload :Worker,   'que/worker'
 
-  @mode = :off
-
   class << self
-    attr_accessor :logger, :error_handler, :mode
+    attr_accessor :logger, :error_handler
 
     def log(level, text)
       logger.send level, text if logger
@@ -32,6 +30,18 @@ module Que
 
     def adapter
       @adapter || raise("Que connection not established!")
+    end
+
+    def mode=(mode)
+      Worker.mode = mode
+    end
+
+    def mode
+      Worker.mode
+    end
+
+    def worker_count=(count)
+      Worker.worker_count = count
     end
 
     def create!

@@ -42,9 +42,9 @@ DB.run Que::SQL[:create_table]
 RSpec.configure do |config|
   config.before do
     DB[:que_jobs].delete
-    $logger.messages.clear
     Que.adapter = QUE_ADAPTERS[:pg]
     Que.mode = :off
+    $logger.messages.clear
   end
 end
 
