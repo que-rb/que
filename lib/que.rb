@@ -7,9 +7,10 @@ module Que
 
   class << self
     attr_accessor :logger, :error_handler
+    attr_writer :adapter
 
-    def log(level, text)
-      logger.send level, text if logger
+    def adapter
+      @adapter || raise("Que connection not established!")
     end
 
     def connection=(connection)
@@ -24,32 +25,6 @@ module Que
           else raise "Que connection not recognized: #{connection.inspect}"
         end
       end
-    end
-
-    attr_writer :adapter
-
-    def adapter
-      @adapter || raise("Que connection not established!")
-    end
-
-    def mode=(mode)
-      Worker.mode = mode
-    end
-
-    def mode
-      Worker.mode
-    end
-
-    def worker_count=(count)
-      Worker.worker_count = count
-    end
-
-    def sleep_period
-      Worker.sleep_period
-    end
-
-    def sleep_period=(period)
-      Worker.sleep_period = period
     end
 
     def create!
@@ -69,6 +44,15 @@ module Que
         when Symbol then adapter.execute_prepared(command, *args)
         when String then adapter.execute(command, *args)
       end
+    end
+
+    def log(level, text)
+      logger.send level, text if logger
+    end
+
+    # Duplicate some Worker config methods to the Que module for convenience.
+    [:mode, :mode=, :worker_count=, :sleep_period, :sleep_period=].each do |meth|
+      define_method(meth){|*args| Worker.send(meth, *args)}
     end
   end
 end

@@ -2,6 +2,31 @@ require 'json'
 
 module Que
   class Job
+    def initialize(attrs)
+      @attrs = attrs
+    end
+
+    # Subclasses should define their own run methods, but keep an empty one
+    # here so we can just do Que::Job.queue in testing.
+    def run(*args)
+    end
+
+    def _run
+      start = Time.now
+
+      run *@attrs[:args]
+      destroy unless @destroyed
+
+      Que.log :info, "Worked job in #{((Time.now - start) * 1000).round(1)} ms: #{inspect}"
+    end
+
+    private
+
+    def destroy
+      Que.execute :destroy_job, [@attrs[:priority], @attrs[:run_at], @attrs[:job_id]]
+      @destroyed = true
+    end
+
     class << self
       def queue(*args)
         if args.last.is_a?(Hash)
@@ -41,18 +66,16 @@ module Que
         Que.adapter.checkout do
           begin
             if row = Que.execute(:lock_job).first
-              # Edge case: It's possible for the lock statement to have
-              # grabbed a job that's already been worked, if the statement
-              # took its MVCC snapshot while the job was processing, but
-              # didn't attempt the advisory lock until it was finished. Now
-              # that we have the job lock, we know that a previous worker
-              # would have deleted it by now, so we just double check that it
-              # still exists before working it.
+              # Edge case: It's possible to have grabbed a job that's already
+              # been worked, if the SELECT took its MVCC snapshot while the
+              # job was processing, but didn't attempt the advisory lock until
+              # it was finished. Now that we have the job lock, we know that a
+              # previous worker would have deleted it by now, so we just
+              # double check that it still exists before working it.
 
               # Note that there is currently no spec for this behavior, since
-              # I'm not sure how to deterministically commit a transaction
-              # that deletes a job in a separate thread between the lock and
-              # check queries.
+              # I'm not sure how to reliably commit a transaction that deletes
+              # the job in a separate thread between this lock and check.
               return true if Que.execute(:check_job, [row['priority'], row['run_at'], row['job_id']]).none?
 
               run_job(row)
@@ -128,30 +151,6 @@ module Que
           Hash.new { |hash, key| hash[key.to_s] if Symbol === key }
         end
       end
-    end
-
-    def initialize(attrs)
-      @attrs = attrs
-    end
-
-    def _run
-      start = Time.now
-
-      run *@attrs[:args]
-      destroy unless @destroyed
-
-      Que.log :info, "Worked job in #{((Time.now - start) * 1000).round(1)} ms: #{inspect}"
-    end
-
-    # A job without a run method defined doesn't do anything. This is useful in testing.
-    def run(*args)
-    end
-
-    private
-
-    def destroy
-      Que.execute :destroy_job, [@attrs['priority'], @attrs['run_at'], @attrs['job_id']]
-      @destroyed = true
     end
   end
 end

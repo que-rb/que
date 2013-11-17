@@ -74,7 +74,8 @@ describe "Managing the Worker pool" do
       Que::Worker.wake!
 
       $q1.pop
-      Que::Worker.workers.first.should_not be_asleep
+      Que::Worker.workers.first.should be_working
+      Que::Worker.workers[1..3].each { |w| w.should be_asleep }
       DB[:que_jobs].count.should be 1
       $q2.push nil
 

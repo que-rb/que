@@ -7,14 +7,7 @@ module Que
     # worker are capable of affecting the state of the worker's thread, we
     # need to synchronize access to it.
 
-    # We use two variables to track the current state of the worker,
-    # @thread[:state] and @thread[:directive].
     include MonitorMixin
-
-    # Defaults for the Worker pool.
-    @mode         = :off
-    @worker_count = 4
-    @sleep_period = 5
 
     attr_reader :thread
 
@@ -69,7 +62,7 @@ module Que
           # There's a very small period of time between when the Worker marks
           # itself as sleeping and when it actually goes to sleep. Only report
           # #asleep? as true when we're certain the thread is sleeping.
-          wait until @thread.status == 'sleep'
+          sleep 0.0001 until @thread.status == 'sleep'
           true
         end
       end
@@ -84,8 +77,8 @@ module Que
     def wake!
       synchronize do
         if asleep?
-          # Set the state here so that another thread checking immediately
-          # after this won't see the worker as asleep.
+          # Have to set the state here so that another thread checking
+          # immediately after this won't see the worker as asleep.
           @thread[:state] = :working
           @thread.wakeup
           true
@@ -106,15 +99,13 @@ module Que
 
     private
 
-    WaitPeriod = 0.0001 # 0.1 ms
-
-    def wait
-      sleep WaitPeriod
-    end
+    # Defaults for the Worker pool.
+    @mode         = :off
+    @worker_count = 0
+    @sleep_period = 5
 
     class << self
-      attr_writer :worker_count
-      attr_reader :mode, :sleep_period
+      attr_reader :mode, :sleep_period, :worker_count
 
       def mode=(mode)
         case mode
@@ -137,16 +128,13 @@ module Que
         if count > workers.count
           (count - workers.count).times { workers << new }
         elsif count < workers.count
-          workers.last(workers.count - count).each(&:stop!).each do |worker|
-            worker.wait_until_stopped
-            workers.delete(worker)
-          end
+          workers.pop(workers.count - count).each(&:stop!).each(&:wait_until_stopped)
         end
       end
 
       def sleep_period=(period)
         @sleep_period = period
-        wrangler.wakeup
+        wrangler.wakeup if period
       end
 
       def wake!
@@ -160,12 +148,7 @@ module Que
       private
 
       def wrangler
-        @wrangler ||= Thread.new do
-          loop do
-            sleep(*sleep_period)
-            wake!
-          end
-        end
+        @wrangler ||= Thread.new { loop { sleep(*sleep_period); wake! } }
       end
     end
   end
