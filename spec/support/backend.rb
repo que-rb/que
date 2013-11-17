@@ -428,6 +428,17 @@ shared_examples "a Que backend" do
           Que.error_handler = nil
         end
       end
+
+      it "should return false if the job throws a postgres error" do
+        class PGErrorJob < Que::Job
+          def run
+            Que.execute "bad SQL syntax"
+          end
+        end
+
+        PGErrorJob.queue
+        Que::Job.work.should be false
+      end
     end
   end
 
@@ -522,10 +533,6 @@ shared_examples "a Que backend" do
           @worker.thread.join
         end
       end
-    end
-
-    it "should not spam the connection when there's a disconnection error" do
-      pending
     end
 
     it "should receive and respect a notification to shut down when it is working, after its current job completes" do
