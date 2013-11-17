@@ -81,12 +81,17 @@ module Que
               run_job(row)
             end
           rescue => error
-            if row
-              # Borrowed the exponential backoff formula and error data format from delayed_job.
-              count   = row['error_count'].to_i + 1
-              run_at  = Time.now + (count ** 4 + 3)
-              message = "#{error.message}\n#{error.backtrace.join("\n")}"
-              Que.execute :set_error, [count, run_at, message, row['priority'], row['run_at'], row['job_id']]
+            begin
+              if row
+                # Borrowed the exponential backoff formula and error data format from delayed_job.
+                count   = row['error_count'].to_i + 1
+                run_at  = Time.now + (count ** 4 + 3)
+                message = "#{error.message}\n#{error.backtrace.join("\n")}"
+                Que.execute :set_error, [count, run_at, message, row['priority'], row['run_at'], row['job_id']]
+              end
+            rescue
+              # If we can't reach the DB for some reason, too bad, but don't
+              # let it crash the work loop.
             end
 
             if Que.error_handler
