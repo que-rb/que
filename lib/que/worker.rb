@@ -74,6 +74,12 @@ module Que
       end
     end
 
+    def working?
+      synchronize do
+        @thread[:state] == :working
+      end
+    end
+
     def wake!
       synchronize do
         if asleep?
@@ -134,6 +140,14 @@ module Que
             workers.delete(worker)
           end
         end
+      end
+
+      def wake!
+        workers.find &:wake!
+      end
+
+      def wake_all!
+        workers.each &:wake!
       end
     end
   end

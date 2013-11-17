@@ -66,13 +66,39 @@ describe "Managing the Worker pool" do
       workers.each { |worker| worker.thread.status.should be false }
     end
 
-    it "then Que::Worker.poke! should wake up a single worker" do
-      pending
+    it "then Que::Worker.wake! should wake up a single worker" do
+      Que.mode = :async
+      sleep_until { Que::Worker.workers.all? &:asleep? }
+
+      BlockJob.queue
+      Que::Worker.wake!
+
+      $q1.pop
+      Que::Worker.workers.first.should_not be_asleep
+      DB[:que_jobs].count.should be 1
+      $q2.push nil
+
+      sleep_until { Que::Worker.workers.all? &:asleep? }
+      DB[:que_jobs].count.should be 0
     end
 
-    it "then Que::Worker.poke_all! should wake up all workers" do
-      pending
-    end
+    it "then Que::Worker.wake_all! should wake up all workers" do
+      # This spec requires at least four connections.
+      Que.adapter = QUE_ADAPTERS[:connection_pool]
+
+      Que.mode = :async
+      sleep_until { Que::Worker.workers.all? &:asleep? }
+
+      4.times { BlockJob.queue }
+      Que::Worker.wake_all!
+      4.times { $q1.pop }
+
+      Que::Worker.workers.each{ |worker| worker.should be_working }
+      4.times { $q2.push nil }
+
+      sleep_until { Que::Worker.workers.all? &:asleep? }
+      DB[:que_jobs].count.should be 0
+    end if QUE_ADAPTERS[:connection_pool]
 
     it "should poke a worker every Que.sleep_period seconds" do
       pending
