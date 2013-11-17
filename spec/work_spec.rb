@@ -2,44 +2,21 @@ require 'spec_helper'
 
 describe Que::Job, '.work' do
   it "should pass a job's arguments to the run method and delete it from the database" do
-    $passed_number = nil
-    $passed_string = nil
-    $passed_hash   = nil
-
-    class RunJob < Que::Job
-      def run(number, string, hash)
-        $passed_number = number
-        $passed_string = string
-        $passed_hash   = hash
-      end
-    end
-
-    DB[:que_jobs].count.should be 0
-    RunJob.queue 1, 'two', {'three' => 3}
+    ArgsJob.queue 1, 'two', {'three' => 3}
     DB[:que_jobs].count.should be 1
-    Que::Job.work.should be_an_instance_of RunJob
+    Que::Job.work.should be_an_instance_of ArgsJob
     DB[:que_jobs].count.should be 0
-    $passed_number.should == 1
-    $passed_string.should == 'two'
-    $passed_hash.should   == {'three' => 3}
+    $passed_args.should == [1, 'two', {'three' => 3}]
 
     # Should clear advisory lock.
     DB[:pg_locks].where(:locktype => 'advisory').should be_empty
   end
 
   it "should make a job's argument hashes indifferently accessible" do
-    $passed_args = nil
-
-    class RunJob < Que::Job
-      def run(*args)
-        $passed_args = args
-      end
-    end
-
     DB[:que_jobs].count.should be 0
-    RunJob.queue 1, 'two', {'array' => [{'number' => 3}]}
+    ArgsJob.queue 1, 'two', {'array' => [{'number' => 3}]}
     DB[:que_jobs].count.should be 1
-    Que::Job.work.should be_an_instance_of RunJob
+    Que::Job.work.should be_an_instance_of ArgsJob
     DB[:que_jobs].count.should be 0
 
     $passed_args.last[:array].first[:number].should == 3
@@ -73,73 +50,52 @@ describe Que::Job, '.work' do
   end
 
   it "should prefer a job with a higher priority" do
-    class PriorityWorkJob < Que::Job
-    end
-
-    PriorityWorkJob.queue :priority => 5
-    PriorityWorkJob.queue :priority => 1
-    PriorityWorkJob.queue :priority => 5
+    Que::Job.queue :priority => 5
+    Que::Job.queue :priority => 1
+    Que::Job.queue :priority => 5
     DB[:que_jobs].order(:job_id).select_map(:priority).should == [5, 1, 5]
 
-    Que::Job.work.should be_an_instance_of PriorityWorkJob
+    Que::Job.work.should be_an_instance_of Que::Job
     DB[:que_jobs].select_map(:priority).should == [5, 5]
   end
 
   it "should prefer a job that was scheduled to run longer ago" do
-    class ScheduledWorkJob < Que::Job
-    end
-
-    ScheduledWorkJob.queue :run_at => Time.now - 30
-    ScheduledWorkJob.queue :run_at => Time.now - 60
-    ScheduledWorkJob.queue :run_at => Time.now - 30
+    Que::Job.queue :run_at => Time.now - 30
+    Que::Job.queue :run_at => Time.now - 60
+    Que::Job.queue :run_at => Time.now - 30
 
     recent1, old, recent2 = DB[:que_jobs].order(:job_id).select_map(:run_at)
 
-    Que::Job.work.should be_an_instance_of ScheduledWorkJob
+    Que::Job.work.should be_an_instance_of Que::Job
     DB[:que_jobs].order_by(:job_id).select_map(:run_at).should == [recent1, recent2]
   end
 
   it "should prefer a job that was queued earlier, judging by the job_id" do
-    class EarlyWorkJob < Que::Job
-    end
-
     run_at = Time.now - 30
-    EarlyWorkJob.queue :run_at => run_at
-    EarlyWorkJob.queue :run_at => run_at
-    EarlyWorkJob.queue :run_at => run_at
+    Que::Job.queue :run_at => run_at
+    Que::Job.queue :run_at => run_at
+    Que::Job.queue :run_at => run_at
 
     first, second, third = DB[:que_jobs].select_order_map(:job_id)
 
-    Que::Job.work.should be_an_instance_of EarlyWorkJob
+    Que::Job.work.should be_an_instance_of Que::Job
     DB[:que_jobs].select_order_map(:job_id).should == [second, third]
   end
 
   it "should only work a job whose scheduled time to run has passed" do
-    class ScheduledWorkJob < Que::Job
-    end
-
-    ScheduledWorkJob.queue :run_at => Time.now + 30
-    ScheduledWorkJob.queue :run_at => Time.now - 30
-    ScheduledWorkJob.queue :run_at => Time.now + 30
+    Que::Job.queue :run_at => Time.now + 30
+    Que::Job.queue :run_at => Time.now - 30
+    Que::Job.queue :run_at => Time.now + 30
 
     future1, past, future2 = DB[:que_jobs].order(:job_id).select_map(:run_at)
 
-    Que::Job.work.should be_an_instance_of ScheduledWorkJob
+    Que::Job.work.should be_an_instance_of Que::Job
     Que::Job.work.should be nil
     DB[:que_jobs].order_by(:job_id).select_map(:run_at).should == [future1, future2]
   end
 
   it "should lock the job it selects" do
-    $q1, $q2 = Queue.new, Queue.new
-
-    class AdvisoryLockJob < Que::Job
-      def run(*args)
-        $q1.push nil
-        $q2.pop
-      end
-    end
-
-    AdvisoryLockJob.queue
+    BlockJob.queue
     id = DB[:que_jobs].get(:job_id)
     thread = Thread.new { Que::Job.work }
 
@@ -151,10 +107,7 @@ describe Que::Job, '.work' do
   end
 
   it "should not work jobs that are advisory-locked" do
-    class AdvisoryLockBlockJob < Que::Job
-    end
-
-    AdvisoryLockBlockJob.queue
+    Que::Job.queue
     id = DB[:que_jobs].get(:job_id)
 
     begin
@@ -197,28 +150,21 @@ describe Que::Job, '.work' do
   end
 
   it "should make it easy to destroy the job within the same transaction as other changes" do
-    class TransactionJob < Que::Job
+    class DestroyJob < Que::Job
       def run
         destroy
       end
     end
 
-    TransactionJob.queue
+    DestroyJob.queue
     DB[:que_jobs].count.should be 1
     Que::Job.work
     DB[:que_jobs].count.should be 0
   end
 
   describe "when encountering an error" do
-    class ErrorJob < Que::Job
-      def run
-        raise "ErrorJob!"
-      end
-    end
-
     it "should exponentially back off the job" do
       ErrorJob.queue
-
       Que::Job.work.should be true
 
       job = DB[:que_jobs].first

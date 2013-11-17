@@ -1,18 +1,6 @@
 require 'spec_helper'
 
 describe Que::Worker do
-  # Handy job that blocks during execution until we let it go forward.
-  class BlockJob < Que::Job
-    def run
-      $q1.push nil
-      $q2.pop
-    end
-  end
-
-  before do
-    $q1, $q2 = Queue.new, Queue.new
-  end
-
   it "should work jobs when started until there are none available" do
     begin
       Que::Job.queue
@@ -67,15 +55,9 @@ describe Que::Worker do
   end
 
   it "should not be deterred by a job that raises an error" do
-    class WorkerErrorJob < Que::Job
-      def run
-        raise "WorkerErrorJob!"
-      end
-    end
-
     begin
-      WorkerErrorJob.queue :priority => 1
-      Que::Job.queue       :priority => 5
+      ErrorJob.queue :priority => 1
+      Que::Job.queue :priority => 5
 
       @worker = Que::Worker.new
 
@@ -83,7 +65,7 @@ describe Que::Worker do
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
-      job[:type].should == 'WorkerErrorJob'
+      job[:type].should == 'ErrorJob'
       job[:run_at].should be_within(3).of Time.now + 4
     ensure
       if @worker

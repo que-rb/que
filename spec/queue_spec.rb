@@ -2,51 +2,42 @@ require 'spec_helper'
 
 describe Que::Job, '.queue' do
   it "should be able to queue a job" do
-    class QueueableJob < Que::Job
-    end
-
     DB[:que_jobs].count.should be 0
-    QueueableJob.queue
+    Que::Job.queue
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
     job[:priority].should be 1
     job[:run_at].should be_within(3).of Time.now
-    job[:type].should == "QueueableJob"
+    job[:type].should == "Que::Job"
     JSON.load(job[:args]).should == []
   end
 
   it "should be able to queue a job with arguments" do
-    class ArgumentJob < Que::Job
-    end
-
     DB[:que_jobs].count.should be 0
-    ArgumentJob.queue 1, 'two'
+    Que::Job.queue 1, 'two'
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
     job[:priority].should be 1
     job[:run_at].should be_within(3).of Time.now
-    job[:type].should == "ArgumentJob"
+    job[:type].should == "Que::Job"
     JSON.load(job[:args]).should == [1, 'two']
   end
 
   it "should be able to queue a job with complex arguments" do
-    class ComplexArgumentJob < Que::Job
-    end
-
     DB[:que_jobs].count.should be 0
-    ComplexArgumentJob.queue 1, 'two', :string => "string",
-                                       :integer => 5,
-                                       :array => [1, "two", {:three => 3}],
-                                       :hash => {:one => 1, :two => 'two', :three => [3]}
+    Que::Job.queue 1, 'two', :string => "string",
+                             :integer => 5,
+                             :array => [1, "two", {:three => 3}],
+                             :hash => {:one => 1, :two => 'two', :three => [3]}
 
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
     job[:priority].should be 1
     job[:run_at].should be_within(3).of Time.now
-    job[:type].should == "ComplexArgumentJob"
+    job[:type].should == "Que::Job"
     JSON.load(job[:args]).should == [
       1,
       'two',
@@ -60,47 +51,38 @@ describe Que::Job, '.queue' do
   end
 
   it "should be able to queue a job with a specific time to run" do
-    class SchedulableJob < Que::Job
-    end
-
     DB[:que_jobs].count.should be 0
-    SchedulableJob.queue 1, :run_at => Time.now + 60
+    Que::Job.queue 1, :run_at => Time.now + 60
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
     job[:priority].should be 1
     job[:run_at].should be_within(3).of Time.now + 60
-    job[:type].should == "SchedulableJob"
+    job[:type].should == "Que::Job"
     JSON.load(job[:args]).should == [1]
   end
 
   it "should be able to queue a job with a specific priority" do
-    class PriorityJob < Que::Job
-    end
-
     DB[:que_jobs].count.should be 0
-    PriorityJob.queue 1, :priority => 4
+    Que::Job.queue 1, :priority => 4
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
     job[:priority].should be 4
     job[:run_at].should be_within(3).of Time.now
-    job[:type].should == "PriorityJob"
+    job[:type].should == "Que::Job"
     JSON.load(job[:args]).should == [1]
   end
 
   it "should be able to queue a job with queueing options in addition to argument options" do
-    class ComplexOptionJob < Que::Job
-    end
-
     DB[:que_jobs].count.should be 0
-    ComplexOptionJob.queue 1, :string => "string", :run_at => Time.now + 60, :priority => 4
+    Que::Job.queue 1, :string => "string", :run_at => Time.now + 60, :priority => 4
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
     job[:priority].should be 4
     job[:run_at].should be_within(3).of Time.now + 60
-    job[:type].should == "ComplexOptionJob"
+    job[:type].should == "Que::Job"
     JSON.load(job[:args]).should == [1, {'string' => 'string'}]
   end
 

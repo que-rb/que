@@ -4,6 +4,8 @@ Dir["./spec/support/**/*.rb"].sort.each &method(:require)
 
 QUE_URL = ENV["DATABASE_URL"] || "postgres://postgres:@localhost/que-test"
 
+
+
 # Handy proc to instantiate new PG connections:
 require 'uri'
 require 'pg'
@@ -16,6 +18,8 @@ NEW_PG_CONNECTION = proc do
                       :dbname   => uri.path[1..-1]
 end
 
+
+
 # Adapters track information about their connections like which statements
 # have been prepared, and if Que.connection= is called before each spec, we're
 # constantly creating new adapters and losing that information, which is bad.
@@ -26,6 +30,8 @@ end
 # recognition logic works. Similar code can be found in the adapter specs.
 Que.connection = NEW_PG_CONNECTION.call
 QUE_ADAPTERS = {:pg => Que.adapter}
+
+
 
 # We use Sequel to introspect the database in specs.
 require 'sequel'
@@ -41,17 +47,9 @@ RSpec.configure do |config|
   end
 end
 
+
+
 # Set up a dummy logger.
 Que.logger = $logger = Object.new
-def $logger.messages; @messages ||= []; end
+def $logger.messages;                   @messages ||= [];    end
 def $logger.method_missing(m, message); messages << message; end
-
-# Helper for testing threaded code.
-def sleep_until(timeout = 2)
-  deadline = Time.now + timeout
-  loop do
-    break if yield
-    raise "Thing never happened!" if Time.now > deadline
-    sleep 0.01
-  end
-end
