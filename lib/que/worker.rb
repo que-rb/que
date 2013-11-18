@@ -100,7 +100,6 @@ module Que
     private
 
     # Defaults for the Worker pool.
-    @mode         = :off
     @worker_count = 0
     @sleep_period = 5
 

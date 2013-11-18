@@ -6,5 +6,12 @@ module Que
     rake_tasks do
       load 'que/rake_tasks.rb'
     end
+
+    initializer "que.setup" do
+      ActiveSupport.on_load(:active_record) do
+        Que.logger ||= Rails.logger
+        Que.mode ||= Rails.env.test? ? :sync : :async
+      end
+    end
   end
 end
