@@ -7,16 +7,13 @@ namespace :que do
     Que.mode         = :async
     Que.worker_count = (ENV['WORKER_COUNT'] || 4).to_i
 
-    stop = false
-
-    trap('INT') { exit }
     trap 'TERM' do
       puts "SIGTERM, finishing current jobs and shutting down..."
       Que.mode = :off
-      stop = true
+      $stop = true
     end
 
-    loop { sleep 0.01; break if stop }
+    loop { sleep 0.01; break if $stop }
   end
 
   desc "Create Que's job table"
