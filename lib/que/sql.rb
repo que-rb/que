@@ -82,9 +82,9 @@ module Que
           error_count integer     NOT NULL DEFAULT 0,
           last_error  text,
 
-          CONSTRAINT jobs_pkey PRIMARY KEY (priority, run_at, job_id)
+          CONSTRAINT que_jobs_pkey PRIMARY KEY (priority, run_at, job_id)
         )
-    SQL
+      SQL
     ).freeze,
 
     :check_job => (
