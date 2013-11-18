@@ -3,7 +3,7 @@ require 'spec_helper'
 describe "Managing the Worker pool" do
   it "should log mode changes" do
     Que.mode = :off
-    $logger.messages.should == ["Set Que mode to :off"]
+    $logger.messages.should == ["[Que] Set mode to :off"]
   end
 
   it "Que.mode = :sync should make jobs run in the same thread as they are queued" do
@@ -14,8 +14,8 @@ describe "Managing the Worker pool" do
     DB[:que_jobs].count.should be 0
 
     $logger.messages.length.should be 2
-    $logger.messages[0].should == "Set Que mode to :sync"
-    $logger.messages[1].should =~ /\AWorked job in/
+    $logger.messages[0].should == "[Que] Set mode to :sync"
+    $logger.messages[1].should =~ /\A\[Que\] Worked job in/
   end
 
   describe "Que.mode = :async" do

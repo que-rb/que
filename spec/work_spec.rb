@@ -35,7 +35,7 @@ describe Que::Job, '.work' do
     Que::Job.work
 
     $logger.messages.length.should == 1
-    $logger.messages[0].should =~ /\AWorked job in/
+    $logger.messages[0].should =~ /\A\[Que\] Worked job in/
   end
 
   it "should not fail if there's no logger assigned" do

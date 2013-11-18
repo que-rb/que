@@ -115,7 +115,7 @@ module Que
         end
 
         @mode = mode
-        Que.log :info, "Set Que mode to #{mode.inspect}"
+        Que.log :info, "Set mode to #{mode.inspect}"
       end
 
       def workers

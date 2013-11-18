@@ -47,7 +47,7 @@ module Que
     end
 
     def log(level, text)
-      logger.send level, text if logger
+      logger.send level, "[Que] #{text}" if logger
     end
 
     # Duplicate some Worker config methods to the Que module for convenience.
