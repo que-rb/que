@@ -12,7 +12,7 @@ Additionally, there are the general benefits of storing jobs in Postgres rather 
 * **Atomic backups** - Your jobs and data can be backed up together and restored as a snapshot. If your jobs relate to your data (and they usually do), this is important if you don't want to lose anything during a restoration.
 * **Fewer dependencies** - If you're already using Postgres (and you probably should be), a separate queue is another moving part that can break.
 
-Que's primary goal is reliability. You should be able to leave your application running indefinitely without having to manually intervene when jobs are lost due to a lack of transactional support or left in limbo due to a crashing process. Que works hard to make sure that jobs you queue are performed exactly once.
+Que's primary goal is reliability. When it's stable, you should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que works hard to make sure that jobs you queue are performed exactly once.
 
 Que's secondary goal is performance. It won't be able to match the speed or throughput of a dedicated queue, or maybe even a Redis-backed queue, but it should be plenty fast for most use cases. It also includes a worker pool, so that multiple threads can process jobs in the same process. It can even do this in the background of your web process - if you're running on Heroku, for example, you won't need to run a separate worker dyno.
 
