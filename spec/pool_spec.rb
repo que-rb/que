@@ -6,16 +6,25 @@ describe "Managing the Worker pool" do
     $logger.messages.should == ["[Que] Set mode to :off"]
   end
 
-  it "Que.mode = :sync should make jobs run in the same thread as they are queued" do
-    Que.mode = :sync
+  describe "Que.mode = :sync" do
+    it "should make jobs run in the same thread as they are queued" do
+      Que.mode = :sync
 
-    ArgsJob.queue(5, :testing => "synchronous").should be_an_instance_of ArgsJob
-    $passed_args.should == [5, {'testing' => "synchronous"}]
-    DB[:que_jobs].count.should be 0
+      ArgsJob.queue(5, :testing => "synchronous").should be_an_instance_of ArgsJob
+      $passed_args.should == [5, {'testing' => "synchronous"}]
+      DB[:que_jobs].count.should be 0
 
-    $logger.messages.length.should be 2
-    $logger.messages[0].should == "[Que] Set mode to :sync"
-    $logger.messages[1].should =~ /\A\[Que\] Worked job in/
+      $logger.messages.length.should be 2
+      $logger.messages[0].should == "[Que] Set mode to :sync"
+      $logger.messages[1].should =~ /\A\[Que\] Worked job in/
+    end
+
+    it "should not affect jobs that are queued with specific run_ats" do
+      Que.mode = :sync
+
+      ArgsJob.queue(5, :testing => "synchronous", :run_at => Time.now + 60)
+      DB[:que_jobs].select_map(:job_class).should == ["ArgsJob"]
+    end
   end
 
   describe "Que.mode = :async" do

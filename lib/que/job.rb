@@ -46,7 +46,7 @@ module Que
           attrs[:priority] = p
         end
 
-        if Que.mode == :sync
+        if Que.mode == :sync && !attrs[:run_at]
           run_job(attrs)
         else
           Que.execute *insert_sql(attrs)
