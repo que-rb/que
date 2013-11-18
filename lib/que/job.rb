@@ -79,6 +79,9 @@ module Que
               return true if Que.execute(:check_job, [row['priority'], row['run_at'], row['job_id']]).none?
 
               run_job(row)
+            else
+              Que.log :info, "No jobs available..."
+              nil
             end
           rescue => error
             begin
