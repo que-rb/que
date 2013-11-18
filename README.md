@@ -25,6 +25,8 @@ The rakefile includes a benchmark that tries to compare the performance and conc
     Benchmarking que... 1000 jobs in 2.31483287 seconds = 432 jobs per second
     Benchmarking que_lateral... 1000 jobs in 2.383887915 seconds = 419 jobs per second
 
+Or, minus the I/O limitations of my 5400 rpm hard drive:
+
     ~/que $ SYNCHRONOUS_COMMIT=off rake benchmark
     Benchmarking 1000 jobs, 10 workers and synchronous_commit = off...
     Benchmarking delayed_job... 1000 jobs in 4.906474583 seconds = 204 jobs per second
