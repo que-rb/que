@@ -31,4 +31,9 @@ describe "Que using the ActiveRecord adapter" do
     $passed_args.first[:param].should == 2
     $passed_args.first.should be_an_instance_of ActiveSupport::HashWithIndifferentAccess
   end
+
+  it "should support Rails' special extensions for times" do
+    Que::Job.queue :run_at => 1.minute.from_now
+    DB[:que_jobs].get(:run_at).should be_within(3).of Time.now + 60
+  end
 end
