@@ -2,21 +2,21 @@
 
 Que is a queue for Ruby applications that manages jobs using PostgreSQL's advisory locks. There are several advantages to this design:
 
-* **Safety** - If a worker dies, its jobs won't be lost, or left in a locked or ambiguous state - they immediately become available for any other worker to pick up.
+* **Safety** - If a Ruby process dies, its jobs won't be lost, or left in a locked or ambiguous state - they immediately become available for any other worker to pick up.
 * **Efficiency** - Locking a job doesn't incur a disk write or hold open a transaction.
-* **Concurrency** - Since there's no locked_at column or SELECT FOR UPDATE-style locking, workers don't block each other when locking jobs. There's no need to loop through the locking query and catch errors, or resort to hacks to try to prevent multiple workers from trying to lock the same job.
+* **Concurrency** - There's no locked_at column or SELECT FOR UPDATE-style locking, so workers don't block each other when locking jobs.
 
 Additionally, there are the general benefits of storing jobs in Postgres rather than a dedicated queue:
 
-* **Transactional control** - Queue a job along with other changes to your database, and they'll commit or rollback with everything else.
-* **Fewer dependencies** - If you're already using Postgres (and you probably should be), a separate queue is another moving part that can break.
+* **Transactional control** - Queue a job along with other changes to your database, and it'll commit or rollback with everything else.
 * **Atomic backups** - Your jobs and data can be backed up together and restored as a snapshot. If your jobs relate to your data (and they usually do), this is important if you don't want to lose anything during a restoration.
+* **Fewer dependencies** - If you're already using Postgres (and you probably should be), a separate queue is another moving part that can break.
 
-Que's primary goal is reliability. You should be able to leave your application running indefinitely without having to manually intervene when jobs are lost due to a lack of transactional support, left in limbo due to a crashing worker, or generally are performed more or less than once.
+Que's primary goal is reliability. You should be able to leave your application running indefinitely without having to manually intervene when jobs are lost due to a lack of transactional support or left in limbo due to a crashing process. Que works hard to make sure that jobs you queue are performed exactly once.
 
-Que's secondary goal is performance. It won't be able to match the speed or throughput of a dedicated queue, or perhaps even a Redis-backed queue, but it should be plenty fast for most use cases. It also includes a worker pool, so that multiple threads can process jobs in the same process. It can even do this in the background of your web process - if you're running on Heroku, for example, you won't need to run a separate worker dyno.
+Que's secondary goal is performance. It won't be able to match the speed or throughput of a dedicated queue, or maybe even a Redis-backed queue, but it should be plenty fast for most use cases. It also includes a worker pool, so that multiple threads can process jobs in the same process. It can even do this in the background of your web process - if you're running on Heroku, for example, you won't need to run a separate worker dyno.
 
-The rakefile includes a benchmark that compares the locking performance and concurrency of Que to that of DelayedJob and QueueClassic. On my i5 quad-core laptop, the results are along the lines of:
+The rakefile includes a benchmark that tries to compare the performance and concurrency of Que's locking mechanism to that of DelayedJob and QueueClassic. On my i5 quad-core laptop, the results are along the lines of:
 
     ~/que $ rake benchmark
     Benchmarking 1000 jobs, 10 workers and synchronous_commit = on...
@@ -34,7 +34,7 @@ The rakefile includes a benchmark that compares the locking performance and conc
 
 As always, this is a single naive benchmark that doesn't represent anything real, take it with a grain of salt, try it for yourself, etc.
 
-**Que was extracted from an app of mine where it ran in production for a few months. It worked well, but it's been adapted somewhat from that design. Please don't trust it with your production data until you've tried to break it a few times.**
+**Que was extracted from an app of mine that ran in production for a few months. That queue worked well, but Que has been adapted somewhat from that design in order to support multiple ORMs and other features. Please don't trust Que with your production data until we've all tried to break it a few times.**
 
 Right now, Que is only tested on Ruby 2.0 - it may work on other versions. It requires Postgres 9.2+ for the JSON type. The benchmark requires Postgres 9.3, since it also tests a variant of the typical locking query that uses the new LATERAL syntax.
 
