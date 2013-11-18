@@ -29,7 +29,7 @@ module Que
             ) AS t1
           )
         )
-        SELECT job_id, priority, run_at, args, type, error_count
+        SELECT job_id, priority, run_at, args, job_class, error_count
         FROM cte
         WHERE locked
         LIMIT 1
@@ -77,7 +77,7 @@ module Que
           priority    integer     NOT NULL DEFAULT 1,
           run_at      timestamptz NOT NULL DEFAULT now(),
           job_id      bigserial   NOT NULL,
-          type        text        NOT NULL,
+          job_class   text        NOT NULL,
           args        json        NOT NULL DEFAULT '[]'::json,
           error_count integer     NOT NULL DEFAULT 0,
           last_error  text,

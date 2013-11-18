@@ -9,7 +9,7 @@ describe Que::Job, '.queue' do
     job = DB[:que_jobs].first
     job[:priority].should be 1
     job[:run_at].should be_within(3).of Time.now
-    job[:type].should == "Que::Job"
+    job[:job_class].should == "Que::Job"
     JSON.load(job[:args]).should == []
   end
 
@@ -21,7 +21,7 @@ describe Que::Job, '.queue' do
     job = DB[:que_jobs].first
     job[:priority].should be 1
     job[:run_at].should be_within(3).of Time.now
-    job[:type].should == "Que::Job"
+    job[:job_class].should == "Que::Job"
     JSON.load(job[:args]).should == [1, 'two']
   end
 
@@ -37,7 +37,7 @@ describe Que::Job, '.queue' do
     job = DB[:que_jobs].first
     job[:priority].should be 1
     job[:run_at].should be_within(3).of Time.now
-    job[:type].should == "Que::Job"
+    job[:job_class].should == "Que::Job"
     JSON.load(job[:args]).should == [
       1,
       'two',
@@ -58,7 +58,7 @@ describe Que::Job, '.queue' do
     job = DB[:que_jobs].first
     job[:priority].should be 1
     job[:run_at].should be_within(3).of Time.now + 60
-    job[:type].should == "Que::Job"
+    job[:job_class].should == "Que::Job"
     JSON.load(job[:args]).should == [1]
   end
 
@@ -70,7 +70,7 @@ describe Que::Job, '.queue' do
     job = DB[:que_jobs].first
     job[:priority].should be 4
     job[:run_at].should be_within(3).of Time.now
-    job[:type].should == "Que::Job"
+    job[:job_class].should == "Que::Job"
     JSON.load(job[:args]).should == [1]
   end
 
@@ -82,7 +82,7 @@ describe Que::Job, '.queue' do
     job = DB[:que_jobs].first
     job[:priority].should be 4
     job[:run_at].should be_within(3).of Time.now + 60
-    job[:type].should == "Que::Job"
+    job[:job_class].should == "Que::Job"
     JSON.load(job[:args]).should == [1, {'string' => 'string'}]
   end
 
@@ -100,12 +100,12 @@ describe Que::Job, '.queue' do
 
     first[:priority].should be 3
     first[:run_at].should be_within(3).of Time.now
-    first[:type].should == "DefaultPriorityJob"
+    first[:job_class].should == "DefaultPriorityJob"
     JSON.load(first[:args]).should == [1]
 
     second[:priority].should be 4
     second[:run_at].should be_within(3).of Time.now
-    second[:type].should == "DefaultPriorityJob"
+    second[:job_class].should == "DefaultPriorityJob"
     JSON.load(second[:args]).should == [1]
   end
 
@@ -123,12 +123,12 @@ describe Que::Job, '.queue' do
 
     first[:priority].should be 1
     first[:run_at].should be_within(3).of Time.now + 60
-    first[:type].should == "DefaultRunAtJob"
+    first[:job_class].should == "DefaultRunAtJob"
     JSON.load(first[:args]).should == [1]
 
     second[:priority].should be 1
     second[:run_at].should be_within(3).of Time.now + 30
-    second[:type].should == "DefaultRunAtJob"
+    second[:job_class].should == "DefaultRunAtJob"
     JSON.load(second[:args]).should == [1]
   end
 end

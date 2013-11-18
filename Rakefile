@@ -58,7 +58,7 @@ task :benchmark do
       priority    integer     NOT NULL DEFAULT 1,
       run_at      timestamptz NOT NULL DEFAULT now(),
       job_id      bigserial   NOT NULL,
-      type        text        NOT NULL,
+      job_class   text        NOT NULL,
       args        json        NOT NULL DEFAULT '[]'::json,
       error_count integer     NOT NULL DEFAULT 0,
       last_error  text,
@@ -72,7 +72,7 @@ task :benchmark do
       priority    integer     NOT NULL DEFAULT 1,
       run_at      timestamptz NOT NULL DEFAULT now(),
       job_id      bigserial   NOT NULL,
-      type        text        NOT NULL,
+      job_class   text        NOT NULL,
       args        json        NOT NULL DEFAULT '[]'::json,
       error_count integer     NOT NULL DEFAULT 0,
       last_error  text,
@@ -202,11 +202,11 @@ task :benchmark do
 
 
 
-    INSERT INTO que_jobs (type, args, priority)
+    INSERT INTO que_jobs (job_class, args, priority)
     SELECT 'Que::Job', ('[' || i || ',{}]')::json, 1
     FROM generate_Series(1,#{JOB_COUNT}) AS i;
 
-    INSERT INTO que_lateral_jobs (type, args, priority)
+    INSERT INTO que_lateral_jobs (job_class, args, priority)
     SELECT 'Que::Job', ('[' || i || ',{}]')::json, 1
     FROM generate_Series(1,#{JOB_COUNT}) AS i;
 
@@ -254,7 +254,7 @@ task :benchmark do
             ) AS t1
           )
         )
-        SELECT job_id, priority, run_at, args, type, error_count
+        SELECT job_id, priority, run_at, args, job_class, error_count
         FROM cte
         WHERE locked
         LIMIT 1

@@ -65,7 +65,7 @@ describe Que::Worker do
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
-      job[:type].should == 'ErrorJob'
+      job[:job_class].should == 'ErrorJob'
       job[:run_at].should be_within(3).of Time.now + 4
     ensure
       if @worker
@@ -91,7 +91,7 @@ describe Que::Worker do
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
-      job[:type].should == 'Que::Job'
+      job[:job_class].should == 'Que::Job'
     ensure
       if @worker
         @worker.thread.kill

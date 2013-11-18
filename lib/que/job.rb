@@ -36,7 +36,7 @@ module Que
           args << options if options.any?
         end
 
-        attrs = {:type => to_s, :args => JSON.dump(args)}
+        attrs = {:job_class => to_s, :args => JSON.dump(args)}
 
         if t = run_at || @default_run_at && @default_run_at.call
           attrs[:run_at] = t
@@ -132,7 +132,7 @@ module Que
       def run_job(attrs)
         attrs = indifferentiate(attrs)
         attrs[:args] = indifferentiate(JSON.load(attrs[:args]))
-        const_get(attrs[:type]).new(attrs).tap(&:_run)
+        const_get(attrs[:job_class]).new(attrs).tap(&:_run)
       end
 
       def indifferentiate(input)

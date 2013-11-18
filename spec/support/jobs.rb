@@ -1,4 +1,4 @@
-# Common Job types for use in specs.
+# Common Job classes for use in specs.
 
 # Handy for blocking in the middle of processing a job.
 class BlockJob < Que::Job

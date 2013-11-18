@@ -11,7 +11,7 @@ describe Que, 'helpers' do
   end
 
   it "should be able to clear the jobs table" do
-    DB[:que_jobs].insert :type => "Que::Job"
+    DB[:que_jobs].insert :job_class => "Que::Job"
     DB[:que_jobs].count.should be 1
     Que.clear!
     DB[:que_jobs].count.should be 0
