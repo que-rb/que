@@ -14,11 +14,20 @@ RSpec::Core::RakeTask.new :pg do |spec|
 end
 
 task :benchmark do
-  # This benchmark is meant to compare the speed and concurrency of the locking
-  # mechanisms used by Que (standard and lateral), DelayedJob and QueueClassic.
+  # The following is a somewhat simplistic benchmark (aren't they all) meant
+  # to compare the speed and concurrency of the locking mechanisms used by Que
+  # (standard and lateral queries), DelayedJob and QueueClassic - it does this
+  # by simply sending the raw queries that each system sends during operation.
 
-  JOB_COUNT    = (ENV['JOB_COUNT'] || 1000).to_i
-  WORKER_COUNT = (ENV['WORKER_COUNT'] || 10).to_i
+  # It is NOT meant to benchmark the overall performance of each system (which
+  # would include the time each spends working in Ruby), but to see which one
+  # supports the highest concurrency under load, assuming that there will be
+  # many workers and that Postgres will be the bottleneck. I'm unsure how
+  # useful it is for this, but it's a start.
+
+  JOB_COUNT          = (ENV['JOB_COUNT'] || 1000).to_i
+  WORKER_COUNT       = (ENV['WORKER_COUNT'] || 10).to_i
+  SYNCHRONOUS_COMMIT = ENV['SYNCHRONOUS_COMMIT'] || 'on'
 
   require 'uri'
   require 'pg'
@@ -38,8 +47,10 @@ task :benchmark do
 
 
 
-  # Setup
+  # Necessary setup, mostly for QueueClassic. I apologize for this - I hope your editor supports code folding.
   pg.async_exec <<-SQL
+    SET SESSION client_min_messages = 'WARNING';
+
     -- Que table.
     DROP TABLE IF EXISTS que_jobs;
     CREATE TABLE que_jobs
@@ -306,6 +317,7 @@ task :benchmark do
 
   connections = WORKER_COUNT.times.map do
     conn = new_connection.call
+    conn.async_exec "SET SESSION synchronous_commit = #{SYNCHRONOUS_COMMIT}"
     queries.each do |name, sql|
       conn.prepare(name.to_s, sql)
     end
@@ -328,38 +340,43 @@ task :benchmark do
       return unless r = conn.exec_prepared("delayed_job", [conn.object_id]).first
       $results[type] << r['id']
       conn.async_exec "DELETE FROM delayed_jobs WHERE id = $1", [r['id']]
+
     when :queue_classic
       return unless r = conn.async_exec("SELECT * FROM lock_head($1, $2)", ['default', 9]).first
       $results[type] << r['id']
       conn.async_exec "DELETE FROM queue_classic_jobs WHERE id = $1", [r['id']]
+
     when :que
       begin
         return unless r = conn.exec_prepared("que").first
-        return true if conn.async_exec("SELECT * FROM que_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [r['priority'], r['run_at'], r['job_id']]).none?
+        # Have to double-check that the job is valid, as explained at length in Que::Job.work.
+        return true unless conn.async_exec("SELECT * FROM que_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [r['priority'], r['run_at'], r['job_id']]).first
         conn.async_exec "DELETE FROM que_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [r['priority'], r['run_at'], r['job_id']]
         $results[type] << r['job_id']
       ensure
         conn.async_exec "SELECT pg_advisory_unlock($1)", [r['job_id']] if r
       end
+
     when :que_lateral
       begin
         return unless r = conn.exec_prepared("que_lateral").first
-        return true if conn.async_exec("SELECT * FROM que_lateral_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [r['priority'], r['run_at'], r['job_id']]).none?
+        return true unless conn.async_exec("SELECT * FROM que_lateral_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [r['priority'], r['run_at'], r['job_id']]).first
         conn.async_exec "DELETE FROM que_lateral_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [r['priority'], r['run_at'], r['job_id']]
         $results[type] << r['job_id']
       ensure
         conn.async_exec "SELECT pg_advisory_unlock($1)", [r['job_id']] if r
       end
+
     end
   end
 
-  puts "Benchmarking queues with #{WORKER_COUNT} workers..."
+  puts "Benchmarking #{JOB_COUNT} jobs, #{WORKER_COUNT} workers and synchronous_commit = #{SYNCHRONOUS_COMMIT}..."
 
   {
-    :delayed_job => :delayed_jobs,
+    :delayed_job   => :delayed_jobs,
     :queue_classic => :queue_classic_jobs,
-    :que => :que_jobs,
-    :que_lateral => :que_lateral_jobs
+    :que           => :que_jobs,
+    :que_lateral   => :que_lateral_jobs
   }.each do |type, table|
     print "Benchmarking #{type}... "
     start = Time.now
@@ -377,12 +394,19 @@ task :benchmark do
     end
 
     threads.each &:join
-    puts "#{JOB_COUNT} jobs in #{(Time.now - start)} seconds"
+    time = Time.now - start
+    puts "#{JOB_COUNT} jobs in #{time} seconds = #{(JOB_COUNT / time).round} jobs per second"
 
+
+    # These checks are commented out because I can't seem to get DelayedJob to
+    # pass them (Que and QueueClassic don't have the same problem). It seems
+    # to repeat some jobs multiple times on every run, and its run times are
+    # also highly variable.
 
     # worked = $results[type].map(&:to_i).sort
     # puts "Jobs worked more than once! #{worked.inspect}" unless worked == worked.uniq
     # puts "Jobs worked less than once! #{worked.inspect}" unless worked.length == JOB_COUNT
+
     puts "Jobs left in DB" unless pg.async_exec("SELECT count(*) FROM #{table}").first['count'].to_i == 0
     puts "Advisory locks left over!" if pg.async_exec("SELECT * FROM pg_locks WHERE locktype = 'advisory'").first
   end
