@@ -7,20 +7,16 @@ namespace :que do
     Que.mode         = :async
     Que.worker_count = (ENV['WORKER_COUNT'] || 4).to_i
 
+    stop = false
+
     trap('INT') { exit }
     trap 'TERM' do
       puts "SIGTERM, finishing current jobs and shutting down..."
       Que.mode = :off
+      stop = true
     end
 
-    sleep
-  end
-
-  desc "Process Que's jobs in a single thread"
-  task :work_single => :environment do
-    Que.logger = Logger.new(STDOUT)
-    sleep_period = (ENV['SLEEP_PERIOD'] || 5).to_i
-    loop { sleep(sleep_period) unless Que::Job.work }
+    loop { sleep 0.01; break if stop }
   end
 
   desc "Create Que's job table"

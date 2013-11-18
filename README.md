@@ -112,8 +112,8 @@ If you don't want to run workers in your web process, you can also work jobs in 
     # Or configure the number of workers.
     WORKER_COUNT=8 rake que:work
 
-    # Run jobs one at a time. Useful if your app isn't thread-safe.
-    rake que:work_single
+    # If your app code isn't thread-safe, you can stick to one worker.
+    WORKER_COUNT=1 rake que:work
 
 If an error causes a job to fail, Que will repeat that job at intervals that increase exponentially with each error (using the same algorithm as DelayedJob). You can also hook Que into whatever error notification system you're using:
 

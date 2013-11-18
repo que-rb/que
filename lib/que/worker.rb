@@ -86,11 +86,10 @@ module Que
       end
     end
 
+    # This has to be called when trapping a SIGTERM, so it can't lock the monitor.
     def stop!
-      synchronize do
-        @thread[:directive] = :stop
-        wake! if sleeping?
-      end
+      @thread[:directive] = :stop
+      @thread.wakeup
     end
 
     def wait_until_stopped
