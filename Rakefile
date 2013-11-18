@@ -354,7 +354,7 @@ task :benchmark do
         conn.async_exec "DELETE FROM que_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [r['priority'], r['run_at'], r['job_id']]
         $results[type] << r['job_id']
       ensure
-        conn.async_exec "SELECT pg_advisory_unlock($1)", [r['job_id']] if r
+        conn.async_exec "SELECT pg_advisory_unlock_all()" if r
       end
 
     when :que_lateral
@@ -364,7 +364,7 @@ task :benchmark do
         conn.async_exec "DELETE FROM que_lateral_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [r['priority'], r['run_at'], r['job_id']]
         $results[type] << r['job_id']
       ensure
-        conn.async_exec "SELECT pg_advisory_unlock($1)", [r['job_id']] if r
+        conn.async_exec "SELECT pg_advisory_unlock_all()" if r
       end
 
     end
