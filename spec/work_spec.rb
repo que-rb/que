@@ -149,6 +149,17 @@ describe Que::Job, '.work' do
     $job_spec_result.should == [:sub, :subsub]
   end
 
+  it "should handle namespaced subclasses" do
+    module ModuleJobModule
+      class ModuleJob < Que::Job
+      end
+    end
+
+    ModuleJobModule::ModuleJob.queue
+    DB[:que_jobs].get(:job_class).should == "ModuleJobModule::ModuleJob"
+    Que::Job.work.should be_an_instance_of ModuleJobModule::ModuleJob
+  end
+
   it "should make it easy to destroy the job within the same transaction as other changes" do
     class DestroyJob < Que::Job
       def run
@@ -167,6 +178,7 @@ describe Que::Job, '.work' do
       ErrorJob.queue
       Que::Job.work.should be true
 
+      DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 1
       job[:last_error].should =~ /\AErrorJob!\n/
@@ -176,6 +188,8 @@ describe Que::Job, '.work' do
                            :run_at => Time.now - 60
 
       Que::Job.work.should be true
+
+      DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 6
       job[:last_error].should =~ /\AErrorJob!\n/
@@ -218,6 +232,16 @@ describe Que::Job, '.work' do
 
       PGErrorJob.queue
       Que::Job.work.should be false
+    end
+
+    it "should behave sensibly if there's no corresponding job class" do
+      DB[:que_jobs].insert :job_class => "NonexistentClass"
+      Que::Job.work.should be true
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      job[:last_error].should =~ /\Auninitialized constant NonexistentClass/
+      job[:run_at].should be_within(3).of Time.now + 4
     end
   end
 end

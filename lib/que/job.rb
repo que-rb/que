@@ -132,7 +132,7 @@ module Que
       def run_job(attrs)
         attrs = indifferentiate(attrs)
         attrs[:args] = indifferentiate(JSON.load(attrs[:args]))
-        const_get(attrs[:job_class]).new(attrs).tap(&:_run)
+        const_get("::#{attrs[:job_class]}").new(attrs).tap(&:_run)
       end
 
       def indifferentiate(input)
