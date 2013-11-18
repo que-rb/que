@@ -121,6 +121,8 @@ If an error causes a job to fail, Que will repeat that job at intervals that inc
       # Do whatever you want with the error object.
     end
 
+You can find documentation on more issues at the project's [Github wiki](https://github.com/chanks/que/wiki/_pages).
+
 ## TODO
 
 These aren't promises, just ideas for possible features:
