@@ -23,8 +23,9 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rspec', '~> 2.14.1'
   spec.add_development_dependency 'pry'
 
-  spec.add_development_dependency 'sequel'
-  spec.add_development_dependency 'activerecord'
-  spec.add_development_dependency 'pg'
-  spec.add_development_dependency 'connection_pool'
+  spec.add_dependency 'sequel'
+  spec.add_dependency 'activerecord'
+  spec.add_dependency 'pg'
+  spec.add_dependency 'connection_pool'
+  spec.add_dependency 'multi_json', '~> 1.0'
 end
