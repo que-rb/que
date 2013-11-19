@@ -1,4 +1,4 @@
-require 'json'
+require 'multi_json'
 
 module Que
   class Job
@@ -36,7 +36,7 @@ module Que
           args << options if options.any?
         end
 
-        attrs = {:job_class => to_s, :args => JSON.dump(args)}
+        attrs = {:job_class => to_s, :args => MultiJson.dump(args)}
 
         if t = run_at || @default_run_at && @default_run_at.call
           attrs[:run_at] = t
@@ -134,7 +134,7 @@ module Que
 
       def run_job(attrs)
         attrs = indifferentiate(attrs)
-        attrs[:args] = indifferentiate(JSON.load(attrs[:args]))
+        attrs[:args] = indifferentiate(MultiJson.load(attrs[:args]))
         klass = attrs[:job_class].split('::').inject(Object, &:const_get)
         klass.new(attrs).tap(&:_run)
       end

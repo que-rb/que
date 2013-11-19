@@ -27,4 +27,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'activerecord'
   spec.add_development_dependency 'pg'
   spec.add_development_dependency 'connection_pool'
+
+  spec.add_dependency 'multi_json', '~> 1.0'
 end
