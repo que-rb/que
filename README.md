@@ -18,7 +18,7 @@ Que's secondary goal is performance. It won't be able to match the speed or thro
 
 The rakefile includes a benchmark that tries to compare the performance and concurrency of Que's locking mechanism to that of DelayedJob and QueueClassic. On my i5 quad-core laptop, the results are along the lines of:
 
-    ~/que $ rake benchmark
+    ~/que $ rake benchmark_queues
     Benchmarking 1000 jobs, 10 workers and synchronous_commit = on...
     Benchmarking delayed_job... 1000 jobs in 30.086127964 seconds = 33 jobs per second
     Benchmarking queue_classic... 1000 jobs in 19.642309724 seconds = 51 jobs per second
@@ -27,7 +27,7 @@ The rakefile includes a benchmark that tries to compare the performance and conc
 
 Or, minus the I/O limitations of my 5400 rpm hard drive:
 
-    ~/que $ SYNCHRONOUS_COMMIT=off rake benchmark
+    ~/que $ SYNCHRONOUS_COMMIT=off rake benchmark_queues
     Benchmarking 1000 jobs, 10 workers and synchronous_commit = off...
     Benchmarking delayed_job... 1000 jobs in 4.906474583 seconds = 204 jobs per second
     Benchmarking queue_classic... 1000 jobs in 1.587542394 seconds = 630 jobs per second
