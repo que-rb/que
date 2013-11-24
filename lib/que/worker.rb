@@ -89,11 +89,16 @@ module Que
     # This has to be called when trapping a SIGTERM, so it can't lock the monitor.
     def stop!
       @thread[:directive] = :stop
-      @thread.wakeup
     end
 
     def wait_until_stopped
-      @thread.join
+      loop do
+        case @thread.status
+          when false then break
+          when 'sleep' then @thread.wakeup
+        end
+        sleep 0.0001
+      end
     end
 
     private
