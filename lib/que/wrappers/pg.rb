@@ -1,4 +1,4 @@
-# Wrapper to manage interactions with PG::Connection objects, wherever they come from.
+# Wrapper to manage interactions with PG::Connection objects.
 
 module Que
   module Wrappers
