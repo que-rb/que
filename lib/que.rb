@@ -4,6 +4,7 @@ module Que
   autoload :SQL,      'que/sql'
   autoload :Version,  'que/version'
   autoload :Worker,   'que/worker'
+  autoload :Wrappers, 'que/wrappers/base'
 
   class << self
     attr_accessor :logger, :error_handler
@@ -20,9 +21,8 @@ module Que
         case connection.class.to_s
           when 'Sequel::Postgres::Database' then Adapters::Sequel.new(connection)
           when 'ConnectionPool'             then Adapters::ConnectionPool.new(connection)
-          when 'PG::Connection'             then Adapters::PG.new(connection)
           when 'NilClass'                   then connection
-          else raise "Que connection not recognized: #{connection.inspect}"
+          else                                   Adapters::Single.new(connection)
         end
       end
     end

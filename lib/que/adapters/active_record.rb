@@ -1,8 +1,15 @@
 module Que
   module Adapters
     class ActiveRecord < Base
-      def checkout
-        ::ActiveRecord::Base.connection_pool.with_connection { |conn| yield conn.raw_connection }
+      def yield_connection
+        ::ActiveRecord::Base.connection_pool.with_connection do |conn|
+          c = conn.raw_connection
+          case c.class.to_s
+            when "PG::Connection" then yield c
+            when /Jdbc/           then yield c.connection
+            else raise "Unrecognized connection! #{c.inspect}"
+          end
+        end
       end
     end
   end

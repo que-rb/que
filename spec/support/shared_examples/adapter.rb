@@ -1,8 +1,7 @@
 shared_examples "a Que adapter" do
   it "should allow a Postgres connection to be checked out" do
     Que.adapter.checkout do |conn|
-      conn.async_exec("SELECT 1 AS one").to_a.should == [{'one' => '1'}]
-      conn.server_version.should > 0
+      conn.execute("SELECT 1 AS one").to_a.should == [{'one' => '1'}]
     end
   end
 

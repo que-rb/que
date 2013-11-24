@@ -6,7 +6,7 @@ module Que
         super
       end
 
-      def checkout(&block)
+      def yield_connection(&block)
         @db.synchronize(&block)
       end
     end
