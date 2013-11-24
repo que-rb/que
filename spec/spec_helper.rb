@@ -1,4 +1,5 @@
 require 'que'
+require 'json'
 
 Dir["./spec/support/**/*.rb"].sort.each &method(:require)
 
