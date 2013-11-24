@@ -1,5 +1,6 @@
 ### Unreleased
 
+* Officially support Rubinius 2.1.1. Earlier versions may work.
 * Use multi_json so we always use the fastest JSON parser available. (BukhariH)
 * :sync mode now ignores scheduled jobs (jobs queued with a specific run_at).
 
