@@ -40,10 +40,7 @@ module Que
     end
 
     def execute(command, *args)
-      case command
-        when Symbol then adapter.execute_prepared(command, *args)
-        when String then adapter.execute(command, *args)
-      end
+      adapter.execute(command, *args)
     end
 
     def log(level, text)

@@ -11,8 +11,8 @@ module Que
       end
 
       # The only method that adapters really need to implement. Should lock a
-      # PG::Connection (or something that acts like a PG::Connection) so that
-      # no other threads are using it and yield it to the block.
+      # connection so that no other threads are using it and yield it to the
+      # block.
       def yield_connection(&block)
         raise NotImplementedError
       end
@@ -23,12 +23,13 @@ module Que
         end
       end
 
-      def execute(*args)
-        checkout { |conn| conn.execute(*args) }
-      end
-
-      def execute_prepared(*args)
-        checkout { |conn| conn.execute_prepared(*args) }
+      def execute(command, *args)
+        checkout do |conn|
+          case command
+            when Symbol then conn.execute_prepared(command, *args)
+            when String then conn.execute(command, *args)
+          end
+        end
       end
 
       private
