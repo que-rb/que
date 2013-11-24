@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'active_record'
+require 'activerecord-jdbcpostgresql-adapter' if jruby?
 
 ActiveRecord::Base.establish_connection(QUE_URL)
 Que.connection = ActiveRecord
