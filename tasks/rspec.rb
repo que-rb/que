@@ -8,5 +8,5 @@ end
 # connection. I use this occasionally to make sure ActiveRecord isn't loaded,
 # so any accidental Rails-isms are caught.
 RSpec::Core::RakeTask.new :pg do |spec|
-  spec.pattern = './spec/*_spec.rb'
+  spec.pattern = './spec/unit/*_spec.rb'
 end
