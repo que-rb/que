@@ -112,9 +112,10 @@ describe "Managing the Worker pool" do
 
     it "should poke a worker every Que.sleep_period seconds" do
       begin
-        Que.sleep_period = 0.001 # 1 ms
         Que.mode = :async
+
         sleep_until { Que::Worker.workers.all? &:sleeping? }
+        Que.sleep_period = 0.01 # 10 ms
         Que::Job.queue
         sleep_until { DB[:que_jobs].count == 0 }
       ensure
