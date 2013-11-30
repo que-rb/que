@@ -1,4 +1,4 @@
-### Unreleased
+### 0.2.0 (2013-11-30)
 
 *   Officially support JRuby 1.7.5+. Earlier versions may work.
 
