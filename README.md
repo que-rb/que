@@ -38,7 +38,7 @@ As always, this is a single naive benchmark that doesn't represent anything real
 
 **Que was extracted from an app of mine that ran in production for a few months. That queue worked well, but Que has been adapted somewhat from that design in order to support multiple ORMs and other features. Please don't trust Que with your production data until we've all tried to break it a few times.**
 
-Right now, Que is only tested on Ruby 2.0 - it may work on other versions. It requires Postgres 9.2+ for the JSON type. The benchmark requires Postgres 9.3, since it also tests a variant of the typical locking query that uses the new LATERAL syntax.
+Que supports Ruby 2.0, Rubinius and JRuby (with the `jruby-pg` gem). It requires Postgres 9.2+ for the JSON type. The benchmark requires Postgres 9.3, since it also tests a variant of the typical locking query that uses the new LATERAL syntax.
 
 ## Installation
 
