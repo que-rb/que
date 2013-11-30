@@ -7,10 +7,7 @@ group :development, :test do
   gem 'sequel',          :require => nil
   gem 'connection_pool', :require => nil
   gem 'pg',              :require => nil, :platform => :ruby
-
-  platform :jruby do
-    gem 'pg_jruby', :require => nil
-  end
+  gem 'pg_jruby',        :require => nil, :platform => :jruby
 end
 
 group :test do
