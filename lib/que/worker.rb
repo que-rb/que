@@ -9,69 +9,53 @@ module Que
 
     include MonitorMixin
 
-    attr_reader :thread
+    attr_reader :thread, :state
 
     def initialize
       super # For MonitorMixin.
 
-      # We have to make sure the thread doesn't actually start the work loop
-      # until it has a state and directive already set up, so use a queue to
-      # temporarily block it.
-      q = Queue.new
+      @state = :working
 
       @thread = Thread.new do
-        q.pop
-
         loop do
           job = Job.work
 
           # Grab the lock and figure out what we should do next.
           synchronize do
-            if @thread[:directive] == :stop
-              @thread[:state] = :stopping
+            if @stopping
+              @state = :stopping
             elsif not job
               # No work, go to sleep.
-              @thread[:state] = :sleeping
+              @state = :sleeping
             end
           end
 
-          if @thread[:state] == :sleeping
+          if @state == :sleeping
             sleep
 
-            # Now that we're woken up, grab the lock figure out if we're stopping.
-            synchronize do
-              @thread[:state] = :stopping if @thread[:directive] == :stop
-            end
+            # Now that we're woken up, grab the lock and figure out whether we're stopping.
+            synchronize { @state = :stopping if @stopping }
           end
 
-          break if @thread[:state] == :stopping
+          break if @state == :stopping
         end
       end
-
-      synchronize do
-        @thread[:directive] = :work
-        @thread[:state]     = :working
-      end
-
-      q.push :go!
     end
 
     def sleeping?
       synchronize do
-        if @thread[:state] == :sleeping
+        if @state == :sleeping
           # There's a very small period of time between when the Worker marks
           # itself as sleeping and when it actually goes to sleep. Only report
           # true when we're certain the thread is sleeping.
-          sleep 0.0001 until @thread.status == 'sleep'
+          wait until @thread.status == 'sleep'
           true
         end
       end
     end
 
     def working?
-      synchronize do
-        @thread[:state] == :working
-      end
+      synchronize { @state == :working }
     end
 
     def wake!
@@ -79,29 +63,35 @@ module Que
         if sleeping?
           # Have to set the state here so that another thread checking
           # immediately after this won't see the worker as asleep.
-          @thread[:state] = :working
+          @state = :working
           @thread.wakeup
           true
         end
       end
     end
 
-    # This has to be called when trapping a SIGTERM, so it can't lock the monitor.
+    # stop! and wait_until_stopped have to be called when trapping a SIGTERM, so they can't lock the monitor.
     def stop!
-      @thread[:directive] = :stop
+      @stopping = true
     end
 
     def wait_until_stopped
       loop do
         case @thread.status
-          when false then break
+          when false   then break
           when 'sleep' then @thread.wakeup
         end
-        sleep 0.0001
+
+        wait
       end
     end
 
     private
+
+    # Sleep very briefly while waiting for a thread to get somewhere.
+    def wait
+      sleep 0.0001
+    end
 
     # Defaults for the Worker pool.
     @worker_count = 0
