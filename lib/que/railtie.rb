@@ -8,8 +8,8 @@ module Que
       load 'que/rake_tasks.rb'
     end
 
-    initializer "que.setup" do
-      ActiveSupport.on_load(:after_initialize) do
+    initializer 'que.setup' do
+      ActiveSupport.on_load :after_initialize do
         Que.logger ||= Rails.logger
 
         # Only start up the worker pool if running as a server.

@@ -29,27 +29,10 @@ module Que
             ) AS t1
           )
         )
-        SELECT job_id, priority, run_at, args, job_class, error_count
+        SELECT priority, run_at, job_id, job_class, args, error_count
         FROM cte
         WHERE locked
         LIMIT 1
-      SQL
-    ).freeze,
-
-    :create_table => (
-      <<-SQL
-        CREATE TABLE que_jobs
-        (
-          priority    integer     NOT NULL DEFAULT 1,
-          run_at      timestamptz NOT NULL DEFAULT now(),
-          job_id      bigserial   NOT NULL,
-          job_class   text        NOT NULL,
-          args        json        NOT NULL DEFAULT '[]'::json,
-          error_count integer     NOT NULL DEFAULT 0,
-          last_error  text,
-
-          CONSTRAINT que_jobs_pkey PRIMARY KEY (priority, run_at, job_id)
-        )
       SQL
     ).freeze,
 
@@ -81,6 +64,23 @@ module Que
         WHERE priority = $1::integer
         AND   run_at   = $2::timestamptz
         AND   job_id   = $3::bigint
+      SQL
+    ).freeze,
+
+    :create_table => (
+      <<-SQL
+        CREATE TABLE que_jobs
+        (
+          priority    integer     NOT NULL DEFAULT 1,
+          run_at      timestamptz NOT NULL DEFAULT now(),
+          job_id      bigserial   NOT NULL,
+          job_class   text        NOT NULL,
+          args        json        NOT NULL DEFAULT '[]'::json,
+          error_count integer     NOT NULL DEFAULT 0,
+          last_error  text,
+
+          CONSTRAINT que_jobs_pkey PRIMARY KEY (priority, run_at, job_id)
+        )
       SQL
     ).freeze
   }

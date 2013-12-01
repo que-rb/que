@@ -6,7 +6,7 @@ module Que
   class InstallGenerator < Rails::Generators::Base
     include Rails::Generators::Migration
 
-    namespace "que:install"
+    namespace 'que:install'
     self.source_paths << File.join(File.dirname(__FILE__), 'templates')
     desc "Generates a migration to add Que's job table."
 
