@@ -51,22 +51,8 @@ task :benchmark_queues do
       CONSTRAINT que_jobs_pkey PRIMARY KEY (priority, run_at, job_id)
     );
 
-    DROP TABLE IF EXISTS que_lateral_jobs;
-    CREATE TABLE que_lateral_jobs
-    (
-      priority    integer     NOT NULL DEFAULT 1,
-      run_at      timestamptz NOT NULL DEFAULT now(),
-      job_id      bigserial   NOT NULL,
-      job_class   text        NOT NULL,
-      args        json        NOT NULL DEFAULT '[]'::json,
-      error_count integer     NOT NULL DEFAULT 0,
-      last_error  text,
-
-      CONSTRAINT que_lateral_jobs_pkey PRIMARY KEY (priority, run_at, job_id)
-    );
-
-    DROP TABLE IF EXISTS delayed_jobs;
     -- DelayedJob table.
+    DROP TABLE IF EXISTS delayed_jobs;
     CREATE TABLE delayed_jobs
     (
       id serial NOT NULL,
@@ -245,40 +231,6 @@ task :benchmark_queues do
         LIMIT 1
       SQL
     ),
-    :que_lateral => (
-      <<-SQL
-        WITH RECURSIVE cte AS (
-          SELECT *, pg_try_advisory_lock(s.job_id) AS locked
-          FROM (
-            SELECT *
-            FROM que_lateral_jobs
-            WHERE run_at <= now()
-            ORDER BY priority, run_at, job_id
-            LIMIT 1
-          ) s
-          UNION ALL (
-            SELECT j.*, pg_try_advisory_lock(j.job_id) AS locked
-            FROM (
-              SELECT *
-              FROM cte
-              WHERE NOT locked
-            ) t,
-            LATERAL (
-              SELECT *
-              FROM que_lateral_jobs
-              WHERE run_at <= now()
-              AND (priority, run_at, job_id) > (t.priority, t.run_at, t.job_id)
-              ORDER BY priority, run_at, job_id
-              LIMIT 1
-            ) j
-          )
-        )
-        SELECT *
-        FROM cte
-        WHERE locked
-        LIMIT 1
-      SQL
-    ),
     :delayed_job => (
       # From delayed_job_active_record
       <<-SQL
@@ -315,8 +267,7 @@ task :benchmark_queues do
   $results = {
     :delayed_job   => [],
     :queue_classic => [],
-    :que           => [],
-    :que_lateral   => []
+    :que           => []
   }
 
   def work_job(type, conn)
@@ -342,16 +293,6 @@ task :benchmark_queues do
         conn.async_exec "SELECT pg_advisory_unlock_all()" if r
       end
 
-    when :que_lateral
-      begin
-        return unless r = conn.exec_prepared("que_lateral").first
-        return true unless conn.async_exec("SELECT * FROM que_lateral_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [r['priority'], r['run_at'], r['job_id']]).first
-        conn.async_exec "DELETE FROM que_lateral_jobs WHERE priority = $1 AND run_at = $2 AND job_id = $3", [r['priority'], r['run_at'], r['job_id']]
-        $results[type] << r['job_id']
-      ensure
-        conn.async_exec "SELECT pg_advisory_unlock_all()" if r
-      end
-
     end
   end
 
@@ -360,8 +301,7 @@ task :benchmark_queues do
   {
     :delayed_job   => :delayed_jobs,
     :queue_classic => :queue_classic_jobs,
-    :que           => :que_jobs,
-    :que_lateral   => :que_lateral_jobs
+    :que           => :que_jobs
   }.each do |type, table|
     print "Benchmarking #{type}... "
     start = Time.now

@@ -23,7 +23,6 @@ The rakefile includes a benchmark that tries to compare the performance and conc
     Benchmarking delayed_job... 1000 jobs in 30.086127964 seconds = 33 jobs per second
     Benchmarking queue_classic... 1000 jobs in 19.642309724 seconds = 51 jobs per second
     Benchmarking que... 1000 jobs in 2.31483287 seconds = 432 jobs per second
-    Benchmarking que_lateral... 1000 jobs in 2.383887915 seconds = 419 jobs per second
 
 Or, minus the I/O limitations of my 5400 rpm hard drive:
 
@@ -32,13 +31,12 @@ Or, minus the I/O limitations of my 5400 rpm hard drive:
     Benchmarking delayed_job... 1000 jobs in 4.906474583 seconds = 204 jobs per second
     Benchmarking queue_classic... 1000 jobs in 1.587542394 seconds = 630 jobs per second
     Benchmarking que... 1000 jobs in 0.39063824 seconds = 2560 jobs per second
-    Benchmarking que_lateral... 1000 jobs in 0.392068154 seconds = 2551 jobs per second
 
 As always, this is a single naive benchmark that doesn't represent anything real, take it with a grain of salt, try it for yourself, etc.
 
 **Que was extracted from an app of mine that ran in production for a few months. That queue worked well, but Que has been adapted somewhat from that design in order to support multiple ORMs and other features. Please don't trust Que with your production data until we've all tried to break it a few times.**
 
-Que supports Ruby 2.0, Rubinius and JRuby (with the `jruby-pg` gem). It requires Postgres 9.2+ for the JSON type. The benchmark requires Postgres 9.3, since it also tests a variant of the typical locking query that uses the new LATERAL syntax.
+Que supports Ruby 2.0, Rubinius and JRuby (with the `jruby-pg` gem). It requires Postgres 9.2+ for the JSON type.
 
 ## Installation
 
