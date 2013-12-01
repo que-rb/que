@@ -36,7 +36,7 @@ As always, this is a single naive benchmark that doesn't represent anything real
 
 **Que was extracted from an app of mine that ran in production for a few months. That queue worked well, but Que has been adapted somewhat from that design in order to support multiple ORMs and other features. Please don't trust Que with your production data until we've all tried to break it a few times.**
 
-Que supports Ruby 2.0, Rubinius and JRuby (with the `jruby-pg` gem). It requires Postgres 9.2+ for the JSON type.
+Que supports Ruby 2.0, Rubinius and JRuby (with the `jruby-pg` gem, which is [not yet functional with ActiveRecord](https://github.com/chanks/que/issues/4#issuecomment-29561356)). It requires Postgres 9.2+ for the JSON type.
 
 ## Installation
 
