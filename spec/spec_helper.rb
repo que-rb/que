@@ -60,3 +60,30 @@ RSpec.configure do |config|
     $logger.messages.clear
   end
 end
+
+
+# Optionally log to STDOUT which spec is running at the moment. This is loud,
+# but helpful in tracking down what spec is hanging, if any.
+if ENV['LOG_SPEC']
+  require 'logger'
+  logger = Logger.new(STDOUT)
+
+  description_builder = -> hash do
+    if g = hash[:example_group]
+      "#{description_builder.call(g)} #{hash[:description_args].first}"
+    else
+      hash[:description_args].first
+    end
+  end
+
+  RSpec.configure do |config|
+    config.around do |example|
+      data = example.metadata
+      desc = description_builder.call(data)
+      line = "rspec #{data[:file_path]}:#{data[:line_number]}"
+      logger.info "Running spec: #{desc} @ #{line}"
+
+      example.run
+    end
+  end
+end
