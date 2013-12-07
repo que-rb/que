@@ -16,23 +16,7 @@ Que's primary goal is reliability. When it's stable, you should be able to leave
 
 Que's secondary goal is performance. It won't be able to match the speed or throughput of a dedicated queue, or maybe even a Redis-backed queue, but it should be plenty fast for most use cases. It also includes a worker pool, so that multiple threads can process jobs in the same process. It can even do this in the background of your web process - if you're running on Heroku, for example, you won't need to run a separate worker dyno.
 
-The rakefile includes a benchmark that tries to compare the performance and concurrency of Que's locking mechanism to that of DelayedJob and QueueClassic. On my i5 quad-core laptop, the results are along the lines of:
-
-    ~/que $ rake benchmark_queues
-    Benchmarking 1000 jobs, 10 workers and synchronous_commit = on...
-    Benchmarking delayed_job... 1000 jobs in 30.086127964 seconds = 33 jobs per second
-    Benchmarking queue_classic... 1000 jobs in 19.642309724 seconds = 51 jobs per second
-    Benchmarking que... 1000 jobs in 2.31483287 seconds = 432 jobs per second
-
-Or, minus the I/O limitations of my 5400 rpm hard drive:
-
-    ~/que $ SYNCHRONOUS_COMMIT=off rake benchmark_queues
-    Benchmarking 1000 jobs, 10 workers and synchronous_commit = off...
-    Benchmarking delayed_job... 1000 jobs in 4.906474583 seconds = 204 jobs per second
-    Benchmarking queue_classic... 1000 jobs in 1.587542394 seconds = 630 jobs per second
-    Benchmarking que... 1000 jobs in 0.39063824 seconds = 2560 jobs per second
-
-As always, this is a single naive benchmark that doesn't represent anything real, take it with a grain of salt, try it for yourself, etc.
+I've written a [benchmarking script](https://github.com/chanks/queue-shootout) that compares the throughput of Que under heavy load to that of DelayedJob and QueueClassic. In general, Que is much faster, but you should try running that script on your own production hardware instead of just taking my word for it.
 
 **Que was extracted from an app of mine that ran in production for a few months. That queue worked well, but Que has been adapted somewhat from that design in order to support multiple ORMs and other features. Please don't trust Que with your production data until we've all tried to break it a few times.**
 
