@@ -6,6 +6,10 @@ describe "Managing the Worker pool" do
     $logger.messages.should == ["[Que] Set mode to :off"]
   end
 
+  it "Que.stop! should do nothing if there are no workers running" do
+    Que.stop!
+  end
+
   describe "Que.mode = :sync" do
     it "should make jobs run in the same thread as they are queued" do
       Que.mode = :sync
@@ -24,6 +28,10 @@ describe "Managing the Worker pool" do
 
       ArgsJob.queue(5, :testing => "synchronous", :run_at => Time.now + 60)
       DB[:que_jobs].select_map(:job_class).should == ["ArgsJob"]
+    end
+
+    it "then Que.stop! should do nothing" do
+      Que.stop!
     end
   end
 
