@@ -114,4 +114,23 @@ describe Que::Worker do
       end
     end
   end
+
+  it "should receive and respect a notification to kill its job and stop running immediately" do
+    begin
+      # Worker#stop! can leave the database connection in an unpredictable
+      # state, which would impact the rest of the tests, so we need a special
+      # connection for it.
+      pg = NEW_PG_CONNECTION.call
+      Que.connection = pg
+
+      BlockJob.queue
+
+      @worker = Que::Worker.new
+      $q1.pop
+      @worker.stop!
+      @worker.wait_until_stopped
+    ensure
+      pg.close if pg
+    end
+  end
 end

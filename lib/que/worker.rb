@@ -9,37 +9,15 @@ module Que
 
     include MonitorMixin
 
+    # A custom exception to immediately kill a worker and its current job.
+    class Stop < Interrupt; end
+
     attr_reader :thread, :state
 
     def initialize
       super # For MonitorMixin.
-
       @state = :working
-
-      @thread = Thread.new do
-        loop do
-          job = Job.work
-
-          # Grab the lock and figure out what we should do next.
-          synchronize do
-            if @stopping
-              @state = :stopping
-            elsif not job
-              # No work, go to sleep.
-              @state = :sleeping
-            end
-          end
-
-          if @state == :sleeping
-            sleep
-
-            # Now that we're woken up, grab the lock and figure out whether we're stopping.
-            synchronize { @state = :stopping if @stopping }
-          end
-
-          break if @state == :stopping
-        end
-      end
+      @thread = Thread.new { work_loop }
     end
 
     def sleeping?
@@ -70,9 +48,20 @@ module Que
       end
     end
 
-    # stop and wait_until_stopped have to be called when trapping a SIGTERM, so they can't lock the monitor.
+    # #stop, #stop! and #wait_until_stopped have to be called when trapping a
+    # SIGTERM, so they can't lock the monitor.
+
+    # #stop informs the worker that it should shut down after its next job,
+    # while #stop! kills the job and worker immediately. #stop! is bad news
+    # because its results are unpredictable (it can leave the DB connection
+    # in an unusable state), so it should only be used when we're shutting
+    # down the whole process anyway and side effects aren't a big deal.
     def stop
       @stopping = true
+    end
+
+    def stop!
+      @thread.raise Stop
     end
 
     def wait_until_stopped
@@ -91,6 +80,33 @@ module Que
     # Sleep very briefly while waiting for a thread to get somewhere.
     def wait
       sleep 0.0001
+    end
+
+    def work_loop
+      loop do
+        job = Job.work
+
+        # Grab the lock and figure out what we should do next.
+        synchronize do
+          if @stopping
+            @state = :stopping
+          elsif not job
+            # No work, go to sleep.
+            @state = :sleeping
+          end
+        end
+
+        if @state == :sleeping
+          sleep
+
+          # Now that we're woken up, grab the lock and figure out whether we're stopping.
+          synchronize { @state = :stopping if @stopping }
+        end
+
+        break if @state == :stopping
+      end
+    rescue Stop
+      # We're shutting down the process, so just leave immediately.
     end
 
     # Defaults for the Worker pool.
@@ -128,6 +144,10 @@ module Que
       def sleep_period=(period)
         @sleep_period = period
         wrangler.wakeup if period
+      end
+
+      def stop!
+        workers.each(&:stop!).each(&:wait_until_stopped)
       end
 
       def wake!
