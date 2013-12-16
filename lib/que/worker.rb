@@ -70,8 +70,8 @@ module Que
       end
     end
 
-    # stop! and wait_until_stopped have to be called when trapping a SIGTERM, so they can't lock the monitor.
-    def stop!
+    # stop and wait_until_stopped have to be called when trapping a SIGTERM, so they can't lock the monitor.
+    def stop
       @stopping = true
     end
 
@@ -121,7 +121,7 @@ module Que
         if count > workers.count
           (count - workers.count).times { workers << new }
         elsif count < workers.count
-          workers.pop(workers.count - count).each(&:stop!).each(&:wait_until_stopped)
+          workers.pop(workers.count - count).each(&:stop).each(&:wait_until_stopped)
         end
       end
 

@@ -84,7 +84,7 @@ describe Que::Worker do
       @worker = Que::Worker.new
 
       $q1.pop
-      @worker.stop!
+      @worker.stop
       $q2.push nil
 
       @worker.wait_until_stopped
@@ -105,7 +105,7 @@ describe Que::Worker do
       @worker = Que::Worker.new
       sleep_until { @worker.sleeping? }
 
-      @worker.stop!
+      @worker.stop
       @worker.wait_until_stopped
     ensure
       if @worker
