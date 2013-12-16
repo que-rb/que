@@ -50,7 +50,7 @@ module Que
       logger.send level, "[Que] #{text}" if logger
     end
 
-    # Delegate some Worker config methods to the Que module for convenience.
+    # Copy some of the Worker class' config methods here for convenience.
     [:mode, :mode=, :worker_count=, :sleep_period, :sleep_period=].each do |meth|
       define_method(meth) { |*args| Worker.send(meth, *args) }
     end
