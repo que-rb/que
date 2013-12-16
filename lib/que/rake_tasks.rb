@@ -7,6 +7,8 @@ namespace :que do
     Que.mode         = :async
     Que.worker_count = (ENV['WORKER_COUNT'] || 4).to_i
 
+    # When changing how signals are caught, be sure to test the behavior with
+    # the rake task in que/tasks/safe_shutdown.rb.
     stop = false
 
     %w(INT TERM).each do |signal|
