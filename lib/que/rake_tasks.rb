@@ -11,10 +11,10 @@ namespace :que do
     # the rake task in que/tasks/safe_shutdown.rb.
     stop = false
 
-    %w(INT TERM).each do |signal|
+    %w(INT TERM KILL).each do |signal|
       trap signal do
-        puts "SIG#{signal} caught, finishing current jobs and shutting down..."
-        Que.mode = :off
+        puts "Caught SIG#{signal}, stopping Que..."
+        Que.stop!
         stop = true
       end
     end

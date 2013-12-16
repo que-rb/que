@@ -50,10 +50,10 @@ task :safe_shutdown do
   # Put signal trappers to test the behavior of here:
   stop = false
 
-  %w(INT TERM).each do |signal|
+  %w(INT TERM KILL).each do |signal|
     trap signal do
-      puts "SIG#{signal} caught, finishing current jobs and shutting down..."
-      Que.mode = :off
+      puts "Caught SIG#{signal}, stopping Que..."
+      Que.stop!
       stop = true
     end
   end
