@@ -47,16 +47,14 @@ task :safe_shutdown do
     puts "kill -#{signal} #{Process.pid}"
   end
 
-  # Put signal trappers to test the behavior of here:
-  stop = false
-
-  %w(INT TERM KILL).each do |signal|
-    trap signal do
-      puts "Caught SIG#{signal}, stopping Que..."
-      Que.stop!
-      stop = true
-    end
+  # Put exit behavior to test the behavior of here:
+  at_exit do
+    puts "Stopping Que..."
+    Que.stop!
   end
+
+  stop = false
+  trap('INT'){stop = true}
 
   loop do
     sleep 0.01

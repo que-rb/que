@@ -9,15 +9,13 @@ namespace :que do
 
     # When changing how signals are caught, be sure to test the behavior with
     # the rake task in que/tasks/safe_shutdown.rb.
-    stop = false
-
-    %w(INT TERM KILL).each do |signal|
-      trap signal do
-        puts "Caught SIG#{signal}, stopping Que..."
-        Que.stop!
-        stop = true
-      end
+    at_exit do
+      puts "Stopping Que..."
+      Que.stop!
     end
+
+    stop = false
+    trap('INT'){stop = true}
 
     loop do
       sleep 0.01
