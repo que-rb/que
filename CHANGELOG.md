@@ -1,3 +1,13 @@
+### Unreleased
+
+*   Use Que.stop! to safely handle dying processes.
+
+    Previously, a job that was in the middle of a transaction when the process was killed with SIGINT or SIGTERM could have had its work committed by mistake.
+
+*   Add Que.stop!, which immediately kills all in-process jobs.
+
+    This can affect database connections unpredictably, and so should only be used when the process is exiting.
+
 ### 0.2.0 (2013-11-30)
 
 *   Officially support JRuby 1.7.5+. Earlier versions may work.
