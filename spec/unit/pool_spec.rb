@@ -122,5 +122,21 @@ describe "Managing the Worker pool" do
         Que.sleep_period = nil
       end
     end
+
+    it "then Que.stop! should interrupt all running jobs" do
+      begin
+        # Que.stop! can unpredictably affect connections, which may affect
+        # other tests, so use a new one.
+        pg = NEW_PG_CONNECTION.call
+        Que.connection = pg
+
+        BlockJob.queue
+        Que.mode = :async
+        $q1.pop
+        Que.stop!
+      ensure
+        pg.close if pg
+      end
+    end
   end
 end
