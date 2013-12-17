@@ -4,8 +4,8 @@ module Que
   class Worker
     # Each worker has a thread that does the actual work of running jobs.
     # Since both the worker's thread and whatever thread is managing the
-    # worker are capable of affecting the state of the worker's thread, we
-    # need to synchronize access to it.
+    # worker are capable of affecting the worker's state, we need to
+    # synchronize access to it.
 
     include MonitorMixin
 
@@ -48,8 +48,8 @@ module Que
       end
     end
 
-    # #stop, #stop! and #wait_until_stopped have to be called when trapping a
-    # SIGTERM, so they can't lock the monitor.
+    # #stop, #stop! and #wait_until_stopped have to be called when handling
+    # signals, so they can't lock the monitor.
 
     # #stop informs the worker that it should shut down after its next job,
     # while #stop! kills the job and worker immediately. #stop! is bad news
@@ -106,7 +106,7 @@ module Que
         break if @state == :stopping
       end
     rescue Stop
-      # We're shutting down the process, so just leave immediately.
+      # This process is shutting down.
     end
 
     # Defaults for the Worker pool.
