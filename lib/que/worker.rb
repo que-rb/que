@@ -6,7 +6,6 @@ module Que
     # Since both the worker's thread and whatever thread is managing the
     # worker are capable of affecting the worker's state, we need to
     # synchronize access to it.
-
     include MonitorMixin
 
     # A custom exception to immediately kill a worker and its current job.
@@ -16,7 +15,7 @@ module Que
 
     def initialize
       super # For MonitorMixin.
-      @state = :working
+      @state  = :working
       @thread = Thread.new { work_loop }
     end
 
@@ -48,31 +47,26 @@ module Que
       end
     end
 
-    # #stop, #stop! and #wait_until_stopped have to be called when handling
-    # signals, so they can't lock the monitor.
-
     # #stop informs the worker that it should shut down after its next job,
     # while #stop! kills the job and worker immediately. #stop! is bad news
     # because its results are unpredictable (it can leave the DB connection
     # in an unusable state), so it should only be used when we're shutting
     # down the whole process anyway and side effects aren't a big deal.
     def stop
-      @stopping = true
+      synchronize do
+        @stop = true
+        @thread.wakeup if sleeping?
+      end
     end
 
+    # #stop! and #wait_until_stopped have to be called when handling signals,
+    # so they can't lock the monitor.
     def stop!
       @thread.raise Stop
     end
 
     def wait_until_stopped
-      loop do
-        case @thread.status
-          when false   then break
-          when 'sleep' then @thread.wakeup
-        end
-
-        wait
-      end
+      wait while @thread.status
     end
 
     private
@@ -87,26 +81,15 @@ module Que
         job = Job.work
 
         # Grab the lock and figure out what we should do next.
-        synchronize do
-          if @stopping
-            @state = :stopping
-          elsif not job
-            # No work, go to sleep.
-            @state = :sleeping
-          end
-        end
+        synchronize { @state = :sleeping unless @stop || job }
 
-        if @state == :sleeping
-          sleep
-
-          # Now that we're woken up, grab the lock and figure out whether we're stopping.
-          synchronize { @state = :stopping if @stopping }
-        end
-
-        break if @state == :stopping
+        sleep if @state == :sleeping
+        break if @stop
       end
     rescue Stop
-      # This process is shutting down.
+      # This process is shutting down; let it.
+    ensure
+      @state = :stopped
     end
 
     # Defaults for the Worker pool.
