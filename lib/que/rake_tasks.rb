@@ -8,7 +8,7 @@ namespace :que do
     Que.worker_count = (ENV['WORKER_COUNT'] || 4).to_i
 
     # When changing how signals are caught, be sure to test the behavior with
-    # the rake task in que/tasks/safe_shutdown.rb.
+    # the rake task in tasks/safe_shutdown.rb.
     at_exit do
       puts "Stopping Que..."
       Que.stop!
