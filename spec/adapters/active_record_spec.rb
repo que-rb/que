@@ -39,5 +39,29 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       Que::Job.queue :run_at => 1.minute.from_now
       DB[:que_jobs].get(:run_at).should be_within(3).of Time.now + 60
     end
+
+    it "should safely roll back in-process transactions when using Que.stop!" do
+      begin
+        class ARInterruptJob < BlockJob
+          def run
+            ActiveRecord::Base.transaction do
+              Que.execute "INSERT INTO que_jobs (job_id, job_class) VALUES (0, 'Que::Job')"
+              super
+            end
+          end
+        end
+
+        ARInterruptJob.queue
+        Que.mode = :async
+        $q1.pop
+        Que.stop!
+
+        DB[:que_jobs].where(:job_id => 0).should be_empty
+      ensure
+        # Que.stop! can affect DB connections in an unpredictable fashion, so
+        # force a reconnection for the sake of the other specs.
+        ActiveRecord::Base.connection_pool.disconnect!
+      end
+    end
   end
 end
