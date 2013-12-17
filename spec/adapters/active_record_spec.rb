@@ -60,7 +60,7 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       ensure
         # Que.stop! can affect DB connections in an unpredictable fashion, so
         # force a reconnection for the sake of the other specs.
-        ActiveRecord::Base.connection_pool.disconnect!
+        ActiveRecord::Base.establish_connection(QUE_URL)
       end
     end
   end
