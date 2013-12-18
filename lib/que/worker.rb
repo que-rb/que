@@ -19,6 +19,10 @@ module Que
       @thread = Thread.new { work_loop }
     end
 
+    def alive?
+      !!@thread.status
+    end
+
     def sleeping?
       synchronize do
         if @state == :sleeping
@@ -59,14 +63,12 @@ module Que
       end
     end
 
-    # #stop! and #wait_until_stopped have to be called when handling signals,
-    # so they can't lock the monitor.
     def stop!
       @thread.raise Stop
     end
 
     def wait_until_stopped
-      wait while @thread.status
+      wait while alive?
     end
 
     private
@@ -130,7 +132,12 @@ module Que
       end
 
       def stop!
-        workers.each(&:stop!).each(&:wait_until_stopped)
+        # Very rarely, #stop! won't have an effect on Rubinius.
+        # Repeating it seems to work reliably, though.
+        loop do
+          break if workers.select(&:alive?).each(&:stop!).none?
+          sleep 0.001
+        end
       end
 
       def wake!
