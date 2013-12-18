@@ -7,6 +7,7 @@ describe "Managing the Worker pool" do
   end
 
   it "Que.stop! should do nothing if there are no workers running" do
+    Que::Worker.workers.should be_empty
     Que.stop!
   end
 
@@ -31,6 +32,7 @@ describe "Managing the Worker pool" do
     end
 
     it "then Que.stop! should do nothing" do
+      Que::Worker.workers.should be_empty
       Que.stop!
     end
   end

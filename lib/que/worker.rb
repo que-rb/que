@@ -138,6 +138,8 @@ module Que
           break if workers.select(&:alive?).each(&:stop!).none?
           sleep 0.001
         end
+
+        workers.clear
       end
 
       def wake!
