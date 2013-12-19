@@ -41,9 +41,15 @@ describe "Que using the Sequel adapter" do
 
       DB[:que_jobs].where(:job_id => 0).should be_empty
     ensure
-      # Que.stop! can affect DB connections in an unpredictable fashion, so
-      # force a reconnection for the sake of the other specs.
+      # Que.stop! can affect DB connections in an unpredictable fashion, and
+      # Sequel's built-in reconnection logic may not be able to recover them.
+      # So, force a reconnection for the sake of the other specs...
       SEQUEL_ADAPTER_DB.disconnect
+
+      # ...and that's not even foolproof, because threads may have died with
+      # connections checked out.
+      SEQUEL_ADAPTER_DB.pool.allocated.each_value(&:close)
+      SEQUEL_ADAPTER_DB.pool.allocated.clear
     end
   end
 end
