@@ -132,9 +132,11 @@ module Que
       end
 
       def stop!
-        # Very rarely, #stop! won't have an effect on Rubinius.
-        # Repeating it seems to work reliably, though.
-        loop do
+        # The behavior of Worker#stop! is unpredictable - what it does is
+        # dependent on what the Worker is currently doing. Sometimes it won't
+        # work the first time, so we need to try again, but sometimes it'll
+        # never do anything, so we can't repeat indefinitely. So, compromise.
+        5.times do
           break if workers.select(&:alive?).each(&:stop!).none?
           sleep 0.001
         end
