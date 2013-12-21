@@ -1,12 +1,14 @@
 ### Unreleased
 
-*   Use Que.stop! to safely handle dying processes.
+*   Add Que.stop!, which immediately kills all jobs being worked in the process.
 
-    Previously, a job that was in the middle of a transaction when the process was killed with SIGINT or SIGTERM could have had its work committed by mistake.
+    This can leave database connections and such in an unpredictable state, and so should only be used when the process is exiting.
 
-*   Add Que.stop!, which immediately kills all in-process jobs.
+*   Use Que.stop! to safely handle processes that exit while Que is running.
 
-    This can affect database connections unpredictably, and so should only be used when the process is exiting.
+    Previously, a job that was in the middle of a transaction when the process was killed with SIGINT or SIGTERM would have had its work committed prematurely.
+
+*   Clean up internals and hammer out several race conditions.
 
 ### 0.2.0 (2013-11-30)
 
