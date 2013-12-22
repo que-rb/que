@@ -50,7 +50,7 @@ module Que
       <<-SQL
         UPDATE que_jobs
         SET error_count = $1::integer,
-            run_at      = $2::timestamptz,
+            run_at      = now() + $2::integer * '1 second'::interval,
             last_error  = $3::text
         WHERE priority  = $4::integer
         AND   run_at    = $5::timestamptz
