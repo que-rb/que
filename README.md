@@ -1,6 +1,6 @@
 # Que
 
-**TL;DR: Que is a high-performance alternative to DelayedJob or QueueClassic that improves the reliability of your application by helping you keep your jobs [consistent](https://en.wikipedia.org/wiki/ACID#Consistency) with the rest of your data.**
+**TL;DR: Que is a high-performance alternative to DelayedJob or QueueClassic that improves the reliability of your application by protecting your jobs with the same [ACID guarantees](https://en.wikipedia.org/wiki/ACID) as the rest of your data.**
 
 Que is a queue for Ruby and PostgreSQL that manages jobs using [advisory locks](http://www.postgresql.org/docs/current/static/explicit-locking.html#ADVISORY-LOCKS), which gives it several advantages over other RDBMS-backed queues:
 
