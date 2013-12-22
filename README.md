@@ -1,28 +1,28 @@
 # Que
 
-Que is a queue for Ruby applications that manages jobs using PostgreSQL's advisory locks. There are several advantages to this design over other RDBMS-backed queues like DelayedJob or QueueClassic:
+**TL;DR: Que is a high-performance alternative to DelayedJob or QueueClassic that improves the reliability of your application by helping you keep your jobs [consistent](https://en.wikipedia.org/wiki/ACID#Consistency) with the rest of your data.**
 
-* **Concurrency** - Since there's no need for "SELECT FOR UPDATE"-style locking, workers don't block each other when trying to lock jobs. This allows for very high throughput with a large number of workers.
-* **Efficiency** - Locks are held in memory, so locking a job doesn't incur a disk write.
-* **Safety** - If a Ruby process dies, its jobs won't be lost, or left in a locked or ambiguous state - they immediately become available for any other worker to pick up.
+Que is a queue for Ruby and PostgreSQL that manages jobs using [advisory locks](http://www.postgresql.org/docs/current/static/explicit-locking.html#ADVISORY-LOCKS), which gives it several advantages over other RDBMS-backed queues:
 
-Note that with other queues, what kills performance is workers trying to lock a job, only to wait behind one that's persisting an UPDATE on a locked_at column to disk (not to mention the disks of however many other servers your database is replicating to). With Que, workers don't block each other or wait for the disk when locking, so the performance bottleneck shifts from I/O to CPU.
+* **Concurrency** - Workers don't block each other when trying to lock jobs, as often occurs with "SELECT FOR UPDATE"-style locking. This allows for very high throughput with a large number of workers.
+* **Efficiency** - Locks are held in memory, so locking a job doesn't incur a disk write. These first two points are what limit performance with other queues - all workers trying to lock jobs have to wait behind one that's persisting its UPDATE on a locked_at column to disk (and the disks of however many other servers your database is replicating to). Under heavy load, Que's bottleneck is CPU, not I/O.
+* **Safety** - If a Ruby process dies, the jobs it is working won't be lost, or left in a locked or ambiguous state - they immediately become available for any other worker to pick up.
 
 Additionally, there are the general benefits of storing jobs in Postgres, alongside the rest of your data, rather than in Redis or a dedicated queue:
 
-* **Transactional Control** - Queue a job along with other changes to your database, and it'll commit or rollback with everything else. If you're using ActiveRecord or Sequel, Que can piggyback on their connections, so jobs are protected by the transactions you're already using.
-* **Atomic Backups** - Your jobs and data can be backed up together and restored as a snapshot. If your jobs relate to your data (and they usually do), there's no risk of inconsistencies arising during a restoration.
+* **Transactional Control** - Queue a job along with other changes to your database, and it'll commit or rollback with everything else. If you're using ActiveRecord or Sequel, Que can piggyback on their connections, so setup is simple and jobs are protected by the transactions you're already using.
+* **Atomic Backups** - Your jobs and data can be backed up together and restored as a snapshot. If your jobs relate to your data (and they usually do), there's no risk of jobs falling through the cracks during a recovery.
 * **Fewer Dependencies** - If you're already using Postgres (and you probably should be), a separate queue is another moving part that can break.
 
-Que's primary goal is reliability. When it's stable, you should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que does everything it can to ensure that jobs you queue are performed exactly once (though the occasional repetition of a job is impossible to avoid - see the wiki page on [how to write a reliable job](https://github.com/chanks/que/wiki/Writing-Reliable-Jobs)).
+Que's primary goal is reliability. When it's stable, you should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que does everything it can to ensure that jobs you queue are performed exactly once (though the occasional repetition of a job can be impossible to avoid - see the wiki page on [how to write a reliable job](https://github.com/chanks/que/wiki/Writing-Reliable-Jobs)).
 
-Que's secondary goal is performance. It won't be able to match the speed or throughput of a dedicated queue, or maybe even a Redis-backed queue, but it should be fast enough for most use cases. It also includes a worker pool, so that multiple threads can process jobs in the same process. It can even do this in the background of your web process - if you're running on Heroku, for example, you won't need to run a separate worker dyno.
+Que's secondary goal is performance. It won't be able to match the speed or throughput of a dedicated queue, or maybe even a Redis-backed queue, but it should be fast enough for most use cases. In [benchmarks](https://github.com/chanks/queue-shootout) on an AWS c3.8xlarge instance, Que approaches 10,000 jobs per second, or about twenty times the throughput of DelayedJob or QueueClassic. You are encouraged to try things out on your own production hardware, though.
 
-I've written a [benchmarking script](https://github.com/chanks/queue-shootout) that compares the throughput of Que under heavy load to that of DelayedJob and QueueClassic. In general, Que is significantly faster (I haven't found a platform where it isn't), but you should try running that script on your own production hardware instead of just taking my word for it.
+Que also includes a worker pool, so that multiple threads can process jobs in the same process. It can even do this in the background of your web process - if you're running on Heroku, for example, you won't need to run a separate worker dyno.
 
-**Caveat emptor: Que was extracted from an app of mine that ran in production for a few months. It worked well, but has been adapted somewhat from that design in order to support multiple ORMs and other features. Please don't trust Que with your production data until we've all tried to break it a few times.**
+*Please be careful when running Que in production. It's still very new compared to other RDBMS-backed queues, and there may be issues that haven't been ironed out yet. Bug reports are welcome.*
 
-Que is tested on Ruby 2.0, Rubinius and JRuby (with the `jruby-pg` gem, which is [not yet functional with ActiveRecord](https://github.com/chanks/que/issues/4#issuecomment-29561356)). It requires Postgres 9.2+ for the JSON type.
+Que is tested on Ruby 2.0, Rubinius and JRuby (with the `jruby-pg` gem, which is [not yet functional with ActiveRecord](https://github.com/chanks/que/issues/4#issuecomment-29561356)). It requires Postgres 9.2+ for the JSON datatype.
 
 ## Installation
 
@@ -42,7 +42,7 @@ Or install it yourself as:
 
 The following is assuming you're using Rails 4.0. Que hasn't been tested with previous versions of Rails.
 
-First, generate a migration for the jobs table.
+First, generate a migration for the job table.
 
     rails generate que:install
     rake db:migrate
@@ -55,7 +55,7 @@ Create a class for each type of job you want to run:
       @default_priority = 3
       @default_run_at = proc { 1.minute.from_now }
 
-      def run(user_id, card_id)
+      def run(user_id, card_id, your_options = {})
         # Do stuff.
 
         ActiveRecord::Base.transaction do
@@ -71,18 +71,18 @@ Create a class for each type of job you want to run:
       end
     end
 
-Queue your job. Again, it's best to do this in a transaction with other changes you're making.
+Queue your job. Again, it's best to do this in a transaction with other changes you're making. Also note that any arguments you pass will be serialized to JSON and back again, so stick to simple types (strings, integers, floats, hashes, and arrays).
 
     ActiveRecord::Base.transaction do
       # Persist credit card information
       card = CreditCard.create(params[:credit_card])
-      ChargeCreditCard.queue(current_user.id, card.id)
+      ChargeCreditCard.queue(current_user.id, card.id, :your_custom_option => 'whatever')
     end
 
 You can also schedule it to run at a specific time, or with a specific priority:
 
     # 1 is high priority, 5 is low priority.
-    ChargeCreditCard.queue current_user.id, card.id, :run_at => 1.day.from_now, :priority => 5
+    ChargeCreditCard.queue current_user.id, card.id, :your_custom_option => 'whatever', :run_at => 1.day.from_now, :priority => 5
 
 To determine what happens when a job is queued, you can set Que's mode with `Que.mode = :off` or `config.que.mode = :off` in your application configuration. There are a few options for the mode:
 
@@ -98,25 +98,16 @@ If you don't want to run workers in your web process, you can also work jobs in 
     # Or configure the number of workers.
     WORKER_COUNT=8 rake que:work
 
-    # If your app code isn't thread-safe, you can stick to one worker.
+    # If your app code isn't thread-safe, be sure to stick to one worker.
     WORKER_COUNT=1 rake que:work
 
-If an error causes a job to fail, Que will repeat that job at intervals that increase exponentially with each error (using the same algorithm as DelayedJob). You can also hook Que into whatever error notification system you're using:
+If an error causes a job to fail, Que will repeat that job at exponentially-increasing intervals, similar to DelayedJob (the job will be retried at 4 seconds, 19 seconds, 84 seconds, 259 seconds...). You can also hook Que into whatever error notification system you're using:
 
     config.que.error_handler = proc do |error|
       # Do whatever you want with the error object.
     end
 
 You can find more documentation on the [Github wiki](https://github.com/chanks/que/wiki).
-
-## TODO
-
-These aren't promises, just ideas for possible features:
-
-  * Use LISTEN/NOTIFY to check for new jobs (or simpler, just wake a worker in the same process after a transaction commits a new job).
-  * Multiple queues (in multiple tables?)
-  * Integration with ActionMailer for easier mailings.
-  * Add options for max_run_time and max_attempts. Make them specific to job classes.
 
 ## Contributing
 
@@ -125,3 +116,13 @@ These aren't promises, just ideas for possible features:
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create new Pull Request
+
+A note on running specs - Que's worker system is multithreaded and therefore prone to race conditions (especially on Rubinius). As such, if you've touched that code, a single spec run passing isn't a guarantee that any changes you've made haven't introduced bugs. One thing I like to do before pushing changes is rerun the specs many times and watching for hangs. You can do this from the command line with something like:
+
+    for i in {1..1000}; do rspec -b --seed $i; done
+
+This will iterate the specs one thousand times, each with a different ordering. If the specs hang, note what the seed number was on that iteration. For example, if the previous specs finished with a "Randomized with seed 328", you know that there's a hang with seed 329, and you can narrow it down to a specific spec with:
+
+    for i in {1..1000}; do LOG_SPEC=true rspec -b --seed 329; done
+
+Note that we iterate because there's no guarantee that the hang would reappear with a single additional run, so we need to rerun the specs until it reappears. The LOG_SPEC parameter will output the name and file location of each spec before it is run, so you can easily tell which spec is hanging, and you can continue narrowing things down from there.
