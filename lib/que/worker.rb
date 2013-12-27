@@ -104,7 +104,7 @@ module Que
         case mode
         when :async
           wrangler # Make sure the wrangler thread is initialized.
-          self.worker_count = 4
+          self.worker_count = 4 if worker_count.zero?
         else
           self.worker_count = 0
         end

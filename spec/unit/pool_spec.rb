@@ -48,6 +48,12 @@ describe "Managing the Worker pool" do
       sleep_until { Que::Worker.workers.all?(&:sleeping?) }
     end
 
+    it "should not affect the number of workers if a worker_count has already been set" do
+      Que.worker_count = 1
+      Que.mode = :async
+      Que.worker_count.should be 1
+    end
+
     it "then Que.worker_count = 2 should gracefully decrease the number of workers" do
       Que.mode = :async
       workers = Que::Worker.workers.dup
