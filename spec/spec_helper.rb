@@ -59,6 +59,11 @@ RSpec.configure do |config|
     Que.sleep_period = nil
     $logger.messages.clear
   end
+
+  config.after do
+    # A bit of lint: make sure that after each spec, no advisory locks are left open.
+    DB[:pg_locks].where(:locktype => 'advisory').should be_empty
+  end
 end
 
 

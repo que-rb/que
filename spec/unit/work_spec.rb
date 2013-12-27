@@ -7,9 +7,6 @@ describe Que::Job, '.work' do
     Que::Job.work.should be_an_instance_of ArgsJob
     DB[:que_jobs].count.should be 0
     $passed_args.should == [1, 'two', {'three' => 3}]
-
-    # Should clear advisory lock.
-    DB[:pg_locks].where(:locktype => 'advisory').should be_empty
   end
 
   it "should make a job's argument hashes indifferently accessible" do
@@ -20,14 +17,10 @@ describe Que::Job, '.work' do
     DB[:que_jobs].count.should be 0
 
     $passed_args.last[:array].first[:number].should == 3
-
-    # Should clear advisory lock.
-    DB[:pg_locks].where(:locktype => 'advisory').should be_empty
   end
 
   it "should not fail if there are no jobs to work" do
     Que::Job.work.should be nil
-    DB[:pg_locks].where(:locktype => 'advisory').should be_empty
   end
 
   it "should write messages to the logger" do
@@ -100,7 +93,7 @@ describe Que::Job, '.work' do
     thread = Thread.new { Que::Job.work }
 
     $q1.pop
-    DB[:pg_locks].where(:locktype => 'advisory', :objid => id).count.should be 1
+    DB[:pg_locks].where(:locktype => 'advisory').select_map(:objid).should == [id]
     $q2.push nil
 
     thread.join
