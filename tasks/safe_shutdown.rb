@@ -3,13 +3,15 @@
 # The situation we're trying to avoid occurs when the process dies while a job
 # is in the middle of a transaction - ideally, the transaction would be rolled
 # back and the job could just be reattempted later, but if we're not careful,
-# the transaction could be committed too early. For specifics, see this post:
+# the transaction could be committed prematurely. For specifics, see here:
 
 # http://coderrr.wordpress.com/2011/05/03/beware-of-threadkill-or-your-activerecord-transactions-are-in-danger-of-being-partially-committed/
 
 # So, this task opens a transaction within a job, makes a write, then prompts
-# you to kill it with one of a few signals. It also checks to see whether the
-# previous shutdown was clean or not.
+# you to kill it with one of a few signals. You can then run it again to make
+# sure that the write was rolled back (if it wasn't, Que isn't functioning
+# like it should). This task only explicitly tests Sequel, but the behavior
+# for ActiveRecord is very similar.
 
 task :safe_shutdown do
   require 'sequel'
