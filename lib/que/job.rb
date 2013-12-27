@@ -111,7 +111,7 @@ module Que
           ensure
             # Clear the advisory lock we took when locking the job. Important
             # to do this so that they don't pile up in the database.
-            Que.execute "SELECT pg_advisory_unlock_all()" if row
+            Que.execute "SELECT pg_advisory_unlock($1)", [row['job_id']] if row
           end
         end
       end

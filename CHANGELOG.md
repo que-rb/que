@@ -1,3 +1,7 @@
+### Unreleased
+
+*   Have Que only clear advisory locks that it has taken, to not interfere with other uses.
+
 ### 0.3.0 (2013-12-21)
 
 *   Add Que.stop!, which immediately kills all jobs being worked in the process.
