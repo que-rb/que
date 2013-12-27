@@ -110,8 +110,12 @@ module Que
             return !error.is_a?(PG::Error)
           ensure
             # Clear the advisory lock we took when locking the job. Important
-            # to do this so that they don't pile up in the database.
-            Que.execute "SELECT pg_advisory_unlock($1)", [job['job_id']] if job
+            # to do this so that they don't pile up in the database. Again, if
+            # we can't reach the database, don't crash the work loop.
+            begin
+              Que.execute "SELECT pg_advisory_unlock($1)", [job['job_id']] if job
+            rescue
+            end
           end
         end
       end
