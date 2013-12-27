@@ -40,9 +40,8 @@ describe "Managing the Worker pool" do
   describe "Que.mode = :async" do
     it "should spin up 4 workers" do
       Que.mode = :async
-      workers = Que::Worker.workers
-      workers.count.should be 4
-      sleep_until { workers.all?(&:sleeping?) }
+      Que.worker_count.should be 4
+      sleep_until { Que::Worker.workers.all?(&:sleeping?) }
     end
 
     it "then Que.worker_count = 2 should gracefully decrease the number of workers" do
@@ -51,7 +50,7 @@ describe "Managing the Worker pool" do
       workers.count.should be 4
 
       Que.worker_count = 2
-      Que::Worker.workers.count.should be 2
+      Que.worker_count.should be 2
       sleep_until { Que::Worker.workers.all?(&:sleeping?) }
 
       workers[0..1].should == Que::Worker.workers
@@ -67,7 +66,7 @@ describe "Managing the Worker pool" do
       workers.count.should be 4
 
       Que.worker_count = 6
-      Que::Worker.workers.count.should be 6
+      Que.worker_count.should be 6
       sleep_until { workers.all?(&:sleeping?) }
 
       workers.should == Que::Worker.workers[0..3]
@@ -79,7 +78,7 @@ describe "Managing the Worker pool" do
       workers.count.should be 4
 
       Que.mode = :off
-      Que::Worker.workers.length.should be 0
+      Que.worker_count.should be 0
 
       workers.count.should be 4
       workers.each { |worker| worker.thread.status.should be false }

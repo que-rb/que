@@ -1,6 +1,8 @@
 ### Unreleased
 
-*   Have Que only clear advisory locks that it has taken, to not interfere with other uses.
+*   Have Que only clear advisory locks that it has taken, to not interfere with other uses by the app.
+
+*   Add Que.worker_count, to retrieve the current number of workers.
 
 ### 0.3.0 (2013-12-21)
 

@@ -95,11 +95,10 @@ module Que
     end
 
     # Defaults for the Worker pool.
-    @worker_count = 0
     @sleep_period = 5
 
     class << self
-      attr_reader :mode, :sleep_period, :worker_count
+      attr_reader :mode, :sleep_period
 
       def mode=(mode)
         case mode
@@ -119,11 +118,15 @@ module Que
       end
 
       def worker_count=(count)
-        if count > workers.count
-          (count - workers.count).times { workers << new }
-        elsif count < workers.count
-          workers.pop(workers.count - count).each(&:stop).each(&:wait_until_stopped)
+        if count > worker_count
+          (count - worker_count).times { workers << new }
+        elsif count < worker_count
+          workers.pop(worker_count - count).each(&:stop).each(&:wait_until_stopped)
         end
+      end
+
+      def worker_count
+        workers.count
       end
 
       def sleep_period=(period)
