@@ -2,7 +2,9 @@ require 'que'
 require 'uri'
 require 'pg'
 require 'json'
+require 'logger'
 
+stdout = Logger.new(STDOUT)
 Dir['./spec/support/**/*.rb'].sort.each &method(:require)
 
 
@@ -50,8 +52,9 @@ def $logger.method_missing(m, message)
 end
 
 
-# Clean up between specs.
+# Callbacks for specs.
 RSpec.configure do |config|
+  # Reset everything.
   config.before do
     DB[:que_jobs].delete
     Que.adapter = QUE_ADAPTERS[:pg]
@@ -60,19 +63,7 @@ RSpec.configure do |config|
     $logger.messages.clear
   end
 
-  config.after do
-    # A bit of lint: make sure that after each spec, no advisory locks are left open.
-    DB[:pg_locks].where(:locktype => 'advisory').should be_empty
-  end
-end
-
-
-# Optionally log to STDOUT which spec is running at the moment. This is loud,
-# but helpful in tracking down what spec is hanging, if any.
-if ENV['LOG_SPEC']
-  require 'logger'
-  logger = Logger.new(STDOUT)
-
+  # Helper to display spec descriptions.
   description_builder = -> hash do
     if g = hash[:example_group]
       "#{description_builder.call(g)} #{hash[:description_args].first}"
@@ -81,14 +72,22 @@ if ENV['LOG_SPEC']
     end
   end
 
-  RSpec.configure do |config|
-    config.around do |example|
-      data = example.metadata
-      desc = description_builder.call(data)
-      line = "rspec #{data[:file_path]}:#{data[:line_number]}"
-      logger.info "Running spec: #{desc} @ #{line}"
+  # Additional logging.
+  config.around do |spec|
+    # Figure out which spec is about to run, for logging purposes.
+    data = example.metadata
+    desc = description_builder.call(data)
+    line = "rspec #{data[:file_path]}:#{data[:line_number]}"
 
-      example.run
+    # Optionally log to STDOUT which spec is about to run. This is noisy, but
+    # helpful in identifying hanging specs.
+    stdout.info "Running spec: #{desc} @ #{line}" if ENV['LOG_SPEC']
+
+    spec.run
+
+    # A bit of lint: make sure that no advisory locks are left open.
+    unless DB[:pg_locks].where(:locktype => 'advisory').empty?
+      stdout.info "Advisory lock left open: #{desc} @ #{line}"
     end
   end
 end
