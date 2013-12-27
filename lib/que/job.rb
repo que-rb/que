@@ -65,7 +65,7 @@ module Que
         # deleting it, and removing the lock.
         Que.adapter.checkout do
           begin
-            if row = Que.execute(:lock_job).first
+            if job = Que.execute(:lock_job).first
               # Edge case: It's possible for the lock_job query to have
               # grabbed a job that's already been worked, if it took its MVCC
               # snapshot while the job was processing, but didn't attempt the
@@ -76,21 +76,21 @@ module Que
               # Note that there is currently no spec for this behavior, since
               # I'm not sure how to reliably commit a transaction that deletes
               # the job in a separate thread between lock_job and check_job.
-              return true if Que.execute(:check_job, [row['priority'], row['run_at'], row['job_id']]).none?
+              return true if Que.execute(:check_job, [job['priority'], job['run_at'], job['job_id']]).none?
 
-              run_job(row)
+              run_job(job)
             else
               Que.log :info, "No jobs available..."
               nil
             end
           rescue => error
             begin
-              if row
+              if job
                 # Borrowed the backoff formula and error data format from delayed_job.
-                count   = row['error_count'].to_i + 1
-                run_at  = count ** 4 + 3
+                count   = job['error_count'].to_i + 1
+                delay   = count ** 4 + 3
                 message = "#{error.message}\n#{error.backtrace.join("\n")}"
-                Que.execute :set_error, [count, run_at, message, row['priority'], row['run_at'], row['job_id']]
+                Que.execute :set_error, [count, delay, message, job['priority'], job['run_at'], job['job_id']]
               end
             rescue
               # If we can't reach the database for some reason, too bad, but
@@ -111,7 +111,7 @@ module Que
           ensure
             # Clear the advisory lock we took when locking the job. Important
             # to do this so that they don't pile up in the database.
-            Que.execute "SELECT pg_advisory_unlock($1)", [row['job_id']] if row
+            Que.execute "SELECT pg_advisory_unlock($1)", [job['job_id']] if job
           end
         end
       end
