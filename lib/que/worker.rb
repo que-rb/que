@@ -123,8 +123,6 @@ module Que
         elsif count < worker_count
           workers.pop(worker_count - count).each(&:stop).each(&:wait_until_stopped)
         end
-
-        worker_count
       end
 
       def worker_count

@@ -11,10 +11,6 @@ describe "Managing the Worker pool" do
     Que.stop!
   end
 
-  it "Que.worker_count= should return the new worker count" do
-    (Que.worker_count = 4).should be 4
-  end
-
   describe "Que.mode = :sync" do
     it "should make jobs run in the same thread as they are queued" do
       Que.mode = :sync
