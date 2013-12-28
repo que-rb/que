@@ -53,26 +53,24 @@ end
 
 
 # Callbacks for specs.
+reset = -> do
+  DB[:que_jobs].delete
+  Que.adapter = QUE_ADAPTERS[:pg]
+  Que.sleep_period = nil
+  Que.mode = :off
+  $logger.messages.clear
+end
+
+# Helper to display spec descriptions.
+description_builder = -> hash do
+  if g = hash[:example_group]
+    "#{description_builder.call(g)} #{hash[:description_args].first}"
+  else
+    hash[:description_args].first
+  end
+end
+
 RSpec.configure do |config|
-  # Reset everything.
-  config.before do
-    DB[:que_jobs].delete
-    Que.adapter = QUE_ADAPTERS[:pg]
-    Que.mode = :off
-    Que.sleep_period = nil
-    $logger.messages.clear
-  end
-
-  # Helper to display spec descriptions.
-  description_builder = -> hash do
-    if g = hash[:example_group]
-      "#{description_builder.call(g)} #{hash[:description_args].first}"
-    else
-      hash[:description_args].first
-    end
-  end
-
-  # Additional logging.
   config.around do |spec|
     # Figure out which spec is about to run, for logging purposes.
     data = example.metadata
@@ -85,9 +83,14 @@ RSpec.configure do |config|
 
     spec.run
 
+    reset.call
+
     # A bit of lint: make sure that no advisory locks are left open.
     unless DB[:pg_locks].where(:locktype => 'advisory').empty?
       stdout.info "Advisory lock left open: #{desc} @ #{line}"
     end
   end
 end
+
+# Clean up before any specs run.
+reset.call
