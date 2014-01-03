@@ -42,17 +42,15 @@ describe Que::Job, '.work' do
     end
   end
 
-  it "should prefer a job with a higher priority" do
-    Que::Job.queue :priority => 5
-    Que::Job.queue :priority => 1
-    Que::Job.queue :priority => 5
-    DB[:que_jobs].order(:job_id).select_map(:priority).should == [5, 1, 5]
+  it "should prefer a job with a higher priority" do # 1 is highest priority.
+    [5, 4, 3, 2, 1, 2, 3, 4, 5].map{|p| Que::Job.queue :priority => p}
+    DB[:que_jobs].order(:job_id).select_map(:priority).should == [5, 4, 3, 2, 1, 2, 3, 4, 5]
 
     Que::Job.work.should be_an_instance_of Que::Job
-    DB[:que_jobs].select_map(:priority).should == [5, 5]
+    DB[:que_jobs].select_map(:priority).should == [5, 4, 3, 2, 2, 3, 4, 5]
   end
 
-  it "should prefer a job that was scheduled to run longer ago" do
+  it "should prefer a job that was scheduled to run longer ago when priorities are equal" do
     Que::Job.queue :run_at => Time.now - 30
     Que::Job.queue :run_at => Time.now - 60
     Que::Job.queue :run_at => Time.now - 30
@@ -63,7 +61,7 @@ describe Que::Job, '.work' do
     DB[:que_jobs].order_by(:job_id).select_map(:run_at).should == [recent1, recent2]
   end
 
-  it "should prefer a job that was queued earlier, judging by the job_id" do
+  it "should prefer a job that was queued earlier when priorities and run_ats are equal" do
     run_at = Time.now - 30
     Que::Job.queue :run_at => run_at
     Que::Job.queue :run_at => run_at
@@ -99,13 +97,16 @@ describe Que::Job, '.work' do
     thread.join
   end
 
-  it "should not work jobs that are advisory-locked" do
-    Que::Job.queue
-    id = DB[:que_jobs].get(:job_id)
+  it "should skip jobs that are advisory-locked" do
+    Que::Job.queue :priority => 2
+    Que::Job.queue :priority => 1
+    Que::Job.queue :priority => 3
+    id = DB[:que_jobs].where(:priority => 1).get(:job_id)
 
     begin
       DB.select{pg_advisory_lock(id)}.single_value
-      Que::Job.work.should be nil
+      Que::Job.work.should be_an_instance_of Que::Job
+      DB[:que_jobs].order_by(:job_id).select_map(:priority).should == [1, 3]
     ensure
       DB.select{pg_advisory_unlock(id)}.single_value
     end
