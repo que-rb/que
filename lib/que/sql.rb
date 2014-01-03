@@ -15,7 +15,7 @@ module Que
           SELECT (j).*, pg_try_advisory_lock((j).job_id) AS locked
           FROM (
             SELECT (
-             SELECT j
+              SELECT j
               FROM que_jobs AS j
               WHERE run_at <= now() AND (priority, run_at, job_id) > (job.priority, job.run_at, job.job_id)
               ORDER BY priority, run_at, job_id
