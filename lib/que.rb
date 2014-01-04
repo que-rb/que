@@ -50,6 +50,26 @@ module Que
       logger.send level, "[Que] #{text}" if logger
     end
 
+    # Helper for making hashes indifferently-accessible, even when nested
+    # within each other and within arrays.
+    def indifferentiate(object)
+      case object
+      when Hash
+        h = if {}.respond_to?(:with_indifferent_access) # Better support for Rails.
+              {}.with_indifferent_access
+            else
+              Hash.new { |hash, key| hash[key.to_s] if Symbol === key }
+            end
+
+        object.each { |k, v| h[k] = indifferentiate(v) }
+        h
+      when Array
+        object.map { |v| indifferentiate(v) }
+      else
+        object
+      end
+    end
+
     # Copy some of the Worker class' config methods here for convenience.
     [:mode, :mode=, :worker_count, :worker_count=, :sleep_period, :sleep_period=, :stop!].each do |meth|
       define_method(meth) { |*args| Worker.send(meth, *args) }

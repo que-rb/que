@@ -139,32 +139,10 @@ module Que
       end
 
       def run_job(attrs)
-        attrs = indifferentiate(attrs)
-        attrs[:args] = indifferentiate(MultiJson.load(attrs[:args]))
+        attrs = Que.indifferentiate(attrs)
+        attrs[:args] = Que.indifferentiate(MultiJson.load(attrs[:args]))
         klass = attrs[:job_class].split('::').inject(Object, &:const_get)
         klass.new(attrs).tap(&:_run)
-      end
-
-      def indifferentiate(input)
-        case input
-        when Hash
-          h = indifferent_hash
-          input.each { |k, v| h[k] = indifferentiate(v) }
-          h
-        when Array
-          input.map { |v| indifferentiate(v) }
-        else
-          input
-        end
-      end
-
-      def indifferent_hash
-        # Tiny hack to better support Rails.
-        if {}.respond_to?(:with_indifferent_access)
-          {}.with_indifferent_access
-        else
-          Hash.new { |hash, key| hash[key.to_s] if Symbol === key }
-        end
       end
     end
   end
