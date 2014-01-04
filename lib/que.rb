@@ -39,6 +39,10 @@ module Que
       execute "DELETE FROM que_jobs"
     end
 
+    def worker_states
+      indifferentiate execute :worker_states
+    end
+
     def execute(command, *args)
       case command
         when Symbol then adapter.execute_prepared(command, *args)
