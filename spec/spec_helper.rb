@@ -54,10 +54,11 @@ end
 
 # Callbacks for specs.
 reset = -> do
-  DB[:que_jobs].delete
-  Que.adapter = QUE_ADAPTERS[:pg]
   Que.sleep_period = nil
   Que.mode = :off
+  DB[:que_jobs].delete
+  Que.adapter = QUE_ADAPTERS[:pg]
+  sleep_until { Que::Worker.workers.all?(&:sleeping?) }
   $logger.messages.clear
 end
 

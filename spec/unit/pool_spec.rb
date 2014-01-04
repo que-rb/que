@@ -2,19 +2,23 @@ require 'spec_helper'
 
 describe "Managing the Worker pool" do
   it "should log mode changes" do
+    Que.mode = :sync
     Que.mode = :off
-    $logger.messages.should == ["[Que] Set mode to :off"]
+    $logger.messages.should == ["[Que] Set mode to :sync", "[Que] Set mode to :off"]
+  end
+
+  it "setting a worker count should automatically set the mode to :async" do
+    Que.worker_count = 2
+    Que.mode.should == :async
+    Que.worker_count.should == 2
+    sleep_until { Que::Worker.workers.all?(&:sleeping?) }
+
+    $logger.messages.should == ["[Que] Set mode to :async", "[Que] Set worker_count to 2"] + ["[Que] No jobs available..."] * 2
   end
 
   it "Que.stop! should do nothing if there are no workers running" do
     Que::Worker.workers.should be_empty
     Que.stop!
-  end
-
-  it "Setting a worker count should automatically set the mode to :async" do
-    Que.worker_count = 2
-    Que.mode.should == :async
-    Que.worker_count.should == 2
   end
 
   describe "Que.mode = :sync" do
@@ -48,26 +52,37 @@ describe "Managing the Worker pool" do
       Que.mode = :async
       Que.worker_count.should be 4
       sleep_until { Que::Worker.workers.all?(&:sleeping?) }
+
+      $logger.messages.should == ["[Que] Set mode to :async", "[Que] Set worker_count to 4"] + ["[Que] No jobs available..."] * 4
     end
 
     it "should not affect the number of workers if a worker_count has already been set" do
       Que.worker_count = 1
       Que.mode = :async
       Que.worker_count.should be 1
+      sleep_until { Que::Worker.workers.all?(&:sleeping?) }
+
+      $logger.messages.should == ["[Que] Set mode to :async", "[Que] Set worker_count to 1", "[Que] No jobs available..."]
     end
 
     it "then Que.worker_count = 0 should set the mode to :off" do
       Que.mode = :async
       Que.worker_count.should be 4
+
+      sleep_until { Que::Worker.workers.all?(&:sleeping?) }
+
       Que.worker_count = 0
       Que.worker_count.should == 0
       Que.mode.should == :off
+
+      $logger.messages.should == ["[Que] Set mode to :async", "[Que] Set worker_count to 4"] + ["[Que] No jobs available..."] * 4 + ["[Que] Set mode to :off", "[Que] Set worker_count to 0"]
     end
 
     it "then Que.worker_count = 2 should gracefully decrease the number of workers" do
       Que.mode = :async
       workers = Que::Worker.workers.dup
       workers.count.should be 4
+      sleep_until { Que::Worker.workers.all?(&:sleeping?) }
 
       Que.worker_count = 2
       Que.worker_count.should be 2
@@ -78,6 +93,8 @@ describe "Managing the Worker pool" do
         worker.should be_an_instance_of Que::Worker
         worker.thread.status.should == false
       end
+
+      $logger.messages.should == ["[Que] Set mode to :async", "[Que] Set worker_count to 4"] + ["[Que] No jobs available..."] * 4 + ["[Que] Set worker_count to 2"]
     end
 
     it "then Que.worker_count = 6 should gracefully increase the number of workers" do
@@ -85,11 +102,14 @@ describe "Managing the Worker pool" do
       workers = Que::Worker.workers.dup
       workers.count.should be 4
 
+      sleep_until { Que::Worker.workers.all?(&:sleeping?) }
       Que.worker_count = 6
       Que.worker_count.should be 6
-      sleep_until { workers.all?(&:sleeping?) }
+      sleep_until { Que::Worker.workers.all?(&:sleeping?) }
 
       workers.should == Que::Worker.workers[0..3]
+
+      $logger.messages.should == ["[Que] Set mode to :async", "[Que] Set worker_count to 4"] + ["[Que] No jobs available..."] * 4 + ["[Que] Set worker_count to 6"] + ["[Que] No jobs available..."] * 2
     end
 
     it "then Que.mode = :off should gracefully shut down workers" do
@@ -148,7 +168,12 @@ describe "Managing the Worker pool" do
         Que::Job.queue
         sleep_until { DB[:que_jobs].count == 0 }
       ensure
+        # Make sure the wrangler thread is sleeping permanently until awoken,
+        # so that it doesn't kick in later in the spec suite.
         Que.sleep_period = nil
+        wrangler = Que::Worker.send(:instance_variable_get, :@wrangler)
+        wrangler.wakeup
+        sleep_until { wrangler.status == 'sleep' }
       end
     end
 

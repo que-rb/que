@@ -101,16 +101,16 @@ module Que
       attr_reader :mode, :sleep_period
 
       def mode=(mode)
+        return if @mode == mode
+        set_mode(mode)
+
         case mode
         when :async
           wrangler # Make sure the wrangler thread is initialized.
-          self.worker_count = 4 if worker_count.zero?
+          set_worker_count 4 if worker_count.zero?
         else
-          self.worker_count = 0 unless worker_count.zero?
+          set_worker_count 0
         end
-
-        @mode = mode
-        Que.log :info, "Set mode to #{mode.inspect}"
       end
 
       def workers
@@ -118,13 +118,8 @@ module Que
       end
 
       def worker_count=(count)
-        if count > worker_count
-          (count - worker_count).times { workers << new }
-        elsif count < worker_count
-          workers.pop(worker_count - count).each(&:stop).each(&:wait_until_stopped)
-        end
-
-        self.mode = count > 0 ? :async : :off
+        set_mode(count > 0 ? :async : :off)
+        set_worker_count(count)
       end
 
       def worker_count
@@ -161,6 +156,23 @@ module Que
 
       def wrangler
         @wrangler ||= Thread.new { loop { sleep(*sleep_period); wake! } }
+      end
+
+      def set_mode(mode)
+        return if mode == @mode
+        @mode = mode
+        Que.log :info, "Set mode to #{mode.inspect}"
+      end
+
+      def set_worker_count(count)
+        return if count == worker_count
+        Que.log :info, "Set worker_count to #{count.inspect}"
+
+        if count > worker_count
+          (count - worker_count).times { workers << new }
+        elsif count < worker_count
+          workers.pop(worker_count - count).each(&:stop).each(&:wait_until_stopped)
+        end
       end
     end
   end
