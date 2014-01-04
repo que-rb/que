@@ -14,7 +14,7 @@ Additionally, there are the general benefits of storing jobs in Postgres, alongs
 * **Atomic Backups** - Your jobs and data can be backed up together and restored as a snapshot. If your jobs relate to your data (and they usually do), there's no risk of jobs falling through the cracks during a recovery.
 * **Fewer Dependencies** - If you're already using Postgres (and you probably should be), a separate queue is another moving part that can break.
 
-Que's primary goal is reliability. When it's stable, you should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que does everything it can to ensure that jobs you queue are performed exactly once (though the occasional repetition of a job can be impossible to avoid - see the wiki page on [how to write a reliable job](https://github.com/chanks/que/wiki/Writing-Reliable-Jobs)).
+Que's primary goal is reliability. When it's stable, you should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que does everything it can to ensure that jobs you queue are performed exactly once (though the occasional repetition of a job can be impossible to avoid - see the docs on [how to write a reliable job](https://github.com/chanks/que/blob/master/docs/writing_reliable_jobs.md)).
 
 Que's secondary goal is performance. It won't be able to match the speed or throughput of a dedicated queue, or maybe even a Redis-backed queue, but it should be fast enough for most use cases. In [benchmarks](https://github.com/chanks/queue-shootout) on an AWS c3.8xlarge instance, Que approaches 10,000 jobs per second, or about twenty times the throughput of DelayedJob or QueueClassic. You are encouraged to try things out on your own production hardware, though.
 
@@ -107,7 +107,7 @@ If an error causes a job to fail, Que will repeat that job at exponentially-incr
       # Do whatever you want with the error object.
     end
 
-You can find more documentation on the [Github wiki](https://github.com/chanks/que/wiki).
+You can find more documentation in [/docs](https://github.com/chanks/que/blob/master/docs).
 
 ## Contributing
 
