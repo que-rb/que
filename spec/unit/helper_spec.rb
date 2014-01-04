@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Que, 'helpers' do
   it "should be able to run arbitrary SQL" do
-    Que.execute("SELECT 1 AS one").to_a.should == [{'one' => '1'}]
+    Que.execute("SELECT 1 AS one").should == [{'one' => '1'}]
   end
 
   it "should be able to drop and create the jobs table" do

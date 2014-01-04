@@ -18,7 +18,7 @@ module Que
       end
 
       def execute(*args)
-        checkout { |conn| conn.async_exec(*args) }
+        checkout { |conn| conn.async_exec(*args).to_a }
       end
 
       def execute_prepared(name, params = [])
@@ -28,7 +28,7 @@ module Que
             statements_prepared(conn)[name] = true
           end
 
-          conn.exec_prepared("que_#{name}", params)
+          conn.exec_prepared("que_#{name}", params).to_a
         end
       end
 
