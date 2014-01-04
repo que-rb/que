@@ -5,7 +5,7 @@ module Que
     attr_reader :attrs
 
     def initialize(attrs)
-      @attrs        = Que.indifferentiate attrs
+      @attrs        = attrs
       @attrs[:args] = Que.indifferentiate MultiJson.load(@attrs[:args])
     end
 
@@ -24,7 +24,7 @@ module Que
     private
 
     def destroy
-      Que.execute :destroy_job, [attrs[:priority], attrs[:run_at], attrs[:job_id]]
+      Que.execute :destroy_job, attrs.values_at(:priority, :run_at, :job_id)
       @destroyed = true
     end
 
@@ -37,8 +37,7 @@ module Que
           args << options if options.any?
         end
 
-        attrs = Que.indifferentiate :job_class => to_s,
-                                    :args      => MultiJson.dump(args)
+        attrs = {:job_class => to_s, :args => MultiJson.dump(args)}
 
         if time = run_at || @default_run_at && @default_run_at.call
           attrs[:run_at] = time
@@ -80,7 +79,7 @@ module Que
               # Note that there is currently no spec for this behavior, since
               # I'm not sure how to reliably commit a transaction that deletes
               # the job in a separate thread between lock_job and check_job.
-              return true if Que.execute(:check_job, [job['priority'], job['run_at'], job['job_id']]).none?
+              return true if Que.execute(:check_job, job.values_at(:priority, :run_at, :job_id)).none?
 
               run_job(job)
             else
@@ -91,10 +90,10 @@ module Que
             begin
               if job
                 # Borrowed the backoff formula and error data format from delayed_job.
-                count   = job['error_count'].to_i + 1
+                count   = job[:error_count].to_i + 1
                 delay   = count ** 4 + 3
                 message = "#{error.message}\n#{error.backtrace.join("\n")}"
-                Que.execute :set_error, [count, delay, message, job['priority'], job['run_at'], job['job_id']]
+                Que.execute :set_error, [count, delay, message] + job.values_at(:priority, :run_at, :job_id)
               end
             rescue
               # If we can't reach the database for some reason, too bad, but
@@ -117,7 +116,7 @@ module Que
             # to do this so that they don't pile up in the database. Again, if
             # we can't reach the database, don't crash the work loop.
             begin
-              Que.execute "SELECT pg_advisory_unlock($1)", [job['job_id']] if job
+              Que.execute "SELECT pg_advisory_unlock($1)", [job[:job_id]] if job
             rescue
             end
           end
@@ -143,7 +142,7 @@ module Que
       end
 
       def run_job(attrs)
-        attrs['job_class'].split('::').inject(Object, &:const_get).new(attrs).tap(&:_run)
+        attrs[:job_class].split('::').inject(Object, &:const_get).new(attrs).tap(&:_run)
       end
     end
   end

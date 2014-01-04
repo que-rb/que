@@ -40,18 +40,18 @@ module Que
     end
 
     def job_stats
-      indifferentiate execute :job_stats
+      execute :job_stats
     end
 
     def worker_states
-      indifferentiate execute :worker_states
+      execute :worker_states
     end
 
     def execute(command, *args)
-      case command
-        when Symbol then adapter.execute_prepared(command, *args)
-        when String then adapter.execute(command, *args)
-      end
+      indifferentiate case command
+                        when Symbol then adapter.execute_prepared(command, *args)
+                        when String then adapter.execute(command, *args)
+                      end.to_a
     end
 
     def log(level, text)
