@@ -42,13 +42,14 @@ DB.run Que::SQL[:create_table]
 
 # Set up a dummy logger.
 Que.logger = $logger = Object.new
+$logger_mutex = Mutex.new # Protect against rare errors on Rubinius.
 
 def $logger.messages
   @messages ||= []
 end
 
 def $logger.method_missing(m, message)
-  messages << message
+  $logger_mutex.synchronize { messages << message }
 end
 
 
