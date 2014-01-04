@@ -22,4 +22,23 @@ describe "Que using the Sequel adapter" do
 
     $pid1.should == $pid2
   end
+
+  it "should wake up a Worker after queueing a job in async mode, waiting for a transaction to commit if necessary" do
+    Que.mode = :async
+    sleep_until { Que::Worker.workers.all? &:sleeping? }
+
+    # Wakes a worker immediately when not in a transaction.
+    Que::Job.queue
+    sleep_until { Que::Worker.workers.all?(&:sleeping?) && DB[:que_jobs].empty? }
+
+    SEQUEL_ADAPTER_DB.transaction do
+      Que::Job.queue
+      Que::Worker.workers.each { |worker| worker.should be_sleeping }
+    end
+    sleep_until { Que::Worker.workers.all?(&:sleeping?) && DB[:que_jobs].empty? }
+
+    # Do nothing when queueing with a specific :run_at.
+    BlockJob.queue :run_at => Time.now
+    Que::Worker.workers.each { |worker| worker.should be_sleeping }
+  end
 end

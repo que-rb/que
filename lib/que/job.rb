@@ -50,6 +50,7 @@ module Que
           run_job(attrs)
         else
           Que.execute *insert_sql(attrs)
+          Que.adapter.wake_worker_after_commit unless attrs[:run_at]
         end
       end
 

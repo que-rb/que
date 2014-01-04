@@ -1,5 +1,9 @@
 ### Unreleased
 
+*   When queueing a job, Que will wait until the current transaction commits and then wake a background worker, if possible. This allows newly queued jobs to be started immediately instead of waiting for a worker to wake up and poll, which may be up to `Que.sleep_period` seconds.
+
+    This feature currently only works with Sequel, since there doesn't seem to be a clean way to do it on ActiveRecord. If you're using ActiveRecord, you can always manually trigger a single worker to wake up and check for work using Que::Worker.wake!.
+
 *   Add Que.job_stats, which queries the database and returns statistics on the different job classes - for each class, how many are queued, how many are currently being worked, what is the highest error_count, and so on.
 
 *   Add Que.worker_states, which queries the database and returns all currently-locked jobs and info on their workers' connections - what and when was the last query they ran, are they waiting on locks, and so on.
