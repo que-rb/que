@@ -11,6 +11,12 @@ describe "Managing the Worker pool" do
     Que.stop!
   end
 
+  it "Setting a worker count should automatically set the mode to :async" do
+    Que.worker_count = 2
+    Que.mode.should == :async
+    Que.worker_count.should == 2
+  end
+
   describe "Que.mode = :sync" do
     it "should make jobs run in the same thread as they are queued" do
       Que.mode = :sync
@@ -48,6 +54,14 @@ describe "Managing the Worker pool" do
       Que.worker_count = 1
       Que.mode = :async
       Que.worker_count.should be 1
+    end
+
+    it "then Que.worker_count = 0 should set the mode to :off" do
+      Que.mode = :async
+      Que.worker_count.should be 4
+      Que.worker_count = 0
+      Que.worker_count.should == 0
+      Que.mode.should == :off
     end
 
     it "then Que.worker_count = 2 should gracefully decrease the number of workers" do

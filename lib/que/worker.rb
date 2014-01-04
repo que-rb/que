@@ -106,7 +106,7 @@ module Que
           wrangler # Make sure the wrangler thread is initialized.
           self.worker_count = 4 if worker_count.zero?
         else
-          self.worker_count = 0
+          self.worker_count = 0 unless worker_count.zero?
         end
 
         @mode = mode
@@ -123,6 +123,8 @@ module Que
         elsif count < worker_count
           workers.pop(worker_count - count).each(&:stop).each(&:wait_until_stopped)
         end
+
+        self.mode = count > 0 ? :async : :off
       end
 
       def worker_count
