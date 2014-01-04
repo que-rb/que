@@ -11,7 +11,7 @@ module Que
       end
 
       def wake_worker_after_commit
-        @db.after_commit { Que::Worker.wake! }
+        @db.after_commit { Que.wake! }
       end
     end
   end

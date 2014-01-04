@@ -90,12 +90,12 @@ describe "Managing the Worker pool" do
       workers.each { |worker| worker.thread.status.should be false }
     end
 
-    it "then Que::Worker.wake! should wake up a single worker" do
+    it "then Que.wake! should wake up a single worker" do
       Que.mode = :async
       sleep_until { Que::Worker.workers.all? &:sleeping? }
 
       BlockJob.queue
-      Que::Worker.wake!
+      Que.wake!
 
       $q1.pop
       Que::Worker.workers.first.should be_working
