@@ -12,6 +12,8 @@
 
 *   Add Que.worker_count, to retrieve the current number of workers in the pool of the current process.
 
+*   Much more internal cleanup.
+
 ### 0.3.0 (2013-12-21)
 
 *   Add Que.stop!, which immediately kills all jobs being worked in the process.
