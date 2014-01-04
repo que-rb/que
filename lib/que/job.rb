@@ -5,7 +5,8 @@ module Que
     attr_reader :attrs
 
     def initialize(attrs)
-      @attrs = attrs
+      @attrs        = Que.indifferentiate attrs
+      @attrs[:args] = Que.indifferentiate MultiJson.load(@attrs[:args])
     end
 
     # Subclasses should define their own run methods, but keep an empty one
@@ -14,18 +15,16 @@ module Que
     end
 
     def _run
-      start = Time.now
-
-      run *@attrs[:args]
+      time = Time.now
+      run *attrs[:args]
       destroy unless @destroyed
-
-      Que.log :info, "Worked job in #{((Time.now - start) * 1000).round(1)} ms: #{inspect}"
+      Que.log :info, "Worked job in #{((Time.now - time) * 1000).round(1)} ms: #{inspect}"
     end
 
     private
 
     def destroy
-      Que.execute :destroy_job, [@attrs[:priority], @attrs[:run_at], @attrs[:job_id]]
+      Que.execute :destroy_job, [attrs[:priority], attrs[:run_at], attrs[:job_id]]
       @destroyed = true
     end
 
@@ -38,22 +37,23 @@ module Que
           args << options if options.any?
         end
 
-        attrs = {:job_class => to_s, :args => MultiJson.dump(args)}
+        attrs = Que.indifferentiate :job_class => to_s,
+                                    :args      => MultiJson.dump(args)
 
-        if t = run_at || @default_run_at && @default_run_at.call
-          attrs[:run_at] = t
+        if time = run_at || @default_run_at && @default_run_at.call
+          attrs[:run_at] = time
         end
 
-        if p = priority || @default_priority
-          attrs[:priority] = p
+        if pty = priority || @default_priority
+          attrs[:priority] = pty
         end
 
-        if Que.mode == :sync && !attrs[:run_at]
+        if Que.mode == :sync && !time
           run_job(attrs)
         else
-          values = Que.execute(*insert_sql(attrs)).first
-          Que.adapter.wake_worker_after_commit unless attrs[:run_at]
-          new(load_attrs(values))
+          new(Que.execute(*insert_sql(attrs)).first).tap do
+            Que.adapter.wake_worker_after_commit unless time
+          end
         end
       end
 
@@ -143,15 +143,7 @@ module Que
       end
 
       def run_job(attrs)
-        attrs = load_attrs(attrs)
-        klass = attrs[:job_class].split('::').inject(Object, &:const_get)
-        klass.new(attrs).tap(&:_run)
-      end
-
-      def load_attrs(attrs)
-        attrs = Que.indifferentiate(attrs)
-        attrs[:args] = Que.indifferentiate(MultiJson.load(attrs[:args]))
-        attrs
+        attrs['job_class'].split('::').inject(Object, &:const_get).new(attrs).tap(&:_run)
       end
     end
   end
