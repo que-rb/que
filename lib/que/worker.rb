@@ -81,15 +81,12 @@ module Que
     def work_loop
       loop do
         job = Job.work
-
-        # Grab the lock and figure out what we should do next.
         synchronize { @state = :sleeping unless @stop || job }
-
         sleep if @state == :sleeping
         break if @stop
       end
     rescue Stop
-      # This process is shutting down; let it.
+      # This process is shutting down - let it.
     ensure
       @state = :stopped
     end
@@ -101,13 +98,10 @@ module Que
       attr_reader :mode, :sleep_period
 
       def mode=(mode)
-        return if @mode == mode
-        set_mode(mode)
-
-        case mode
+        case set_mode(mode)
         when :async
           set_worker_count 4 if worker_count.zero?
-        else
+        when :sync, :off
           set_worker_count 0
         end
       end
@@ -154,19 +148,21 @@ module Que
       private
 
       def set_mode(mode)
-        return if mode == @mode
-        @mode = mode
-        Que.log :info, "Set mode to #{mode.inspect}"
+        if mode != @mode
+          Que.log :info, "Set mode to #{mode.inspect}"
+          @mode = mode
+        end
       end
 
       def set_worker_count(count)
-        return if count == worker_count
-        Que.log :info, "Set worker_count to #{count.inspect}"
+        if count != worker_count
+          Que.log :info, "Set worker_count to #{count.inspect}"
 
-        if count > worker_count
-          (count - worker_count).times { workers << new }
-        elsif count < worker_count
-          workers.pop(worker_count - count).each(&:stop).each(&:wait_until_stopped)
+          if count > worker_count
+            workers.push *(count - worker_count).times.map { new }
+          elsif count < worker_count
+            workers.pop(worker_count - count).each(&:stop).each(&:wait_until_stopped)
+          end
         end
       end
     end
