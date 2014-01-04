@@ -39,6 +39,10 @@ module Que
       execute "DELETE FROM que_jobs"
     end
 
+    def job_stats
+      indifferentiate execute :job_stats
+    end
+
     def worker_states
       indifferentiate execute :worker_states
     end

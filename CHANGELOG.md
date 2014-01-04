@@ -1,5 +1,7 @@
 ### Unreleased
 
+*   Add Que.job_stats, which queries the database and returns statistics on the different job classes - for each class, how many are queued, how many are currently being worked, what is the highest error_count, and so on.
+
 *   Add Que.worker_states, which queries the database and returns all currently-locked jobs and info on their workers' connections - what and when was the last query they ran, are they waiting on locks, and so on.
 
 *   Have Que only clear advisory locks that it has taken, and not those that may have been taken with the same connection by other code.
