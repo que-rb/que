@@ -51,6 +51,14 @@ module Que
       AND   job_id    = $6::bigint
     }.freeze,
 
+    :insert_job => %{
+      INSERT INTO que_jobs
+      (priority, run_at, job_class, args)
+      VALUES
+      (coalesce($1, 1)::integer, coalesce($2, 'now')::timestamptz, $3::text, coalesce($4, '[]')::json)
+      RETURNING *
+    }.freeze,
+
     :destroy_job => %{
       DELETE FROM que_jobs
       WHERE priority = $1::integer

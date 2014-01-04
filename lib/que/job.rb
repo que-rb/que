@@ -50,9 +50,9 @@ module Que
         if Que.mode == :sync && !time
           run_job(attrs)
         else
-          new(Que.execute(*insert_sql(attrs)).first).tap do
-            Que.adapter.wake_worker_after_commit unless time
-          end
+          values = Que.execute(:insert_job, attrs.values_at(:priority, :run_at, :job_class, :args)).first
+          Que.adapter.wake_worker_after_commit unless time
+          new(values)
         end
       end
 
@@ -124,22 +124,6 @@ module Que
       end
 
       private
-
-      # Column names are not escaped, so this method should not be called with untrusted hashes.
-      def insert_sql(hash)
-        number       = 0
-        columns      = []
-        placeholders = []
-        values       = []
-
-        hash.each do |key, value|
-          columns      << key
-          placeholders << "$#{number += 1}"
-          values       << value
-        end
-
-        ["INSERT INTO que_jobs (#{columns.join(', ')}) VALUES (#{placeholders.join(', ')}) RETURNING *", values]
-      end
 
       def run_job(attrs)
         attrs[:job_class].split('::').inject(Object, &:const_get).new(attrs).tap(&:_run)
