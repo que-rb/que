@@ -12,7 +12,8 @@ module Que
 
       # The only method that adapters really need to implement. Should lock a
       # PG::Connection (or something that acts like a PG::Connection) so that
-      # no other threads are using it and yield it to the block.
+      # no other threads are using it and yield it to the block. Should also
+      # be re-entrant.
       def checkout(&block)
         raise NotImplementedError
       end
