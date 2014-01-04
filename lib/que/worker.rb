@@ -94,8 +94,8 @@ module Que
       @state = :stopped
     end
 
-    # Defaults for the Worker pool.
     @sleep_period = 5
+    @wrangler = Thread.new { loop { sleep(*@sleep_period); wake! } }
 
     class << self
       attr_reader :mode, :sleep_period
@@ -106,7 +106,6 @@ module Que
 
         case mode
         when :async
-          wrangler # Make sure the wrangler thread is initialized.
           set_worker_count 4 if worker_count.zero?
         else
           set_worker_count 0
@@ -128,7 +127,7 @@ module Que
 
       def sleep_period=(period)
         @sleep_period = period
-        wrangler.wakeup if period
+        @wrangler.wakeup if period
       end
 
       def stop!
@@ -153,10 +152,6 @@ module Que
       end
 
       private
-
-      def wrangler
-        @wrangler ||= Thread.new { loop { sleep(*sleep_period); wake! } }
-      end
 
       def set_mode(mode)
         return if mode == @mode
