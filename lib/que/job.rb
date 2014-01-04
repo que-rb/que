@@ -2,6 +2,8 @@ require 'multi_json'
 
 module Que
   class Job
+    attr_reader :attrs
+
     def initialize(attrs)
       @attrs = attrs
     end
@@ -49,8 +51,9 @@ module Que
         if Que.mode == :sync && !attrs[:run_at]
           run_job(attrs)
         else
-          Que.execute *insert_sql(attrs)
+          values = Que.execute(*insert_sql(attrs)).first
           Que.adapter.wake_worker_after_commit unless attrs[:run_at]
+          new(load_attrs(values))
         end
       end
 
@@ -136,14 +139,19 @@ module Que
           values       << value
         end
 
-        ["INSERT INTO que_jobs (#{columns.join(', ')}) VALUES (#{placeholders.join(', ')})", values]
+        ["INSERT INTO que_jobs (#{columns.join(', ')}) VALUES (#{placeholders.join(', ')}) RETURNING *", values]
       end
 
       def run_job(attrs)
-        attrs = Que.indifferentiate(attrs)
-        attrs[:args] = Que.indifferentiate(MultiJson.load(attrs[:args]))
+        attrs = load_attrs(attrs)
         klass = attrs[:job_class].split('::').inject(Object, &:const_get)
         klass.new(attrs).tap(&:_run)
+      end
+
+      def load_attrs(attrs)
+        attrs = Que.indifferentiate(attrs)
+        attrs[:args] = Que.indifferentiate(MultiJson.load(attrs[:args]))
+        attrs
       end
     end
   end

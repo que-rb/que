@@ -3,8 +3,11 @@ require 'spec_helper'
 describe Que::Job, '.queue' do
   it "should be able to queue a job" do
     DB[:que_jobs].count.should be 0
-    Que::Job.queue
+    result = Que::Job.queue
     DB[:que_jobs].count.should be 1
+    result.should be_an_instance_of Que::Job
+    result.attrs[:priority].should == '1'
+    result.attrs[:args].should == []
 
     job = DB[:que_jobs].first
     job[:priority].should be 1
