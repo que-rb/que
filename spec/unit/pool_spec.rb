@@ -189,7 +189,10 @@ describe "Managing the Worker pool" do
         $q1.pop
         Que.stop!
       ensure
-        pg.close if pg
+        if pg
+          # Closing the connection can raise a NullPointerException on JRuby.
+          pg.close rescue nil
+        end
       end
     end
   end
