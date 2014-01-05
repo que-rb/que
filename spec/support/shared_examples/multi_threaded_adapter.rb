@@ -1,4 +1,6 @@
-shared_examples "a multithreaded Que adapter" do
+shared_examples "a multi-threaded Que adapter" do
+  it_behaves_like "a Que adapter"
+
   it "should allow multiple threads to check out their own connections" do
     one = nil
     two = nil

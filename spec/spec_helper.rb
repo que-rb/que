@@ -4,8 +4,8 @@ require 'pg'
 require 'json'
 require 'logger'
 
-stdout = Logger.new(STDOUT)
 Dir['./spec/support/**/*.rb'].sort.each &method(:require)
+
 
 
 # Handy constants for initializing PG connections:
@@ -13,12 +13,17 @@ QUE_URL = ENV['DATABASE_URL'] || 'postgres://postgres:@localhost/que-test'
 
 NEW_PG_CONNECTION = proc do
   uri = URI.parse(QUE_URL)
-  PG::Connection.open :host     => uri.host,
-                      :user     => uri.user,
-                      :password => uri.password,
-                      :port     => uri.port || 5432,
-                      :dbname   => uri.path[1..-1]
+  pg = PG::Connection.open :host     => uri.host,
+                           :user     => uri.user,
+                           :password => uri.password,
+                           :port     => uri.port || 5432,
+                           :dbname   => uri.path[1..-1]
+
+  # Avoid annoying NOTICE messages in specs.
+  pg.async_exec "SET client_min_messages TO 'warning'"
+  pg
 end
+
 
 
 # Adapters track which statements have been prepared for their connections,
@@ -33,16 +38,18 @@ Que.connection = NEW_PG_CONNECTION.call
 QUE_ADAPTERS = {:pg => Que.adapter}
 
 
-# We use Sequel to introspect the database in specs.
+
+# We use Sequel to examine the database in specs.
 require 'sequel'
 DB = Sequel.connect(QUE_URL)
 DB.drop_table? :que_jobs
 DB.run Que::SQL[:create_table]
 
 
+
 # Set up a dummy logger.
 Que.logger = $logger = Object.new
-$logger_mutex = Mutex.new # Protect against rare errors on Rubinius.
+$logger_mutex = Mutex.new # Protect against rare errors on Rubinius/JRuby.
 
 def $logger.messages
   @messages ||= []
@@ -53,15 +60,6 @@ def $logger.method_missing(m, message)
 end
 
 
-# Callbacks for specs.
-reset = -> do
-  Que.sleep_period = nil
-  Que.mode = :off
-  DB[:que_jobs].delete
-  Que.adapter = QUE_ADAPTERS[:pg]
-  sleep_until { Que::Worker.workers.all?(&:sleeping?) }
-  $logger.messages.clear
-end
 
 # Helper to display spec descriptions.
 description_builder = -> hash do
@@ -71,6 +69,8 @@ description_builder = -> hash do
     hash[:description_args].first
   end
 end
+
+stdout = Logger.new(STDOUT)
 
 RSpec.configure do |config|
   config.around do |spec|
@@ -83,9 +83,15 @@ RSpec.configure do |config|
     # helpful in identifying hanging specs.
     stdout.info "Running spec: #{desc} @ #{line}" if ENV['LOG_SPEC']
 
+    $logger.messages.clear
+    Que.adapter = QUE_ADAPTERS[:pg]
+
     spec.run
 
-    reset.call
+    DB[:que_jobs].delete
+    Que.mode = :off
+    Que.sleep_period = nil
+    sleep_until { Que::Worker.workers.all?(&:sleeping?) }
 
     # A bit of lint: make sure that no advisory locks are left open.
     unless DB[:pg_locks].where(:locktype => 'advisory').empty?
@@ -93,6 +99,3 @@ RSpec.configure do |config|
     end
   end
 end
-
-# Clean up before any specs run.
-reset.call

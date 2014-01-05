@@ -75,7 +75,7 @@ describe Que::Worker do
     end
   end
 
-  it "should receive and respect a notification to shut down when it is working, after its current job completes" do
+  it "should receive and respect a notification to stop down when it is working, after its current job completes" do
     begin
       BlockJob.queue :priority => 1
       Que::Job.queue :priority => 5
@@ -100,7 +100,7 @@ describe Que::Worker do
     end
   end
 
-  it "should receive and respect a notification to shut down when it is asleep" do
+  it "should receive and respect a notification to stop when it is currently asleep" do
     begin
       @worker = Que::Worker.new
       sleep_until { @worker.sleeping? }
@@ -115,7 +115,7 @@ describe Que::Worker do
     end
   end
 
-  it "should receive and respect a notification to kill its job and stop running immediately" do
+  it "should receive and respect a notification to stop immediately when it is working, and kill the job" do
     begin
       # Worker#stop! can leave the database connection in an unpredictable
       # state, which would impact the rest of the tests, so we need a special
@@ -131,6 +131,21 @@ describe Que::Worker do
       @worker.wait_until_stopped
     ensure
       pg.close if pg
+    end
+  end
+
+  it "should receive and respect a notification to stop immediately when it is currently asleep" do
+    begin
+      @worker = Que::Worker.new
+      sleep_until { @worker.sleeping? }
+
+      @worker.stop!
+      @worker.wait_until_stopped
+    ensure
+      if @worker
+        @worker.thread.kill
+        @worker.thread.join
+      end
     end
   end
 end

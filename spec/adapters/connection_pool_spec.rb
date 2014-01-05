@@ -7,6 +7,5 @@ QUE_ADAPTERS[:connection_pool] = Que.adapter
 describe "Que using the ConnectionPool adapter" do
   before { Que.adapter = QUE_ADAPTERS[:connection_pool] }
 
-  it_behaves_like "a Que adapter"
-  it_behaves_like "a multithreaded Que adapter"
+  it_behaves_like "a multi-threaded Que adapter"
 end

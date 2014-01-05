@@ -7,15 +7,6 @@ describe "Managing the Worker pool" do
     $logger.messages.should == ["[Que] Set mode to :sync", "[Que] Set mode to :off"]
   end
 
-  it "setting a worker count should automatically set the mode to :async" do
-    Que.worker_count = 2
-    Que.mode.should == :async
-    Que.worker_count.should == 2
-    sleep_until { Que::Worker.workers.all?(&:sleeping?) }
-
-    $logger.messages.should == ["[Que] Set mode to :async", "[Que] Set worker_count to 2"] + ["[Que] No jobs available..."] * 2
-  end
-
   it "Que.stop! should do nothing if there are no workers running" do
     Que::Worker.workers.should be_empty
     Que.stop!
@@ -54,6 +45,15 @@ describe "Managing the Worker pool" do
       sleep_until { Que::Worker.workers.all?(&:sleeping?) }
 
       $logger.messages.should == ["[Que] Set mode to :async", "[Que] Set worker_count to 4"] + ["[Que] No jobs available..."] * 4
+    end
+
+    it "should be done automatically when setting a worker count" do
+      Que.worker_count = 2
+      Que.mode.should == :async
+      Que.worker_count.should == 2
+      sleep_until { Que::Worker.workers.all?(&:sleeping?) }
+
+      $logger.messages.should == ["[Que] Set mode to :async", "[Que] Set worker_count to 2"] + ["[Que] No jobs available..."] * 2
     end
 
     it "should not affect the number of workers if a worker_count has already been set" do
@@ -117,11 +117,14 @@ describe "Managing the Worker pool" do
       workers = Que::Worker.workers.dup
       workers.count.should be 4
 
+      sleep_until { Que::Worker.workers.all?(&:sleeping?) }
       Que.mode = :off
       Que.worker_count.should be 0
 
       workers.count.should be 4
       workers.each { |worker| worker.thread.status.should be false }
+
+      $logger.messages.should == ["[Que] Set mode to :async", "[Que] Set worker_count to 4"] + ["[Que] No jobs available..."] * 4 + ["[Que] Set mode to :off", "[Que] Set worker_count to 0"]
     end
 
     it "then Que.wake! should wake up a single worker" do
@@ -139,6 +142,12 @@ describe "Managing the Worker pool" do
 
       sleep_until { Que::Worker.workers.all? &:sleeping? }
       DB[:que_jobs].count.should be 0
+    end
+
+    it "then Que.wake! should be thread-safe" do
+      Que.mode = :async
+      threads = 4.times.map { Thread.new { 100.times { Que.wake! } } }
+      threads.each(&:join)
     end
 
     it "then Que::Worker.wake_all! should wake up all workers" do

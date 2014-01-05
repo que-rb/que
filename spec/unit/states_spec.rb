@@ -18,10 +18,7 @@ describe Que, '.worker_states' do
     DB[:que_jobs].update(:job_id => 2**33)
 
     begin
-      t = Thread.new do
-        Que::Job.work
-      end
-
+      t = Thread.new { Que::Job.work }
       $q1.pop
 
       states = Que.worker_states

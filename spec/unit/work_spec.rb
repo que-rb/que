@@ -42,7 +42,8 @@ describe Que::Job, '.work' do
     end
   end
 
-  it "should prefer a job with a higher priority" do # 1 is highest priority.
+  it "should prefer a job with a higher priority" do
+    # 1 is highest priority.
     [5, 4, 3, 2, 1, 2, 3, 4, 5].map{|p| Que::Job.queue :priority => p}
     DB[:que_jobs].order(:job_id).select_map(:priority).should == [5, 4, 3, 2, 1, 2, 3, 4, 5]
 
@@ -228,7 +229,7 @@ describe Que::Job, '.work' do
       Que::Job.work.should be false
     end
 
-    it "should behave sensibly if there's no corresponding job class" do
+    it "should throw an error properly if there's no corresponding job class" do
       DB[:que_jobs].insert :job_class => "NonexistentClass"
       Que::Job.work.should be true
       DB[:que_jobs].count.should be 1

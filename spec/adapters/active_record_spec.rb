@@ -11,8 +11,7 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
   describe "Que using the ActiveRecord adapter" do
     before { Que.adapter = QUE_ADAPTERS[:active_record] }
 
-    it_behaves_like "a Que adapter"
-    it_behaves_like "a multithreaded Que adapter"
+    it_behaves_like "a multi-threaded Que adapter"
 
     it "should use the same connection that ActiveRecord does" do
       class ActiveRecordJob < Que::Job

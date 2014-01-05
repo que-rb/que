@@ -5,6 +5,7 @@ describe Que::Job, '.queue' do
     DB[:que_jobs].count.should be 0
     result = Que::Job.queue
     DB[:que_jobs].count.should be 1
+
     result.should be_an_instance_of Que::Job
     result.attrs[:priority].should == '1'
     result.attrs[:args].should == []

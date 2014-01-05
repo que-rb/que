@@ -3,6 +3,8 @@ require 'monitor'
 module Que
   module Adapters
     class PG < Base
+      attr_reader :lock
+
       def initialize(pg)
         @pg   = pg
         @lock = Monitor.new # Must be re-entrant.

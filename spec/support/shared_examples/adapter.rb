@@ -1,8 +1,21 @@
 shared_examples "a Que adapter" do
-  it "should allow a Postgres connection to be checked out" do
+  it "should be able to execute arbitrary SQL and return indifferent hashes" do
+    result = Que.execute("SELECT 1 AS one")
+    result.should == [{'one'=>'1'}]
+    result.first[:one].should == '1'
+  end
+
+  it "should be able to queue and work a job" do
+    Que::Job.queue
+    Que::Job.work.should be_an_instance_of Que::Job
+  end
+
+  it "should yield the same Postgres connection for the duration of the block" do
     Que.adapter.checkout do |conn|
-      conn.async_exec("SELECT 1 AS one").to_a.should == [{'one' => '1'}]
-      conn.server_version.should > 0
+      conn.should be_a PG::Connection
+      pid1 = Que.execute "SELECT pg_backend_pid()"
+      pid2 = Que.execute "SELECT pg_backend_pid()"
+      pid1.should == pid2
     end
   end
 
