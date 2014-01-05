@@ -6,7 +6,7 @@ The safest type of job is one that reads in data, either from the database or fr
 
     class UpdateWidgetPrice < Que::Job
       def run(widget_id)
-        widget = Widget.where(:widget_id => widget_id).first
+        widget = Widget[widget_id]
         price  = ExternalService.get_widget_price(widget_id)
 
         ActiveRecord::Base.transaction do
@@ -19,27 +19,27 @@ The safest type of job is one that reads in data, either from the database or fr
       end
     end
 
-Here, you're taking advantage of the guarantees of a transactional database. The job is destroyed along with the other changes, so either the job will succeed and be run only once, or it will fail at some point and simply be retried. But even if it has to be retried, the changes won't be made twice, so no big deal.
+Here, you're taking advantage of the guarantees of an [ACID](https://en.wikipedia.org/wiki/ACID) database. The job is destroyed along with the other changes, so either the write will succeed and the job will be run only once, or it will fail and the database will be left untouched. But even if it fails, the job can simply be retried, and there are no lingering effects from the first attempt, so no big deal.
 
-The more difficult type of job is one that makes changes that can't be controlled transactionally. For example, making changes to an external service:
+The more difficult type of job is one that makes changes that can't be controlled transactionally. For example, writing to an external service:
 
     class ChargeCreditCard < Que::Job
       def run(user_id, credit_card_id)
-        CreditCardProvider.charge(credit_card_id, :amount => "$10.00")
+        CreditCardService.charge(credit_card_id, :amount => "$10.00")
 
         ActiveRecord::Base.transaction do
-          User.where(:id => user_id).update :charged_at => Time.now
+          User.where(:id => user_id).update_all :charged_at => Time.now
           destroy
         end
       end
     end
 
-What if the process segfaults after we tell the provider to charge the credit card, but before we finish the transaction? There's no way for Que to know where the job failed, so it will be retried, charge the credit card a second time, and then you've got an angry customer. The ideal solution in this case is to make the job idempotent, meaning that it will have the same effect no matter how many times it is run:
+What if the process abruptly dies after we tell the provider to charge the credit card, but before we finish the transaction? Que will retry the job, but there's no way to tell where (or even if) it failed the first time. The credit card will be charged a second time, and then you've got an angry customer. The ideal solution in this case is to make the job [idempotent](https://en.wikipedia.org/wiki/Idempotence), meaning that it will have the same effect no matter how many times it is run:
 
     class ChargeCreditCard < Que::Job
       def run(user_id, credit_card_id)
-        unless CreditCardProvider.check_for_previous_charge(credit_card_id)
-          CreditCardProvider.charge(credit_card_id, :amount => "$10.00")
+        unless CreditCardService.check_for_previous_charge(credit_card_id)
+          CreditCardService.charge(credit_card_id, :amount => "$10.00")
         end
 
         ActiveRecord::Base.transaction do
@@ -49,7 +49,7 @@ What if the process segfaults after we tell the provider to charge the credit ca
       end
     end
 
-This makes the job slightly more complex, but solves the problem. Note that while Que can't guarantee that the same job won't be worked more than once, it can guarantee that it won't be worked more than once simultaneously, so we don't need to worry about a race condition here (wherein two workers would simultaneously check for a previous charge, see that there isn't one, and then each make their own charges).
+This makes the job slightly more complex, but reliable (or, at least, as reliable as your credit card service).
 
 Finally, there are some jobs where you won't want to write to the database at all:
 
@@ -59,4 +59,4 @@ Finally, there are some jobs where you won't want to write to the database at al
       end
     end
 
-In this case, we don't have any no way to prevent the occasional double-sending of an email. But for ease of use, you can leave out the transaction entirely - Que will recognize that the job wasn't destroyed and will clean it up for you.
+In this case, we don't have any no way to prevent the occasional double-sending of an email. But, for ease of use, you can leave out the transaction and the `destroy` call entirely - Que will recognize that the job wasn't destroyed and will clean it up for you.
