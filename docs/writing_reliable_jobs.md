@@ -2,7 +2,7 @@
 
 Que does everything it can to ensure that jobs are worked exactly once, but if something bad happens when a job is halfway completed, there's no way around it - the job will need be repeated over again from the beginning, probably by a different worker. When you're writing jobs, you need to be prepared for this to happen.
 
-The safest type of job is one that reads in data, either from the database or from external APIs, then does some number crunching and writes the results to the database. These jobs are easy to make safe: simply write the results to the database inside a transaction, and also have the job destroy itself inside that transaction, like so:
+The safest type of job is one that reads in data, either from the database or from external APIs, then does some number crunching and writes the results to the database. These jobs are easy to make safe - simply write the results to the database inside a transaction, and also have the job destroy itself inside that transaction, like so:
 
     class UpdateWidgetPrice < Que::Job
       def run(widget_id)
