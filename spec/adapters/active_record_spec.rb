@@ -35,8 +35,14 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
     end
 
     it "should support Rails' special extensions for times" do
-      Que::Job.queue :run_at => 1.minute.from_now
-      DB[:que_jobs].get(:run_at).should be_within(3).of Time.now + 60
+      Que.mode = :async
+      sleep_until { Que::Worker.workers.all? &:sleeping? }
+
+      Que::Job.queue :run_at => 1.minute.ago
+      DB[:que_jobs].get(:run_at).should be_within(3).of Time.now - 60
+
+      Que.sleep_period = 0.005.seconds
+      sleep_until { DB[:que_jobs].empty? }
     end
   end
 end
