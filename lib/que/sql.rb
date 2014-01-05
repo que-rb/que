@@ -115,5 +115,18 @@ module Que
         CONSTRAINT que_jobs_pkey PRIMARY KEY (priority, run_at, job_id)
       )
     }.freeze
+
+    # Note: if schema changes to the que_jobs table become necessary later on,
+    # a simple versioning scheme would be:
+
+    # Set version:
+    # COMMENT ON TABLE que_jobs IS '2'
+
+    # Get version:
+    # SELECT description
+    # FROM pg_description
+    # JOIN pg_class
+    # ON pg_description.objoid = pg_class.oid
+    # WHERE relname = 'que_jobs'
   }
 end
