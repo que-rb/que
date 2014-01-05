@@ -91,8 +91,13 @@ module Que
       @state = :stopped
     end
 
+    # Setting Que.sleep_period = nil should ensure that the wrangler thread
+    # doesn't wake up a worker again, even if it's currently sleeping for a
+    # set period. So, we double-check that @sleep_period is set before waking
+    # a worker, and make sure to wake up the wrangler when @sleep_period is
+    # changed in Que.sleep_period= below.
     @sleep_period = 5
-    @wrangler = Thread.new { loop { sleep(*@sleep_period); wake! } }
+    @wrangler = Thread.new { loop { sleep(*@sleep_period); wake! if @sleep_period } }
 
     class << self
       attr_reader :mode, :sleep_period
@@ -121,7 +126,7 @@ module Que
 
       def sleep_period=(period)
         @sleep_period = period
-        @wrangler.wakeup if period
+        @wrangler.wakeup
       end
 
       def stop!

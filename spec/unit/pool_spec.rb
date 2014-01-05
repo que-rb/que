@@ -169,21 +169,11 @@ describe "Managing the Worker pool" do
     end if QUE_ADAPTERS[:connection_pool]
 
     it "should poke a worker every Que.sleep_period seconds" do
-      begin
-        Que.mode = :async
-
-        sleep_until { Que::Worker.workers.all? &:sleeping? }
-        Que.sleep_period = 0.01 # 10 ms
-        Que::Job.queue
-        sleep_until { DB[:que_jobs].count == 0 }
-      ensure
-        # Make sure the wrangler thread is sleeping permanently until awoken,
-        # so that it doesn't kick in later in the spec suite.
-        Que.sleep_period = nil
-        wrangler = Que::Worker.send(:instance_variable_get, :@wrangler)
-        wrangler.wakeup
-        sleep_until { wrangler.status == 'sleep' }
-      end
+      Que.mode = :async
+      sleep_until { Que::Worker.workers.all? &:sleeping? }
+      Que.sleep_period = 0.01 # 10 ms
+      Que::Job.queue
+      sleep_until { DB[:que_jobs].count == 0 }
     end
 
     it "then Que.stop! should interrupt all running jobs" do
