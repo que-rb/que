@@ -90,7 +90,7 @@ RSpec.configure do |config|
 
     DB[:que_jobs].delete
     Que.mode = :off
-    Que.sleep_period = nil
+    Que.wake_interval = nil
     sleep_until { Que::Worker.workers.all?(&:sleeping?) }
 
     # A bit of lint: make sure that no advisory locks are left open.

@@ -1,6 +1,8 @@
 ### Unreleased
 
-*   When queueing a job, Que will wait until the current transaction commits and then wake a background worker, if possible. This allows newly queued jobs to be started immediately instead of waiting for a worker to wake up and poll, which may be up to `Que.sleep_period` seconds.
+*   Que.sleep_period was renamed to the more descriptive Que.wake_interval.
+
+*   When queueing a job, Que will wait until the current transaction commits and then wake a background worker, if possible. This allows newly queued jobs to be started immediately instead of waiting for a worker to wake up and poll, which may be up to `Que.wake_interval` seconds.
 
     This feature currently only works with Sequel, since there doesn't seem to be a clean way to do it on ActiveRecord (if anyone can figure one out, please let me know). Note that if you're using ActiveRecord, you can always manually trigger a single worker to wake up and check for work by manually calling Que.wake! after your transaction completes.
 
