@@ -1,4 +1,4 @@
-### Unreleased
+### 0.4.0 (2014-01-05)
 
 *   Que.wake_all! was added, as a simple way to wake up all workers in the pool.
 
