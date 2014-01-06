@@ -16,9 +16,9 @@ Additionally, there are the general benefits of storing jobs in Postgres, alongs
 
 Que's primary goal is reliability. When it's stable, you should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que does everything it can to ensure that jobs you queue are performed exactly once (though the occasional repetition of a job can be impossible to avoid - see the docs on [how to write a reliable job](https://github.com/chanks/que/blob/master/docs/writing_reliable_jobs.md)).
 
-Que's secondary goal is performance. It won't be able to match the speed or throughput of a dedicated queue, or maybe even a Redis-backed queue, but it should be fast enough for most use cases. In [benchmarks](https://github.com/chanks/queue-shootout) on an AWS c3.8xlarge instance, Que approaches 10,000 jobs per second, or about twenty times the throughput of DelayedJob or QueueClassic. You are encouraged to try things out on your own production hardware, though.
+Que's secondary goal is performance. It won't be able to match the speed or throughput of a dedicated queue, or maybe even a Redis-backed queue, but it should be fast enough for most use cases. In [benchmarks of RDBMS queues](https://github.com/chanks/queue-shootout) using PostgreSQL 9.3 on a AWS c3.8xlarge instance, Que approaches 10,000 jobs per second, or about twenty times the throughput of DelayedJob or QueueClassic. You are encouraged to try things out on your own production hardware, though.
 
-Que also includes a worker pool, so that multiple threads can process jobs in the same process. It can even do this in the background of your web process - if you're running on Heroku, for example, you won't need to run a separate worker dyno.
+Que also includes a worker pool, so that multiple threads can process jobs in the same process. It can even do this in the background of your web process - if you're running on Heroku, for example, you don't need to run a separate worker dyno.
 
 *Please be careful when running Que in production. It's still very new compared to other RDBMS-backed queues, and there may be issues that haven't been ironed out yet. Bug reports are welcome.*
 
@@ -40,9 +40,9 @@ Or install it yourself as:
 
 ## Usage
 
-The following is assuming you're using Rails 4.0. Que hasn't been tested with previous versions of Rails.
+The following assumes you're using Rails 4.0 and ActiveRecord. *Que hasn't been tested with versions of Rails before 4.0, and may or may not work with them.* For more information, or instructions on using Que outside of Rails or with Sequel or no ORM, see the [documentation](https://github.com/chanks/que/blob/master/docs).
 
-First, generate a migration for the job table.
+First, generate and run a migration for the job table.
 
     rails generate que:install
     rake db:migrate
@@ -51,7 +51,7 @@ Create a class for each type of job you want to run:
 
     # app/jobs/charge_credit_card.rb
     class ChargeCreditCard < Que::Job
-      # Custom job options.
+      # Default options for this job. These may be omitted.
       @default_priority = 3
       @default_run_at = proc { 1.minute.from_now }
 
@@ -84,30 +84,11 @@ You can also schedule it to run at a specific time, or with a specific priority:
     # 1 is high priority, 5 is low priority.
     ChargeCreditCard.queue current_user.id, card.id, :your_custom_option => 'whatever', :run_at => 1.day.from_now, :priority => 5
 
-To determine what happens when a job is queued, you can set Que's mode with `Que.mode = :off` or `config.que.mode = :off` in your application configuration. There are a few options for the mode:
+To determine what happens when a job is queued, you can set Que's mode in your application configuration. There are a few options for the mode:
 
-* `:off` - In this mode, queueing a job will simply insert it into the database - the current process will make no effort to run it. You should use this if you want to use a dedicated process to work tasks (there's a rake task to do this, see below). This is the default when running `rails console` in the development or production environments.
-* `:async` - In this mode, a pool of background workers is spun up, each running in their own thread. They will intermittently check for new jobs. This is the default when running `rails server` in the development or production environments. By default, there are 4 workers and they'll check for a new job every 5 seconds. You can modify these options with `Que.worker_count = 8` or `config.que.worker_count = 8` and `Que.sleep_period = 1` or `config.que.sleep_period = 1`.
-* `:sync` - In this mode, any jobs you queue will be run in the same thread, synchronously (that is, `MyJob.queue` runs the job and won't return until it's completed). This makes your application's behavior easier to test, so it's the default in the test environment.
-
-If you don't want to run workers in your web process, you can also work jobs in a rake task, similar to how other queueing systems work:
-
-    # Run a pool of 4 workers.
-    rake que:work
-
-    # Or configure the number of workers.
-    WORKER_COUNT=8 rake que:work
-
-    # If your app code isn't thread-safe, be sure to stick to one worker.
-    WORKER_COUNT=1 rake que:work
-
-If an error causes a job to fail, Que will repeat that job at exponentially-increasing intervals, similar to DelayedJob (the job will be retried at 4 seconds, 19 seconds, 84 seconds, 259 seconds...). You can also hook Que into whatever error notification system you're using:
-
-    config.que.error_handler = proc do |error|
-      # Do whatever you want with the error object.
-    end
-
-You can find more documentation in [/docs](https://github.com/chanks/que/blob/master/docs).
+* `config.que.mode = :off` - In this mode, queueing a job will simply insert it into the database - the current process will make no effort to run it. You should use this if you want to use a dedicated process to work tasks (there's a rake task to do this, see below). This is the default when running `rails console` in the development or production environments.
+* `config.que.mode = :async` - In this mode, a pool of background workers is spun up, each running in their own thread. This is the default when running `rails server` in the development or production environments. See the docs for [more information on managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md).
+* `config.que.mode = :sync` - In this mode, any jobs you queue will be run in the same thread, synchronously (that is, `MyJob.queue` runs the job and won't return until it's completed). This makes your application's behavior easier to test, so it's the default in the test environment.
 
 ## Contributing
 

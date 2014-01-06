@@ -1,85 +1,50 @@
 ## Advanced Setup
 
-### Alternate Connection Types
+If you're using both Rails and ActiveRecord, the README describes how to get started with Que (which is pretty straightforward, since Que includes a Railtie that handles a lot of setup for you). Otherwise, you'll need to do some manual setup.
 
-The project README covers the common case of using Que with Rails and ActiveRecord. If you're using ActiveRecord but not Rails, there won't be a Railtie to set things up for you, so you'll need to tell Que to use ActiveRecord's connection pool:
+If you're using ActiveRecord outside of Rails, you'll need to tell Que to piggyback on its connection pool after you've connected to the database:
 
+    ActiveRecord::Base.establish_connection(ENV['DATABASE_URL'])
+
+    require 'que'
     Que.connection = ActiveRecord
 
-If you're using Sequel, with or without Rails, you'll need to give Que a specific database instance to use:
+Then you can queue jobs just as you would in Rails:
 
-    DB = Sequel.connect(ENV['DATABASE_URL'])
-    Que.connection = DB
-
-Then you can safely use transactions in your jobs:
-
-    class MyJob < Que::Job
-      def run
-        # Do stuff.
-
-        DB.transaction do
-          # Make changes to the database.
-
-          # Destroying this job will be protected by the same transaction.
-          destroy
-        end
-      end
+    ActiveRecord::Base.transaction do
+      @user = User.create(params[:user])
+      SendRegistrationEmail.queue :user_id => @user.id
     end
 
-If you're not using an ORM, you can have Que use a plain Postgres connection:
+There are other docs to read if you're using [Sequel](https://github.com/chanks/que/blob/master/docs/using_sequel.md) or [plain Postgres connections](https://github.com/chanks/que/blob/master/docs/using_plain_connections.md) (with no ORM at all) instead of ActiveRecord.
 
-    require 'uri'
-    require 'pg'
+### Managing the Jobs Table
 
-    uri = URI.parse(ENV['DATABASE_URL'])
-    Que.connection = PG::Connection.open :host     => uri.host,
-                                         :user     => uri.user,
-                                         :password => uri.password,
-                                         :port     => uri.port || 5432,
-                                         :dbname   => uri.path[1..-1]
+After you've connected Que to the database, you can manage the jobs table:
 
-If you want to be able to use multithreading to run multiple jobs simultaneously in the same process, though, you'll need the ConnectionPool gem (be sure to add `gem 'connection_pool'` to your Gemfile):
+    # Create the jobs table:
+    Que.create!
 
-    require 'uri'
-    require 'pg'
-    require 'connection_pool'
+    # Clear the jobs table of all jobs:
+    Que.clear!
 
-    uri  = URI.parse(ENV['DATABASE_URL'])
-    pool = ConnectionPool.new :size => 10 do
-      PG::Connection.open :host     => uri.host,
-                          :user     => uri.user,
-                          :password => uri.password,
-                          :port     => uri.port || 5432,
-                          :dbname   => uri.path[1..-1]
-    end
+    # Drop the jobs table:
+    Que.drop!
 
-    Que.connection = pool
+### Other Setup
 
-### Other Options
-
-Set up a logger to use:
+You can give Que a logger to use if you like:
 
     Que.logger = Logger.new(STDOUT)
 
-Start up the worker pool:
+You'll also need to set Que's mode manually:
 
+    # Start the worker pool:
     Que.mode = :async
-    Que.worker_count = 8
 
-The default number of workers is 4, but the ideal number for your app will depend on your interpreter and what types of jobs you're running. JRuby and Rubinius have no global interpreter lock, and so can make use of multiple CPU cores, so you could potentially set the number of workers very high for them. Otherwise, all your threads will be sharing a single CPU, and unless your jobs spend a lot of time waiting on I/O, setting the worker_count very high will become counterproductive. You should experiment to find the best setting for your use case.
+    # Or, when testing:
+    Que.mode = :sync
 
-When the worker pool is running, one worker will be prompted to look for new jobs once every five seconds. If you want to change this, you can:
+Be sure to read the docs on [managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md) for more information on using the worker pool.
 
-    # Wake up a worker every two seconds:
-    Que.sleep_period = 2
-
-    # Never wake up any workers:
-    Que.sleep_period = nil
-
-Regardless of the `sleep_period` setting, you can always prompt workers manually:
-
-    # Wake up a single worker to check the queue for work:
-    Que.wake!
-
-    # Wake up all workers in this process to check for work:
-    Que.wake_all!
+You may also want to set up an [error handler](https://github.com/chanks/que/blob/master/docs/error_handling.md) to track errors raised by jobs.
