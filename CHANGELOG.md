@@ -1,5 +1,7 @@
 ### Unreleased
 
+*   Que.wake_all! was added, as a simple way to wake up all workers in the pool.
+
 *   Que.sleep_period was renamed to the more descriptive Que.wake_interval.
 
 *   When queueing a job, Que will wait until the current transaction commits and then wake a background worker, if possible. This allows newly queued jobs to be started immediately instead of waiting for a worker to wake up and poll, which may be up to `Que.wake_interval` seconds.
