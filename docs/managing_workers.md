@@ -65,3 +65,9 @@ Regardless of the `wake_interval` setting, you can always wake workers manually:
     Que.wake_all!
 
 `Que.wake_all!` is helpful if there are no jobs available and all your workers go to sleep, and then you queue a large number of jobs. Typically, it will take a little while for the entire pool of workers get going again - a new one will wake up every `wake_interval` seconds, but it will take up to `wake_interval * worker_count` seconds for all of them to get going. `Que.wake_all!` can get them all moving immediately.
+
+### Connection Pool Size
+
+For the job locking system to work properly, each worker thread needs to reserve a database connection from the connection pool for the period of time between when it locks a job and when it releases that lock (which won't happen until the job has been finished and deleted from the queue).
+
+So, for example, if you're running 6 workers in a rake task, you'll want to make sure that whatever connection pool Que is using (usually ActiveRecord's) has a maximum size of at least 6. If you're running those workers in a web process, you'll want the size to be at least 6 plus however many connections you expect your application to need for serving web requests (which may only be one if you're using Rails in single-threaded mode, or many more if you're running a threaded web server like Puma).

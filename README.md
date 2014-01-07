@@ -6,7 +6,7 @@ Que is a queue for Ruby and PostgreSQL that manages jobs using [advisory locks](
 
 * **Concurrency** - Workers don't block each other when trying to lock jobs, as often occurs with "SELECT FOR UPDATE"-style locking. This allows for very high throughput with a large number of workers.
 * **Efficiency** - Locks are held in memory, so locking a job doesn't incur a disk write. These first two points are what limit performance with other queues - all workers trying to lock jobs have to wait behind one that's persisting its UPDATE on a locked_at column to disk (and the disks of however many other servers your database is synchronously replicating to). Under heavy load, Que's bottleneck is CPU, not I/O.
-* **Safety** - If a Ruby process dies, the jobs it is working won't be lost, or left in a locked or ambiguous state - they immediately become available for any other worker to pick up.
+* **Safety** - If a Ruby process dies, the jobs it's working won't be lost, or left in a locked or ambiguous state - they immediately become available for any other worker to pick up.
 
 Additionally, there are the general benefits of storing jobs in Postgres, alongside the rest of your data, rather than in Redis or a dedicated queue:
 
@@ -51,15 +51,19 @@ Create a class for each type of job you want to run:
 
     # app/jobs/charge_credit_card.rb
     class ChargeCreditCard < Que::Job
-      # Default options for this job. These may be omitted.
+      # Default settings for this job. These are optional - without them, jobs
+      # will default to priority 1 and run immediately.
       @default_priority = 3
       @default_run_at = proc { 1.minute.from_now }
 
-      def run(user_id, card_id, your_options = {})
+      def run(user_id, options)
         # Do stuff.
+        user = User[user_id]
+        card = CreditCard[options[:credit_card_id]]
 
         ActiveRecord::Base.transaction do
           # Write any changes you'd like to the database.
+          user.update_attributes :charged_at => Time.now
 
           # It's best to destroy the job in the same transaction as any other
           # changes you make. Que will destroy the job for you after the run
@@ -76,18 +80,18 @@ Queue your job. Again, it's best to do this in a transaction with other changes 
     ActiveRecord::Base.transaction do
       # Persist credit card information
       card = CreditCard.create(params[:credit_card])
-      ChargeCreditCard.queue(current_user.id, card.id, :your_custom_option => 'whatever')
+      ChargeCreditCard.queue(current_user.id, :credit_card_id => card.id)
     end
 
-You can also schedule it to run at a specific time, or with a specific priority:
+You can also add options to run the job after a specific time, or with a specific priority:
 
     # 1 is high priority, 5 is low priority.
-    ChargeCreditCard.queue current_user.id, card.id, :your_custom_option => 'whatever', :run_at => 1.day.from_now, :priority => 5
+    ChargeCreditCard.queue current_user.id, :credit_card_id => card.id, :run_at => 1.day.from_now, :priority => 5
 
 To determine what happens when a job is queued, you can set Que's mode in your application configuration. There are a few options for the mode:
 
-* `config.que.mode = :off` - In this mode, queueing a job will simply insert it into the database - the current process will make no effort to run it. You should use this if you want to use a dedicated process to work tasks (there's a rake task to do this, see below). This is the default when running `rails console` in the development or production environments.
-* `config.que.mode = :async` - In this mode, a pool of background workers is spun up, each running in their own thread. This is the default when running `rails server` in the development or production environments. See the docs for [more information on managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md).
+* `config.que.mode = :off` - In this mode, queueing a job will simply insert it into the database - the current process will make no effort to run it. You should use this if you want to use a dedicated process to work tasks (there's a rake task to do this, see below). This is the default when running `rails console`.
+* `config.que.mode = :async` - In this mode, a pool of background workers is spun up, each running in their own thread. This is the default when running `rails server`. See the docs for [more information on managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md).
 * `config.que.mode = :sync` - In this mode, any jobs you queue will be run in the same thread, synchronously (that is, `MyJob.queue` runs the job and won't return until it's completed). This makes your application's behavior easier to test, so it's the default in the test environment.
 
 ## Contributing
