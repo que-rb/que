@@ -123,13 +123,23 @@ describe Que::Worker do
       pg = NEW_PG_CONNECTION.call
       Que.connection = pg
 
+      error_handled = false
+      Que.error_handler = proc { |error| error_handled = true }
+
       BlockJob.queue
 
       @worker = Que::Worker.new
       $q1.pop
       @worker.stop!
       @worker.wait_until_stopped
+
+      error_handled.should be false
+
+      job = DB[:que_jobs].first
+      job[:error_count].should be 0
+      job[:last_error].should be nil
     ensure
+      Que.error_handler = nil
       pg.close if pg
     end
   end
