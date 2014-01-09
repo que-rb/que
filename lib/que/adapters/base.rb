@@ -7,7 +7,7 @@ module Que
 
     class Base
       def initialize(thing = nil)
-        @statement_mutex = Mutex.new
+        @prepared_statements = {}
       end
 
       # The only method that adapters really need to implement. Should lock a
@@ -18,7 +18,7 @@ module Que
         raise NotImplementedError
       end
 
-      # Called after a job is queued in async mode, to prompts a worker to
+      # Called after a job is queued in async mode, to prompt a worker to
       # wake up after the current transaction commits. Not all adapters will
       # implement this.
       def wake_worker_after_commit
@@ -31,25 +31,14 @@ module Que
 
       def execute_prepared(name, params = [])
         checkout do |conn|
-          unless statements_prepared(conn)[name]
+          statements = @prepared_statements[conn] ||= {}
+
+          unless statements[name]
             conn.prepare("que_#{name}", SQL[name])
-            statements_prepared(conn)[name] = true
+            statements[name] = true
           end
 
           conn.exec_prepared("que_#{name}", params)
-        end
-      end
-
-      private
-
-      # Each adapter needs to remember which of its connections have prepared
-      # which statements. This is a shared data structure, so protect it. We
-      # assume that the hash of statements for a particular connection is only
-      # being accessed by the thread that's checked it out, though.
-      def statements_prepared(conn)
-        @statement_mutex.synchronize do
-          @statements_prepared       ||= {}
-          @statements_prepared[conn] ||= {}
         end
       end
     end
