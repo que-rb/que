@@ -58,7 +58,6 @@ module Que
     # down the whole process anyway and side effects aren't a big deal.
     def stop
       synchronize do
-        @stop = true
         @thread[:que_stopping] = true
         @thread.wakeup if sleeping?
       end
@@ -82,9 +81,9 @@ module Que
     def work_loop
       loop do
         job = Job.work
-        synchronize { @state = :sleeping unless @stop || job }
+        synchronize { @state = :sleeping unless @thread[:que_stopping] || job }
         sleep if @state == :sleeping
-        break if @stop
+        break if @thread[:que_stopping]
       end
     rescue Stop
       # This process is shutting down - let it.
