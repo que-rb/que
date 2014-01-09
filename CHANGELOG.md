@@ -1,3 +1,7 @@
+### Unreleased
+
+*   You can call the `safe_to_stop` private method to safely stop a job if the worker is shutting down. This is mostly important for long-running jobs. See the new [stopping safely](https://github.com/chanks/que/blob/master/docs/stopping_safely.md) doc for more information.
+
 ### 0.4.0 (2014-01-05)
 
 *   Que.wake_all! was added, as a simple way to wake up all workers in the pool.
