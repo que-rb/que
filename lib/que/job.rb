@@ -23,6 +23,10 @@ module Que
 
     private
 
+    def safe_to_stop
+      raise Worker::Stop if Thread.current[:que_stopping]
+    end
+
     def destroy
       Que.execute :destroy_job, attrs.values_at(:priority, :run_at, :job_id)
       @destroyed = true

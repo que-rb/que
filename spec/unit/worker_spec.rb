@@ -158,4 +158,35 @@ describe Que::Worker do
       end
     end
   end
+
+  it "should be able to stop a job early when the job specifies that it's safe" do
+    begin
+      error_handled = false
+      Que.error_handler = proc { |error| error_handled = true }
+
+      $q1 = Queue.new
+
+      class EarlyStopJob < Que::Job
+        def run
+          $q1.pop
+          safe_to_stop
+          $q1.pop
+        end
+      end
+
+      EarlyStopJob.queue
+      @worker = Que::Worker.new
+      @worker.stop
+      $q1.push nil
+      @worker.wait_until_stopped
+
+      error_handled.should be false
+
+      job = DB[:que_jobs].first
+      job[:error_count].should be 0
+      job[:last_error].should be nil
+    ensure
+      Que.error_handler = nil
+    end
+  end
 end

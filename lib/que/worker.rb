@@ -59,6 +59,7 @@ module Que
     def stop
       synchronize do
         @stop = true
+        @thread[:que_stopping] = true
         @thread.wakeup if sleeping?
       end
     end
