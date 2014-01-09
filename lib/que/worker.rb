@@ -8,9 +8,6 @@ module Que
     # synchronize access to it.
     include MonitorMixin
 
-    # A custom exception to immediately kill a worker and its current job.
-    class Stop < Interrupt; end
-
     attr_reader :thread, :state
 
     def initialize

@@ -5,6 +5,9 @@ module Que
   autoload :Version,  'que/version'
   autoload :Worker,   'que/worker'
 
+  # A custom exception to immediately kill a worker and its current job.
+  class Stop < Interrupt; end
+
   class << self
     attr_accessor :logger, :error_handler
     attr_writer :adapter

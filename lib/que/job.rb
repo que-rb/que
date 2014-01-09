@@ -24,7 +24,7 @@ module Que
     private
 
     def safe_to_stop
-      raise Worker::Stop if Thread.current[:que_stopping]
+      raise Stop if Thread.current[:que_stopping]
     end
 
     def destroy
