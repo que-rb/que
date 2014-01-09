@@ -97,7 +97,12 @@ module Que
     # a worker, and make sure to wake up the wrangler when @wake_interval is
     # changed in Que.wake_interval= below.
     @wake_interval = 5
-    @wrangler = Thread.new { loop { sleep(*@wake_interval); wake! if @wake_interval } }
+    @wrangler = Thread.new do
+      loop do
+        sleep *@wake_interval
+        wake! if @wake_interval
+      end
+    end
 
     class << self
       attr_reader :mode, :wake_interval
@@ -164,7 +169,7 @@ module Que
           Que.log :info, "Set worker_count to #{count.inspect}"
 
           if count > worker_count
-            workers.push *(count - worker_count).times.map { new }
+            workers.push *(count - worker_count).times.map{new}
           elsif count < worker_count
             workers.pop(worker_count - count).each(&:stop).each(&:wait_until_stopped)
           end

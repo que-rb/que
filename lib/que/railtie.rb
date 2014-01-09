@@ -3,7 +3,7 @@ module Que
     config.que = Que
 
     Que.mode       = :sync if Rails.env.test?
-    Que.connection = ::ActiveRecord if defined?(::ActiveRecord)
+    Que.connection = ::ActiveRecord if defined? ::ActiveRecord
 
     rake_tasks do
       load 'que/rake_tasks.rb'
