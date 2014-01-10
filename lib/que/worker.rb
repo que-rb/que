@@ -8,6 +8,9 @@ module Que
     # synchronize access to it.
     include MonitorMixin
 
+    # We also need to synchronize access to the worker pool's configuration.
+    extend MonitorMixin
+
     attr_reader :thread, :state
 
     def initialize
@@ -94,38 +97,44 @@ module Que
       attr_reader :mode, :wake_interval
 
       def mode=(mode)
-        case set_mode(mode)
-        when :async
-          set_worker_count 4 if worker_count.zero?
-        when :sync, :off
-          set_worker_count 0
+        synchronize do
+          case set_mode(mode)
+          when :async
+            set_worker_count 4 if worker_count.zero?
+          when :sync, :off
+            set_worker_count 0
+          end
         end
       end
 
       def workers
-        @workers ||= []
+        synchronize { @workers ||= [] }
       end
 
       def worker_count=(count)
-        set_mode(count > 0 ? :async : :off)
-        set_worker_count(count)
+        synchronize do
+          set_mode(count > 0 ? :async : :off)
+          set_worker_count(count)
+        end
       end
 
       def worker_count
-        workers.count
+        synchronize { workers.count }
       end
 
       def wake_interval=(interval)
-        @wake_interval = interval
-        @wrangler.wakeup
+        synchronize do
+          @wake_interval = interval
+          @wrangler.wakeup
+        end
       end
 
       def wake!
-        workers.find &:wake!
+        synchronize { workers.find &:wake! }
       end
 
       def wake_all!
-        workers.each &:wake!
+        synchronize { workers.each &:wake! }
       end
 
       private

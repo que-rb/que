@@ -1,5 +1,7 @@
 ### Unreleased
 
+*   The worker pool configuration methods (Que.mode=, Que.worker_count=) are now thread-safe. They didn't seem prone to race conditions before, but now they're synchronized just to be sure.
+
 *   MultiJson is now a soft dependency. Que will use it if it is available, but it is not required.
 
 *   Remove Que.stop!.
