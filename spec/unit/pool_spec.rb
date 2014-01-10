@@ -7,11 +7,6 @@ describe "Managing the Worker pool" do
     $logger.messages.should == ["[Que] Set mode to :sync", "[Que] Set mode to :off"]
   end
 
-  it "Que.stop! should do nothing if there are no workers running" do
-    Que::Worker.workers.should be_empty
-    Que.stop!
-  end
-
   describe "Que.mode = :sync" do
     it "should make jobs run in the same thread as they are queued" do
       Que.mode = :sync
@@ -30,11 +25,6 @@ describe "Managing the Worker pool" do
 
       ArgsJob.queue(5, :testing => "synchronous", :run_at => Time.now + 60)
       DB[:que_jobs].select_map(:job_class).should == ["ArgsJob"]
-    end
-
-    it "then Que.stop! should do nothing" do
-      Que::Worker.workers.should be_empty
-      Que.stop!
     end
   end
 
@@ -180,25 +170,6 @@ describe "Managing the Worker pool" do
       Que.wake_interval = 0.01 # 10 ms
       Que::Job.queue
       sleep_until { DB[:que_jobs].count == 0 }
-    end
-
-    it "then Que.stop! should interrupt all running jobs" do
-      begin
-        # Que.stop! can unpredictably affect connections, which may affect
-        # other tests, so use a new one.
-        pg = NEW_PG_CONNECTION.call
-        Que.connection = pg
-
-        BlockJob.queue
-        Que.mode = :async
-        $q1.pop
-        Que.stop!
-      ensure
-        if pg
-          # Closing the connection can raise a NullPointerException on JRuby.
-          pg.close rescue nil
-        end
-      end
     end
   end
 end

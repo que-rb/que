@@ -49,12 +49,6 @@ task :safe_shutdown do
     puts "kill -#{signal} #{Process.pid}"
   end
 
-  # Put exit behavior to test the behavior of here:
-  at_exit do
-    puts "Stopping Que..."
-    Que.stop!
-  end
-
   stop = false
   trap('INT'){stop = true}
 

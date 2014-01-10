@@ -15,9 +15,6 @@ module Que
 
         # Only start up the worker pool if running as a server.
         Que.mode ||= :async if defined? Rails::Server
-
-        # When the process exits, safely interrupt any jobs that are still running.
-        at_exit { Que.stop! }
       end
     end
   end

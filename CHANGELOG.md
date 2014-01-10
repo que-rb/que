@@ -1,3 +1,9 @@
+### Unreleased
+
+*   Remove Que.stop!.
+
+    Using Thread#raise to kill workers is a bad idea - the results are unpredictable and nearly impossible to spec reliably. Its purpose was to prevent premature commits in ActiveRecord/Sequel when a thread is killed during shutdown, but it's possible to detect that situation on Ruby 2.0+, so this is really better handled by the ORMs directly. See the pull requests for [Sequel](https://github.com/jeremyevans/sequel/pull/752) and [ActiveRecord](https://github.com/rails/rails/pull/13656).
+
 ### 0.4.0 (2014-01-05)
 
 *   Que.wake_all! was added, as a simple way to wake up all workers in the pool.

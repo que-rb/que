@@ -114,48 +114,4 @@ describe Que::Worker do
       end
     end
   end
-
-  it "should receive and respect a notification to stop immediately when it is working, and kill the job" do
-    begin
-      # Worker#stop! can leave the database connection in an unpredictable
-      # state, which would impact the rest of the tests, so we need a special
-      # connection for it.
-      pg = NEW_PG_CONNECTION.call
-      Que.connection = pg
-
-      error_handled = false
-      Que.error_handler = proc { |error| error_handled = true }
-
-      BlockJob.queue
-
-      @worker = Que::Worker.new
-      $q1.pop
-      @worker.stop!
-      @worker.wait_until_stopped
-
-      error_handled.should be false
-
-      job = DB[:que_jobs].first
-      job[:error_count].should be 0
-      job[:last_error].should be nil
-    ensure
-      Que.error_handler = nil
-      pg.close if pg
-    end
-  end
-
-  it "should receive and respect a notification to stop immediately when it is currently asleep" do
-    begin
-      @worker = Que::Worker.new
-      sleep_until { @worker.sleeping? }
-
-      @worker.stop!
-      @worker.wait_until_stopped
-    ensure
-      if @worker
-        @worker.thread.kill
-        @worker.thread.join
-      end
-    end
-  end
 end

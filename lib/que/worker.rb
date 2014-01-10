@@ -8,9 +8,6 @@ module Que
     # synchronize access to it.
     include MonitorMixin
 
-    # A custom exception to immediately kill a worker and its current job.
-    class Stop < Interrupt; end
-
     attr_reader :thread, :state
 
     def initialize
@@ -51,20 +48,11 @@ module Que
       end
     end
 
-    # #stop informs the worker that it should shut down after its next job,
-    # while #stop! kills the job and worker immediately. #stop! is bad news
-    # because its results are unpredictable (it can leave the DB connection
-    # in an unusable state), so it should only be used when we're shutting
-    # down the whole process anyway and side effects aren't a big deal.
     def stop
       synchronize do
         @stop = true
         @thread.wakeup if sleeping?
       end
-    end
-
-    def stop!
-      @thread.raise Stop
     end
 
     def wait_until_stopped
@@ -85,8 +73,6 @@ module Que
         sleep if @state == :sleeping
         break if @stop
       end
-    rescue Stop
-      # This process is shutting down - let it.
     ensure
       @state = :stopped
     end
@@ -132,19 +118,6 @@ module Que
       def wake_interval=(interval)
         @wake_interval = interval
         @wrangler.wakeup
-      end
-
-      def stop!
-        # The behavior of Worker#stop! is unpredictable - what it does is
-        # dependent on what the Worker is currently doing. Sometimes it won't
-        # work the first time, so we need to try again, but sometimes it'll
-        # never do anything, so we can't repeat indefinitely. So, compromise.
-        5.times do
-          break if workers.select(&:alive?).each(&:stop!).none?
-          sleep 0.001
-        end
-
-        workers.clear
       end
 
       def wake!

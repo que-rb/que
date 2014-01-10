@@ -8,10 +8,6 @@ namespace :que do
 
     # When changing how signals are caught, be sure to test the behavior with
     # the rake task in tasks/safe_shutdown.rb.
-    at_exit do
-      puts "Stopping Que..."
-      Que.stop!
-    end
 
     stop = false
     trap('INT'){stop = true}
