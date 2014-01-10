@@ -1,12 +1,10 @@
-require 'multi_json'
-
 module Que
   class Job
     attr_reader :attrs
 
     def initialize(attrs)
       @attrs        = attrs
-      @attrs[:args] = Que.indifferentiate MultiJson.load(@attrs[:args])
+      @attrs[:args] = Que.indifferentiate JSON_MODULE.load(@attrs[:args])
     end
 
     # Subclasses should define their own run methods, but keep an empty one
@@ -37,7 +35,7 @@ module Que
           args << options if options.any?
         end
 
-        attrs = {:job_class => to_s, :args => MultiJson.dump(args)}
+        attrs = {:job_class => to_s, :args => JSON_MODULE.dump(args)}
 
         if time = run_at || @default_run_at && @default_run_at.call
           attrs[:run_at] = time

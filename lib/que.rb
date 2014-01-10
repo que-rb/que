@@ -5,6 +5,14 @@ module Que
   autoload :Version,  'que/version'
   autoload :Worker,   'que/worker'
 
+  begin
+    require 'multi_json'
+    JSON_MODULE = MultiJson
+  rescue LoadError
+    require 'json'
+    JSON_MODULE = JSON
+  end
+
   class << self
     attr_accessor :logger, :error_handler
     attr_writer :adapter
