@@ -13,6 +13,35 @@ describe "Logging" do
     Time.parse(message['time']).should be_within(3).of Time.now
   end
 
+  it "should be easy for job code to do" do
+    class LoggingJobA < Que::Job
+      def run
+        log "message!"
+      end
+    end
+
+    class LoggingJobB < Que::Job
+      def run
+        log :param1 => "my_param"
+      end
+    end
+
+    LoggingJobA.queue
+    LoggingJobB.queue
+
+    Que::Job.work
+    Que::Job.work
+
+    $logger.messages.count.should be 2
+    m1, m2 = $logger.messages.map { |m| JSON.load(m) }
+
+    m1['worker'].should == Thread.current.object_id
+    m1['message'].should == "message!"
+
+    m2['worker'].should == Thread.current.object_id
+    m2['message']['param1'].should == 'my_param'
+  end
+
   it "should not raise an error when no logger is present" do
     begin
       Que.logger = nil

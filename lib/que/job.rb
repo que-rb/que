@@ -19,6 +19,10 @@ module Que
 
     private
 
+    def log(message)
+      Que.log :worker => Thread.current.object_id, :message => message
+    end
+
     def destroy
       Que.execute :destroy_job, attrs.values_at(:priority, :run_at, :job_id)
       @destroyed = true
