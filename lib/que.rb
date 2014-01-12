@@ -15,10 +15,6 @@ module Que
     JSON_MODULE = JSON
   end
 
-  DEFAULT_LOG_FORMATTER = proc do |data|
-    JSON_MODULE.dump({:lib => 'que', :time => Time.now.utc.iso8601, :pid => Process.pid}.merge(data))
-  end
-
   class << self
     attr_accessor :logger, :error_handler
     attr_writer :adapter, :log_formatter
@@ -70,13 +66,15 @@ module Que
 
     def log(data)
       level = data.delete(:level) || :info
+      data = {:lib => 'que', :thread => Thread.current.object_id}.merge(data)
+
       if logger && output = log_formatter.call(data)
         logger.send level, output
       end
     end
 
     def log_formatter
-      @log_formatter || DEFAULT_LOG_FORMATTER
+      @log_formatter ||= JSON_MODULE.method(:dump)
     end
 
     # Helper for making hashes indifferently-accessible, even when nested

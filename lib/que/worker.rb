@@ -75,7 +75,7 @@ module Que
         cycle = nil
 
         event, object = Job.work
-        info = {:worker => @thread.object_id, :event => event}
+        data = {:event => event}
 
         case event
         when :job_unavailable
@@ -84,17 +84,17 @@ module Que
           cycle = true
         when :job_worked
           cycle = true
-          info.merge! :elapsed => (Time.now - time).round(5), :job => object.attrs
+          data.merge! :elapsed => (Time.now - time).round(5), :job => object.attrs
         when :job_errored
           # For PG::Errors, assume we had a problem reaching the database, and
           # don't hit it again right away.
           cycle = !object.is_a?(PG::Error)
-          info.merge! :error_class => object.class.to_s, :error_message => object.message
+          data.merge! :error_class => object.class.to_s, :error_message => object.message
         else
           raise "Unknown Event: #{event.inspect}"
         end
 
-        Que.log(info)
+        Que.log(data)
 
         synchronize { @state = :sleeping unless cycle || @stop }
         sleep if @state == :sleeping
