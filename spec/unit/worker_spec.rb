@@ -10,6 +10,8 @@ describe Que::Worker do
       @worker = Que::Worker.new
       sleep_until { @worker.sleeping? }
       DB[:que_jobs].count.should be 0
+
+      $logger.messages.map{|m| JSON.load(m)['event']}.should == %w(job_worked job_worked job_unavailable)
     ensure
       if @worker
         @worker.thread.kill
@@ -67,6 +69,11 @@ describe Que::Worker do
       job = DB[:que_jobs].first
       job[:job_class].should == 'ErrorJob'
       job[:run_at].should be_within(3).of Time.now + 4
+
+      log = JSON.load($logger.messages[0])
+      log['event'].should == 'job_errored'
+      log['error_class'].should == 'RuntimeError'
+      log['error_message'].should == "ErrorJob!"
     ensure
       if @worker
         @worker.thread.kill

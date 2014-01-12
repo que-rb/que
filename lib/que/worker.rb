@@ -90,6 +90,8 @@ module Que
           # don't hit it again right away.
           cycle = !object.is_a?(PG::Error)
           info.merge! :error_class => object.class.to_s, :error_message => object.message
+        else
+          raise "Unknown Event: #{event.inspect}"
         end
 
         Que.log(info)

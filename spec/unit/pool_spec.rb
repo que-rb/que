@@ -39,7 +39,7 @@ describe "Managing the Worker pool" do
       sleep_until { Que::Worker.workers.all?(&:sleeping?) }
 
       $logger.messages.map{|m| JSON.load(m).values_at('event', 'value')}.should ==
-        [['mode_change', 'async'], ['worker_count_change', '4']] + [['no_jobs_available', nil]] * 4
+        [['mode_change', 'async'], ['worker_count_change', '4']] + [['job_unavailable', nil]] * 4
     end
 
     it "should be done automatically when setting a worker count" do
@@ -49,7 +49,7 @@ describe "Managing the Worker pool" do
       sleep_until { Que::Worker.workers.all?(&:sleeping?) }
 
       $logger.messages.map{|m| JSON.load(m).values_at('event', 'value')}.should ==
-        [['mode_change', 'async'], ['worker_count_change', '2']] + [['no_jobs_available', nil]] * 2
+        [['mode_change', 'async'], ['worker_count_change', '2']] + [['job_unavailable', nil]] * 2
     end
 
     it "should not affect the number of workers if a worker_count has already been set" do
@@ -59,7 +59,7 @@ describe "Managing the Worker pool" do
       sleep_until { Que::Worker.workers.all?(&:sleeping?) }
 
       $logger.messages.map{|m| JSON.load(m).values_at('event', 'value')}.should ==
-        [['mode_change', 'async'], ['worker_count_change', '1'], ['no_jobs_available', nil]]
+        [['mode_change', 'async'], ['worker_count_change', '1'], ['job_unavailable', nil]]
     end
 
     it "then Que.worker_count = 0 should set the mode to :off" do
@@ -73,7 +73,7 @@ describe "Managing the Worker pool" do
       Que.mode.should == :off
 
       $logger.messages.map{|m| JSON.load(m).values_at('event', 'value')}.should ==
-        [['mode_change', 'async'], ['worker_count_change', '4']] + [['no_jobs_available', nil]] * 4 + [['mode_change', 'off'], ['worker_count_change', '0']]
+        [['mode_change', 'async'], ['worker_count_change', '4']] + [['job_unavailable', nil]] * 4 + [['mode_change', 'off'], ['worker_count_change', '0']]
     end
 
     it "then Que.worker_count = 2 should gracefully decrease the number of workers" do
@@ -93,7 +93,7 @@ describe "Managing the Worker pool" do
       end
 
       $logger.messages.map{|m| JSON.load(m).values_at('event', 'value')}.should ==
-        [['mode_change', 'async'], ['worker_count_change', '4']] + [['no_jobs_available', nil]] * 4 + [['worker_count_change', '2']]
+        [['mode_change', 'async'], ['worker_count_change', '4']] + [['job_unavailable', nil]] * 4 + [['worker_count_change', '2']]
     end
 
     it "then Que.worker_count = 6 should gracefully increase the number of workers" do
@@ -109,7 +109,7 @@ describe "Managing the Worker pool" do
       workers.should == Que::Worker.workers[0..3]
 
       $logger.messages.map{|m| JSON.load(m).values_at('event', 'value')}.should ==
-        [['mode_change', 'async'], ['worker_count_change', '4']] + [['no_jobs_available', nil]] * 4 + [['worker_count_change', '6']] + [['no_jobs_available', nil]] * 2
+        [['mode_change', 'async'], ['worker_count_change', '4']] + [['job_unavailable', nil]] * 4 + [['worker_count_change', '6']] + [['job_unavailable', nil]] * 2
     end
 
     it "then Que.mode = :off should gracefully shut down workers" do
@@ -125,7 +125,7 @@ describe "Managing the Worker pool" do
       workers.each { |worker| worker.thread.status.should be false }
 
       $logger.messages.map{|m| JSON.load(m).values_at('event', 'value')}.should ==
-        [['mode_change', 'async'], ['worker_count_change', '4']] + [['no_jobs_available', nil]] * 4 + [['mode_change', 'off'], ['worker_count_change', '0']]
+        [['mode_change', 'async'], ['worker_count_change', '4']] + [['job_unavailable', nil]] * 4 + [['mode_change', 'off'], ['worker_count_change', '0']]
     end
 
     it "then Que.wake! should wake up a single worker" do

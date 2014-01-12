@@ -28,7 +28,7 @@ describe Que::Job, '.work' do
   end
 
   it "should not fail if there are no jobs to work" do
-    Que::Job.work.should be :no_jobs_available
+    Que::Job.work.should be :job_unavailable
   end
 
   it "should prefer a job with a higher priority" do
@@ -79,7 +79,7 @@ describe Que::Job, '.work' do
     result = Que::Job.work
     result[0].should == :job_worked
     result[1].should be_an_instance_of Que::Job
-    Que::Job.work.should be :no_jobs_available
+    Que::Job.work.should be :job_unavailable
     DB[:que_jobs].order_by(:job_id).select_map(:run_at).should == [future1, future2]
   end
 
