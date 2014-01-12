@@ -22,7 +22,7 @@ describe Que::Worker do
     begin
       workers = [Que::Worker.new(9), Que::Worker.new]
 
-      workers.map(&:number).should == [9, workers.second.thread.object_id]
+      workers.map(&:number).should == [9, workers[1].thread.object_id]
 
       sleep_until { workers.all? &:sleeping? }
     ensure

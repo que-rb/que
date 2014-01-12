@@ -2,6 +2,7 @@ require 'que'
 require 'uri'
 require 'pg'
 require 'logger'
+require 'json'
 
 Dir['./spec/support/**/*.rb'].sort.each &method(:require)
 

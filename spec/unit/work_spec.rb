@@ -28,18 +28,9 @@ describe Que::Job, '.work' do
     Que::Job.work
 
     $logger.messages.length.should == 1
-    $logger.messages[0].should =~ /\A\[Que\] Worked job in/
-  end
-
-  it "should not fail if there's no logger assigned" do
-    begin
-      Que.logger = nil
-
-      Que::Job.queue
-      Que::Job.work
-    ensure
-      Que.logger = $logger
-    end
+    message = JSON.load($logger.messages.first)
+    message['event'].should == 'job_worked'
+    message['elapsed'].should be_an_instance_of Float
   end
 
   it "should prefer a job with a higher priority" do

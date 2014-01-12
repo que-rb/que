@@ -146,14 +146,14 @@ module Que
 
       def set_mode(mode)
         if mode != @mode
-          Que.log :info, "Set mode to #{mode.inspect}"
+          Que.log :event => 'mode_change', :value => mode.to_s
           @mode = mode
         end
       end
 
       def set_worker_count(count)
         if count != worker_count
-          Que.log :info, "Set worker_count to #{count.inspect}"
+          Que.log :event => 'worker_count_change', :value => count.to_s
 
           if count > worker_count
             workers.push *(count - worker_count).times.map { |i| new(worker_count + i + 1) }

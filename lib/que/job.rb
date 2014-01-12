@@ -16,7 +16,7 @@ module Que
       time = Time.now
       run *attrs[:args]
       destroy unless @destroyed
-      Que.log :info, "Worked job in #{((Time.now - time) * 1000).round(1)} ms: #{inspect}"
+      Que.log :event => 'job_worked', :elapsed => (Time.now - time).round(5)
     end
 
     private
@@ -81,7 +81,7 @@ module Que
 
               run_job(job)
             else
-              Que.log :info, "No jobs available..."
+              Que.log :event => 'no_jobs_available'
               nil
             end
           rescue => error

@@ -1,3 +1,5 @@
+require 'time' # For Time#iso8601
+
 module Que
   autoload :Adapters, 'que/adapters/base'
   autoload :Job,      'que/job'
@@ -13,9 +15,13 @@ module Que
     JSON_MODULE = JSON
   end
 
+  DEFAULT_LOG_FORMATTER = proc do |data|
+    JSON_MODULE.dump({:lib => 'que', :time => Time.now.utc.iso8601, :pid => Process.pid}.merge(data))
+  end
+
   class << self
     attr_accessor :logger, :error_handler
-    attr_writer :adapter
+    attr_writer :adapter, :log_formatter
 
     def adapter
       @adapter || raise("Que connection not established!")
@@ -62,8 +68,15 @@ module Que
                       end.to_a
     end
 
-    def log(level, text)
-      logger.send level, "[Que] #{text}" if logger
+    def log(data)
+      level = data.delete(:level) || :info
+      if logger && output = log_formatter.call(data)
+        logger.send level, output
+      end
+    end
+
+    def log_formatter
+      @log_formatter || DEFAULT_LOG_FORMATTER
     end
 
     # Helper for making hashes indifferently-accessible, even when nested
