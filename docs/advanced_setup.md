@@ -33,11 +33,7 @@ After you've connected Que to the database, you can manage the jobs table:
 
 ### Other Setup
 
-You can give Que a logger to use if you like:
-
-    Que.logger = Logger.new(STDOUT)
-
-You'll also need to set Que's mode manually:
+You'll need to set Que's mode manually:
 
     # Start the worker pool:
     Que.mode = :async
@@ -47,4 +43,4 @@ You'll also need to set Que's mode manually:
 
 Be sure to read the docs on [managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md) for more information on using the worker pool.
 
-You may also want to set up an [error handler](https://github.com/chanks/que/blob/master/docs/error_handling.md) to track errors raised by jobs.
+You'll also want to set up [logging](https://github.com/chanks/que/blob/master/docs/logging.md) and an [error handler](https://github.com/chanks/que/blob/master/docs/error_handling.md) to track errors raised by jobs.

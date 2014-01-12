@@ -1,6 +1,6 @@
 ### Unreleased
 
-*   The logging format has changed to be more easily machine-readable. You can also now customize the logging format by assigning a callable to Que.log_formatter=. See the source for details.
+*   The logging format has changed to be more easily machine-readable. You can also now customize the logging format by assigning a callable to Que.log_formatter=. See the new doc on [logging](https://github.com/chanks/que/blob/master/docs/logging.md)) for details.
 
 *   The worker pool configuration methods (Que.mode=, Que.worker_count=) are now thread-safe. They didn't seem prone to race conditions before, but now they're synchronized just to be sure.
 
