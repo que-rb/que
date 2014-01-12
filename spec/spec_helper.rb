@@ -42,8 +42,12 @@ QUE_ADAPTERS = {:pg => Que.adapter}
 # We use Sequel to examine the database in specs.
 require 'sequel'
 DB = Sequel.connect(QUE_URL)
+
+
+
+# Reset the table to the most up-to-date version.
 DB.drop_table? :que_jobs
-DB.run Que::SQL[:create_table]
+Que::Migrations.migrate!
 
 
 

@@ -1,11 +1,12 @@
 require 'time' # For Time#iso8601
 
 module Que
-  autoload :Adapters, 'que/adapters/base'
-  autoload :Job,      'que/job'
-  autoload :SQL,      'que/sql'
-  autoload :Version,  'que/version'
-  autoload :Worker,   'que/worker'
+  autoload :Adapters,   'que/adapters/base'
+  autoload :Job,        'que/job'
+  autoload :Migrations, 'que/migrations'
+  autoload :SQL,        'que/sql'
+  autoload :Version,    'que/version'
+  autoload :Worker,     'que/worker'
 
   begin
     require 'multi_json'
@@ -37,12 +38,18 @@ module Que
       end
     end
 
+    # Have to support create! and drop! in old migrations. They just created
+    # and dropped the bare table.
     def create!
-      execute SQL[:create_table]
+      migrate! 1
     end
 
     def drop!
-      execute "DROP TABLE que_jobs"
+      migrate! 0
+    end
+
+    def migrate!(version_number)
+      Migrations.migrate!(version_number)
     end
 
     def clear!

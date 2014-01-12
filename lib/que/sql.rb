@@ -99,34 +99,6 @@ module Que
         JOIN pg_stat_activity USING (pid)
         WHERE locktype = 'advisory'
       ) pg USING (job_id)
-    }.freeze,
-
-    :create_table => %{
-      CREATE TABLE que_jobs
-      (
-        priority    integer     NOT NULL DEFAULT 1,
-        run_at      timestamptz NOT NULL DEFAULT now(),
-        job_id      bigserial   NOT NULL,
-        job_class   text        NOT NULL,
-        args        json        NOT NULL DEFAULT '[]'::json,
-        error_count integer     NOT NULL DEFAULT 0,
-        last_error  text,
-
-        CONSTRAINT que_jobs_pkey PRIMARY KEY (priority, run_at, job_id)
-      )
     }.freeze
-
-    # Note: if schema changes to the que_jobs table become necessary later on,
-    # a simple versioning scheme would be:
-
-    # Set version:
-    # COMMENT ON TABLE que_jobs IS '2'
-
-    # Get version:
-    # SELECT description
-    # FROM pg_description
-    # JOIN pg_class
-    # ON pg_description.objoid = pg_class.oid
-    # WHERE relname = 'que_jobs'
   }
 end
