@@ -7,6 +7,17 @@ describe "Managing the Worker pool" do
     $logger.messages.should == ["[Que] Set mode to :sync", "[Que] Set mode to :off"]
   end
 
+  it "should assign workers incrementing numbers" do
+    Que.worker_count = 2
+    Que::Worker.workers.map(&:number).should == (1..2).to_a
+    Que.worker_count = 4
+    Que::Worker.workers.map(&:number).should == (1..4).to_a
+    Que.worker_count = 3
+    Que::Worker.workers.map(&:number).should == (1..3).to_a
+    Que.worker_count = 5
+    Que::Worker.workers.map(&:number).should == (1..5).to_a
+  end
+
   describe "Que.mode = :sync" do
     it "should make jobs run in the same thread as they are queued" do
       Que.mode = :sync
