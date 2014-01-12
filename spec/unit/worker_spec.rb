@@ -14,8 +14,8 @@ describe Que::Worker do
       $logger.messages.map{|m| JSON.load(m)['event']}.should == %w(job_worked job_worked job_unavailable)
     ensure
       if @worker
-        @worker.thread.kill
-        @worker.thread.join
+        @worker.stop
+        @worker.wait_until_stopped
       end
     end
   end
@@ -34,8 +34,8 @@ describe Que::Worker do
       DB[:que_jobs].count.should be 0
     ensure
       if @worker
-        @worker.thread.kill
-        @worker.thread.join
+        @worker.stop
+        @worker.wait_until_stopped
       end
     end
   end
@@ -48,10 +48,11 @@ describe Que::Worker do
       $q1.pop
       DB[:que_jobs].count.should be 1
       @worker.wake!.should be nil
+      $q2.push nil
     ensure
       if @worker
-        @worker.thread.kill
-        @worker.thread.join
+        @worker.stop
+        @worker.wait_until_stopped
       end
     end
   end
@@ -76,8 +77,8 @@ describe Que::Worker do
       log['error_message'].should == "ErrorJob!"
     ensure
       if @worker
-        @worker.thread.kill
-        @worker.thread.join
+        @worker.stop
+        @worker.wait_until_stopped
       end
     end
   end
@@ -99,11 +100,6 @@ describe Que::Worker do
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:job_class].should == 'Que::Job'
-    ensure
-      if @worker
-        @worker.thread.kill
-        @worker.thread.join
-      end
     end
   end
 
@@ -114,11 +110,6 @@ describe Que::Worker do
 
       @worker.stop
       @worker.wait_until_stopped
-    ensure
-      if @worker
-        @worker.thread.kill
-        @worker.thread.join
-      end
     end
   end
 end

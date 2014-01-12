@@ -22,8 +22,8 @@ describe "Logging" do
 
       DB[:que_jobs].should be_empty
 
-      worker.thread.kill
-      worker.thread.join
+      worker.stop
+      worker.wait_until_stopped
     ensure
       Que.logger = $logger
     end

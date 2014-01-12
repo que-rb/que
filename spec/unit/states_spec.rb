@@ -24,6 +24,9 @@ describe Que, '.worker_states' do
       states = Que.worker_states
       states.length.should be 1
 
+      $q2.push nil
+      t.join
+
       state = states.first
       state.keys.should == %w(priority run_at job_id job_class args error_count last_error pg_backend_pid pg_state pg_state_changed_at pg_last_query pg_last_query_started_at pg_transaction_started_at pg_waiting_on_lock)
 
@@ -42,11 +45,6 @@ describe Que, '.worker_states' do
       Time.parse(state[:pg_last_query_started_at]).should be_within(3).of Time.now
       state[:pg_transaction_started_at].should == nil
       state[:pg_waiting_on_lock].should == 'f'
-    ensure
-      if t
-        t.kill
-        t.join
-      end
     end
   end if QUE_ADAPTERS[:connection_pool]
 end
