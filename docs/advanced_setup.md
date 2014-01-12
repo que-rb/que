@@ -22,14 +22,20 @@ There are other docs to read if you're using [Sequel](https://github.com/chanks/
 
 After you've connected Que to the database, you can manage the jobs table:
 
-    # Create the jobs table:
-    Que.create!
+    # Create/update the jobs table to the latest schema version:
+    Que.migrate!
 
-    # Clear the jobs table of all jobs:
+You'll want to migrate to a specific version if you're using migration files, to ensure that they work the same way even when you upgrade Que in the future:
+
+    # Update the schema to version #2.
+    Que.migrate! :version => 2
+
+    # To reverse the migration, drop the jobs table entirely:
+    Que.migrate! :version => 0
+
+There's also a helper method to clear the jobs table:
+
     Que.clear!
-
-    # Drop the jobs table:
-    Que.drop!
 
 ### Other Setup
 
