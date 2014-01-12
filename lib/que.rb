@@ -41,15 +41,15 @@ module Que
     # Have to support create! and drop! in old migrations. They just created
     # and dropped the bare table.
     def create!
-      migrate! 1
+      migrate! :version => 1
     end
 
     def drop!
-      migrate! 0
+      migrate! :version => 0
     end
 
-    def migrate!(version_number = Migrations::CURRENT_VERSION)
-      Migrations.migrate!(version_number)
+    def migrate!(version = {:version => Migrations::CURRENT_VERSION})
+      Migrations.migrate!(version)
     end
 
     def clear!

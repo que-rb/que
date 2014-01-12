@@ -3,8 +3,10 @@ module Que
     CURRENT_VERSION = 2
 
     class << self
-      def migrate!(version = CURRENT_VERSION)
+      def migrate!(options = {:version => CURRENT_VERSION})
         transaction do
+          version = options[:version]
+
           if (current = db_version) == version
             return
           elsif current < version
