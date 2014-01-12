@@ -13,15 +13,10 @@ module Que
 
     attr_reader :thread, :state
 
-    def initialize(number = nil)
-      super() # For MonitorMixin.
+    def initialize
+      super # For MonitorMixin.
       @state  = :working
-      @number = number
       @thread = Thread.new { work_loop }
-    end
-
-    def number
-      @number || @thread.object_id
     end
 
     def alive?
@@ -80,7 +75,7 @@ module Que
         cycle = nil
 
         event, object = Job.work
-        info = {:worker => number, :event => event}
+        info = {:worker => @thread.object_id, :event => event}
 
         case event
         when :job_unavailable
@@ -178,7 +173,7 @@ module Que
           Que.log :event => 'worker_count_change', :value => count.to_s
 
           if count > worker_count
-            workers.push *(count - worker_count).times.map { |i| new(worker_count + i + 1) }
+            workers.push *(count - worker_count).times.map{new}
           elsif count < worker_count
             workers.pop(worker_count - count).each(&:stop).each(&:wait_until_stopped)
           end

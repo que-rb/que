@@ -18,18 +18,6 @@ describe Que::Worker do
     end
   end
 
-  it "should have an assigned number used in logging, or default to the id of its thread" do
-    begin
-      workers = [Que::Worker.new(9), Que::Worker.new]
-
-      workers.map(&:number).should == [9, workers[1].thread.object_id]
-
-      sleep_until { workers.all? &:sleeping? }
-    ensure
-      workers.map(&:thread).each(&:kill).each(&:join)
-    end
-  end
-
   it "#wake! should return truthy if the worker was asleep and is woken up, at which point it should work until no jobs are available" do
     begin
       @worker = Que::Worker.new
