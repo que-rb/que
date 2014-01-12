@@ -33,16 +33,6 @@ describe "Managing the Worker pool" do
       ArgsJob.queue(5, :testing => "synchronous").should be_an_instance_of ArgsJob
       $passed_args.should == [5, {'testing' => "synchronous"}]
       DB[:que_jobs].count.should be 0
-
-      $logger.messages.length.should be 2
-
-      m1, m2 = $logger.messages.map{|m| JSON.load(m)}
-
-      m1['event'].should == 'mode_change'
-      m1['value'].should == 'sync'
-
-      m2['event'].should == 'job_worked'
-      m2['elapsed'].should be_an_instance_of Float
     end
 
     it "should not affect jobs that are queued with specific run_ats" do

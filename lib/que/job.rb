@@ -13,10 +13,8 @@ module Que
     end
 
     def _run
-      time = Time.now
       run *attrs[:args]
       destroy unless @destroyed
-      Que.log :event => 'job_worked', :elapsed => (Time.now - time).round(5)
     end
 
     private
@@ -55,12 +53,6 @@ module Que
       end
 
       def work
-        # Job.work is typically called in a loop, where we sleep when there's
-        # no more work to be done, so its return value should reflect whether
-        # we should look for another job or not. So, return truthy if we
-        # worked a job or encountered a typical error while working a job, and
-        # falsy if we found nothing to do or hit a connection error.
-
         # Since we're taking session-level advisory locks, we have to hold the
         # same connection throughout the process of getting a job, working it,
         # deleting it, and removing the lock.
@@ -77,12 +69,13 @@ module Que
               # Note that there is currently no spec for this behavior, since
               # I'm not sure how to reliably commit a transaction that deletes
               # the job in a separate thread between lock_job and check_job.
-              return true if Que.execute(:check_job, job.values_at(:priority, :run_at, :job_id)).none?
-
-              run_job(job)
+              if Que.execute(:check_job, job.values_at(:priority, :run_at, :job_id)).none?
+                :lock_race_condition
+              else
+                [:job_worked, run_job(job)]
+              end
             else
-              Que.log :event => 'no_jobs_available'
-              nil
+              :no_jobs_available
             end
           rescue => error
             begin
@@ -103,12 +96,7 @@ module Que
               Que.error_handler.call(error) rescue nil
             end
 
-            # If it's a garden variety error, we can just return true, pick up
-            # another job, no big deal. If it's a PG::Error, though, assume
-            # it's a disconnection or something and that we shouldn't just hit
-            # the database again right away. We could be a lot more
-            # sophisticated about what errors we delay for, though.
-            return !error.is_a?(PG::Error)
+            return [:job_errored, error]
           ensure
             # Clear the advisory lock we took when locking the job. Important
             # to do this so that they don't pile up in the database. Again, if

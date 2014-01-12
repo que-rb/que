@@ -76,8 +76,30 @@ module Que
 
     def work_loop
       loop do
-        job = Job.work
-        synchronize { @state = :sleeping unless @stop || job }
+        time  = Time.now
+        cycle = nil
+
+        event, object = Job.work
+        info = {:worker => number, :event => event}
+
+        case event
+        when :job_unavailable
+          cycle = false
+        when :job_race_condition
+          cycle = true
+        when :job_worked
+          cycle = true
+          info.merge! :elapsed => (Time.now - time).round(5), :job => object.attrs
+        when :job_errored
+          # For PG::Errors, assume we had a problem reaching the database, and
+          # don't hit it again right away.
+          cycle = !object.is_a?(PG::Error)
+          info.merge! :error_class => object.class.to_s, :error_message => object.message
+        end
+
+        Que.log(info)
+
+        synchronize { @state = :sleeping unless cycle || @stop }
         sleep if @state == :sleeping
         break if @stop
       end

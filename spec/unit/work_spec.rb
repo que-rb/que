@@ -4,7 +4,11 @@ describe Que::Job, '.work' do
   it "should pass a job's arguments to the run method and delete it from the database" do
     ArgsJob.queue 1, 'two', {'three' => 3}
     DB[:que_jobs].count.should be 1
-    Que::Job.work.should be_an_instance_of ArgsJob
+
+    result = Que::Job.work
+    result[0].should == :job_worked
+    result[1].should be_an_instance_of ArgsJob
+
     DB[:que_jobs].count.should be 0
     $passed_args.should == [1, 'two', {'three' => 3}]
   end
@@ -13,24 +17,18 @@ describe Que::Job, '.work' do
     DB[:que_jobs].count.should be 0
     ArgsJob.queue 1, 'two', {'array' => [{'number' => 3}]}
     DB[:que_jobs].count.should be 1
-    Que::Job.work.should be_an_instance_of ArgsJob
+
+    result = Que::Job.work
+    result[0].should == :job_worked
+    result[1].should be_an_instance_of ArgsJob
+
     DB[:que_jobs].count.should be 0
 
     $passed_args.last[:array].first[:number].should == 3
   end
 
   it "should not fail if there are no jobs to work" do
-    Que::Job.work.should be nil
-  end
-
-  it "should write messages to the logger" do
-    Que::Job.queue
-    Que::Job.work
-
-    $logger.messages.length.should == 1
-    message = JSON.load($logger.messages.first)
-    message['event'].should == 'job_worked'
-    message['elapsed'].should be_an_instance_of Float
+    Que::Job.work.should be :no_jobs_available
   end
 
   it "should prefer a job with a higher priority" do
@@ -38,7 +36,9 @@ describe Que::Job, '.work' do
     [5, 4, 3, 2, 1, 2, 3, 4, 5].map{|p| Que::Job.queue :priority => p}
     DB[:que_jobs].order(:job_id).select_map(:priority).should == [5, 4, 3, 2, 1, 2, 3, 4, 5]
 
-    Que::Job.work.should be_an_instance_of Que::Job
+    result = Que::Job.work
+    result[0].should == :job_worked
+    result[1].should be_an_instance_of Que::Job
     DB[:que_jobs].select_map(:priority).should == [5, 4, 3, 2, 2, 3, 4, 5]
   end
 
@@ -49,7 +49,9 @@ describe Que::Job, '.work' do
 
     recent1, old, recent2 = DB[:que_jobs].order(:job_id).select_map(:run_at)
 
-    Que::Job.work.should be_an_instance_of Que::Job
+    result = Que::Job.work
+    result[0].should == :job_worked
+    result[1].should be_an_instance_of Que::Job
     DB[:que_jobs].order_by(:job_id).select_map(:run_at).should == [recent1, recent2]
   end
 
@@ -61,7 +63,9 @@ describe Que::Job, '.work' do
 
     first, second, third = DB[:que_jobs].select_order_map(:job_id)
 
-    Que::Job.work.should be_an_instance_of Que::Job
+    result = Que::Job.work
+    result[0].should == :job_worked
+    result[1].should be_an_instance_of Que::Job
     DB[:que_jobs].select_order_map(:job_id).should == [second, third]
   end
 
@@ -72,8 +76,10 @@ describe Que::Job, '.work' do
 
     future1, past, future2 = DB[:que_jobs].order(:job_id).select_map(:run_at)
 
-    Que::Job.work.should be_an_instance_of Que::Job
-    Que::Job.work.should be nil
+    result = Que::Job.work
+    result[0].should == :job_worked
+    result[1].should be_an_instance_of Que::Job
+    Que::Job.work.should be :no_jobs_available
     DB[:que_jobs].order_by(:job_id).select_map(:run_at).should == [future1, future2]
   end
 
@@ -97,7 +103,11 @@ describe Que::Job, '.work' do
 
     begin
       DB.select{pg_advisory_lock(id)}.single_value
-      Que::Job.work.should be_an_instance_of Que::Job
+
+      result = Que::Job.work
+      result[0].should == :job_worked
+      result[1].should be_an_instance_of Que::Job
+
       DB[:que_jobs].order_by(:job_id).select_map(:priority).should == [1, 3]
     ensure
       DB.select{pg_advisory_unlock(id)}.single_value
@@ -125,13 +135,17 @@ describe Que::Job, '.work' do
     $job_spec_result = []
     SubClassJob.queue
     DB[:que_jobs].select_map(:priority).should == [2]
-    Que::Job.work.should be_an_instance_of SubClassJob
+    result = Que::Job.work
+    result[0].should == :job_worked
+    result[1].should be_an_instance_of SubClassJob
     $job_spec_result.should == [:sub]
 
     $job_spec_result = []
     SubSubClassJob.queue
     DB[:que_jobs].select_map(:priority).should == [4]
-    Que::Job.work.should be_an_instance_of SubSubClassJob
+    result = Que::Job.work
+    result[0].should == :job_worked
+    result[1].should be_an_instance_of SubSubClassJob
     $job_spec_result.should == [:sub, :subsub]
   end
 
@@ -143,7 +157,10 @@ describe Que::Job, '.work' do
 
     ModuleJobModule::ModuleJob.queue
     DB[:que_jobs].get(:job_class).should == "ModuleJobModule::ModuleJob"
-    Que::Job.work.should be_an_instance_of ModuleJobModule::ModuleJob
+
+    result = Que::Job.work
+    result[0].should == :job_worked
+    result[1].should be_an_instance_of ModuleJobModule::ModuleJob
   end
 
   it "should make it easy to destroy the job within the same transaction as other changes" do
@@ -162,7 +179,10 @@ describe Que::Job, '.work' do
   describe "when encountering an error" do
     it "should exponentially back off the job" do
       ErrorJob.queue
-      Que::Job.work.should be true
+
+      result = Que::Job.work
+      result[0].should == :job_errored
+      result[1].should be_an_instance_of RuntimeError
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
@@ -173,7 +193,9 @@ describe Que::Job, '.work' do
       DB[:que_jobs].update :error_count => 5,
                            :run_at => Time.now - 60
 
-      Que::Job.work.should be true
+      result = Que::Job.work
+      result[0].should == :job_errored
+      result[1].should be_an_instance_of RuntimeError
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
@@ -188,7 +210,10 @@ describe Que::Job, '.work' do
         Que.error_handler = proc { |error| errors << error }
 
         ErrorJob.queue
-        Que::Job.work.should be true
+
+        result = Que::Job.work
+        result[0].should == :job_errored
+        result[1].should be_an_instance_of RuntimeError
 
         errors.count.should be 1
         error = errors[0]
@@ -203,26 +228,22 @@ describe Que::Job, '.work' do
       begin
         Que.error_handler = proc { |error| raise "Another error!" }
         ErrorJob.queue
-        Que::Job.work.should be true
+
+        result = Que::Job.work
+        result[0].should == :job_errored
+        result[1].should be_an_instance_of RuntimeError
       ensure
         Que.error_handler = nil
       end
     end
 
-    it "should return false if the job throws a postgres error" do
-      class PGErrorJob < Que::Job
-        def run
-          Que.execute "bad SQL syntax"
-        end
-      end
-
-      PGErrorJob.queue
-      Que::Job.work.should be false
-    end
-
     it "should throw an error properly if there's no corresponding job class" do
       DB[:que_jobs].insert :job_class => "NonexistentClass"
-      Que::Job.work.should be true
+
+      result = Que::Job.work
+      result[0].should == :job_errored
+      result[1].should be_an_instance_of NameError
+
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 1
