@@ -1,9 +1,11 @@
 class AddQue < ActiveRecord::Migration
   def self.up
-    Que.create!
+    # The current version as of this migration's creation.
+    Que.migrate! :version => 2
   end
 
   def self.down
-    Que.drop!
+    # Completely removes Que's job queue.
+    Que.migrate! :version => 0
   end
 end
