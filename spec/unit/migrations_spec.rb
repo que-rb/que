@@ -23,6 +23,9 @@ describe Que::Migrations do
     default.call.should == 1
     Que::Migrations.migrate!(2)
     default.call.should == 100
+
+    # Clean up.
+    Que.migrate!
   end
 
   it "should be able to get and set the current schema version" do
@@ -38,6 +41,12 @@ describe Que::Migrations do
     Que::Migrations.migrate!(0)
     Que::Migrations.db_version.should == 0
     Que::Migrations.migrate!
+    Que::Migrations.db_version.should == Que::Migrations::CURRENT_VERSION
+
+    # The helper on the Que module does the same thing.
+    Que.migrate!(0)
+    Que::Migrations.db_version.should == 0
+    Que.migrate!
     Que::Migrations.db_version.should == Que::Migrations::CURRENT_VERSION
   end
 

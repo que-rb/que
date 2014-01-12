@@ -48,7 +48,7 @@ module Que
       migrate! 0
     end
 
-    def migrate!(version_number)
+    def migrate!(version_number = Migrations::CURRENT_VERSION)
       Migrations.migrate!(version_number)
     end
 
