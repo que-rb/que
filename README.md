@@ -53,7 +53,7 @@ Create a class for each type of job you want to run:
     class ChargeCreditCard < Que::Job
       # Default settings for this job. These are optional - without them, jobs
       # will default to priority 1 and run immediately.
-      @default_priority = 3
+      @default_priority = 10
       @default_run_at = proc { 1.minute.from_now }
 
       def run(user_id, options)
@@ -85,7 +85,7 @@ Queue your job. Again, it's best to do this in a transaction with other changes 
 
 You can also add options to run the job after a specific time, or with a specific priority:
 
-    # 1 is high priority, 5 is low priority.
+    # The default priority is 100, and a lower number means a higher priority. 5 would be very important.
     ChargeCreditCard.queue current_user.id, :credit_card_id => card.id, :run_at => 1.day.from_now, :priority => 5
 
 To determine what happens when a job is queued, you can set Que's mode in your application configuration. There are a few options for the mode:
