@@ -55,7 +55,7 @@ module Que
       INSERT INTO que_jobs
       (priority, run_at, job_class, args)
       VALUES
-      (coalesce($1, 1)::integer, coalesce($2, 'now')::timestamptz, $3::text, coalesce($4, '[]')::json)
+      (coalesce($1, 100)::integer, coalesce($2, 'now')::timestamptz, $3::text, coalesce($4, '[]')::json)
       RETURNING *
     }.freeze,
 
