@@ -1,6 +1,8 @@
 ### Unreleased
 
-*   The default priority for jobs is now 100 (it was 1 before). Like always (and like delayed_job), a lower priority means it's more important.
+*   The default priority for jobs is now 100 (it was 1 before). Like always (and like delayed_job), a lower priority means it's more important. You can migrate the schema version to 2 to set the new default value on the que_jobs table, though it's only necessary if you're doing your own INSERTs - if you use `MyJob.queue`, it's already taken care of.
+
+*   Added a migration system to make it easier to change the schema when updating Que. You can now write, for example, `Que.migrate!(:version => 2)` in your migrations. Migrations are run transactionally.
 
 *   The logging format has changed to be more easily machine-readable. You can also now customize the logging format by assigning a callable to Que.log_formatter=. See the new doc on [logging](https://github.com/chanks/que/blob/master/docs/logging.md)) for details.
 
