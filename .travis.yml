@@ -1,0 +1,10 @@
+language: ruby
+rvm:
+  # - "1.9.3" # Fails on migrations on travis?
+  - "2.0"
+before_script:
+  - psql -c 'create database "que-test"' -U postgres
+  - bundle exec ruby -r sequel -r ./lib/que -e 'Que.connection=Sequel.connect("postgres://localhost/que-test"); Que.migrate!'
+
+addons:
+  postgresql: 9.3
