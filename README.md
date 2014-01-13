@@ -40,7 +40,7 @@ Or install it yourself as:
 
 ## Usage
 
-The following assumes you're using Rails 4.0 and ActiveRecord. *Que hasn't been tested with versions of Rails before 4.0, and may or may not work with them.* For more information, or instructions on using Que outside of Rails or with Sequel or no ORM, see the [documentation](https://github.com/chanks/que/blob/master/docs).
+The following assumes you're using Rails 4.0 and ActiveRecord. *Que hasn't been tested with versions of Rails before 4.0, and may or may not work with them.* See the [/docs directory](https://github.com/chanks/que/blob/master/docs) for instructions on using Que [outside of Rails](https://github.com/chanks/que/blob/master/docs/advanced_setup.md), and with [Sequel](https://github.com/chanks/que/blob/master/docs/using_sequel.md) or [no ORM](https://github.com/chanks/que/blob/master/docs/using_plain_connections.md), among other things.
 
 First, generate and run a migration for the job table.
 
