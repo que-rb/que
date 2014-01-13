@@ -75,15 +75,9 @@ module Que
       end
 
       def in_transaction?
-        # We don't know whether the connection we're using is already in a
-        # transaction or not (it would be if running in an ActiveRecord or
-        # Sequel migration). And unfortunately, Postgres doesn't seem to
-        # offer a simple function to test whether we're already in a
-        # transaction. So, minor hack - get the current transaction id
-        # twice, and if it's the same each time, we're in a transaction.
-
-        a, b = 2.times.map { Que.execute("SELECT txid_current()").first[:txid_current] }
-        a == b
+        Que.adapter.checkout do |conn|
+          conn.transaction_status != PGconn::PQTRANS_IDLE
+        end
       end
     end
   end
