@@ -6,8 +6,8 @@ describe Que::Job, '.work' do
     DB[:que_jobs].count.should be 1
 
     result = Que::Job.work
-    result[0].should == :job_worked
-    result[1].should be_an_instance_of ArgsJob
+    result[:event].should == :job_worked
+    result[:job][:job_class].should == 'ArgsJob'
 
     DB[:que_jobs].count.should be 0
     $passed_args.should == [1, 'two', {'three' => 3}]
@@ -19,8 +19,8 @@ describe Que::Job, '.work' do
     DB[:que_jobs].count.should be 1
 
     result = Que::Job.work
-    result[0].should == :job_worked
-    result[1].should be_an_instance_of ArgsJob
+    result[:event].should == :job_worked
+    result[:job][:job_class].should == 'ArgsJob'
 
     DB[:que_jobs].count.should be 0
 
@@ -28,7 +28,7 @@ describe Que::Job, '.work' do
   end
 
   it "should not fail if there are no jobs to work" do
-    Que::Job.work.should be :job_unavailable
+    Que::Job.work[:event].should be :job_unavailable
   end
 
   it "should prefer a job with a higher priority" do
@@ -37,8 +37,8 @@ describe Que::Job, '.work' do
     DB[:que_jobs].order(:job_id).select_map(:priority).should == [5, 4, 3, 2, 1, 2, 3, 4, 5]
 
     result = Que::Job.work
-    result[0].should == :job_worked
-    result[1].should be_an_instance_of Que::Job
+    result[:event].should == :job_worked
+    result[:job][:job_class].should == 'Que::Job'
     DB[:que_jobs].select_map(:priority).should == [5, 4, 3, 2, 2, 3, 4, 5]
   end
 
@@ -50,8 +50,8 @@ describe Que::Job, '.work' do
     recent1, old, recent2 = DB[:que_jobs].order(:job_id).select_map(:run_at)
 
     result = Que::Job.work
-    result[0].should == :job_worked
-    result[1].should be_an_instance_of Que::Job
+    result[:event].should == :job_worked
+    result[:job][:job_class].should == 'Que::Job'
     DB[:que_jobs].order_by(:job_id).select_map(:run_at).should == [recent1, recent2]
   end
 
@@ -64,8 +64,8 @@ describe Que::Job, '.work' do
     first, second, third = DB[:que_jobs].select_order_map(:job_id)
 
     result = Que::Job.work
-    result[0].should == :job_worked
-    result[1].should be_an_instance_of Que::Job
+    result[:event].should == :job_worked
+    result[:job][:job_class].should == 'Que::Job'
     DB[:que_jobs].select_order_map(:job_id).should == [second, third]
   end
 
@@ -77,9 +77,9 @@ describe Que::Job, '.work' do
     future1, past, future2 = DB[:que_jobs].order(:job_id).select_map(:run_at)
 
     result = Que::Job.work
-    result[0].should == :job_worked
-    result[1].should be_an_instance_of Que::Job
-    Que::Job.work.should be :job_unavailable
+    result[:event].should == :job_worked
+    result[:job][:job_class].should == 'Que::Job'
+    Que::Job.work[:event].should be :job_unavailable
     DB[:que_jobs].order_by(:job_id).select_map(:run_at).should == [future1, future2]
   end
 
@@ -105,8 +105,8 @@ describe Que::Job, '.work' do
       DB.select{pg_advisory_lock(id)}.single_value
 
       result = Que::Job.work
-      result[0].should == :job_worked
-      result[1].should be_an_instance_of Que::Job
+      result[:event].should == :job_worked
+      result[:job][:job_class].should == 'Que::Job'
 
       DB[:que_jobs].order_by(:job_id).select_map(:priority).should == [1, 3]
     ensure
@@ -136,16 +136,16 @@ describe Que::Job, '.work' do
     SubClassJob.queue
     DB[:que_jobs].select_map(:priority).should == [2]
     result = Que::Job.work
-    result[0].should == :job_worked
-    result[1].should be_an_instance_of SubClassJob
+    result[:event].should == :job_worked
+    result[:job][:job_class].should == 'SubClassJob'
     $job_spec_result.should == [:sub]
 
     $job_spec_result = []
     SubSubClassJob.queue
     DB[:que_jobs].select_map(:priority).should == [4]
     result = Que::Job.work
-    result[0].should == :job_worked
-    result[1].should be_an_instance_of SubSubClassJob
+    result[:event].should == :job_worked
+    result[:job][:job_class].should == 'SubSubClassJob'
     $job_spec_result.should == [:sub, :subsub]
   end
 
@@ -159,8 +159,8 @@ describe Que::Job, '.work' do
     DB[:que_jobs].get(:job_class).should == "ModuleJobModule::ModuleJob"
 
     result = Que::Job.work
-    result[0].should == :job_worked
-    result[1].should be_an_instance_of ModuleJobModule::ModuleJob
+    result[:event].should == :job_worked
+    result[:job][:job_class].should == 'ModuleJobModule::ModuleJob'
   end
 
   it "should make it easy to destroy the job within the same transaction as other changes" do
@@ -181,8 +181,9 @@ describe Que::Job, '.work' do
       ErrorJob.queue
 
       result = Que::Job.work
-      result[0].should == :job_errored
-      result[1].should be_an_instance_of RuntimeError
+      result[:event].should == :job_errored
+      result[:error].should be_an_instance_of RuntimeError
+      result[:job][:job_class].should == 'ErrorJob'
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
@@ -194,8 +195,9 @@ describe Que::Job, '.work' do
                            :run_at => Time.now - 60
 
       result = Que::Job.work
-      result[0].should == :job_errored
-      result[1].should be_an_instance_of RuntimeError
+      result[:event].should == :job_errored
+      result[:error].should be_an_instance_of RuntimeError
+      result[:job][:job_class].should == 'ErrorJob'
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
@@ -212,8 +214,9 @@ describe Que::Job, '.work' do
         ErrorJob.queue
 
         result = Que::Job.work
-        result[0].should == :job_errored
-        result[1].should be_an_instance_of RuntimeError
+        result[:event].should == :job_errored
+        result[:error].should be_an_instance_of RuntimeError
+        result[:job][:job_class].should == 'ErrorJob'
 
         errors.count.should be 1
         error = errors[0]
@@ -230,8 +233,8 @@ describe Que::Job, '.work' do
         ErrorJob.queue
 
         result = Que::Job.work
-        result[0].should == :job_errored
-        result[1].should be_an_instance_of RuntimeError
+        result[:event].should == :job_errored
+        result[:error].should be_an_instance_of RuntimeError
       ensure
         Que.error_handler = nil
       end
@@ -241,8 +244,9 @@ describe Que::Job, '.work' do
       DB[:que_jobs].insert :job_class => "NonexistentClass"
 
       result = Que::Job.work
-      result[0].should == :job_errored
-      result[1].should be_an_instance_of NameError
+      result[:event].should == :job_errored
+      result[:error].should be_an_instance_of NameError
+      result[:job][:job_class].should == 'NonexistentClass'
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first

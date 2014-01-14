@@ -12,6 +12,9 @@ describe Que::Worker do
       DB[:que_jobs].count.should be 0
 
       $logger.messages.map{|m| JSON.load(m)['event']}.should == %w(job_worked job_worked job_unavailable)
+
+      json = JSON.load($logger.messages[0])
+      json['job']['job_class'].should == 'Que::Job'
     ensure
       if @worker
         @worker.stop
@@ -73,8 +76,9 @@ describe Que::Worker do
 
       log = JSON.load($logger.messages[0])
       log['event'].should == 'job_errored'
-      log['error_class'].should == 'RuntimeError'
-      log['error_message'].should == "ErrorJob!"
+      log['error']['class'].should == 'RuntimeError'
+      log['error']['message'].should == "ErrorJob!"
+      log['job']['job_class'].should == 'ErrorJob'
     ensure
       if @worker
         @worker.stop

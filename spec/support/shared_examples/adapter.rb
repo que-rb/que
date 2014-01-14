@@ -8,8 +8,8 @@ shared_examples "a Que adapter" do
   it "should be able to queue and work a job" do
     Que::Job.queue
     result = Que::Job.work
-    result.first.should == :job_worked
-    result.second.should be_an_instance_of Que::Job
+    result[:event].should == :job_worked
+    result[:job][:job_class].should == 'Que::Job'
   end
 
   it "should yield the same Postgres connection for the duration of the block" do

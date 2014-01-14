@@ -70,12 +70,12 @@ module Que
               # I'm not sure how to reliably commit a transaction that deletes
               # the job in a separate thread between lock_job and check_job.
               if Que.execute(:check_job, job.values_at(:priority, :run_at, :job_id)).none?
-                :job_race_condition
+                {:event => :job_race_condition}
               else
-                [:job_worked, run_job(job)]
+                {:event => :job_worked, :job => run_job(job).attrs}
               end
             else
-              :job_unavailable
+              {:event => :job_unavailable}
             end
           rescue => error
             begin
@@ -96,7 +96,7 @@ module Que
               Que.error_handler.call(error) rescue nil
             end
 
-            return [:job_errored, error]
+            return {:event => :job_errored, :error => error, :job => job}
           ensure
             # Clear the advisory lock we took when locking the job. Important
             # to do this so that they don't pile up in the database. Again, if
