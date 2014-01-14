@@ -106,11 +106,29 @@ describe Que::Migrations do
     DB.table_exists?(:que_jobs).should be true
   end
 
-  it "should be able to tell when it's in an ORM's transaction" do
+  it "should be able to tell when it's already in a transaction" do
+    Que.adapter = QUE_ADAPTERS[:connection_pool]
+    Que::Migrations.should_not be_in_transaction
+    QUE_SPEC_CONNECTION_POOL.with do |conn|
+      conn.async_exec "BEGIN"
+      Que::Migrations.should be_in_transaction
+      conn.async_exec "COMMIT"
+    end
+  end if QUE_ADAPTERS[:connection_pool]
+
+  it "should be able to tell when it's in a Sequel transaction" do
     Que.adapter = QUE_ADAPTERS[:sequel]
     Que::Migrations.should_not be_in_transaction
     SEQUEL_ADAPTER_DB.transaction do
       Que::Migrations.should be_in_transaction
     end
   end if QUE_ADAPTERS[:sequel]
+
+  it "should be able to tell when it's in an ActiveRecord transaction" do
+    Que.adapter = QUE_ADAPTERS[:active_record]
+    Que::Migrations.should_not be_in_transaction
+    ActiveRecord::Base.transaction do
+      Que::Migrations.should be_in_transaction
+    end
+  end if QUE_ADAPTERS[:active_record]
 end
