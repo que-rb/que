@@ -79,7 +79,7 @@ describe Que::Migrations do
     DB.table_exists?(:que_jobs).should be true
   end
 
-  it "should protect its migrations inside transactions" do
+  it "should use transactions to protect its migrations from errors" do
     proc do
       Que::Migrations.transaction do
         Que.execute "DROP TABLE que_jobs"
@@ -88,22 +88,28 @@ describe Que::Migrations do
     end.should raise_error(PG::SyntaxError)
 
     DB.table_exists?(:que_jobs).should be true
+  end
 
-    q = Queue.new
+  # In Ruby 1.9, it's impossible to tell inside an ensure block whether the
+  # currently executing thread has been killed.
+  unless RUBY_VERSION.start_with?('1.9')
+    it "should use transactions to protect its migrations from killed threads" do
+      q = Queue.new
 
-    t = Thread.new do
-      Que::Migrations.transaction do
-        Que.execute "DROP TABLE que_jobs"
-        q.push :go!
-        sleep
+      t = Thread.new do
+        Que::Migrations.transaction do
+          Que.execute "DROP TABLE que_jobs"
+          q.push :go!
+          sleep
+        end
       end
+
+      q.pop
+      t.kill
+      t.join
+
+      DB.table_exists?(:que_jobs).should be true
     end
-
-    q.pop
-    t.kill
-    t.join
-
-    DB.table_exists?(:que_jobs).should be true
   end
 
   it "should be able to tell when it's already in a transaction" do
