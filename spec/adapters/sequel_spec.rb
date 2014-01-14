@@ -9,17 +9,21 @@ describe "Que using the Sequel adapter" do
   it_behaves_like "a multi-threaded Que adapter"
 
   it "should use the same connection that Sequel does" do
-    class SequelJob < Que::Job
-      def run
-        $pid1 = Que.execute("SELECT pg_backend_pid()").first['pg_backend_pid'].to_i
-        $pid2 = SEQUEL_ADAPTER_DB.get{pg_backend_pid{}}
+    begin
+      class SequelJob < Que::Job
+        def run
+          $pid1 = Integer(Que.execute("select pg_backend_pid()").first['pg_backend_pid'])
+          $pid2 = Integer(SEQUEL_ADAPTER_DB['select pg_backend_pid()'].get)
+        end
       end
+
+      SequelJob.queue
+      Que::Job.work
+
+      $pid1.should == $pid2
+    ensure
+      $pid1 = $pid2 = nil
     end
-
-    SequelJob.queue
-    Que::Job.work
-
-    $pid1.should == $pid2
   end
 
   it "should wake up a Worker after queueing a job in async mode, waiting for a transaction to commit if necessary" do

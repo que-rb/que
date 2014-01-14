@@ -14,17 +14,21 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
     it_behaves_like "a multi-threaded Que adapter"
 
     it "should use the same connection that ActiveRecord does" do
-      class ActiveRecordJob < Que::Job
-        def run
-          $pid1 = Que.execute("SELECT pg_backend_pid()").first['pg_backend_pid'].to_i
-          $pid2 = ActiveRecord::Base.connection.select_all("select pg_backend_pid()").rows.first.first.to_i
+      begin
+        class ActiveRecordJob < Que::Job
+          def run
+            $pid1 = Integer(Que.execute("select pg_backend_pid()").first['pg_backend_pid'])
+            $pid2 = Integer(ActiveRecord::Base.connection.select_value("select pg_backend_pid()"))
+          end
         end
+
+        ActiveRecordJob.queue
+        Que::Job.work
+
+        $pid1.should == $pid2
+      ensure
+        $pid1 = $pid2 = nil
       end
-
-      ActiveRecordJob.queue
-      Que::Job.work
-
-      $pid1.should == $pid2
     end
 
     it "should instantiate args as ActiveSupport::HashWithIndifferentAccess" do
