@@ -50,4 +50,26 @@ describe "Logging" do
       Que.log_formatter = nil
     end
   end
+
+  it "should use a :level option to set the log level if one exists, or default to info" do
+    begin
+      Que.logger = o = Object.new
+
+      def o.method_missing(level, message)
+        $level = level
+        $message = message
+      end
+
+      Que.log :message => 'one'
+      $level.should == :info
+      JSON.load($message)['message'].should == 'one'
+
+      Que.log :message => 'two', :level => 'debug'
+      $level.should == :debug
+      JSON.load($message)['message'].should == 'two'
+    ensure
+      Que.logger = $logger
+      $level = $message = nil
+    end
+  end
 end
