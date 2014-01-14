@@ -5,7 +5,7 @@ namespace :que do
 
     Que.logger        = Logger.new(STDOUT)
     Que.worker_count  = (ENV['QUE_WORKER_COUNT'] || 4).to_i
-    Que.wake_interval = (ENV['QUE_WAKE_INTERVAL'] || 0.5).to_f
+    Que.wake_interval = (ENV['QUE_WAKE_INTERVAL'] || 0.1).to_f
 
     # When changing how signals are caught, be sure to test the behavior with
     # the rake task in tasks/safe_shutdown.rb.
