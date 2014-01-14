@@ -85,7 +85,7 @@ describe Que::Migrations do
         Que.execute "DROP TABLE que_jobs"
         Que.execute "invalid SQL syntax"
       end
-    end.should raise_error(PG::SyntaxError)
+    end.should raise_error(PG::Error)
 
     DB.table_exists?(:que_jobs).should be true
   end
