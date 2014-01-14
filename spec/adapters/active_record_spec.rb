@@ -67,5 +67,12 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       BlockJob.queue :run_at => Time.now
       Que::Worker.workers.each { |worker| worker.should be_sleeping }
     end
+
+    it "should be able to tell when it's in an ActiveRecord transaction" do
+      Que.adapter.should_not be_in_transaction
+      ActiveRecord::Base.transaction do
+        Que.adapter.should be_in_transaction
+      end
+    end
   end
 end
