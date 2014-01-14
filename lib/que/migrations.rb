@@ -55,7 +55,7 @@ module Que
 
       def transaction
         Que.adapter.checkout do
-          if in_transaction?
+          if Que.adapter.in_transaction?
             yield
           else
             begin
@@ -72,12 +72,6 @@ module Que
               end
             end
           end
-        end
-      end
-
-      def in_transaction?
-        Que.adapter.checkout do |conn|
-          conn.transaction_status != PGconn::PQTRANS_IDLE
         end
       end
     end

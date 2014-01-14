@@ -41,6 +41,10 @@ module Que
           conn.exec_prepared("que_#{name}", params)
         end
       end
+
+      def in_transaction?
+        checkout { |conn| conn.transaction_status != ::PG::PQTRANS_IDLE }
+      end
     end
   end
 end

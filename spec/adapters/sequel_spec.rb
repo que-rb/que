@@ -44,4 +44,11 @@ describe "Que using the Sequel adapter" do
     BlockJob.queue :run_at => Time.now
     Que::Worker.workers.each { |worker| worker.should be_sleeping }
   end
+
+  it "should be able to tell when it's in a Sequel transaction" do
+    Que.adapter.should_not be_in_transaction
+    SEQUEL_ADAPTER_DB.transaction do
+      Que.adapter.should be_in_transaction
+    end
+  end
 end
