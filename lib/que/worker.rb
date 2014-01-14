@@ -78,8 +78,10 @@ module Que
         case event
         when :job_unavailable
           cycle = false
+          data.merge! :level => :debug
         when :job_race_condition
           cycle = true
+          data.merge! :level => :debug
         when :job_worked
           cycle = true
           data.merge! :elapsed => (Time.now - time).round(5), :job => object.attrs
