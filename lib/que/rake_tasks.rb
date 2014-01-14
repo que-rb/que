@@ -6,6 +6,9 @@ namespace :que do
     Que.logger       = Logger.new(STDOUT)
     Que.worker_count = (ENV['WORKER_COUNT'] || 4).to_i
 
+    # When changing how signals are caught, be sure to test the behavior with
+    # the rake task in tasks/safe_shutdown.rb.
+
     stop = false
     trap('INT'){stop = true}
 
