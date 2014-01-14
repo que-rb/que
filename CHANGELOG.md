@@ -1,4 +1,4 @@
-### Unreleased
+### 0.5.0 (2014-01-14)
 
 *   When running a worker pool inside your web process on ActiveRecord, Que will now wake a worker once a transaction containing a queued job is committed.
 
