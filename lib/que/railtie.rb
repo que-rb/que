@@ -15,6 +15,14 @@ module Que
 
         # Only start up the worker pool if running as a server.
         Que.mode ||= :async if defined? Rails::Server
+
+        at_exit do
+          if Que.mode == :async
+            $stdout.puts "Finishing Que's current jobs before exiting..."
+            Que.mode = :off
+            $stdout.puts "Que's jobs finished, exiting..."
+          end
+        end
       end
     end
   end

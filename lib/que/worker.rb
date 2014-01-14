@@ -21,15 +21,7 @@ module Que
     end
 
     def sleeping?
-      synchronize do
-        if @state == :sleeping
-          # There's a very small period of time between when the Worker marks
-          # itself as sleeping and when it actually goes to sleep. Only report
-          # true when we're certain the thread is sleeping.
-          wait until @thread.status == 'sleep'
-          true
-        end
-      end
+      synchronize { _sleeping? }
     end
 
     def working?
@@ -48,11 +40,10 @@ module Que
       end
     end
 
+    # This needs to be called when trapping a signal, so it can't lock the monitor.
     def stop
-      synchronize do
-        @stop = true
-        @thread.wakeup if sleeping?
-      end
+      @stop = true
+      @thread.wakeup if _sleeping?
     end
 
     def wait_until_stopped
@@ -64,6 +55,16 @@ module Que
     # Sleep very briefly while waiting for a thread to get somewhere.
     def wait
       sleep 0.0001
+    end
+
+    def _sleeping?
+      if @state == :sleeping
+        # There's a very small period of time between when the Worker marks
+        # itself as sleeping and when it actually goes to sleep. Only report
+        # true when we're certain the thread is sleeping.
+        wait until @thread.status == 'sleep'
+        true
+      end
     end
 
     def work_loop

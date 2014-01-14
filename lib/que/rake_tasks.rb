@@ -12,6 +12,12 @@ namespace :que do
     stop = false
     trap('INT'){stop = true}
 
+    at_exit do
+      $stdout.puts "Finishing Que's current jobs before exiting..."
+      Que.mode = :off
+      $stdout.puts "Que's jobs finished, exiting..."
+    end
+
     loop do
       sleep 0.01
       break if stop
