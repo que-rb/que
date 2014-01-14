@@ -28,7 +28,7 @@ describe Que, '.worker_states' do
       t.join
 
       state = states.first
-      state.keys.should == %w(priority run_at job_id job_class args error_count last_error pg_backend_pid pg_state pg_state_changed_at pg_last_query pg_last_query_started_at pg_transaction_started_at pg_waiting_on_lock)
+      state.keys.should == %w(priority run_at job_id job_class args error_count last_error queue pg_backend_pid pg_state pg_state_changed_at pg_last_query pg_last_query_started_at pg_transaction_started_at pg_waiting_on_lock)
 
       state[:priority].should == '2'
       Time.parse(state[:run_at]).should be_within(3).of Time.now

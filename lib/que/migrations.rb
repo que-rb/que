@@ -3,7 +3,7 @@ module Que
     # In order to ship a schema change, add the relevant up and down sql files
     # to the migrations directory, and bump the version both here and in the
     # add_que generator template.
-    CURRENT_VERSION = 2
+    CURRENT_VERSION = 3
 
     class << self
       def migrate!(options = {:version => CURRENT_VERSION})
@@ -21,7 +21,8 @@ module Que
           end
 
           steps.each do |step|
-            Que.execute File.read("#{File.dirname(__FILE__)}/migrations/#{step}-#{direction}.sql")
+            sql = File.read("#{File.dirname(__FILE__)}/migrations/#{step}-#{direction}.sql")
+            Que.execute(sql)
           end
 
           set_db_version(version)
