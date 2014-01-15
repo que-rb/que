@@ -73,7 +73,8 @@ module Que
     }.freeze,
 
     :job_stats => %{
-      SELECT job_class,
+      SELECT queue,
+             job_class,
              count(*)                    AS count,
              count(locks.job_id)         AS count_working,
              sum((error_count > 0)::int) AS count_errored,
@@ -85,7 +86,7 @@ module Que
         FROM pg_locks
         WHERE locktype = 'advisory'
       ) locks USING (job_id)
-      GROUP BY job_class
+      GROUP BY queue, job_class
       ORDER BY count(*) DESC
     }.freeze,
 
