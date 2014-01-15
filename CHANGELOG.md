@@ -1,3 +1,13 @@
+### Unreleased
+
+*   Logs now also emit the machine's hostname in addition to its pid, since pids may be repeated across different machines.
+
+*   Named queues are now supported. Documentation is forthcoming, or read the code. You can run jobs from a certain queue by setting the QUE_QUEUE environment variable. (chanks, joevandyk)
+
+*   Rubinius 2.2 is now supported. (brixen)
+
+*   Job classes may now define their own logic for determining the retry interval when a job raises an error. See [error handling](https://github.com/chanks/que/blob/master/docs/error_handling.md) for more information.
+
 ### 0.5.0 (2014-01-14)
 
 *   When running a worker pool inside your web process on ActiveRecord, Que will now wake a worker once a transaction containing a queued job is committed.
