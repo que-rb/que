@@ -1,4 +1,3 @@
-require 'time' # For Time#iso8601
 require 'socket' # For hostname
 
 module Que
