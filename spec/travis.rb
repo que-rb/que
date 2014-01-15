@@ -4,8 +4,9 @@
 test_runs = if ENV['TESTS']
               Integer(ENV['TESTS'])
             else
-              50
+              25
             end
+
 
 %w( Gemfile spec/gemfiles/Gemfile1 spec/gemfiles/Gemfile2 ).each do |gemfile|
   # Install the particular gemfile
