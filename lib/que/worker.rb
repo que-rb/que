@@ -168,7 +168,7 @@ module Que
           Que.log :event => 'worker_count_change', :value => count.to_s
 
           if count > worker_count
-            workers.push *(count - worker_count).times.map{new}
+            workers.push *(count - worker_count).times.map{new(ENV['QUE_QUEUE'] || '')}
           elsif count < worker_count
             workers.pop(worker_count - count).each(&:stop).each(&:wait_until_stopped)
           end
