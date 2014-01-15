@@ -1,12 +1,13 @@
 require 'spec_helper'
 
 describe "Logging" do
-  it "by default should record the library and thread id in JSON" do
+  it "by default should record the library and hostname and thread id in JSON" do
     Que.log :event => "blah", :source => 4
     $logger.messages.count.should be 1
 
     message = JSON.load($logger.messages.first)
     message['lib'].should == 'que'
+    message['hostname'].should == Socket.gethostname
     message['event'].should == 'blah'
     message['source'].should == 4
     message['thread'].should == Thread.current.object_id

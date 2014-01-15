@@ -1,4 +1,5 @@
 require 'time' # For Time#iso8601
+require 'socket' # For hostname
 
 module Que
   autoload :Adapters,   'que/adapters/base'
@@ -73,7 +74,7 @@ module Que
 
     def log(data)
       level = data.delete(:level) || :info
-      data = {:lib => 'que', :thread => Thread.current.object_id}.merge(data)
+      data = {:lib => 'que', :hostname => Socket.gethostname, :thread => Thread.current.object_id}.merge(data)
 
       if logger && output = log_formatter.call(data)
         logger.send level, output
