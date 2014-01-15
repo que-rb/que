@@ -10,7 +10,7 @@
 
 ### 0.5.0 (2014-01-14)
 
-*   When running a worker pool inside your web process on ActiveRecord, Que will now wake a worker once a transaction containing a queued job is committed.
+*   When running a worker pool inside your web process on ActiveRecord, Que will now wake a worker once a transaction containing a queued job is committed. (joevandyk, chanks)
 
 *   The `que:work` rake task now has a default wake_interval of 0.1 seconds, since it relies exclusively on polling to pick up jobs. You can set a QUE_WAKE_INTERVAL environment variable to change this. The environment variable to set a size for the worker pool in the rake task has also been changed from WORKER_COUNT to QUE_WORKER_COUNT.
 
