@@ -24,7 +24,11 @@ module Que
       @destroyed = true
     end
 
+    @retry_interval = proc { |count| count ** 4 + 3 }
+
     class << self
+      attr_reader :retry_interval
+
       def queue(*args)
         if args.last.is_a?(Hash)
           options  = args.pop
@@ -44,7 +48,7 @@ module Que
         end
 
         if Que.mode == :sync && !time
-          run_job(attrs)
+          class_for(attrs[:job_class]).new(attrs).tap(&:_run)
         else
           values = Que.execute(:insert_job, attrs.values_at(:priority, :run_at, :job_class, :args)).first
           Que.adapter.wake_worker_after_commit unless time
@@ -72,7 +76,9 @@ module Que
               if Que.execute(:check_job, job.values_at(:priority, :run_at, :job_id)).none?
                 {:event => :job_race_condition}
               else
-                {:event => :job_worked, :job => run_job(job).attrs}
+                klass = class_for(job[:job_class])
+                klass.new(job)._run
+                {:event => :job_worked, :job => job}
               end
             else
               {:event => :job_unavailable}
@@ -80,10 +86,10 @@ module Que
           rescue => error
             begin
               if job
-                # Borrowed the backoff formula and error data format from delayed_job.
-                count   = job[:error_count].to_i + 1
-                delay   = count ** 4 + 3
-                message = "#{error.message}\n#{error.backtrace.join("\n")}"
+                count    = job[:error_count].to_i + 1
+                interval = klass && klass.retry_interval || retry_interval
+                delay    = interval.respond_to?(:call) ? interval.call(count) : interval
+                message  = "#{error.message}\n#{error.backtrace.join("\n")}"
                 Que.execute :set_error, [count, delay, message] + job.values_at(:priority, :run_at, :job_id)
               end
             rescue
@@ -111,8 +117,8 @@ module Que
 
       private
 
-      def run_job(attrs)
-        attrs[:job_class].split('::').inject(Object, &:const_get).new(attrs).tap(&:_run)
+      def class_for(string)
+        string.split('::').inject(Object, &:const_get)
       end
     end
   end

@@ -206,6 +206,72 @@ describe Que::Job, '.work' do
       job[:run_at].should be_within(3).of Time.now + 1299
     end
 
+    it "should respect a custom retry interval" do
+      class RetryIntervalJob < ErrorJob
+        @retry_interval = 5
+      end
+
+      RetryIntervalJob.queue
+
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      result[:error].should be_an_instance_of RuntimeError
+      result[:job][:job_class].should == 'RetryIntervalJob'
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].should be_within(3).of Time.now + 5
+
+      DB[:que_jobs].update :error_count => 5,
+                           :run_at => Time.now - 60
+
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      result[:error].should be_an_instance_of RuntimeError
+      result[:job][:job_class].should == 'RetryIntervalJob'
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 6
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].should be_within(3).of Time.now + 5
+    end
+
+    it "should respect a custom retry interval formula" do
+      class RetryIntervalFormulaJob < ErrorJob
+        @retry_interval = proc { |count| count * 10 }
+      end
+
+      RetryIntervalFormulaJob.queue
+
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      result[:error].should be_an_instance_of RuntimeError
+      result[:job][:job_class].should == 'RetryIntervalFormulaJob'
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].should be_within(3).of Time.now + 10
+
+      DB[:que_jobs].update :error_count => 5,
+                           :run_at => Time.now - 60
+
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      result[:error].should be_an_instance_of RuntimeError
+      result[:job][:job_class].should == 'RetryIntervalFormulaJob'
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 6
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].should be_within(3).of Time.now + 60
+    end
+
     it "should pass it to an error handler, if one is defined" do
       begin
         errors = []
