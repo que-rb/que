@@ -20,7 +20,7 @@ module Que
     private
 
     def destroy
-      Que.execute :destroy_job, attrs.values_at(:priority, :run_at, :job_id)
+      Que.execute :destroy_job, attrs.values_at(:queue, :priority, :run_at, :job_id)
       @destroyed = true
     end
 
@@ -32,6 +32,7 @@ module Que
       def queue(*args)
         if args.last.is_a?(Hash)
           options  = args.pop
+          queue    = options.delete(:queue) || '' if options.key?(:queue)
           run_at   = options.delete(:run_at)
           priority = options.delete(:priority)
           args << options if options.any?
@@ -39,30 +40,34 @@ module Que
 
         attrs = {:job_class => to_s, :args => JSON_MODULE.dump(args)}
 
-        if time = run_at || @default_run_at && @default_run_at.call
-          attrs[:run_at] = time
+        if t = run_at || @default_run_at && @default_run_at.call
+          attrs[:run_at] = t
         end
 
-        if pty = priority || @default_priority
-          attrs[:priority] = pty
+        if p = priority || @default_priority
+          attrs[:priority] = p
         end
 
-        if Que.mode == :sync && !time
+        if q = queue || @queue
+          attrs[:queue] = q
+        end
+
+        if Que.mode == :sync && !t
           class_for(attrs[:job_class]).new(attrs).tap(&:_run)
         else
-          values = Que.execute(:insert_job, attrs.values_at(:priority, :run_at, :job_class, :args)).first
-          Que.adapter.wake_worker_after_commit unless time
+          values = Que.execute(:insert_job, attrs.values_at(:queue, :priority, :run_at, :job_class, :args)).first
+          Que.adapter.wake_worker_after_commit unless t
           new(values)
         end
       end
 
-      def work
+      def work(queue = '')
         # Since we're taking session-level advisory locks, we have to hold the
         # same connection throughout the process of getting a job, working it,
         # deleting it, and removing the lock.
         Que.adapter.checkout do
           begin
-            if job = Que.execute(:lock_job).first
+            if job = Que.execute(:lock_job, [queue]).first
               # Edge case: It's possible for the lock_job query to have
               # grabbed a job that's already been worked, if it took its MVCC
               # snapshot while the job was processing, but didn't attempt the
@@ -73,7 +78,7 @@ module Que
               # Note that there is currently no spec for this behavior, since
               # I'm not sure how to reliably commit a transaction that deletes
               # the job in a separate thread between lock_job and check_job.
-              if Que.execute(:check_job, job.values_at(:priority, :run_at, :job_id)).none?
+              if Que.execute(:check_job, job.values_at(:queue, :priority, :run_at, :job_id)).none?
                 {:event => :job_race_condition}
               else
                 klass = class_for(job[:job_class])
@@ -90,7 +95,7 @@ module Que
                 interval = klass && klass.retry_interval || retry_interval
                 delay    = interval.respond_to?(:call) ? interval.call(count) : interval
                 message  = "#{error.message}\n#{error.backtrace.join("\n")}"
-                Que.execute :set_error, [count, delay, message] + job.values_at(:priority, :run_at, :job_id)
+                Que.execute :set_error, [count, delay, message] + job.values_at(:queue, :priority, :run_at, :job_id)
               end
             rescue
               # If we can't reach the database for some reason, too bad, but

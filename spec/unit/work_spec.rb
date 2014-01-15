@@ -13,6 +13,35 @@ describe Que::Job, '.work' do
     $passed_args.should == [1, 'two', {'three' => 3}]
   end
 
+  it "should default to only working jobs without a named queue" do
+    Que::Job.queue 1, :queue => 'other_queue'
+    Que::Job.queue 2
+
+    result = Que::Job.work
+    result[:event].should == :job_worked
+    result[:job][:args].should == [2]
+
+    result = Que::Job.work
+    result[:event].should == :job_unavailable
+  end
+
+  it "should accept the name of a single queue to pull jobs from" do
+    Que::Job.queue 1, :queue => 'other_queue'
+    Que::Job.queue 2, :queue => 'other_queue'
+    Que::Job.queue 3
+
+    result = Que::Job.work(:other_queue)
+    result[:event].should == :job_worked
+    result[:job][:args].should == [1]
+
+    result = Que::Job.work('other_queue')
+    result[:event].should == :job_worked
+    result[:job][:args].should == [2]
+
+    result = Que::Job.work(:other_queue)
+    result[:event].should == :job_unavailable
+  end
+
   it "should make a job's argument hashes indifferently accessible" do
     DB[:que_jobs].count.should be 0
     ArgsJob.queue 1, 'two', {'array' => [{'number' => 3}]}

@@ -8,10 +8,11 @@ module Que
     # synchronize access to it.
     include MonitorMixin
 
-    attr_reader :thread, :state
+    attr_reader :thread, :state, :queue
 
-    def initialize
-      super # For MonitorMixin.
+    def initialize(queue = '')
+      super() # For MonitorMixin.
+      @queue  = queue
       @state  = :working
       @thread = Thread.new { work_loop }
     end
@@ -71,7 +72,7 @@ module Que
       loop do
         time   = Time.now
         cycle  = nil
-        result = Job.work
+        result = Job.work(queue)
 
         case result[:event]
         when :job_unavailable

@@ -7,7 +7,8 @@ module Que
         FROM (
           SELECT j
           FROM que_jobs AS j
-          WHERE run_at <= now()
+          WHERE queue = $1::text
+          AND run_at <= now()
           ORDER BY priority, run_at, job_id
           LIMIT 1
         ) AS t1
@@ -17,7 +18,9 @@ module Que
             SELECT (
               SELECT j
               FROM que_jobs AS j
-              WHERE run_at <= now() AND (priority, run_at, job_id) > (job.priority, job.run_at, job.job_id)
+              WHERE queue = $1::text
+              AND run_at <= now()
+              AND (priority, run_at, job_id) > (job.priority, job.run_at, job.job_id)
               ORDER BY priority, run_at, job_id
               LIMIT 1
             ) AS j
@@ -27,7 +30,7 @@ module Que
           ) AS t1
         )
       )
-      SELECT priority, run_at, job_id, job_class, args, error_count
+      SELECT queue, priority, run_at, job_id, job_class, args, error_count
       FROM job
       WHERE locked
       LIMIT 1
@@ -36,9 +39,10 @@ module Que
     :check_job => %{
       SELECT 1 AS one
       FROM   que_jobs
-      WHERE  priority = $1::integer
-      AND    run_at   = $2::timestamptz
-      AND    job_id   = $3::bigint
+      WHERE  queue    = $1::text
+      AND    priority = $2::integer
+      AND    run_at   = $3::timestamptz
+      AND    job_id   = $4::bigint
     }.freeze,
 
     :set_error => %{
@@ -46,24 +50,26 @@ module Que
       SET error_count = $1::integer,
           run_at      = now() + $2::integer * '1 second'::interval,
           last_error  = $3::text
-      WHERE priority  = $4::integer
-      AND   run_at    = $5::timestamptz
-      AND   job_id    = $6::bigint
+      WHERE queue     = $4::text
+      AND   priority  = $5::integer
+      AND   run_at    = $6::timestamptz
+      AND   job_id    = $7::bigint
     }.freeze,
 
     :insert_job => %{
       INSERT INTO que_jobs
-      (priority, run_at, job_class, args)
+      (queue, priority, run_at, job_class, args)
       VALUES
-      (coalesce($1, 100)::integer, coalesce($2, 'now')::timestamptz, $3::text, coalesce($4, '[]')::json)
+      (coalesce($1, '')::text, coalesce($2, 100)::integer, coalesce($3, 'now')::timestamptz, $4::text, coalesce($5, '[]')::json)
       RETURNING *
     }.freeze,
 
     :destroy_job => %{
       DELETE FROM que_jobs
-      WHERE priority = $1::integer
-      AND   run_at   = $2::timestamptz
-      AND   job_id   = $3::bigint
+      WHERE queue    = $1::text
+      AND   priority = $2::integer
+      AND   run_at   = $3::timestamptz
+      AND   job_id   = $4::bigint
     }.freeze,
 
     :job_stats => %{

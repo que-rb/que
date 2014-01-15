@@ -23,6 +23,52 @@ describe Que::Worker do
     end
   end
 
+  it "should work jobs without a named queue by default" do
+    begin
+      Que::Job.queue 1
+      Que::Job.queue 2, :queue => 'my_queue'
+
+      @worker = Que::Worker.new
+      sleep_until { @worker.sleeping? }
+      DB[:que_jobs].count.should be 1
+
+      $logger.messages.map{|m| JSON.load(m)['event']}.should == %w(job_worked job_unavailable)
+
+      json = JSON.load($logger.messages[0])
+      json['job']['queue'].should == ''
+      json['job']['job_class'].should == 'Que::Job'
+      json['job']['args'].should == [1]
+    ensure
+      if @worker
+        @worker.stop
+        @worker.wait_until_stopped
+      end
+    end
+  end
+
+  it "should accept the name of a single queue to work jobs from" do
+    begin
+      Que::Job.queue 1
+      Que::Job.queue 2, :queue => 'my_queue'
+
+      @worker = Que::Worker.new(:my_queue)
+      sleep_until { @worker.sleeping? }
+      DB[:que_jobs].count.should be 1
+
+      $logger.messages.map{|m| JSON.load(m)['event']}.should == %w(job_worked job_unavailable)
+
+      json = JSON.load($logger.messages[0])
+      json['job']['queue'].should == 'my_queue'
+      json['job']['job_class'].should == 'Que::Job'
+      json['job']['args'].should == [2]
+    ensure
+      if @worker
+        @worker.stop
+        @worker.wait_until_stopped
+      end
+    end
+  end
+
   it "#wake! should return truthy if the worker was asleep and is woken up, at which point it should work until no jobs are available" do
     begin
       @worker = Que::Worker.new
