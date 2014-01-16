@@ -1,4 +1,6 @@
-# Que
+# Que (Experimental Branch)
+
+*This branch is implementing a LISTEN/NOTIFY messaging system to supplement the polling system that is already in place on master. It introduces a single listener thread in each process that is responsible for collecting jobs through both listening and polling, then passing them to worker threads. Please don't use this branch for anything serious yet.*
 
 **TL;DR: Que is a high-performance alternative to DelayedJob or QueueClassic that improves the reliability of your application by protecting your jobs with the same [ACID guarantees](https://en.wikipedia.org/wiki/ACID) as the rest of your data.**
 
