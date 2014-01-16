@@ -49,6 +49,8 @@ DB = Sequel.connect(QUE_URL)
 
 # Reset the table to the most up-to-date version.
 DB.drop_table? :que_jobs
+DB.drop_table? :que_listeners
+DB.drop_function :que_job_notify, :if_exists => true
 Que::Migrations.migrate!
 
 
@@ -95,6 +97,7 @@ RSpec.configure do |config|
     spec.run
 
     DB[:que_jobs].delete
+    DB[:que_listeners].delete
     Que.mode = :off
     Que.wake_interval = nil
     sleep_until { Que::Worker.workers.all?(&:sleeping?) }

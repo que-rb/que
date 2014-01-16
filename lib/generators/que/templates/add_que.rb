@@ -1,7 +1,7 @@
 class AddQue < ActiveRecord::Migration
   def self.up
     # The current version as of this migration's creation.
-    Que.migrate! :version => 2
+    Que.migrate! :version => 4
   end
 
   def self.down

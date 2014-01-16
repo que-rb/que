@@ -61,15 +61,15 @@ describe Que::Migrations do
   end
 
   it "should be able to recognize a que_jobs table created before the versioning system" do
-    DB.drop_table :que_jobs
+    Que.migrate! :version => 0
     DB.create_table(:que_jobs){serial :id} # Dummy Table.
     Que::Migrations.db_version.should == 1
     DB.drop_table(:que_jobs)
-    Que::Migrations.migrate!
+    Que.migrate!
   end
 
   it "should be able to honor the initial behavior of Que.create!" do
-    DB.drop_table :que_jobs
+    Que.migrate! :version => 0
     Que.create!
     DB.table_exists?(:que_jobs).should be true
     Que::Migrations.db_version.should == 1
