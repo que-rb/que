@@ -49,25 +49,6 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       sleep_until { DB[:que_jobs].empty? }
     end
 
-    it "should wake up a Worker after queueing a job in async mode, waiting for a transaction to commit if necessary" do
-      Que.mode = :async
-      sleep_until { Que::Worker.workers.all? &:sleeping? }
-
-      # Wakes a worker immediately when not in a transaction.
-      Que::Job.queue
-      sleep_until { Que::Worker.workers.all?(&:sleeping?) && DB[:que_jobs].empty? }
-
-      ActiveRecord::Base.transaction do
-        Que::Job.queue
-        Que::Worker.workers.each { |worker| worker.should be_sleeping }
-      end
-      sleep_until { Que::Worker.workers.all?(&:sleeping?) && DB[:que_jobs].empty? }
-
-      # Do nothing when queueing with a specific :run_at.
-      BlockJob.queue :run_at => Time.now
-      Que::Worker.workers.each { |worker| worker.should be_sleeping }
-    end
-
     it "should be able to tell when it's in an ActiveRecord transaction" do
       Que.adapter.should_not be_in_transaction
       ActiveRecord::Base.transaction do

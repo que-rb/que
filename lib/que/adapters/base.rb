@@ -18,13 +18,6 @@ module Que
         raise NotImplementedError
       end
 
-      # Called after a job is queued in async mode, to prompt a worker to
-      # wake up after the current transaction commits. Not all adapters will
-      # implement this.
-      def wake_worker_after_commit
-        false
-      end
-
       def execute(*args)
         checkout { |conn| conn.async_exec(*args) }
       end

@@ -56,7 +56,6 @@ module Que
           class_for(attrs[:job_class]).new(attrs).tap(&:_run)
         else
           values = Que.execute(:insert_job, attrs.values_at(:queue, :priority, :run_at, :job_class, :args)).first
-          Que.adapter.wake_worker_after_commit unless t
           new(values)
         end
       end
