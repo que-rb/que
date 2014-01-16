@@ -152,9 +152,6 @@ describe "Managing the Worker pool" do
     end
 
     it "then Que.wake_all! should wake up all workers" do
-      # This spec requires at least four connections.
-      Que.adapter = QUE_ADAPTERS[:connection_pool]
-
       Que.mode = :async
       sleep_until { Que::Worker.workers.all? &:sleeping? }
 
@@ -167,7 +164,7 @@ describe "Managing the Worker pool" do
 
       sleep_until { Que::Worker.workers.all? &:sleeping? }
       DB[:que_jobs].count.should be 0
-    end if QUE_ADAPTERS[:connection_pool]
+    end
 
     it "then Que.wake_all! should be thread-safe" do
       Que.mode = :async

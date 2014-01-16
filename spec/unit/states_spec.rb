@@ -2,8 +2,6 @@ require 'spec_helper'
 
 describe Que, '.worker_states' do
   it "should return a list of the job types in the queue, their counts and the number of each currently running" do
-    Que.adapter = QUE_ADAPTERS[:connection_pool]
-
     class WorkerStateJob < BlockJob
       def run
         $pid = Que.execute("select pg_backend_pid()").first['pg_backend_pid']
@@ -46,5 +44,5 @@ describe Que, '.worker_states' do
       state[:pg_transaction_started_at].should == nil
       state[:pg_waiting_on_lock].should == 'f'
     end
-  end if QUE_ADAPTERS[:connection_pool]
+  end
 end

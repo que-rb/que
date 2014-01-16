@@ -1,12 +1,6 @@
 require 'spec_helper'
-require 'connection_pool'
-
-Que.connection = QUE_SPEC_CONNECTION_POOL = ConnectionPool.new &NEW_PG_CONNECTION
-QUE_ADAPTERS[:connection_pool] = Que.adapter
 
 describe "Que using the ConnectionPool adapter" do
-  before { Que.adapter = QUE_ADAPTERS[:connection_pool] }
-
   it_behaves_like "a multi-threaded Que adapter"
 
   it "should be able to tell when it's already in a transaction" do

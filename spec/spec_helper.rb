@@ -3,6 +3,7 @@ require 'uri'
 require 'pg'
 require 'logger'
 require 'json'
+require 'connection_pool'
 
 Dir['./spec/support/**/*.rb'].sort.each &method(:require)
 
@@ -29,13 +30,14 @@ end
 # Adapters track which statements have been prepared for their connections,
 # and if Que.connection= is called before each spec, we're constantly creating
 # new adapters and losing that information, which is bad. So instead, we hang
-# onto a few adapters and assign them using Que.adapter= as needed. The plain
-# pg adapter is the default.
+# onto a few adapters and assign them using Que.adapter= as needed. The
+# connection_pool adapter is the default.
 
 # Also, let Que initialize the adapter itself, to make sure that the
 # recognition logic works. Similar code can be found in the adapter specs.
-Que.connection = NEW_PG_CONNECTION.call
-QUE_ADAPTERS = {:pg => Que.adapter}
+
+Que.connection = QUE_SPEC_CONNECTION_POOL = ConnectionPool.new &NEW_PG_CONNECTION
+QUE_ADAPTERS = {:connection_pool => Que.adapter}
 
 
 
@@ -88,7 +90,7 @@ RSpec.configure do |config|
     stdout.info "Running spec: #{desc} @ #{line}" if ENV['LOG_SPEC']
 
     $logger.messages.clear
-    Que.adapter = QUE_ADAPTERS[:pg]
+    Que.adapter = QUE_ADAPTERS[:connection_pool]
 
     spec.run
 
