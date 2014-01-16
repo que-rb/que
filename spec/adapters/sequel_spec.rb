@@ -6,7 +6,7 @@ QUE_ADAPTERS[:sequel] = Que.adapter
 describe "Que using the Sequel adapter" do
   before { Que.adapter = QUE_ADAPTERS[:sequel] }
 
-  it_behaves_like "a multi-threaded Que adapter"
+  it_behaves_like "a Que adapter"
 
   it "should use the same connection that Sequel does" do
     begin

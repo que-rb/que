@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe "Que using the ConnectionPool adapter" do
-  it_behaves_like "a multi-threaded Que adapter"
+  it_behaves_like "a Que adapter"
 
   it "should be able to tell when it's already in a transaction" do
     Que.adapter.should_not be_in_transaction
