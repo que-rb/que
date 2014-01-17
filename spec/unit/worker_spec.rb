@@ -38,6 +38,48 @@ describe Que::Worker do
     end
   end
 
+  it "should pass a job's arguments to the run method and delete it from the database" do
+    ArgsJob.queue 1, 'two', {'three' => 3}
+    DB[:que_jobs].count.should be 1
+
+    job = ArgsJob.new(Que.execute("SELECT * FROM que_jobs").first)
+    @job_queue.insert(job)
+    sleep_until { @result_queue.to_a.count == 1 }
+
+    DB[:que_jobs].count.should be 0
+    $passed_args.should == [1, 'two', {'three' => 3}]
+  end
+
+  it "should make it easy to destroy the job within the same transaction as other changes" do
+    class DestroyJob < Que::Job
+      def run
+        destroy
+      end
+    end
+
+    DestroyJob.queue
+    DB[:que_jobs].count.should be 1
+
+    job = DestroyJob.new(Que.execute("SELECT * FROM que_jobs").first)
+    @job_queue.insert(job)
+    sleep_until { @result_queue.to_a.count == 1 }
+
+    DB[:que_jobs].count.should be 0
+  end
+
+  it "should make a job's argument hashes indifferently accessible" do
+    DB[:que_jobs].count.should be 0
+    ArgsJob.queue 1, 'two', {'array' => [{'number' => 3}]}
+    DB[:que_jobs].count.should be 1
+
+    job = ArgsJob.new(Que.execute("SELECT * FROM que_jobs").first)
+    @job_queue.insert(job)
+    sleep_until { @result_queue.to_a.count == 1 }
+
+    DB[:que_jobs].count.should be 0
+    $passed_args.last[:array].first[:number].should == 3
+  end
+
   describe "when an error is raised" do
     it "should not crash the worker" do
       job_1 = ErrorJob.new :priority => 1,
