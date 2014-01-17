@@ -129,5 +129,82 @@ describe Que::Worker do
         Que.error_handler = nil
       end
     end
+
+    it "should exponentially back off the job" do
+      ErrorJob.queue
+
+      run_jobs ErrorJob.new(Que.execute("SELECT * FROM que_jobs").first)
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].should be_within(3).of Time.now + 4
+
+      DB[:que_jobs].update :error_count => 5,
+                           :run_at      => Time.now - 60
+
+      run_jobs ErrorJob.new(Que.execute("SELECT * FROM que_jobs").first)
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 6
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].should be_within(3).of Time.now + 1299
+    end
+
+    it "should respect a custom retry interval" do
+      class RetryIntervalJob < ErrorJob
+        @retry_interval = 5
+      end
+
+      RetryIntervalJob.queue
+
+      run_jobs RetryIntervalJob.new(Que.execute("SELECT * FROM que_jobs").first)
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].should be_within(3).of Time.now + 5
+
+      DB[:que_jobs].update :error_count => 5,
+                           :run_at      => Time.now - 60
+
+      run_jobs RetryIntervalJob.new(Que.execute("SELECT * FROM que_jobs").first)
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 6
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].should be_within(3).of Time.now + 5
+    end
+
+    it "should respect a custom retry interval formula" do
+      class RetryIntervalFormulaJob < ErrorJob
+        @retry_interval = proc { |count| count * 10 }
+      end
+
+      RetryIntervalFormulaJob.queue
+
+      run_jobs RetryIntervalFormulaJob.new(Que.execute("SELECT * FROM que_jobs").first)
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].should be_within(3).of Time.now + 10
+
+      DB[:que_jobs].update :error_count => 5,
+                           :run_at      => Time.now - 60
+
+      run_jobs RetryIntervalFormulaJob.new(Que.execute("SELECT * FROM que_jobs").first)
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 6
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].should be_within(3).of Time.now + 60
+    end
   end
 end
