@@ -18,7 +18,7 @@ module Que
   end
 
   class << self
-    attr_accessor :logger, :error_handler
+    attr_accessor :logger, :error_handler, :mode
     attr_writer :adapter, :log_formatter
 
     def adapter
@@ -102,11 +102,6 @@ module Que
       else
         object
       end
-    end
-
-    # Copy some of the Worker class' config methods here for convenience.
-    [:mode, :mode=, :worker_count, :worker_count=, :wake_interval, :wake_interval=, :wake!, :wake_all!].each do |meth|
-      define_method(meth) { |*args| Worker.send(meth, *args) }
     end
   end
 end

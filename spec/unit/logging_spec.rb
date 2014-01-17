@@ -17,14 +17,16 @@ describe "Logging" do
     begin
       Que.logger = nil
 
-      Que::Job.queue
-      worker = Que::Worker.new
-      sleep_until { worker.sleeping? }
+      pending
 
-      DB[:que_jobs].should be_empty
+      # Que::Job.queue
+      # worker = Que::Worker.new
+      # sleep_until { worker.sleeping? }
 
-      worker.stop
-      worker.wait_until_stopped
+      # DB[:que_jobs].should be_empty
+
+      # worker.stop
+      # worker.wait_until_stopped
     ensure
       Que.logger = $logger
     end

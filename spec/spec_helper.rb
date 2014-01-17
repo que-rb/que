@@ -98,9 +98,6 @@ RSpec.configure do |config|
 
     DB[:que_jobs].delete
     DB[:que_listeners].delete
-    Que.mode = :off
-    Que.wake_interval = nil
-    sleep_until { Que::Worker.workers.all?(&:sleeping?) }
 
     # A bit of lint: make sure that no advisory locks are left open.
     unless DB[:pg_locks].where(:locktype => 'advisory').empty?
