@@ -11,8 +11,17 @@ module Que
     def work_loop
       loop do
         job = @job_queue.shift
-        job._run
-        @result_queue.push job.attrs[:job_id]
+
+        begin
+          job._run
+        rescue => error
+          if Que.error_handler
+            # Don't let a problem with the error handler crash the work loop.
+            Que.error_handler.call(error) rescue nil
+          end
+        ensure
+          @result_queue.push job.attrs[:job_id]
+        end
       end
     end
   end
