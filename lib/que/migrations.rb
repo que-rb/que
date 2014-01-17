@@ -21,7 +21,7 @@ module Que
           end
 
           steps.each do |step|
-            sql = File.read("#{File.dirname(__FILE__)}/migrations/#{step}-#{direction}.sql")
+            sql = File.read("#{File.dirname(__FILE__)}/migrations/#{step}/#{direction}.sql")
             Que.execute(sql)
           end
 
