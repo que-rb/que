@@ -72,6 +72,13 @@ module Que
       AND   job_id   = $4::bigint
     }.freeze,
 
+    :register_listener => %{
+      INSERT INTO que_listeners
+      (pid, queue, worker_count, ruby_pid, ruby_hostname)
+      VALUES
+      (pg_backend_pid(), $1::text, $2::integer, $3::integer, $4::text);
+    }.freeze,
+
     :job_stats => %{
       SELECT queue,
              job_class,
