@@ -1,5 +1,15 @@
 module Que
   SQL = {
+    :lock_job => %{
+      SELECT queue, priority, run_at, job_id, job_class, args, error_count
+      FROM que_jobs
+      WHERE queue    = $1::text
+      AND   priority = $2::smallint
+      AND   run_at   = $3::timestamptz
+      AND   job_id   = $4::bigint
+      AND   pg_try_advisory_lock($4::bigint)
+    }.freeze,
+
     # Thanks to RhodiumToad in #postgresql for help with the job polling CTE.
     :poll_job => %{
       WITH RECURSIVE job AS (

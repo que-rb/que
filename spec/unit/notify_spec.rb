@@ -26,11 +26,11 @@ describe "An insertion into que_jobs" do
           pid.should == notify_pid
 
           json = JSON.load(payload)
+          json.keys.sort.should == %w(job_id priority queue run_at)
           json['job_id'].should == job[:job_id]
           json['queue'].should == job[:queue]
-          json['job_class'].should == 'Que::Job'
           json['priority'].should == 100
-          json['args'].should == []
+          Time.parse(json['run_at']).should be_within(3).of Time.now
         end
 
         conn.wait_for_notify(0.01).should be nil
@@ -64,11 +64,11 @@ describe "An insertion into que_jobs" do
           pid.should == notify_pid
 
           json = JSON.load(payload)
+          json.keys.sort.should == %w(job_id priority queue run_at)
           json['job_id'].should == job[:job_id]
           json['queue'].should == job[:queue]
-          json['job_class'].should == 'Que::Job'
           json['priority'].should == 100
-          json['args'].should == []
+          Time.parse(json['run_at']).should be_within(3).of Time.now
         end
 
         conn.wait_for_notify(0.01).should be nil
