@@ -36,10 +36,10 @@ module Que
 
           loop do
             connection.wait_for_notify(0.001) do |channel, pid, payload|
-              pk = JSON_MODULE.load(payload).values_at('queue', 'priority', 'run_at', 'job_id')
+              pk = Que.indifferentiate(JSON_MODULE.load(payload))
 
-              if job = Que.execute(:lock_job, pk).first
-                @job_queue.push(job)
+              if Que.execute("SELECT pg_try_advisory_lock($1)", [pk[:job_id].to_i]).first[:pg_try_advisory_lock] == 't'
+                @job_queue.push(pk)
               end
             end
 

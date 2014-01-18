@@ -71,6 +71,16 @@ describe Que::Worker do
     $passed_args.last[:array].first[:number].should == 3
   end
 
+  it "should skip a job without incident if passed the pk for a job that doesn't exist" do
+    DB[:que_jobs].count.should be 0
+    run_jobs :queue    => '',
+             :priority => 1,
+             :run_at   => Time.now,
+             :job_id   => 587648
+
+    @result_queue.to_a.should == [587648]
+  end
+
   it "should only take jobs that meet its priority requirement, if any"
 
   describe "when an error is raised" do
