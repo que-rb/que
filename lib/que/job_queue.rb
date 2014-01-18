@@ -1,15 +1,11 @@
 # Similar to the standard library's Queue class in terms of synchronizing
-# access, but keeps jobs in the order we want to work them. Also silently
-# discards the least important jobs when the queue reaches a maximum preset.
-
-# Assumes there may be many threads blocking on retrieving a job, and only one
-# thread that ever needs to insert one.
+# access, but keeps jobs in the order we want to work them. Assumes there's
+# many threads competing to retrieve jobs.
 
 module Que
   class JobQueue
-    def initialize(max = nil)
+    def initialize
       @array = []
-      @max   = max
       @mutex = Mutex.new
       @cv    = ConditionVariable.new
     end
@@ -21,11 +17,6 @@ module Que
         # At some point, for large queue sizes and small numbers of jobs to
         # insert, it may be worth investigating an insertion by binary search.
         @array.push(*jobs).sort_by! { |job| job.values_at(:priority, :run_at, :job_id) }
-
-        if @max && (excess = @array.count - @max) > 0
-          @array.pop(excess)
-        end
-
         @cv.signal
       end
     end

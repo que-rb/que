@@ -33,14 +33,6 @@ describe Que::JobQueue do
       @jq.push(@array.shuffle)
       @jq.to_a.should == @array
     end
-
-    it "should trim down to the maximum size (if any) by silently discarding the greatest items" do
-      @jq = Que::JobQueue.new(7)
-      @jq.push @array
-      @jq.to_a.should == @array[0..6]
-      @jq.push :priority => 5, :run_at => Time.now, :job_id => 9
-      @jq.to_a.should == @array[0..6]
-    end
   end
 
   describe "#shift" do
