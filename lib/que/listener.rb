@@ -50,6 +50,8 @@ module Que
           end
         ensure
           Que.execute "UNLISTEN *"
+          # Get rid of the remaining notifications before returning the connection to the pool.
+          {} while connection.notifies
           Que.execute "DELETE FROM que_listeners WHERE pid = $1", [pid]
         end
       end
