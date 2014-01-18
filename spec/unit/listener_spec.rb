@@ -54,6 +54,7 @@ describe Que::Listener do
   it "should receive notifications of new jobs, and immediately lock, work, and unlock them" do
     DB[:que_jobs].count.should be 0
     listener = Que::Listener.new
+    sleep_until { DB[:que_listeners].count == 1 }
 
     BlockJob.queue
     $q1.pop
