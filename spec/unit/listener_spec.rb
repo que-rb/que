@@ -69,4 +69,32 @@ describe Que::Listener do
 
     listener.stop
   end
+
+  it "should not work jobs that it receives that are already locked" do
+    DB[:que_jobs].count.should be 0
+    listener = Que::Listener.new
+    sleep_until { DB[:que_listeners].count == 1 }
+
+    id = nil
+    q1, q2 = Queue.new, Queue.new
+    t = Thread.new do
+      Que.adapter.checkout do
+        # NOTIFY won't propagate until transaction commits.
+        Que.execute "BEGIN"
+        Que::Job.queue
+        id = Que.execute("SELECT job_id FROM que_jobs LIMIT 1").first[:job_id].to_i
+        Que.execute "SELECT pg_advisory_lock($1)", [id]
+        Que.execute "COMMIT"
+        q1.push nil
+        q2.pop
+        Que.execute "SELECT pg_advisory_unlock($1)", [id]
+      end
+    end
+
+    q1.pop
+    listener.stop
+    q2.push nil
+
+    DB[:que_jobs].select_map(:job_id).should == [id]
+  end
 end
