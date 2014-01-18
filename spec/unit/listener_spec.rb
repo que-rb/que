@@ -4,7 +4,6 @@ describe Que::Listener do
   it "should exit on its own when informed to stop" do
     listener = Que::Listener.new
     listener.stop
-    listener.wait_until_stopped
   end
 
   it "should register its presence or absence in the que_listeners table upon connecting or disconnecting" do
@@ -19,7 +18,6 @@ describe Que::Listener do
     record[:queue].should         == ''
 
     listener.stop
-    listener.wait_until_stopped
 
     DB[:que_listeners].count.should be 0
   end
@@ -49,7 +47,6 @@ describe Que::Listener do
     record[:ruby_pid].should == Process.pid
 
     listener.stop
-    listener.wait_until_stopped
 
     DB[:que_listeners].count.should be 0
   end
@@ -70,6 +67,5 @@ describe Que::Listener do
     sleep_until { DB[:pg_locks].where(:locktype => 'advisory').count == 0 }
 
     listener.stop
-    listener.wait_until_stopped
   end
 end

@@ -17,10 +17,7 @@ module Que
 
     def stop
       @stop = true
-    end
-
-    def wait_until_stopped
-      sleep 0.0001 while @thread.status
+      @thread.join
     end
 
     private
