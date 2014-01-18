@@ -40,7 +40,7 @@ module Que
       SELECT 1 AS one
       FROM   que_jobs
       WHERE  queue    = $1::text
-      AND    priority = $2::integer
+      AND    priority = $2::smallint
       AND    run_at   = $3::timestamptz
       AND    job_id   = $4::bigint
     }.freeze,
@@ -51,7 +51,7 @@ module Que
           run_at      = now() + $2::integer * '1 second'::interval,
           last_error  = $3::text
       WHERE queue     = $4::text
-      AND   priority  = $5::integer
+      AND   priority  = $5::smallint
       AND   run_at    = $6::timestamptz
       AND   job_id    = $7::bigint
     }.freeze,
@@ -60,14 +60,14 @@ module Que
       INSERT INTO que_jobs
       (queue, priority, run_at, job_class, args)
       VALUES
-      (coalesce($1, '')::text, coalesce($2, 100)::integer, coalesce($3, 'now')::timestamptz, $4::text, coalesce($5, '[]')::json)
+      (coalesce($1, '')::text, coalesce($2, 100)::smallint, coalesce($3, 'now')::timestamptz, $4::text, coalesce($5, '[]')::json)
       RETURNING *
     }.freeze,
 
     :destroy_job => %{
       DELETE FROM que_jobs
       WHERE queue    = $1::text
-      AND   priority = $2::integer
+      AND   priority = $2::smallint
       AND   run_at   = $3::timestamptz
       AND   job_id   = $4::bigint
     }.freeze,
