@@ -1,5 +1,6 @@
 # Helper for testing threaded code.
-def sleep_until(timeout = 2)
+QUE_TEST_TIMEOUT ||= 2
+def sleep_until(timeout = QUE_TEST_TIMEOUT)
   deadline = Time.now + timeout
   loop do
     break if yield
