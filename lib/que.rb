@@ -1,14 +1,14 @@
 require 'socket' # For hostname
 
 module Que
-  autoload :Adapters,        'que/adapters/base'
-  autoload :Job,             'que/job'
-  autoload :Migrations,      'que/migrations'
-  autoload :SQL,             'que/sql'
-  autoload :SortedQueue,     'que/sorted_queue'
-  autoload :ThreadSafeArray, 'que/thread_safe_array'
-  autoload :Version,         'que/version'
-  autoload :Worker,          'que/worker'
+  autoload :Adapters,    'que/adapters/base'
+  autoload :Job,         'que/job'
+  autoload :JobQueue,    'que/job_queue'
+  autoload :Migrations,  'que/migrations'
+  autoload :ResultQueue, 'que/result_queue'
+  autoload :SQL,         'que/sql'
+  autoload :Version,     'que/version'
+  autoload :Worker,      'que/worker'
 
   begin
     require 'multi_json'

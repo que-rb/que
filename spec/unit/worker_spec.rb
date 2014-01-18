@@ -2,8 +2,8 @@ require 'spec_helper'
 
 describe Que::Worker do
   before do
-    @job_queue    = Que::SortedQueue.new
-    @result_queue = Que::ThreadSafeArray.new
+    @job_queue    = Que::JobQueue.new
+    @result_queue = Que::ResultQueue.new
 
     @worker = Que::Worker.new :job_queue    => @job_queue,
                               :result_queue => @result_queue
@@ -12,7 +12,7 @@ describe Que::Worker do
   def run_jobs(*jobs)
     jobs = jobs.flatten
     job_ids = jobs.map { |j| j.attrs[:job_id] }
-    @job_queue.insert(jobs)
+    @job_queue.push(jobs)
     sleep_until { @result_queue.to_a.sort == job_ids.sort }
   end
 
