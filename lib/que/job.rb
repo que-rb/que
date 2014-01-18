@@ -4,7 +4,7 @@ module Que
 
     def initialize(attrs)
       @attrs        = attrs
-      @attrs[:args] = Que.indifferentiate JSON_MODULE.load(@attrs[:args])
+      @attrs[:args] = Que.indifferentiate JSON_MODULE.load(@attrs[:args]) if @attrs[:args].is_a?(String)
     end
 
     # Subclasses should define their own run methods, but keep an empty one

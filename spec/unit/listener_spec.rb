@@ -53,4 +53,23 @@ describe Que::Listener do
 
     DB[:que_listeners].count.should be 0
   end
+
+  it "should receive notifications of new jobs, and immediately lock, work, and unlock them" do
+    DB[:que_jobs].count.should be 0
+    listener = Que::Listener.new
+
+    BlockJob.queue
+    $q1.pop
+
+    locks = DB[:pg_locks].where(:locktype => 'advisory').all
+    locks.count.should be 1
+    locks.first[:objid].should == DB[:que_jobs].get(:job_id)
+
+    $q2.push nil
+    sleep_until { DB[:que_jobs].count == 0 }
+    sleep_until { DB[:pg_locks].where(:locktype => 'advisory').count == 0 }
+
+    listener.stop
+    listener.wait_until_stopped
+  end
 end

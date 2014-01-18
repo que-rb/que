@@ -1,5 +1,7 @@
 module Que
   class Worker
+    attr_reader :thread
+
     def initialize(options)
       @job_queue    = options[:job_queue]
       @result_queue = options[:result_queue]

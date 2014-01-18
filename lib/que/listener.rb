@@ -1,6 +1,6 @@
 module Que
   class Listener
-    attr_reader :thread
+    attr_reader :thread, :workers
 
     def initialize(options = {})
       @queue_name   = options[:queue] || ''
@@ -26,19 +26,33 @@ module Que
     private
 
     def work_loop
-      Que.adapter.checkout do
+      Que.adapter.checkout do |connection|
         begin
           # A previous listener that didn't exit cleanly may have left behind
           # a bad listener record, so clean up before doing anything.
           Que.execute :clean_listeners
+
+          pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
+
+          Que.execute "LISTEN que_listener_#{pid}"
           Que.execute :register_listener, [@queue_name, @workers.count, Process.pid, Socket.gethostname]
 
           loop do
-            sleep 0.0001
+            connection.wait_for_notify(0.001) do |channel, pid, payload|
+              job = Que.indifferentiate(JSON_MODULE.load(payload))
+              Que.execute("SELECT pg_try_advisory_lock($1)", [job[:job_id].to_i]).first
+              @job_queue.push(job)
+            end
+
+            while id = @result_queue.shift
+              Que.execute "SELECT pg_advisory_unlock($1)", [id]
+            end
+
             break if @stop
           end
         ensure
-          Que.execute "DELETE FROM que_listeners WHERE pid = pg_backend_pid()"
+          Que.execute "UNLISTEN *"
+          Que.execute "DELETE FROM que_listeners WHERE pid = $1", [pid]
         end
       end
     end
