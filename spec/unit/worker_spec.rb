@@ -11,7 +11,7 @@ describe Que::Worker do
 
   def run_jobs(*jobs)
     jobs = jobs.flatten
-    job_ids = jobs.map { |j| j.attrs[:job_id] }
+    job_ids = jobs.map { |j| j[:job_id].to_i }
     @job_queue.push(jobs)
     sleep_until { @result_queue.to_a.sort == job_ids.sort }
   end
@@ -26,17 +26,12 @@ describe Que::Worker do
         end
       end
 
-      jobs = [1, 2, 3].map do |i|
-        WorkerJob.new :priority => i,
-                      :run_at   => Time.now,
-                      :job_id   => i,
-                      :args     => "[#{i}]"
-      end
-
-      run_jobs jobs.shuffle
+      [1, 2, 3].each { |i| WorkerJob.queue i, :priority => i }
+      job_ids = DB[:que_jobs].order_by(:priority).select_map(:job_id)
+      run_jobs Que.execute("SELECT * FROM que_jobs").shuffle
 
       $results.should == [1, 2, 3]
-      @result_queue.to_a.should == [1, 2, 3]
+      @result_queue.to_a.should == job_ids
     ensure
       $results = nil
     end
@@ -46,7 +41,7 @@ describe Que::Worker do
     ArgsJob.queue 1, 'two', {'three' => 3}
     DB[:que_jobs].count.should be 1
 
-    run_jobs ArgsJob.new(Que.execute("SELECT * FROM que_jobs").first)
+    run_jobs Que.execute("SELECT * FROM que_jobs").first
 
     DB[:que_jobs].count.should be 0
     $passed_args.should == [1, 'two', {'three' => 3}]
@@ -62,7 +57,7 @@ describe Que::Worker do
     DestroyJob.queue
     DB[:que_jobs].count.should be 1
 
-    run_jobs DestroyJob.new(Que.execute("SELECT * FROM que_jobs").first)
+    run_jobs Que.execute("SELECT * FROM que_jobs").first
     DB[:que_jobs].count.should be 0
   end
 
@@ -71,24 +66,18 @@ describe Que::Worker do
     ArgsJob.queue 1, 'two', {'array' => [{'number' => 3}]}
     DB[:que_jobs].count.should be 1
 
-    run_jobs ArgsJob.new(Que.execute("SELECT * FROM que_jobs").first)
+    run_jobs Que.execute("SELECT * FROM que_jobs").first
     $passed_args.last[:array].first[:number].should == 3
   end
 
   describe "when an error is raised" do
     it "should not crash the worker" do
-      job_1 = ErrorJob.new :priority => 1,
-                           :run_at   => Time.now,
-                           :job_id   => 1,
-                           :args     => '[]'
+      ErrorJob.queue :priority => 1
+      Que::Job.queue :priority => 2
 
-      job_2 = Que::Job.new :priority => 2,
-                           :run_at   => Time.now,
-                           :job_id   => 2,
-                           :args     => '[]'
-
-      run_jobs job_1, job_2
-      @result_queue.to_a.should == [1, 2]
+      job_ids = DB[:que_jobs].order_by(:priority).select_map(:job_id)
+      run_jobs Que.execute("SELECT * FROM que_jobs")
+      @result_queue.to_a.should == job_ids
     end
 
     it "should pass it to the error handler" do
@@ -96,16 +85,13 @@ describe Que::Worker do
         error = nil
         Que.error_handler = proc { |e| error = e }
 
-        job = ErrorJob.new :priority => 1,
-                           :run_at   => Time.now,
-                           :job_id   => 1,
-                           :args     => '[]'
+        ErrorJob.queue :priority => 1
 
-        run_jobs job
-      ensure
+        run_jobs Que.execute("SELECT * FROM que_jobs")
+
         error.should be_an_instance_of RuntimeError
         error.message.should == "ErrorJob!"
-
+      ensure
         Que.error_handler = nil
       end
     end
@@ -114,17 +100,10 @@ describe Que::Worker do
       begin
         Que.error_handler = proc { |e| raise "Error handler error!" }
 
-        job_1 = ErrorJob.new :priority => 1,
-                             :run_at   => Time.now,
-                             :job_id   => 1,
-                             :args     => '[]'
+        ErrorJob.queue :priority => 1
+        Que::Job.queue :priority => 2
 
-        job_2 = Que::Job.new :priority => 2,
-                             :run_at   => Time.now,
-                             :job_id   => 2,
-                             :args     => '[]'
-
-        run_jobs [job_1, job_2].shuffle
+        run_jobs Que.execute("SELECT * FROM que_jobs")
       ensure
         Que.error_handler = nil
       end
@@ -133,7 +112,7 @@ describe Que::Worker do
     it "should exponentially back off the job" do
       ErrorJob.queue
 
-      run_jobs ErrorJob.new(Que.execute("SELECT * FROM que_jobs").first)
+      run_jobs Que.execute("SELECT * FROM que_jobs")
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
@@ -144,7 +123,7 @@ describe Que::Worker do
       DB[:que_jobs].update :error_count => 5,
                            :run_at      => Time.now - 60
 
-      run_jobs ErrorJob.new(Que.execute("SELECT * FROM que_jobs").first)
+      run_jobs Que.execute("SELECT * FROM que_jobs")
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
@@ -160,7 +139,7 @@ describe Que::Worker do
 
       RetryIntervalJob.queue
 
-      run_jobs RetryIntervalJob.new(Que.execute("SELECT * FROM que_jobs").first)
+      run_jobs Que.execute("SELECT * FROM que_jobs")
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
@@ -171,7 +150,7 @@ describe Que::Worker do
       DB[:que_jobs].update :error_count => 5,
                            :run_at      => Time.now - 60
 
-      run_jobs RetryIntervalJob.new(Que.execute("SELECT * FROM que_jobs").first)
+      run_jobs Que.execute("SELECT * FROM que_jobs")
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
@@ -187,7 +166,7 @@ describe Que::Worker do
 
       RetryIntervalFormulaJob.queue
 
-      run_jobs RetryIntervalFormulaJob.new(Que.execute("SELECT * FROM que_jobs").first)
+      run_jobs Que.execute("SELECT * FROM que_jobs")
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
@@ -198,13 +177,25 @@ describe Que::Worker do
       DB[:que_jobs].update :error_count => 5,
                            :run_at      => Time.now - 60
 
-      run_jobs RetryIntervalFormulaJob.new(Que.execute("SELECT * FROM que_jobs").first)
+      run_jobs Que.execute("SELECT * FROM que_jobs")
 
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 6
       job[:last_error].should =~ /\AErrorJob!\n/
       job[:run_at].should be_within(3).of Time.now + 60
+    end
+
+    it "should throw an error properly if there's no corresponding job class" do
+      DB[:que_jobs].insert :job_class => "NonexistentClass"
+
+      run_jobs Que.execute("SELECT * FROM que_jobs")
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      job[:last_error].should =~ /uninitialized constant:? NonexistentClass/
+      job[:run_at].should be_within(3).of Time.now + 4
     end
   end
 end

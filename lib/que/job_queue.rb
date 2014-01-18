@@ -14,13 +14,13 @@ module Que
       @cv    = ConditionVariable.new
     end
 
-    def push(*items)
-      items.flatten!
+    def push(*jobs)
+      jobs.flatten!
 
       @mutex.synchronize do
-        # At some point, for large queue sizes and small numbers of items to
+        # At some point, for large queue sizes and small numbers of jobs to
         # insert, it may be worth investigating an insertion by binary search.
-        @array.push(*items).sort!
+        @array.push(*jobs).sort_by! { |job| job.values_at(:priority, :run_at, :job_id) }
 
         if @max && (excess = @array.count - @max) > 0
           @array.pop(excess)

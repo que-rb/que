@@ -17,11 +17,6 @@ module Que
       destroy unless @destroyed
     end
 
-    # Sort jobs by their priority, run_at time, and job_id in that order.
-    def <=>(other)
-      attrs.values_at(:priority, :run_at, :job_id) <=> other.attrs.values_at(:priority, :run_at, :job_id)
-    end
-
     private
 
     def destroy
@@ -64,8 +59,6 @@ module Que
           new(values)
         end
       end
-
-      private
 
       def class_for(string)
         string.split('::').inject(Object, &:const_get)

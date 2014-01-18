@@ -3,61 +3,63 @@ require 'spec_helper'
 describe Que::JobQueue do
   before do
     @jq = Que::JobQueue.new
+
+    older = Time.now - 50
+    newer = Time.now
+
+    @array = [
+      {:priority => 1, :run_at => older, :job_id => 1},
+      {:priority => 1, :run_at => older, :job_id => 2},
+      {:priority => 1, :run_at => newer, :job_id => 3},
+      {:priority => 1, :run_at => newer, :job_id => 4},
+      {:priority => 2, :run_at => older, :job_id => 5},
+      {:priority => 2, :run_at => older, :job_id => 6},
+      {:priority => 2, :run_at => newer, :job_id => 7},
+      {:priority => 2, :run_at => newer, :job_id => 8}
+    ]
   end
 
   describe "#push" do
     it "should add an item and retain the sort order" do
-      @jq.to_a.should == []
-      @jq.push 4
-      @jq.to_a.should == [4]
-      @jq.push 3
-      @jq.to_a.should == [3, 4]
-      @jq.push 6
-      @jq.to_a.should == [3, 4, 6]
-      @jq.push 5
-      @jq.to_a.should == [3, 4, 5, 6]
-      @jq.push 4
-      @jq.to_a.should == [3, 4, 4, 5, 6]
+      ids = []
+      @array.shuffle.each do |job|
+        @jq.push(job)
+        ids << job[:job_id]
+        @jq.to_a.map{|j| j[:job_id]}.should == ids.sort
+      end
     end
 
     it "should be able to add many items at once" do
-      @jq.push 0, 1
-      items = (2..10).to_a.shuffle
-      @jq.push(items)
-      @jq.to_a.should == (0..10).to_a
+      @jq.push(@array.shuffle)
+      @jq.to_a.should == @array
     end
 
-    describe "when the queue is already at its maximum size" do
-      before do
-        @jq = Que::JobQueue.new(20)
-      end
-
-      it "should trim down to the maximum size by discarding the greatest items" do
-        @jq.push (1..21).to_a
-        @jq.to_a.should == (1..20).to_a
-        @jq.push 0
-        @jq.to_a.should == (0..19).to_a
-      end
+    it "should trim down to the maximum size (if any) by silently discarding the greatest items" do
+      @jq = Que::JobQueue.new(7)
+      @jq.push @array
+      @jq.to_a.should == @array[0..6]
+      @jq.push :priority => 5, :run_at => Time.now, :job_id => 9
+      @jq.to_a.should == @array[0..6]
     end
   end
 
   describe "#shift" do
     it "should return the lowest item by sort order" do
-      @jq.push (1..20).to_a
-      @jq.shift.should == 1
-      @jq.to_a.should == (2..20).to_a
-      @jq.shift.should == 2
-      @jq.to_a.should == (3..20).to_a
+      @jq.push @array
+      @jq.shift[:job_id].should == 1
+      @jq.to_a.should == @array[1..7]
+      @jq.shift[:job_id].should == 2
+      @jq.to_a.should == @array[2..7]
     end
 
     it "should block for multiple threads when the queue is empty" do
-      threads = 4.times.map { Thread.new { Thread.current[:item] = @jq.shift } }
+      threads = 4.times.map { Thread.new { Thread.current[:id] = @jq.shift[:job_id] } }
 
       sleep_until { threads.all? { |t| t.status == 'sleep' } }
-      @jq.push (1..4).to_a
+      @jq.push @array
       sleep_until { threads.all? { |t| t.status == false } }
 
-      threads.map{|t| t[:item]}.sort.should == (1..4).to_a
+      threads.map{|t| t[:id]}.sort.should == (1..4).to_a
     end
   end
 end

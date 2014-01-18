@@ -10,18 +10,17 @@ module Que
 
     def work_loop
       loop do
-        job = @job_queue.shift
-
         begin
-          job._run
+          job   = @job_queue.shift
+          klass = Job.class_for(job[:job_class])
+          klass.new(job)._run
         rescue => error
           begin
-            attrs    = job.attrs
-            count    = attrs[:error_count].to_i + 1
-            interval = job.class.retry_interval || Job.retry_interval
+            count    = job[:error_count].to_i + 1
+            interval = (klass.retry_interval if klass) || Job.retry_interval
             delay    = interval.respond_to?(:call) ? interval.call(count) : interval
             message  = "#{error.message}\n#{error.backtrace.join("\n")}"
-            Que.execute :set_error, [count, delay, message] + attrs.values_at(:queue, :priority, :run_at, :job_id)
+            Que.execute :set_error, [count, delay, message] + job.values_at(:queue, :priority, :run_at, :job_id)
           rescue
             # If we can't reach the database for some reason, too bad, but
             # don't let it crash the work loop.
@@ -32,7 +31,7 @@ module Que
             Que.error_handler.call(error) rescue nil
           end
         ensure
-          @result_queue.push job.attrs[:job_id]
+          @result_queue.push job[:job_id].to_i
         end
       end
     end
