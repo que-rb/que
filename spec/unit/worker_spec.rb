@@ -10,6 +10,7 @@ describe Que::Worker do
   end
 
   def run_jobs(*jobs)
+    {} while @result_queue.shift # Clear result queue.
     jobs = jobs.flatten
     job_ids = jobs.map { |j| j[:job_id].to_i }
     @job_queue.push(jobs)
