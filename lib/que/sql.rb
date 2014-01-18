@@ -107,5 +107,5 @@ module Que
         WHERE locktype = 'advisory'
       ) pg USING (job_id)
     }.freeze
-  }
+  }.freeze
 end
