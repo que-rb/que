@@ -17,7 +17,7 @@ describe "Logging" do
     begin
       Que.logger = nil
 
-      Que::Job.queue
+      Que::Job.enqueue
       worker = Que::Worker.new
       sleep_until { worker.sleeping? }
 

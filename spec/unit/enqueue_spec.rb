@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-describe Que::Job, '.queue' do
+describe Que::Job, '.enqueue' do
   it "should be able to queue a job" do
     DB[:que_jobs].count.should be 0
-    result = Que::Job.queue
+    result = Que::Job.enqueue
     DB[:que_jobs].count.should be 1
 
     result.should be_an_instance_of Que::Job
@@ -19,9 +19,15 @@ describe Que::Job, '.queue' do
     JSON.load(job[:args]).should == []
   end
 
+  it "should be aliased to .queue" do
+    DB[:que_jobs].count.should be 0
+    Que::Job.queue
+    DB[:que_jobs].count.should be 1
+  end
+
   it "should be able to queue a job with arguments" do
     DB[:que_jobs].count.should be 0
-    Que::Job.queue 1, 'two'
+    Que::Job.enqueue 1, 'two'
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
@@ -34,7 +40,7 @@ describe Que::Job, '.queue' do
 
   it "should be able to queue a job with complex arguments" do
     DB[:que_jobs].count.should be 0
-    Que::Job.queue 1, 'two', :string => "string",
+    Que::Job.enqueue 1, 'two', :string => "string",
                              :integer => 5,
                              :array => [1, "two", {:three => 3}],
                              :hash => {:one => 1, :two => 'two', :three => [3]}
@@ -60,7 +66,7 @@ describe Que::Job, '.queue' do
 
   it "should be able to queue a job with a specific time to run" do
     DB[:que_jobs].count.should be 0
-    Que::Job.queue 1, :run_at => Time.now + 60
+    Que::Job.enqueue 1, :run_at => Time.now + 60
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
@@ -73,7 +79,7 @@ describe Que::Job, '.queue' do
 
   it "should be able to queue a job with a specific priority" do
     DB[:que_jobs].count.should be 0
-    Que::Job.queue 1, :priority => 4
+    Que::Job.enqueue 1, :priority => 4
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
@@ -86,7 +92,7 @@ describe Que::Job, '.queue' do
 
   it "should be able to queue a job with queueing options in addition to argument options" do
     DB[:que_jobs].count.should be 0
-    Que::Job.queue 1, :string => "string", :run_at => Time.now + 60, :priority => 4
+    Que::Job.enqueue 1, :string => "string", :run_at => Time.now + 60, :priority => 4
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
@@ -103,8 +109,8 @@ describe Que::Job, '.queue' do
     end
 
     DB[:que_jobs].count.should be 0
-    DefaultPriorityJob.queue 1
-    DefaultPriorityJob.queue 1, :priority => 4
+    DefaultPriorityJob.enqueue 1
+    DefaultPriorityJob.enqueue 1, :priority => 4
     DB[:que_jobs].count.should be 2
 
     first, second = DB[:que_jobs].order(:job_id).all
@@ -128,8 +134,8 @@ describe Que::Job, '.queue' do
     end
 
     DB[:que_jobs].count.should be 0
-    DefaultRunAtJob.queue 1
-    DefaultRunAtJob.queue 1, :run_at => Time.now + 30
+    DefaultRunAtJob.enqueue 1
+    DefaultRunAtJob.enqueue 1, :run_at => Time.now + 30
     DB[:que_jobs].count.should be 2
 
     first, second = DB[:que_jobs].order(:job_id).all
@@ -153,11 +159,11 @@ describe Que::Job, '.queue' do
     end
 
     DB[:que_jobs].count.should be 0
-    NamedQueueJob.queue 1
-    NamedQueueJob.queue 1, :queue => 'my_queue_2'
-    NamedQueueJob.queue 1, :queue => :my_queue_2
-    NamedQueueJob.queue 1, :queue => ''
-    NamedQueueJob.queue 1, :queue => nil
+    NamedQueueJob.enqueue 1
+    NamedQueueJob.enqueue 1, :queue => 'my_queue_2'
+    NamedQueueJob.enqueue 1, :queue => :my_queue_2
+    NamedQueueJob.enqueue 1, :queue => ''
+    NamedQueueJob.enqueue 1, :queue => nil
     DB[:que_jobs].count.should be 5
 
     first, second, third, fourth, fifth = DB[:que_jobs].order(:job_id).select_map(:queue)

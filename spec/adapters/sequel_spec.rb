@@ -17,7 +17,7 @@ describe "Que using the Sequel adapter" do
         end
       end
 
-      SequelJob.queue
+      SequelJob.enqueue
       Que::Job.work
 
       $pid1.should == $pid2
@@ -31,17 +31,17 @@ describe "Que using the Sequel adapter" do
     sleep_until { Que::Worker.workers.all? &:sleeping? }
 
     # Wakes a worker immediately when not in a transaction.
-    Que::Job.queue
+    Que::Job.enqueue
     sleep_until { Que::Worker.workers.all?(&:sleeping?) && DB[:que_jobs].empty? }
 
     SEQUEL_ADAPTER_DB.transaction do
-      Que::Job.queue
+      Que::Job.enqueue
       Que::Worker.workers.each { |worker| worker.should be_sleeping }
     end
     sleep_until { Que::Worker.workers.all?(&:sleeping?) && DB[:que_jobs].empty? }
 
     # Do nothing when queueing with a specific :run_at.
-    BlockJob.queue :run_at => Time.now
+    BlockJob.enqueue :run_at => Time.now
     Que::Worker.workers.each { |worker| worker.should be_sleeping }
   end
 

@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Que::Job, '.work' do
   it "should pass a job's arguments to the run method and delete it from the database" do
-    ArgsJob.queue 1, 'two', {'three' => 3}
+    ArgsJob.enqueue 1, 'two', {'three' => 3}
     DB[:que_jobs].count.should be 1
 
     result = Que::Job.work
@@ -14,8 +14,8 @@ describe Que::Job, '.work' do
   end
 
   it "should default to only working jobs without a named queue" do
-    Que::Job.queue 1, :queue => 'other_queue'
-    Que::Job.queue 2
+    Que::Job.enqueue 1, :queue => 'other_queue'
+    Que::Job.enqueue 2
 
     result = Que::Job.work
     result[:event].should == :job_worked
@@ -26,9 +26,9 @@ describe Que::Job, '.work' do
   end
 
   it "should accept the name of a single queue to pull jobs from" do
-    Que::Job.queue 1, :queue => 'other_queue'
-    Que::Job.queue 2, :queue => 'other_queue'
-    Que::Job.queue 3
+    Que::Job.enqueue 1, :queue => 'other_queue'
+    Que::Job.enqueue 2, :queue => 'other_queue'
+    Que::Job.enqueue 3
 
     result = Que::Job.work(:other_queue)
     result[:event].should == :job_worked
@@ -44,7 +44,7 @@ describe Que::Job, '.work' do
 
   it "should make a job's argument hashes indifferently accessible" do
     DB[:que_jobs].count.should be 0
-    ArgsJob.queue 1, 'two', {'array' => [{'number' => 3}]}
+    ArgsJob.enqueue 1, 'two', {'array' => [{'number' => 3}]}
     DB[:que_jobs].count.should be 1
 
     result = Que::Job.work
@@ -62,7 +62,7 @@ describe Que::Job, '.work' do
 
   it "should prefer a job with a higher priority" do
     # 1 is highest priority.
-    [5, 4, 3, 2, 1, 2, 3, 4, 5].map{|p| Que::Job.queue :priority => p}
+    [5, 4, 3, 2, 1, 2, 3, 4, 5].map{|p| Que::Job.enqueue :priority => p}
     DB[:que_jobs].order(:job_id).select_map(:priority).should == [5, 4, 3, 2, 1, 2, 3, 4, 5]
 
     result = Que::Job.work
@@ -72,9 +72,9 @@ describe Que::Job, '.work' do
   end
 
   it "should prefer a job that was scheduled to run longer ago when priorities are equal" do
-    Que::Job.queue :run_at => Time.now - 30
-    Que::Job.queue :run_at => Time.now - 60
-    Que::Job.queue :run_at => Time.now - 30
+    Que::Job.enqueue :run_at => Time.now - 30
+    Que::Job.enqueue :run_at => Time.now - 60
+    Que::Job.enqueue :run_at => Time.now - 30
 
     recent1, old, recent2 = DB[:que_jobs].order(:job_id).select_map(:run_at)
 
@@ -86,9 +86,9 @@ describe Que::Job, '.work' do
 
   it "should prefer a job that was queued earlier when priorities and run_ats are equal" do
     run_at = Time.now - 30
-    Que::Job.queue :run_at => run_at
-    Que::Job.queue :run_at => run_at
-    Que::Job.queue :run_at => run_at
+    Que::Job.enqueue :run_at => run_at
+    Que::Job.enqueue :run_at => run_at
+    Que::Job.enqueue :run_at => run_at
 
     first, second, third = DB[:que_jobs].select_order_map(:job_id)
 
@@ -99,9 +99,9 @@ describe Que::Job, '.work' do
   end
 
   it "should only work a job whose scheduled time to run has passed" do
-    Que::Job.queue :run_at => Time.now + 30
-    Que::Job.queue :run_at => Time.now - 30
-    Que::Job.queue :run_at => Time.now + 30
+    Que::Job.enqueue :run_at => Time.now + 30
+    Que::Job.enqueue :run_at => Time.now - 30
+    Que::Job.enqueue :run_at => Time.now + 30
 
     future1, past, future2 = DB[:que_jobs].order(:job_id).select_map(:run_at)
 
@@ -113,7 +113,7 @@ describe Que::Job, '.work' do
   end
 
   it "should lock the job it selects" do
-    BlockJob.queue
+    BlockJob.enqueue
     id = DB[:que_jobs].get(:job_id)
     thread = Thread.new { Que::Job.work }
 
@@ -125,9 +125,9 @@ describe Que::Job, '.work' do
   end
 
   it "should skip jobs that are advisory-locked" do
-    Que::Job.queue :priority => 2
-    Que::Job.queue :priority => 1
-    Que::Job.queue :priority => 3
+    Que::Job.enqueue :priority => 2
+    Que::Job.enqueue :priority => 1
+    Que::Job.enqueue :priority => 3
     id = DB[:que_jobs].where(:priority => 1).get(:job_id)
 
     begin
@@ -162,7 +162,7 @@ describe Que::Job, '.work' do
     end
 
     $job_spec_result = []
-    SubClassJob.queue
+    SubClassJob.enqueue
     DB[:que_jobs].select_map(:priority).should == [2]
     result = Que::Job.work
     result[:event].should == :job_worked
@@ -170,7 +170,7 @@ describe Que::Job, '.work' do
     $job_spec_result.should == [:sub]
 
     $job_spec_result = []
-    SubSubClassJob.queue
+    SubSubClassJob.enqueue
     DB[:que_jobs].select_map(:priority).should == [4]
     result = Que::Job.work
     result[:event].should == :job_worked
@@ -184,7 +184,7 @@ describe Que::Job, '.work' do
       end
     end
 
-    ModuleJobModule::ModuleJob.queue
+    ModuleJobModule::ModuleJob.enqueue
     DB[:que_jobs].get(:job_class).should == "ModuleJobModule::ModuleJob"
 
     result = Que::Job.work
@@ -199,7 +199,7 @@ describe Que::Job, '.work' do
       end
     end
 
-    DestroyJob.queue
+    DestroyJob.enqueue
     DB[:que_jobs].count.should be 1
     Que::Job.work
     DB[:que_jobs].count.should be 0
@@ -207,7 +207,7 @@ describe Que::Job, '.work' do
 
   describe "when encountering an error" do
     it "should exponentially back off the job" do
-      ErrorJob.queue
+      ErrorJob.enqueue
 
       result = Que::Job.work
       result[:event].should == :job_errored
@@ -240,7 +240,7 @@ describe Que::Job, '.work' do
         @retry_interval = 5
       end
 
-      RetryIntervalJob.queue
+      RetryIntervalJob.enqueue
 
       result = Que::Job.work
       result[:event].should == :job_errored
@@ -273,7 +273,7 @@ describe Que::Job, '.work' do
         @retry_interval = proc { |count| count * 10 }
       end
 
-      RetryIntervalFormulaJob.queue
+      RetryIntervalFormulaJob.enqueue
 
       result = Que::Job.work
       result[:event].should == :job_errored
@@ -306,7 +306,7 @@ describe Que::Job, '.work' do
         errors = []
         Que.error_handler = proc { |error| errors << error }
 
-        ErrorJob.queue
+        ErrorJob.enqueue
 
         result = Que::Job.work
         result[:event].should == :job_errored
@@ -325,7 +325,7 @@ describe Que::Job, '.work' do
     it "should not do anything if the error handler itelf throws an error" do
       begin
         Que.error_handler = proc { |error| raise "Another error!" }
-        ErrorJob.queue
+        ErrorJob.enqueue
 
         result = Que::Job.work
         result[:event].should == :job_errored

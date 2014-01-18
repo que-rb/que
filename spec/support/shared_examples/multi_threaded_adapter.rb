@@ -26,11 +26,11 @@ shared_examples "a multi-threaded Que adapter" do
   end
 
   it "should allow multiple workers to complete jobs simultaneously" do
-    BlockJob.queue
+    BlockJob.enqueue
     worker_1 = Que::Worker.new
     $q1.pop
 
-    Que::Job.queue
+    Que::Job.enqueue
     DB[:que_jobs].count.should be 2
 
     worker_2 = Que::Worker.new

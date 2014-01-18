@@ -40,7 +40,7 @@ task :safe_shutdown do
     end
   end
 
-  SafeJob.queue
+  SafeJob.enqueue
   Que.mode = :async
   $queue.pop
 

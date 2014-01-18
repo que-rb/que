@@ -6,7 +6,7 @@ shared_examples "a Que adapter" do
   end
 
   it "should be able to queue and work a job" do
-    Que::Job.queue
+    Que::Job.enqueue
     result = Que::Job.work
     result[:event].should == :job_worked
     result[:job][:job_class].should == 'Que::Job'

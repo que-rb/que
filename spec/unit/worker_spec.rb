@@ -3,8 +3,8 @@ require 'spec_helper'
 describe Que::Worker do
   it "should work jobs when started until there are none available" do
     begin
-      Que::Job.queue
-      Que::Job.queue
+      Que::Job.enqueue
+      Que::Job.enqueue
       DB[:que_jobs].count.should be 2
 
       @worker = Que::Worker.new
@@ -25,8 +25,8 @@ describe Que::Worker do
 
   it "should work jobs without a named queue by default" do
     begin
-      Que::Job.queue 1
-      Que::Job.queue 2, :queue => 'my_queue'
+      Que::Job.enqueue 1
+      Que::Job.enqueue 2, :queue => 'my_queue'
 
       @worker = Que::Worker.new
       sleep_until { @worker.sleeping? }
@@ -48,8 +48,8 @@ describe Que::Worker do
 
   it "should accept the name of a single queue to work jobs from" do
     begin
-      Que::Job.queue 1
-      Que::Job.queue 2, :queue => 'my_queue'
+      Que::Job.enqueue 1
+      Que::Job.enqueue 2, :queue => 'my_queue'
 
       @worker = Que::Worker.new(:my_queue)
       sleep_until { @worker.sleeping? }
@@ -74,8 +74,8 @@ describe Que::Worker do
       @worker = Que::Worker.new
       sleep_until { @worker.sleeping? }
 
-      Que::Job.queue
-      Que::Job.queue
+      Que::Job.enqueue
+      Que::Job.enqueue
       DB[:que_jobs].count.should be 2
 
       @worker.wake!.should be true
@@ -91,7 +91,7 @@ describe Que::Worker do
 
   it "#wake! should return falsy if the worker was already working" do
     begin
-      BlockJob.queue
+      BlockJob.enqueue
       @worker = Que::Worker.new
 
       $q1.pop
@@ -108,8 +108,8 @@ describe Que::Worker do
 
   it "should not be deterred by a job that raises an error" do
     begin
-      ErrorJob.queue :priority => 1
-      Que::Job.queue :priority => 5
+      ErrorJob.enqueue :priority => 1
+      Que::Job.enqueue :priority => 5
 
       @worker = Que::Worker.new
 
@@ -135,8 +135,8 @@ describe Que::Worker do
 
   it "should receive and respect a notification to stop down when it is working, after its current job completes" do
     begin
-      BlockJob.queue :priority => 1
-      Que::Job.queue :priority => 5
+      BlockJob.enqueue :priority => 1
+      Que::Job.enqueue :priority => 5
       DB[:que_jobs].count.should be 2
 
       @worker = Que::Worker.new

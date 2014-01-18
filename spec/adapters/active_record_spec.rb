@@ -22,7 +22,7 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
           end
         end
 
-        ActiveRecordJob.queue
+        ActiveRecordJob.enqueue
         Que::Job.work
 
         $pid1.should == $pid2
@@ -32,7 +32,7 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
     end
 
     it "should instantiate args as ActiveSupport::HashWithIndifferentAccess" do
-      ArgsJob.queue :param => 2
+      ArgsJob.enqueue :param => 2
       Que::Job.work
       $passed_args.first[:param].should == 2
       $passed_args.first.should be_an_instance_of ActiveSupport::HashWithIndifferentAccess
@@ -42,7 +42,7 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       Que.mode = :async
       sleep_until { Que::Worker.workers.all? &:sleeping? }
 
-      Que::Job.queue :run_at => 1.minute.ago
+      Que::Job.enqueue :run_at => 1.minute.ago
       DB[:que_jobs].get(:run_at).should be_within(3).of Time.now - 60
 
       Que.wake_interval = 0.005.seconds
@@ -54,17 +54,17 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       sleep_until { Que::Worker.workers.all? &:sleeping? }
 
       # Wakes a worker immediately when not in a transaction.
-      Que::Job.queue
+      Que::Job.enqueue
       sleep_until { Que::Worker.workers.all?(&:sleeping?) && DB[:que_jobs].empty? }
 
       ActiveRecord::Base.transaction do
-        Que::Job.queue
+        Que::Job.enqueue
         Que::Worker.workers.each { |worker| worker.should be_sleeping }
       end
       sleep_until { Que::Worker.workers.all?(&:sleeping?) && DB[:que_jobs].empty? }
 
       # Do nothing when queueing with a specific :run_at.
-      BlockJob.queue :run_at => Time.now
+      BlockJob.enqueue :run_at => Time.now
       Que::Worker.workers.each { |worker| worker.should be_sleeping }
     end
 

@@ -11,7 +11,7 @@ describe Que, '.worker_states' do
       end
     end
 
-    WorkerStateJob.queue :priority => 2
+    WorkerStateJob.enqueue :priority => 2
 
     # Ensure that the portion of the SQL query that accounts for bigint
     # job_ids functions correctly.

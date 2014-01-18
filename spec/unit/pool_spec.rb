@@ -19,7 +19,7 @@ describe "Managing the Worker pool" do
     it "should make jobs run in the same thread as they are queued" do
       Que.mode = :sync
 
-      ArgsJob.queue(5, :testing => "synchronous").should be_an_instance_of ArgsJob
+      ArgsJob.enqueue(5, :testing => "synchronous").should be_an_instance_of ArgsJob
       $passed_args.should == [5, {'testing' => "synchronous"}]
       DB[:que_jobs].count.should be 0
     end
@@ -27,7 +27,7 @@ describe "Managing the Worker pool" do
     it "should not affect jobs that are queued with specific run_ats" do
       Que.mode = :sync
 
-      ArgsJob.queue(5, :testing => "synchronous", :run_at => Time.now + 60)
+      ArgsJob.enqueue(5, :testing => "synchronous", :run_at => Time.now + 60)
       DB[:que_jobs].select_map(:job_class).should == ["ArgsJob"]
     end
   end
@@ -132,7 +132,7 @@ describe "Managing the Worker pool" do
       Que.mode = :async
       sleep_until { Que::Worker.workers.all? &:sleeping? }
 
-      BlockJob.queue
+      BlockJob.enqueue
       Que.wake!
 
       $q1.pop
@@ -158,7 +158,7 @@ describe "Managing the Worker pool" do
       Que.mode = :async
       sleep_until { Que::Worker.workers.all? &:sleeping? }
 
-      4.times { BlockJob.queue }
+      4.times { BlockJob.enqueue }
       Que.wake_all!
       4.times { $q1.pop }
 
@@ -179,14 +179,14 @@ describe "Managing the Worker pool" do
       Que.mode = :async
       sleep_until { Que::Worker.workers.all? &:sleeping? }
       Que.wake_interval = 0.01 # 10 ms
-      Que::Job.queue
+      Que::Job.enqueue
       sleep_until { DB[:que_jobs].count == 0 }
     end
 
     it "should work jobs in the queue defined by QUE_QUEUE" do
       begin
-        Que::Job.queue 1
-        Que::Job.queue 2, :queue => 'my_queue'
+        Que::Job.enqueue 1
+        Que::Job.enqueue 2, :queue => 'my_queue'
 
         ENV['QUE_QUEUE'] = 'my_queue'
 
