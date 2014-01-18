@@ -7,14 +7,18 @@ describe Que::Listener do
   end
 
   it "should register its presence or absence in the que_listeners table upon connecting or disconnecting" do
-    listener = Que::Listener.new
+    worker_count = rand(10) + 1
+
+    listener = Que::Listener.new(:worker_count => worker_count)
 
     sleep_until { DB[:que_listeners].count == 1 }
+
+    listener.workers.count.should == worker_count
 
     record = DB[:que_listeners].first
     record[:ruby_pid].should      == Process.pid
     record[:ruby_hostname].should == Socket.gethostname
-    record[:worker_count].should  == 4
+    record[:worker_count].should  == worker_count
     record[:queue].should         == ''
 
     listener.stop
@@ -51,50 +55,78 @@ describe Que::Listener do
     DB[:que_listeners].count.should be 0
   end
 
-  it "should receive notifications of new jobs, and immediately lock, work, and unlock them" do
-    DB[:que_jobs].count.should be 0
-    listener = Que::Listener.new
-    sleep_until { DB[:que_listeners].count == 1 }
+  it "should do batch polls for jobs on startup"
 
-    BlockJob.queue
-    $q1.pop
+  it "should do regular batch polls to catch jobs that fall through the cracks"
 
-    locks = DB[:pg_locks].where(:locktype => 'advisory').all
-    locks.count.should be 1
-    locks.first[:objid].should == DB[:que_jobs].get(:job_id)
+  it "should exclude jobs that it has already locked from its batch polling"
 
-    $q2.push nil
-    sleep_until { DB[:que_jobs].count == 0 }
-    sleep_until { DB[:pg_locks].where(:locktype => 'advisory').count == 0 }
+  it "should clear its queue of jobs when told to shut down"
 
-    listener.stop
-  end
+  it "should clear any advisory locks it has taken when told to shut down"
 
-  it "should not work jobs that it receives that are already locked" do
-    DB[:que_jobs].count.should be 0
-    listener = Que::Listener.new
-    sleep_until { DB[:que_listeners].count == 1 }
+  it "should respect a custom setting for wake_interval"
 
-    id = nil
-    q1, q2 = Queue.new, Queue.new
-    t = Thread.new do
-      Que.adapter.checkout do
-        # NOTIFY won't propagate until transaction commits.
-        Que.execute "BEGIN"
-        Que::Job.queue
-        id = Que.execute("SELECT job_id FROM que_jobs LIMIT 1").first[:job_id].to_i
-        Que.execute "SELECT pg_advisory_lock($1)", [id]
-        Que.execute "COMMIT"
-        q1.push nil
-        q2.pop
-        Que.execute "SELECT pg_advisory_unlock($1)", [id]
-      end
+  it "should respect a custom setting for queue_size"
+
+  it "should log what it's doing"
+
+  describe "when receiving a NOTIFY of a new job" do
+    it "should immediately lock, work, and unlock them" do
+      DB[:que_jobs].count.should be 0
+      listener = Que::Listener.new
+      sleep_until { DB[:que_listeners].count == 1 }
+
+      BlockJob.queue
+      $q1.pop
+
+      locks = DB[:pg_locks].where(:locktype => 'advisory').all
+      locks.count.should be 1
+      locks.first[:objid].should == DB[:que_jobs].get(:job_id)
+
+      $q2.push nil
+      sleep_until { DB[:que_jobs].count == 0 }
+      sleep_until { DB[:pg_locks].where(:locktype => 'advisory').count == 0 }
+
+      listener.stop
     end
 
-    q1.pop
-    listener.stop
-    q2.push nil
+    it "should not work jobs that are already locked" do
+      DB[:que_jobs].count.should be 0
+      listener = Que::Listener.new
+      sleep_until { DB[:que_listeners].count == 1 }
 
-    DB[:que_jobs].select_map(:job_id).should == [id]
+      id = nil
+      q1, q2 = Queue.new, Queue.new
+      t = Thread.new do
+        Que.adapter.checkout do
+          # NOTIFY won't propagate until transaction commits.
+          Que.execute "BEGIN"
+          Que::Job.queue
+          id = Que.execute("SELECT job_id FROM que_jobs LIMIT 1").first[:job_id].to_i
+          Que.execute "SELECT pg_advisory_lock($1)", [id]
+          Que.execute "COMMIT"
+          q1.push nil
+          q2.pop
+          Que.execute "SELECT pg_advisory_unlock($1)", [id]
+        end
+      end
+
+      q1.pop
+      listener.stop
+      q2.push nil
+
+      DB[:que_jobs].select_map(:job_id).should == [id]
+    end
+
+    it "should not lock the job if it has already been locked by the listener"
+
+    it "should not lock or work it if it is scheduled to be worked at a later date"
+
+    it "of low importance should not lock them or add them to the JobQueue if it is full"
+
+    it "of significant importance should lock and add them to the JobQueue and dequeue/unlock the least important ones to make room"
+
+    it "should log what it's doing"
   end
 end

@@ -71,6 +71,8 @@ describe Que::Worker do
     $passed_args.last[:array].first[:number].should == 3
   end
 
+  it "should only take jobs that meet its priority requirement, if any"
+
   describe "when an error is raised" do
     it "should not crash the worker" do
       ErrorJob.queue :priority => 1
