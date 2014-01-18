@@ -28,6 +28,9 @@ module Que
     def work_loop
       Que.adapter.checkout do
         begin
+          # A previous listener that didn't exit cleanly may have left behind
+          # a bad listener record, so clean up before doing anything.
+          Que.execute :clean_listeners
           Que.execute :register_listener, [@queue_name, @workers.count, Process.pid, Socket.gethostname]
 
           loop do

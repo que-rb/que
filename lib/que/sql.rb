@@ -72,6 +72,12 @@ module Que
       AND   job_id   = $4::bigint
     }.freeze,
 
+    :clean_listeners => %{
+      DELETE FROM que_listeners
+      WHERE pid = pg_backend_pid()
+      OR pid NOT IN (SELECT pid FROM pg_stat_activity)
+    }.freeze,
+
     :register_listener => %{
       INSERT INTO que_listeners
       (pid, queue, worker_count, ruby_pid, ruby_hostname)
