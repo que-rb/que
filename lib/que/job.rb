@@ -40,11 +40,11 @@ module Que
 
         attrs = {:job_class => to_s, :args => JSON_MODULE.dump(args)}
 
-        if t = run_at || @default_run_at && @default_run_at.call
+        if t = run_at || @run_at && @run_at.call || @default_run_at && @default_run_at.call
           attrs[:run_at] = t
         end
 
-        if p = priority || @default_priority
+        if p = priority || @priority || @default_priority
           attrs[:priority] = p
         end
 
