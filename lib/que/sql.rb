@@ -1,7 +1,7 @@
 module Que
   SQL = {
-    # Thanks to RhodiumToad in #postgresql for help with the job lock CTE.
-    :lock_job => %{
+    # Thanks to RhodiumToad in #postgresql for help with the job polling CTE.
+    :poll_job => %{
       WITH RECURSIVE job AS (
         SELECT (j).*, pg_try_advisory_lock((j).job_id) AS locked
         FROM (
