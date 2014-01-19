@@ -24,7 +24,7 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       #     end
       #   end
 
-      #   ActiveRecordJob.queue
+      #   ActiveRecordJob.enqueue
       #   Que::Job.work
 
       #   $pid1.should == $pid2
@@ -36,7 +36,7 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
     it "should instantiate args as ActiveSupport::HashWithIndifferentAccess" do
       pending
 
-      # ArgsJob.queue :param => 2
+      # ArgsJob.enqueue :param => 2
       # Que::Job.work
       # $passed_args.first[:param].should == 2
       # $passed_args.first.should be_an_instance_of ActiveSupport::HashWithIndifferentAccess
@@ -46,7 +46,7 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       # Que.mode = :async
       # sleep_until { Que::Worker.workers.all? &:sleeping? }
 
-      Que::Job.queue :run_at => 1.minute.ago
+      Que::Job.enqueue :run_at => 1.minute.ago
       DB[:que_jobs].get(:run_at).should be_within(3).of Time.now - 60
 
       pending

@@ -6,7 +6,7 @@ shared_examples "a Que adapter" do
   end
 
   it "should be able to queue a job" do
-    Que::Job.queue
+    Que::Job.enqueue
     DB[:que_jobs].select_map(:job_class).should == ['Que::Job']
   end
 
@@ -54,11 +54,11 @@ shared_examples "a Que adapter" do
   it "should allow multiple workers to complete jobs simultaneously" do
     pending
 
-    # BlockJob.queue
+    # BlockJob.enqueue
     # worker_1 = Que::Worker.new
     # $q1.pop
 
-    # Que::Job.queue
+    # Que::Job.enqueue
     # DB[:que_jobs].count.should be 2
 
     # worker_2 = Que::Worker.new

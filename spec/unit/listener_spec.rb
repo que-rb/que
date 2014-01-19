@@ -77,7 +77,7 @@ describe Que::Listener do
       listener = Que::Listener.new
       sleep_until { DB[:que_listeners].count == 1 }
 
-      BlockJob.queue
+      BlockJob.enqueue
       $q1.pop
 
       locks = DB[:pg_locks].where(:locktype => 'advisory').all
@@ -102,7 +102,7 @@ describe Que::Listener do
         Que.adapter.checkout do
           # NOTIFY won't propagate until transaction commits.
           Que.execute "BEGIN"
-          Que::Job.queue
+          Que::Job.enqueue
           id = Que.execute("SELECT job_id FROM que_jobs LIMIT 1").first[:job_id].to_i
           Que.execute "SELECT pg_advisory_lock($1)", [id]
           Que.execute "COMMIT"

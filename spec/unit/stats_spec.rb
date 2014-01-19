@@ -2,15 +2,15 @@ require 'spec_helper'
 
 describe Que, '.job_stats' do
   it "should return a list of the job types in the queue, their counts and the number of each currently running" do
-    BlockJob.queue
-    Que::Job.queue
+    BlockJob.enqueue
+    Que::Job.enqueue
 
     # Have to tweak the job_id to ensure that the portion of the SQL query
     # that accounts for bigint job_ids functions correctly.
     old = Time.now - 3600
     DB[:que_jobs].where(:job_class => "Que::Job").update(:job_id => 2**33, :error_count => 5, :run_at => old)
 
-    Que::Job.queue
+    Que::Job.enqueue
 
     begin
       DB.get{pg_advisory_lock(2**33)}

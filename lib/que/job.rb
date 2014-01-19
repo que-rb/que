@@ -8,7 +8,7 @@ module Que
     end
 
     # Subclasses should define their own run methods, but keep an empty one
-    # here so that Que::Job.queue can queue an empty job in testing.
+    # here so that Que::Job.enqueue can queue an empty job in testing.
     def run(*args)
     end
 
@@ -29,7 +29,7 @@ module Que
     class << self
       attr_reader :retry_interval
 
-      def queue(*args)
+      def enqueue(*args)
         if args.last.is_a?(Hash)
           options  = args.pop
           queue    = options.delete(:queue) || '' if options.key?(:queue)
@@ -40,11 +40,11 @@ module Que
 
         attrs = {:job_class => to_s, :args => JSON_MODULE.dump(args)}
 
-        if t = run_at || @default_run_at && @default_run_at.call
+        if t = run_at || @run_at && @run_at.call || @default_run_at && @default_run_at.call
           attrs[:run_at] = t
         end
 
-        if p = priority || @default_priority
+        if p = priority || @priority || @default_priority
           attrs[:priority] = p
         end
 
@@ -59,6 +59,8 @@ module Que
           new(values)
         end
       end
+
+      alias queue enqueue
 
       def class_for(string)
         string.split('::').inject(Object, &:const_get)

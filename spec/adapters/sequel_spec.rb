@@ -19,7 +19,7 @@ describe "Que using the Sequel adapter" do
     #     end
     #   end
 
-    #   SequelJob.queue
+    #   SequelJob.enqueue
     #   Que::Job.work
 
     #   $pid1.should == $pid2

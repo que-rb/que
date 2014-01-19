@@ -27,7 +27,7 @@ describe Que::Worker do
         end
       end
 
-      [1, 2, 3].each { |i| WorkerJob.queue i, :priority => i }
+      [1, 2, 3].each { |i| WorkerJob.enqueue i, :priority => i }
       job_ids = DB[:que_jobs].order_by(:priority).select_map(:job_id)
       run_jobs Que.execute("SELECT * FROM que_jobs").shuffle
 
@@ -39,7 +39,7 @@ describe Que::Worker do
   end
 
   it "should pass a job's arguments to the run method and delete it from the database" do
-    ArgsJob.queue 1, 'two', {'three' => 3}
+    ArgsJob.enqueue 1, 'two', {'three' => 3}
     DB[:que_jobs].count.should be 1
 
     run_jobs Que.execute("SELECT * FROM que_jobs").first
@@ -55,7 +55,7 @@ describe Que::Worker do
       end
     end
 
-    DestroyJob.queue
+    DestroyJob.enqueue
     DB[:que_jobs].count.should be 1
 
     run_jobs Que.execute("SELECT * FROM que_jobs").first
@@ -64,7 +64,7 @@ describe Que::Worker do
 
   it "should make a job's argument hashes indifferently accessible" do
     DB[:que_jobs].count.should be 0
-    ArgsJob.queue 1, 'two', {'array' => [{'number' => 3}]}
+    ArgsJob.enqueue 1, 'two', {'array' => [{'number' => 3}]}
     DB[:que_jobs].count.should be 1
 
     run_jobs Que.execute("SELECT * FROM que_jobs").first
@@ -85,8 +85,8 @@ describe Que::Worker do
 
   describe "when an error is raised" do
     it "should not crash the worker" do
-      ErrorJob.queue :priority => 1
-      Que::Job.queue :priority => 2
+      ErrorJob.enqueue :priority => 1
+      Que::Job.enqueue :priority => 2
 
       job_ids = DB[:que_jobs].order_by(:priority).select_map(:job_id)
       run_jobs Que.execute("SELECT * FROM que_jobs")
@@ -98,7 +98,7 @@ describe Que::Worker do
         error = nil
         Que.error_handler = proc { |e| error = e }
 
-        ErrorJob.queue :priority => 1
+        ErrorJob.enqueue :priority => 1
 
         run_jobs Que.execute("SELECT * FROM que_jobs")
 
@@ -113,8 +113,8 @@ describe Que::Worker do
       begin
         Que.error_handler = proc { |e| raise "Error handler error!" }
 
-        ErrorJob.queue :priority => 1
-        Que::Job.queue :priority => 2
+        ErrorJob.enqueue :priority => 1
+        Que::Job.enqueue :priority => 2
 
         run_jobs Que.execute("SELECT * FROM que_jobs")
       ensure
@@ -123,7 +123,7 @@ describe Que::Worker do
     end
 
     it "should exponentially back off the job" do
-      ErrorJob.queue
+      ErrorJob.enqueue
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 
@@ -150,7 +150,7 @@ describe Que::Worker do
         @retry_interval = 5
       end
 
-      RetryIntervalJob.queue
+      RetryIntervalJob.enqueue
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 
@@ -177,7 +177,7 @@ describe Que::Worker do
         @retry_interval = proc { |count| count * 10 }
       end
 
-      RetryIntervalFormulaJob.queue
+      RetryIntervalFormulaJob.enqueue
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 

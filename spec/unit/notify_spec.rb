@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe "An insertion into que_jobs" do
   it "should not fail if there are no listeners registered" do
-    Que::Job.queue
+    Que::Job.enqueue
     DB[:que_jobs].select_map(:job_class).should == ['Que::Job']
   end
 
@@ -18,7 +18,7 @@ describe "An insertion into que_jobs" do
         notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
         conn.async_exec "LISTEN que_listener_1"
 
-        Que::Job.queue
+        Que::Job.enqueue
         job = DB[:que_jobs].first
 
         conn.wait_for_notify do |channel, pid, payload|
@@ -52,11 +52,11 @@ describe "An insertion into que_jobs" do
         notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
         conn.async_exec "LISTEN que_listener_1"
 
-        Que::Job.queue
+        Que::Job.enqueue
         conn.wait_for_notify(0.01).should be nil
         DB[:que_jobs].delete
 
-        Que::Job.queue :queue => 'other_queue'
+        Que::Job.enqueue :queue => 'other_queue'
         job = DB[:que_jobs].first
 
         conn.wait_for_notify do |channel, pid, payload|
@@ -96,7 +96,7 @@ describe "An insertion into que_jobs" do
         notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
         conn.async_exec "LISTEN que_listener_1; LISTEN que_listener_2"
 
-        channels = 6.times.map { Que::Job.queue; conn.wait_for_notify }
+        channels = 6.times.map { Que::Job.enqueue; conn.wait_for_notify }
         channels.sort.should == ['que_listener_1'] * 2 + ['que_listener_2'] * 4
 
         conn.wait_for_notify(0.01).should be nil
