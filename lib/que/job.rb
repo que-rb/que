@@ -31,14 +31,15 @@ module Que
 
       def enqueue(*args)
         if args.last.is_a?(Hash)
-          options  = args.pop
-          queue    = options.delete(:queue) || '' if options.key?(:queue)
-          run_at   = options.delete(:run_at)
-          priority = options.delete(:priority)
+          options   = args.pop
+          queue     = options.delete(:queue) || '' if options.key?(:queue)
+          job_class = options.delete(:job_class)
+          run_at    = options.delete(:run_at)
+          priority  = options.delete(:priority)
           args << options if options.any?
         end
 
-        attrs = {:job_class => to_s, :args => JSON_MODULE.dump(args)}
+        attrs = {:job_class => job_class || to_s, :args => JSON_MODULE.dump(args)}
 
         if t = run_at || @run_at && @run_at.call || @default_run_at && @default_run_at.call
           attrs[:run_at] = t
