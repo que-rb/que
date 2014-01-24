@@ -40,6 +40,7 @@ describe Que::Migrations do
     Que::Migrations.db_version.should == Que::Migrations::CURRENT_VERSION
     Que::Migrations.migrate! :version => 0
     Que::Migrations.db_version.should == 0
+    Que.db_version.should == 0
     Que::Migrations.migrate!
     Que::Migrations.db_version.should == Que::Migrations::CURRENT_VERSION
 
