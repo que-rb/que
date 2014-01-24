@@ -4,7 +4,7 @@
 
 *   You can now check the current version of Que's database schema with `Que.db_version`.
 
-*   The method for enqueuing a job has been renamed from `MyJob.queue` has been renamed to `MyJob.enqueue`, since we were beginning to use the word 'queue' in a LOT of places. MyJob.queue still works, but it may be removed at some point.
+*   The method for enqueuing a job has been renamed from `MyJob.queue` to `MyJob.enqueue`, since we were beginning to use the word 'queue' in a LOT of places. `MyJob.queue` still works, but it may be removed at some point.
 
 *   The variables for setting the defaults for a given job class have been changed from `@default_priority` to `@priority` and `@default_run_at` to `@run_at`. The old variables still work, but like `Job.queue`, they may be removed at some point.
 
