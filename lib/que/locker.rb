@@ -1,5 +1,5 @@
 module Que
-  class Listener
+  class Locker
     attr_reader :thread, :workers
 
     def initialize(options = {})
@@ -25,14 +25,14 @@ module Que
     def work_loop
       Que.adapter.checkout do |connection|
         begin
-          # A previous listener that didn't exit cleanly may have left behind
-          # a bad listener record, so clean up before doing anything.
-          Que.execute :clean_listeners
+          # A previous locker that didn't exit cleanly may have left behind
+          # a bad locker record, so clean up before doing anything.
+          Que.execute :clean_lockers
 
           pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
 
-          Que.execute "LISTEN que_listener_#{pid}"
-          Que.execute :register_listener, [@queue_name, @workers.count, Process.pid, Socket.gethostname]
+          Que.execute "LISTEN que_locker_#{pid}"
+          Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname]
 
           loop do
             connection.wait_for_notify(0.001) do |channel, pid, payload|
@@ -53,7 +53,7 @@ module Que
           Que.execute "UNLISTEN *"
           # Get rid of the remaining notifications before returning the connection to the pool.
           {} while connection.notifies
-          Que.execute "DELETE FROM que_listeners WHERE pid = $1", [pid]
+          Que.execute "DELETE FROM que_lockers WHERE pid = $1", [pid]
         end
       end
     end

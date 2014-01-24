@@ -1,58 +1,58 @@
 require 'spec_helper'
 
-describe Que::Listener do
+describe Que::Locker do
   it "should exit on its own when informed to stop" do
-    listener = Que::Listener.new
-    listener.stop
+    locker = Que::Locker.new
+    locker.stop
   end
 
-  it "should register its presence or absence in the que_listeners table upon connecting or disconnecting" do
+  it "should register its presence or absence in the que_lockers table upon connecting or disconnecting" do
     worker_count = rand(10) + 1
 
-    listener = Que::Listener.new(:worker_count => worker_count)
+    locker = Que::Locker.new(:worker_count => worker_count)
 
-    sleep_until { DB[:que_listeners].count == 1 }
+    sleep_until { DB[:que_lockers].count == 1 }
 
-    listener.workers.count.should == worker_count
+    locker.workers.count.should == worker_count
 
-    record = DB[:que_listeners].first
+    record = DB[:que_lockers].first
     record[:ruby_pid].should      == Process.pid
     record[:ruby_hostname].should == Socket.gethostname
     record[:worker_count].should  == worker_count
     record[:queue].should         == ''
 
-    listener.stop
+    locker.stop
 
-    DB[:que_listeners].count.should be 0
+    DB[:que_lockers].count.should be 0
   end
 
-  it "should clear invalid listeners from the table when connecting" do
+  it "should clear invalid lockers from the table when connecting" do
     # Note that we assume that the connection we use to register the bogus
-    # listener here will be reused by the actual listener below, in order to
-    # spec the cleaning of listeners previously registered by the same
+    # locker here will be reused by the actual locker below, in order to
+    # spec the cleaning of lockers previously registered by the same
     # connection. This will have to be revisited if the behavior of
     # ConnectionPool (our default adapter) is ever changed.
-    Que.execute :register_listener, ['', 3, 0, 'blah1']
-    DB[:que_listeners].insert :pid           => 0,
-                              :ruby_pid      => 0,
-                              :ruby_hostname => 'blah2',
-                              :worker_count  => 4,
-                              :queue         => ''
+    Que.execute :register_locker, ['', 3, 0, 'blah1']
+    DB[:que_lockers].insert :pid           => 0,
+                            :ruby_pid      => 0,
+                            :ruby_hostname => 'blah2',
+                            :worker_count  => 4,
+                            :queue         => ''
 
-    DB[:que_listeners].count.should be 2
+    DB[:que_lockers].count.should be 2
 
-    pid = DB[:que_listeners].exclude(:pid => 0).get(:pid)
+    pid = DB[:que_lockers].exclude(:pid => 0).get(:pid)
 
-    listener = Que::Listener.new
-    sleep_until { DB[:que_listeners].count == 1 }
+    locker = Que::Locker.new
+    sleep_until { DB[:que_lockers].count == 1 }
 
-    record = DB[:que_listeners].first
+    record = DB[:que_lockers].first
     record[:pid].should == pid
     record[:ruby_pid].should == Process.pid
 
-    listener.stop
+    locker.stop
 
-    DB[:que_listeners].count.should be 0
+    DB[:que_lockers].count.should be 0
   end
 
   it "should do batch polls for jobs on startup"
@@ -74,8 +74,8 @@ describe Que::Listener do
   describe "when receiving a NOTIFY of a new job" do
     it "should immediately lock, work, and unlock them" do
       DB[:que_jobs].count.should be 0
-      listener = Que::Listener.new
-      sleep_until { DB[:que_listeners].count == 1 }
+      locker = Que::Locker.new
+      sleep_until { DB[:que_lockers].count == 1 }
 
       BlockJob.enqueue
       $q1.pop
@@ -88,13 +88,13 @@ describe Que::Listener do
       sleep_until { DB[:que_jobs].count == 0 }
       sleep_until { DB[:pg_locks].where(:locktype => 'advisory').count == 0 }
 
-      listener.stop
+      locker.stop
     end
 
     it "should not work jobs that are already locked" do
       DB[:que_jobs].count.should be 0
-      listener = Que::Listener.new
-      sleep_until { DB[:que_listeners].count == 1 }
+      locker = Que::Locker.new
+      sleep_until { DB[:que_lockers].count == 1 }
 
       id = nil
       q1, q2 = Queue.new, Queue.new
@@ -113,13 +113,13 @@ describe Que::Listener do
       end
 
       q1.pop
-      listener.stop
+      locker.stop
       q2.push nil
 
       DB[:que_jobs].select_map(:job_id).should == [id]
     end
 
-    it "should not lock the job if it has already been locked by the listener"
+    it "should not lock the job if it has already been locked by the locker"
 
     it "should not lock or work it if it is scheduled to be worked at a later date"
 

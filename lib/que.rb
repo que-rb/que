@@ -4,7 +4,7 @@ module Que
   autoload :Adapters,    'que/adapters/base'
   autoload :Job,         'que/job'
   autoload :JobQueue,    'que/job_queue'
-  autoload :Listener,    'que/listener'
+  autoload :Locker,      'que/locker'
   autoload :Migrations,  'que/migrations'
   autoload :ResultQueue, 'que/result_queue'
   autoload :SQL,         'que/sql'

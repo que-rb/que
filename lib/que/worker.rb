@@ -22,7 +22,7 @@ module Que
           # previous worker would have deleted it by now, so we just retrieve
           # it now. If it doesn't exist, no problem, it was already worked.
           # Just saying, this is why we don't combine the 'get_job' query with
-          # taking the advisory lock in Listener's work loop.
+          # taking the advisory lock in Locker's work loop.
           pk = @job_queue.shift
 
           if job = Que.execute(:get_job, pk.values_at(:queue, :priority, :run_at, :job_id)).first

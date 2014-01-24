@@ -49,7 +49,7 @@ DB = Sequel.connect(QUE_URL)
 
 # Reset the table to the most up-to-date version.
 DB.drop_table? :que_jobs
-DB.drop_table? :que_listeners
+DB.drop_table? :que_lockers
 DB.drop_function :que_job_notify, :if_exists => true
 Que::Migrations.migrate!
 
@@ -97,7 +97,7 @@ RSpec.configure do |config|
     spec.run
 
     DB[:que_jobs].delete
-    DB[:que_listeners].delete
+    DB[:que_lockers].delete
 
     # A bit of lint: make sure that no advisory locks are left open.
     unless DB[:pg_locks].where(:locktype => 'advisory').empty?

@@ -1,10 +1,10 @@
 # Experimental Branch
 
-*This branch is implementing a LISTEN/NOTIFY messaging system to supplement the polling system that is already in place on master. It introduces a single listener thread in each process that is responsible for collecting jobs through both listening and polling, then passing them to worker threads. Please don't use this branch for anything serious yet.*
+*This branch is implementing a LISTEN/NOTIFY messaging system to supplement the polling system that is already in place on master. It introduces a single 'locker' thread in each process that is responsible for collecting jobs through both listening and polling, locking them, and passing them to worker threads. Please don't use this branch for anything serious yet.*
 
 Advantages I expect from this architecture are:
 
-* Advisory locks can be held by the listener thread alone, removing the need for each worker to monopolize a connection while it works a job. This should decrease the number of Postgres connections needed by each Ruby process, and let us better use tools like pgbouncer.
+* Advisory locks can be held by the locker thread alone, removing the need for each worker to monopolize a connection while it works a job. This should decrease the number of Postgres connections needed by each Ruby process, and let us better use tools like pgbouncer.
 
 * Using the recursive CTE to retrieve and lock jobs is currently an O(n) operation, where n is the number of high-priority jobs that are currently being processed by another worker. This slows things down at higher workloads, and I believe is why it's been difficult for Que to break past the mark of 10,000 jobs queued and dequeued per second. I expect that grabbing jobs in batches will break down this barrier somewhat.
 
