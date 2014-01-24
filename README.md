@@ -53,7 +53,7 @@ Create a class for each type of job you want to run:
     # app/jobs/charge_credit_card.rb
     class ChargeCreditCard < Que::Job
       # Default settings for this job. These are optional - without them, jobs
-      # will default to priority 1 and run immediately.
+      # will default to priority 100 and run immediately.
       @default_priority = 10
       @default_run_at = proc { 1.minute.from_now }
 
