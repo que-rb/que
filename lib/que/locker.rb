@@ -3,7 +3,9 @@ module Que
     attr_reader :thread, :workers
 
     def initialize(options = {})
-      @queue_name   = options[:queue] || ''
+      @queue_name = options[:queue] || ''
+      @listening  = !!options[:listening]
+
       @job_queue    = JobQueue.new
       @result_queue = ResultQueue.new
 
@@ -32,7 +34,7 @@ module Que
           pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
 
           Que.execute "LISTEN que_locker_#{pid}"
-          Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname]
+          Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listening]
 
           loop do
             connection.wait_for_notify(0.001) do |channel, pid, payload|

@@ -8,7 +8,7 @@ describe Que::Locker do
   it "should register its presence or absence in the que_lockers table upon connecting or disconnecting" do
     worker_count = rand(10) + 1
 
-    locker = Que::Locker.new(:worker_count => worker_count)
+    locker = Que::Locker.new(:worker_count => worker_count, :listening => true)
 
     sleep_until { DB[:que_lockers].count == 1 }
 
@@ -19,6 +19,7 @@ describe Que::Locker do
     record[:ruby_hostname].should == Socket.gethostname
     record[:worker_count].should  == worker_count
     record[:queue].should         == ''
+    record[:listening].should     == true
 
     locker.stop
 
@@ -31,12 +32,13 @@ describe Que::Locker do
     # spec the cleaning of lockers previously registered by the same
     # connection. This will have to be revisited if the behavior of
     # ConnectionPool (our default adapter) is ever changed.
-    Que.execute :register_locker, ['', 3, 0, 'blah1']
+    Que.execute :register_locker, ['', 3, 0, 'blah1', true]
     DB[:que_lockers].insert :pid           => 0,
                             :ruby_pid      => 0,
                             :ruby_hostname => 'blah2',
                             :worker_count  => 4,
-                            :queue         => ''
+                            :queue         => '',
+                            :listening     => true
 
     DB[:que_lockers].count.should be 2
 
@@ -73,7 +75,7 @@ describe Que::Locker do
   describe "when receiving a NOTIFY of a new job" do
     it "should immediately lock, work, and unlock them" do
       DB[:que_jobs].count.should be 0
-      locker = Que::Locker.new
+      locker = Que::Locker.new :listening => true
       sleep_until { DB[:que_lockers].count == 1 }
 
       BlockJob.enqueue
@@ -92,7 +94,7 @@ describe Que::Locker do
 
     it "should not work jobs that are already locked" do
       DB[:que_jobs].count.should be 0
-      locker = Que::Locker.new
+      locker = Que::Locker.new :listening => true
       sleep_until { DB[:que_lockers].count == 1 }
 
       id = nil

@@ -3,7 +3,8 @@ CREATE UNLOGGED TABLE que_lockers (
   worker_count  integer NOT NULL,
   ruby_pid      integer NOT NULL,
   ruby_hostname text    NOT NULL,
-  queue         text    NOT NULL
+  queue         text    NOT NULL,
+  listening     boolean NOT NULL
 );
 
 CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
@@ -27,6 +28,7 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
           SELECT *
           FROM que_lockers ql, generate_series(1, ql.worker_count) AS id
           WHERE queue = NEW.queue
+          AND listening
           ORDER BY md5(pid::text || id::text)
         ) t1
       ) t2

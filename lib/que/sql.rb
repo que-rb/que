@@ -89,9 +89,9 @@ module Que
 
     :register_locker => %{
       INSERT INTO que_lockers
-      (pid, queue, worker_count, ruby_pid, ruby_hostname)
+      (pid, queue, worker_count, ruby_pid, ruby_hostname, listening)
       VALUES
-      (pg_backend_pid(), $1::text, $2::integer, $3::integer, $4::text);
+      (pg_backend_pid(), $1::text, $2::integer, $3::integer, $4::text, $5::boolean);
     }.freeze,
 
     :job_stats => %{

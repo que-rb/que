@@ -6,14 +6,15 @@ describe "An insertion into que_jobs" do
     DB[:que_jobs].select_map(:job_class).should == ['Que::Job']
   end
 
-  it "should notify a locker if one is available" do
+  it "should notify a locker if one is listening" do
     DB.synchronize do |conn|
       begin
         DB[:que_lockers].insert :pid           => 1,
                                 :worker_count  => 4,
                                 :ruby_pid      => Process.pid,
                                 :ruby_hostname => Socket.gethostname,
-                                :queue         => ''
+                                :queue         => '',
+                                :listening     => true
 
         notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
         conn.async_exec "LISTEN que_locker_1"
@@ -47,7 +48,8 @@ describe "An insertion into que_jobs" do
                                 :worker_count  => 4,
                                 :ruby_pid      => Process.pid,
                                 :ruby_hostname => Socket.gethostname,
-                                :queue         => 'other_queue'
+                                :queue         => 'other_queue',
+                                :listening     => true
 
         notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
         conn.async_exec "LISTEN que_locker_1"
@@ -85,13 +87,15 @@ describe "An insertion into que_jobs" do
                                 :worker_count  => 1,
                                 :ruby_pid      => Process.pid,
                                 :ruby_hostname => Socket.gethostname,
-                                :queue         => ''
+                                :queue         => '',
+                                :listening     => true
 
         DB[:que_lockers].insert :pid           => 2,
                                 :worker_count  => 2,
                                 :ruby_pid      => Process.pid,
                                 :ruby_hostname => Socket.gethostname,
-                                :queue         => ''
+                                :queue         => '',
+                                :listening     => true
 
         notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
         conn.async_exec "LISTEN que_locker_1; LISTEN que_locker_2"
@@ -99,6 +103,28 @@ describe "An insertion into que_jobs" do
         channels = 6.times.map { Que::Job.enqueue; conn.wait_for_notify }
         channels.sort.should == ['que_locker_1'] * 2 + ['que_locker_2'] * 4
 
+        conn.wait_for_notify(0.01).should be nil
+      ensure
+        conn.async_exec "UNLISTEN *"
+      end
+    end
+  end
+
+  it "should ignore lockers that are marked as not listening" do
+    DB.synchronize do |conn|
+      begin
+        DB[:que_lockers].insert :pid           => 1,
+                                :worker_count  => 4,
+                                :ruby_pid      => Process.pid,
+                                :ruby_hostname => Socket.gethostname,
+                                :queue         => '',
+                                :listening     => false
+
+        notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
+        conn.async_exec "LISTEN que_locker_1"
+
+        Que::Job.enqueue
+        job = DB[:que_jobs].first
         conn.wait_for_notify(0.01).should be nil
       ensure
         conn.async_exec "UNLISTEN *"
