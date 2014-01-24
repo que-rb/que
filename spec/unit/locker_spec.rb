@@ -2,8 +2,7 @@ require 'spec_helper'
 
 describe Que::Locker do
   it "should exit on its own when informed to stop" do
-    locker = Que::Locker.new
-    locker.stop
+    Que::Locker.new.stop
   end
 
   it "should register its presence or absence in the que_lockers table upon connecting or disconnecting" do
@@ -55,21 +54,21 @@ describe Que::Locker do
     DB[:que_lockers].count.should be 0
   end
 
+  it "should respect priority settings for workers"
+
   it "should do batch polls for jobs on startup"
 
-  it "should do regular batch polls to catch jobs that fall through the cracks"
+  it "should do batch polls at wake_interval to catch jobs that fall through the cracks"
 
-  it "should exclude jobs that it has already locked from its batch polling"
+  describe "when doing a batch poll" do
+    it "should not lock jobs a second time"
 
-  it "should clear its queue of jobs when told to shut down"
+    it "should respect a maximum_queue_size setting"
 
-  it "should clear any advisory locks it has taken when told to shut down"
+    it "should consider priority settings for workers"
 
-  it "should respect a custom setting for wake_interval"
-
-  it "should respect a custom setting for queue_size"
-
-  it "should log what it's doing"
+    it "should log what it's doing"
+  end
 
   describe "when receiving a NOTIFY of a new job" do
     it "should immediately lock, work, and unlock them" do
@@ -119,13 +118,23 @@ describe Que::Locker do
       DB[:que_jobs].select_map(:job_id).should == [id]
     end
 
-    it "should not lock the job if it has already been locked by the locker"
+    it "should not lock jobs a second time"
 
     it "should not lock or work it if it is scheduled to be worked at a later date"
 
     it "of low importance should not lock them or add them to the JobQueue if it is full"
 
-    it "of significant importance should lock and add them to the JobQueue and dequeue/unlock the least important ones to make room"
+    it "of significant importance should lock and add them to the JobQueue and dequeue/unlock the least important one to make room"
+
+    it "should log what it's doing"
+  end
+
+  describe "when told to shut down" do
+    it "should stop listening and batch polling"
+
+    it "should remove and unlock all the jobs in its queue"
+
+    it "should wait for its currently running jobs to finish before returning"
 
     it "should log what it's doing"
   end
