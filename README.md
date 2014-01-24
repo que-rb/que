@@ -27,6 +27,7 @@ Additionally, there are the general benefits of storing jobs in Postgres, alongs
 * **Transactional Control** - Queue a job along with other changes to your database, and it'll commit or rollback with everything else. If you're using ActiveRecord or Sequel, Que can piggyback on their connections, so setup is simple and jobs are protected by the transactions you're already using.
 * **Atomic Backups** - Your jobs and data can be backed up together and restored as a snapshot. If your jobs relate to your data (and they usually do), there's no risk of jobs falling through the cracks during a recovery.
 * **Fewer Dependencies** - If you're already using Postgres (and you probably should be), a separate queue is another moving part that can break.
+* **Security** - Postgres' support for SSL connections keeps your data safe in transport, for added protection when you're running workers on cloud platforms that you can't completely control.
 
 Que's primary goal is reliability. You should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que does everything it can to ensure that jobs you queue are performed exactly once (though the occasional repetition of a job can be impossible to avoid - see the docs on [how to write a reliable job](https://github.com/chanks/que/blob/master/docs/writing_reliable_jobs.md)).
 
@@ -66,7 +67,7 @@ Create a class for each type of job you want to run:
     # app/jobs/charge_credit_card.rb
     class ChargeCreditCard < Que::Job
       # Default settings for this job. These are optional - without them, jobs
-      # will default to priority 1 and run immediately.
+      # will default to priority 100 and run immediately.
       @default_priority = 10
       @default_run_at = proc { 1.minute.from_now }
 

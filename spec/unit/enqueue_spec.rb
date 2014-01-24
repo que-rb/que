@@ -103,6 +103,18 @@ describe Que::Job, '.enqueue' do
     JSON.load(job[:args]).should == [1, {'string' => 'string'}]
   end
 
+  it "should respect a job class defined as a string" do
+    Que.enqueue 'argument', :queue => 'my_queue', :other_arg => 'other_arg', :job_class => 'MyJobClass'
+    Que::Job.enqueue 'argument', :queue => 'my_queue', :other_arg => 'other_arg', :job_class => 'MyJobClass'
+
+    DB[:que_jobs].count.should be 2
+    DB[:que_jobs].all.each do |job|
+      job[:job_class].should == 'MyJobClass'
+      job[:queue].should == 'my_queue'
+      JSON.load(job[:args]).should == ['argument', {'other_arg' => 'other_arg'}]
+    end
+  end
+
   it "should respect a default (but overridable) priority for the job class" do
     class DefaultPriorityJob < Que::Job
       @priority = 3

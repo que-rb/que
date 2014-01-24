@@ -54,6 +54,10 @@ module Que
       Migrations.migrate!(version)
     end
 
+    def db_version
+      Migrations.db_version
+    end
+
     def clear!
       execute "DELETE FROM que_jobs"
     end
@@ -80,6 +84,11 @@ module Que
       if logger && output = log_formatter.call(data)
         logger.send level, output
       end
+    end
+
+    # Give us a cleaner interface when specifying a job_class as a string.
+    def enqueue(*args)
+      Job.enqueue(*args)
     end
 
     def log_formatter
