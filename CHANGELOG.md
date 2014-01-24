@@ -4,7 +4,7 @@
 
 *   The variables for setting the defaults for a given job class have been changed from `@default_priority` to `@priority` and `@default_run_at` to `@run_at`. The old variables still work, but like `Job.queue`, they may be removed at some point.
 
-*   Logs now also emit the machine's hostname in addition to its pid, since pids may be repeated across different machines.
+*   Log lines now include the machine's hostname, since a pid alone may not uniquely identify a process.
 
 *   Named queues are now supported. Documentation is forthcoming, or read the code. You can run jobs from a certain queue by setting the QUE_QUEUE environment variable. (chanks, joevandyk)
 
