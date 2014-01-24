@@ -6,7 +6,7 @@
 
 *   Log lines now include the machine's hostname, since a pid alone may not uniquely identify a process.
 
-*   Named queues are now supported. Documentation is forthcoming, or read the code. You can run jobs from a certain queue by setting the QUE_QUEUE environment variable. (chanks, joevandyk)
+*   Multiple queues are now supported. See [the docs](https://github.com/chanks/que/blob/master/docs/multiple_queues.md) for details. (chanks, joevandyk)
 
 *   Rubinius 2.2 is now supported. (brixen)
 

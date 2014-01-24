@@ -1,0 +1,13 @@
+## Multiple Queues
+
+Que supports the use of multiple queues in a single job table. This feature is intended to support the case where multiple applications (with distinct codebases) are sharing the same database. For instance, you might have a separate Ruby application that handles only processing credit cards. In that case, you can run that application's workers against a specific queue:
+
+    QUE_QUEUE=credit_cards rake que:work
+
+Then you can set jobs to be enqueued in that queue specifically:
+
+    ProcessCreditCard.enqueue current_user.id, :queue => 'credit_cards'
+
+In some cases, the ProcessCreditCard class may not be defined in the application that is enqueueing the job. In that case, you can specify the job class as a string:
+
+    Que::Job.enqueue current_user.id, :job_class => 'ProcessCreditCard', :queue => 'credit_cards'
