@@ -1,5 +1,7 @@
 ### Unreleased
 
+*   **A schema upgrade to version 3 is required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
+
 *   You can now check the current version of Que's database schema with `Que.db_version`.
 
 *   The method for enqueuing a job has been renamed from `MyJob.queue` has been renamed to `MyJob.enqueue`, since we were beginning to use the word 'queue' in a LOT of places. MyJob.queue still works, but it may be removed at some point.
