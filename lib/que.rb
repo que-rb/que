@@ -52,6 +52,10 @@ module Que
       Migrations.migrate!(version)
     end
 
+    def db_version
+      Migrations.db_version
+    end
+
     def clear!
       execute "DELETE FROM que_jobs"
     end
