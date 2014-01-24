@@ -13,7 +13,7 @@ Then you can queue jobs just as you would in Rails:
 
     ActiveRecord::Base.transaction do
       @user = User.create(params[:user])
-      SendRegistrationEmail.queue :user_id => @user.id
+      SendRegistrationEmail.enqueue :user_id => @user.id
     end
 
 There are other docs to read if you're using [Sequel](https://github.com/chanks/que/blob/master/docs/using_sequel.md) or [plain Postgres connections](https://github.com/chanks/que/blob/master/docs/using_plain_connections.md) (with no ORM at all) instead of ActiveRecord.
