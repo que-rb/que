@@ -54,8 +54,8 @@ Create a class for each type of job you want to run:
     class ChargeCreditCard < Que::Job
       # Default settings for this job. These are optional - without them, jobs
       # will default to priority 100 and run immediately.
-      @default_priority = 10
-      @default_run_at = proc { 1.minute.from_now }
+      @priority = 10
+      @run_at = proc { 1.minute.from_now }
 
       def run(user_id, options)
         # Do stuff.

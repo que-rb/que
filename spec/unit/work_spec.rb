@@ -145,7 +145,7 @@ describe Que::Job, '.work' do
 
   it "should handle subclasses of other jobs" do
     class SubClassJob < Que::Job
-      @default_priority = 2
+      @priority = 2
 
       def run
         $job_spec_result << :sub
@@ -153,7 +153,7 @@ describe Que::Job, '.work' do
     end
 
     class SubSubClassJob < SubClassJob
-      @default_priority = 4
+      @priority = 4
 
       def run
         super
