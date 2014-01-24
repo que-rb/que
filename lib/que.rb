@@ -80,6 +80,11 @@ module Que
       end
     end
 
+    # Give us a cleaner interface when specifying a job_class as a string.
+    def enqueue(*args)
+      Job.enqueue(*args)
+    end
+
     def log_formatter
       @log_formatter ||= JSON_MODULE.method(:dump)
     end
