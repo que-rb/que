@@ -75,13 +75,13 @@ describe Que::Locker do
   it "should do batch polls at wake_interval to catch jobs that fall through the cracks"
 
   describe "when doing a batch poll" do
-    it "should not lock jobs a second time"
+    it "should not try to lock and work jobs it has already locked"
 
     it "should respect a maximum_queue_size setting"
 
     it "should consider priority settings for workers"
 
-    it "should log what it's doing"
+    it "should log what it is doing"
   end
 
   describe "when receiving a NOTIFY of a new job" do
@@ -132,13 +132,13 @@ describe Que::Locker do
       DB[:que_jobs].select_map(:job_id).should == [id]
     end
 
-    it "should not lock jobs a second time"
+    it "should not try to lock and work jobs it has already locked"
 
     it "of low importance should not lock them or add them to the JobQueue if it is full"
 
     it "of significant importance should lock and add them to the JobQueue and dequeue/unlock the least important one to make room"
 
-    it "should log what it's doing"
+    it "should log what it is doing"
   end
 
   describe "when told to shut down" do
@@ -184,6 +184,6 @@ describe Que::Locker do
       DB[:que_jobs].should be_empty
     end
 
-    it "should log what it's doing"
+    it "should log what it is doing"
   end
 end
