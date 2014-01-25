@@ -39,6 +39,18 @@ module Que
         checkout { |conn| conn.transaction_status != ::PG::PQTRANS_IDLE }
       end
 
+      def wait_for_job(timeout = nil)
+        checkout do |conn|
+          conn.wait_for_notify(timeout) do |_, _, payload|
+            return INDIFFERENTIATOR.call(JSON_MODULE.load(payload))
+          end
+        end
+      end
+
+      def drain_notifications
+        checkout { |conn| {} while conn.notifies }
+      end
+
       private
 
       def execute_sql(sql, params)

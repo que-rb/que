@@ -27,7 +27,7 @@ module Que
     private
 
     def work_loop
-      Que.adapter.checkout do |connection|
+      Que.adapter.checkout do
         backend_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
 
         begin
@@ -38,15 +38,11 @@ module Que
           Que.execute :clean_lockers
           Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listening]
 
-          Que.execute(:poll_jobs, [@queue_name, 10]).each do |pk|
-            pk[:priority] = pk[:priority].to_i
-            pk[:job_id]   = pk[:job_id].to_i
-            @job_queue.push(pk)
-          end
+          Que.execute(:poll_jobs, [@queue_name, 10]).each { |pk| @job_queue.push(pk) }
 
           loop do
-            connection.wait_for_notify(0.001) do |channel, pid, payload|
-              pk = Que.indifferentiate(JSON_MODULE.load(payload))
+            if pk = Que.adapter.wait_for_job(0.001)
+              pk['run_at'] = Time.parse(pk['run_at'])
               @job_queue.push(pk) if lock_job?(pk[:job_id])
             end
 
@@ -62,9 +58,7 @@ module Que
         ensure
           Que.execute "UNLISTEN *"
           Que.execute "DELETE FROM que_lockers WHERE pid = $1", [backend_pid]
-
-          # Get rid of the remaining notifications before returning the connection to the pool.
-          {} while connection.notifies
+          Que.adapter.drain_notifications
         end
       end
     end
@@ -72,7 +66,7 @@ module Que
     private
 
     def lock_job?(id)
-      Que.execute("SELECT pg_try_advisory_lock($1)", [id.to_i]).first[:pg_try_advisory_lock] == 't'
+      Que.execute("SELECT pg_try_advisory_lock($1)", [id.to_i]).first[:pg_try_advisory_lock]
     end
 
     def unlock_finished_jobs
