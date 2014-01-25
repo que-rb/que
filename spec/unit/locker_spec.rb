@@ -58,7 +58,19 @@ describe Que::Locker do
 
   it "should respect priority settings for workers"
 
-  it "should do batch polls for jobs on startup"
+  it "should do batch polls for jobs on startup" do
+    job1, job2 = BlockJob.enqueue, BlockJob.enqueue
+    job3       = Que::Job.enqueue :queue => 'other_queue'
+
+    locker = Que::Locker.new
+
+    $q1.pop;      $q1.pop
+    $q2.push nil; $q2.push nil
+
+    locker.stop
+
+    DB[:que_jobs].select_map(:queue).should == ['other_queue']
+  end
 
   it "should do batch polls at wake_interval to catch jobs that fall through the cracks"
 

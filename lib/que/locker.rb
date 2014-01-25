@@ -38,6 +38,10 @@ module Que
           Que.execute :clean_lockers
           Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listening]
 
+          Que.execute(:poll_jobs, [@queue_name, 5]).each do |pk|
+            @job_queue.push(pk)
+          end
+
           loop do
             connection.wait_for_notify(0.001) do |channel, pid, payload|
               pk = Que.indifferentiate(JSON_MODULE.load(payload))
