@@ -144,9 +144,27 @@ describe Que::Locker do
   describe "when told to shut down" do
     it "should stop listening and batch polling"
 
+    it "should stop all its workers" do
+      locker  = Que::Locker.new
+      workers = locker.workers
+      locker.stop
+      workers.each { |worker| worker.thread.status.should be false }
+    end
+
     it "should remove and unlock all the jobs in its queue"
 
-    it "should wait for its currently running jobs to finish before returning"
+    it "should wait for its currently running jobs to finish before returning" do
+      locker = Que::Locker.new :listening => true
+
+      job_id = BlockJob.enqueue.attrs[:job_id]
+
+      $q1.pop
+      t = Thread.new { locker.stop }
+      $q2.push :nil
+      t.join
+
+      DB[:que_jobs].should be_empty
+    end
 
     it "should log what it's doing"
   end

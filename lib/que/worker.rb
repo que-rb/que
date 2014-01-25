@@ -8,10 +8,17 @@ module Que
       @thread       = Thread.new { work_loop }
     end
 
+    def wait_until_stopped
+      @thread.join
+    end
+
     private
 
     def work_loop
       loop do
+        pk = @job_queue.shift
+        break if pk == :stop
+
         begin
           # There's an edge case to be aware of - if we retrieve the job in
           # the same query where we take the advisory lock on it, there's a
@@ -23,8 +30,6 @@ module Que
           # it now. If it doesn't exist, no problem, it was already worked.
           # Just saying, this is why we don't combine the 'get_job' query with
           # taking the advisory lock in Locker's work loop.
-          pk = @job_queue.shift
-
           if job = Que.execute(:get_job, pk.values_at(:queue, :priority, :run_at, :job_id)).first
             klass = Job.class_for(job[:job_class])
             klass.new(job)._run

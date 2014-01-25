@@ -48,12 +48,14 @@ module Que
               @job_queue.push(pk) if lock_job?(pk[:job_id])
             end
 
-            while id = @result_queue.shift
-              Que.execute "SELECT pg_advisory_unlock($1)", [id]
-            end
-
+            unlock_finished_jobs
             break if @stop
           end
+
+          @job_queue.stop
+          @workers.each(&:wait_until_stopped)
+
+          unlock_finished_jobs
         ensure
           Que.execute "UNLISTEN *"
           Que.execute "DELETE FROM que_lockers WHERE pid = $1", [backend_pid]
@@ -68,6 +70,12 @@ module Que
 
     def lock_job?(id)
       Que.execute("SELECT pg_try_advisory_lock($1)", [id.to_i]).first[:pg_try_advisory_lock] == 't'
+    end
+
+    def unlock_finished_jobs
+      while id = @result_queue.shift
+        Que.execute "SELECT pg_advisory_unlock($1)", [id]
+      end
     end
   end
 end
