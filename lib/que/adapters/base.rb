@@ -25,7 +25,7 @@ module Que
         false
       end
 
-      def execute(command, params = nil)
+      def execute(command, params = [])
         params = params.map do |param|
           case param
             # The pg gem unfortunately doesn't convert fractions of time instances, so cast them to a string.
@@ -33,7 +33,7 @@ module Que
             when Array, Hash then JSON_MODULE.dump(param)
             else param
           end
-        end if params
+        end
 
         cast_result \
           case command
