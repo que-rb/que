@@ -39,6 +39,8 @@ module Que
           Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listening]
 
           Que.execute(:poll_jobs, [@queue_name, 10]).each do |pk|
+            pk[:priority] = pk[:priority].to_i
+            pk[:job_id]   = pk[:job_id].to_i
             @job_queue.push(pk)
           end
 
