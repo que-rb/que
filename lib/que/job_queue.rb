@@ -50,5 +50,14 @@ module Que
         @cv.signal
       end
     end
+
+    def clear
+      @mutex.synchronize do
+        ids = @array.map { |pk| pk[:job_id] }
+        @array.clear
+        @cv.signal
+        ids
+      end
+    end
   end
 end

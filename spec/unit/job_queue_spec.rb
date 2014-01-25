@@ -67,4 +67,12 @@ describe Que::JobQueue do
       10.times { @jq.shift.should == :stop }
     end
   end
+
+  describe "#clear" do
+    it "should remove all pks and return their job_ids" do
+      @jq.push @array
+      @jq.clear.sort.should == (1..8).to_a
+      @jq.to_a.should == []
+    end
+  end
 end
