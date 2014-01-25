@@ -1,3 +1,5 @@
+require 'socket'
+
 module Que
   class Locker
     attr_reader :thread, :workers
@@ -26,23 +28,20 @@ module Que
 
     def work_loop
       Que.adapter.checkout do |connection|
+        backend_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
+
         begin
+          Que.execute "LISTEN que_locker_#{backend_pid}" if @listening
+
           # A previous locker that didn't exit cleanly may have left behind
-          # a bad locker record, so clean up before doing anything.
+          # a bad locker record, so clean up before registering.
           Que.execute :clean_lockers
-
-          pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
-
-          Que.execute "LISTEN que_locker_#{pid}"
           Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listening]
 
           loop do
             connection.wait_for_notify(0.001) do |channel, pid, payload|
               pk = Que.indifferentiate(JSON_MODULE.load(payload))
-
-              if Que.execute("SELECT pg_try_advisory_lock($1)", [pk[:job_id].to_i]).first[:pg_try_advisory_lock] == 't'
-                @job_queue.push(pk)
-              end
+              @job_queue.push(pk) if lock_job?(pk[:job_id])
             end
 
             while id = @result_queue.shift
@@ -53,11 +52,18 @@ module Que
           end
         ensure
           Que.execute "UNLISTEN *"
+          Que.execute "DELETE FROM que_lockers WHERE pid = $1", [backend_pid]
+
           # Get rid of the remaining notifications before returning the connection to the pool.
           {} while connection.notifies
-          Que.execute "DELETE FROM que_lockers WHERE pid = $1", [pid]
         end
       end
+    end
+
+    private
+
+    def lock_job?(id)
+      Que.execute("SELECT pg_try_advisory_lock($1)", [id.to_i]).first[:pg_try_advisory_lock] == 't'
     end
   end
 end
