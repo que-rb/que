@@ -38,6 +38,10 @@ module Que
       end
     end
 
+    def execute(*args)
+      adapter.execute(*args)
+    end
+
     # Have to support create! and drop! in old migrations. They just created
     # and dropped the bare table.
     def create!
@@ -68,13 +72,6 @@ module Que
       execute :worker_states
     end
 
-    def execute(command, *args)
-      indifferentiate case command
-                        when Symbol then adapter.execute_prepared(command, *args)
-                        when String then adapter.execute(command, *args)
-                      end.to_a
-    end
-
     def log(data)
       level = data.delete(:level) || :info
       data = {:lib => 'que', :hostname => Socket.gethostname, :thread => Thread.current.object_id}.merge(data)
@@ -91,26 +88,6 @@ module Que
 
     def log_formatter
       @log_formatter ||= JSON_MODULE.method(:dump)
-    end
-
-    # Helper for making hashes indifferently-accessible, even when nested
-    # within each other and within arrays.
-    def indifferentiate(object)
-      case object
-      when Hash
-        h = if {}.respond_to?(:with_indifferent_access) # Better support for Rails.
-              {}.with_indifferent_access
-            else
-              Hash.new { |hash, key| hash[key.to_s] if Symbol === key }
-            end
-
-        object.each { |k, v| h[k] = indifferentiate(v) }
-        h
-      when Array
-        object.map { |v| indifferentiate(v) }
-      else
-        object
-      end
     end
 
     # Copy some of the Worker class' config methods here for convenience.

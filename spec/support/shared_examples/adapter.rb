@@ -1,8 +1,8 @@
 shared_examples "a Que adapter" do
   it "should be able to execute arbitrary SQL and return indifferent hashes" do
     result = Que.execute("SELECT 1 AS one")
-    result.should == [{'one'=>'1'}]
-    result.first[:one].should == '1'
+    result.should == [{'one'=>1}]
+    result.first[:one].should == 1
   end
 
   it "should be able to queue and work a job" do

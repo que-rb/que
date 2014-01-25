@@ -20,7 +20,7 @@ describe "Managing the Worker pool" do
       Que.mode = :sync
 
       ArgsJob.enqueue(5, :testing => "synchronous").should be_an_instance_of ArgsJob
-      $passed_args.should == [5, {'testing' => "synchronous"}]
+      $passed_args.should == [5, {:testing => "synchronous"}]
       DB[:que_jobs].count.should be 0
     end
 

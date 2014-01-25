@@ -7,7 +7,7 @@ describe Que::Migrations do
 
     default = proc do
       result = Que.execute <<-SQL
-        select adsrc
+        select adsrc::integer
         from pg_attribute a
         join pg_class c on c.oid = a.attrelid
         join pg_attrdef on adrelid = attrelid AND adnum = attnum
@@ -15,7 +15,7 @@ describe Que::Migrations do
         and attname = 'priority'
       SQL
 
-      result.first['adsrc'].to_i
+      result.first[:adsrc]
     end
 
     default.call.should == 100

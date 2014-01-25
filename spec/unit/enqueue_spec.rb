@@ -8,7 +8,7 @@ describe Que::Job, '.enqueue' do
 
     result.should be_an_instance_of Que::Job
     result.attrs[:queue].should == ''
-    result.attrs[:priority].should == '100'
+    result.attrs[:priority].should == 100
     result.attrs[:args].should == []
 
     job = DB[:que_jobs].first
