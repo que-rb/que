@@ -20,16 +20,6 @@ module Que
         break if pk == :stop
 
         begin
-          # There's an edge case to be aware of - if we retrieve the job in
-          # the same query where we take the advisory lock on it, there's a
-          # race condition where we may lock a job that's already been worked,
-          # if the query took its MVCC snapshot while the job was being
-          # processed by another worker, but didn't attempt the advisory lock
-          # until it was finished by that worker. Since we have the lock, a
-          # previous worker would have deleted it by now, so we just retrieve
-          # it now. If it doesn't exist, no problem, it was already worked.
-          # Just saying, this is why we don't combine the 'get_job' query with
-          # taking the advisory lock in Locker's work loop.
           if job = Que.execute(:get_job, pk.values_at(:queue, :priority, :run_at, :job_id)).first
             klass = Job.class_for(job[:job_class])
             klass.new(job)._run

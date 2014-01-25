@@ -9,7 +9,16 @@ module Que
       AND   job_id   = $4::bigint
     }.freeze,
 
-    # Thanks to RhodiumToad in #postgresql for help with the job polling CTE.
+    # Thanks to RhodiumToad in #postgresql for help with the poll_jobs CTE.
+
+    # We don't retrieve all the job information in poll_jobs due to a race
+    # condition that could result in jobs being run twice. If this query took
+    # its MVCC snapshot while a job was being processed by another worker, but
+    # didn't attempt the advisory lock until it was finished by that worker,
+    # it could return a job that had already been completed. Once we have the
+    # lock we know that a previous worker would have deleted the job by now,
+    # so we use get_job to retrieve it. If it doesn't exist, no problem.
+
     :poll_jobs => %{
       WITH RECURSIVE jobs AS (
         SELECT (j).*, pg_try_advisory_lock((j).job_id) AS locked
