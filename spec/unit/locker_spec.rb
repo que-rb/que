@@ -151,7 +151,25 @@ describe Que::Locker do
       workers.each { |worker| worker.thread.status.should be false }
     end
 
-    it "should remove and unlock all the jobs in its queue"
+    it "should remove and unlock all the jobs in its queue" do
+      6.times { BlockJob.enqueue }
+      locker = Que::Locker.new
+
+      job_ids = DB[:que_jobs].select_order_map(:job_id)
+
+      sleep_until { DB[:pg_locks].where(:locktype => 'advisory').select_order_map(:objid) == job_ids }
+
+      4.times { $q1.pop }
+
+      locker.job_queue.to_a.map{|h| h[:job_id].to_i}.should == job_ids[4..5]
+      t = Thread.new { locker.stop }
+
+      sleep_until { locker.job_queue.to_a.empty? }
+      sleep_until { DB[:pg_locks].where(:locktype => 'advisory').select_order_map(:objid) == job_ids[0..3] }
+
+      4.times { $q2.push nil }
+      t.join
+    end
 
     it "should wait for its currently running jobs to finish before returning" do
       locker = Que::Locker.new :listening => true

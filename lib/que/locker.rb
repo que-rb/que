@@ -2,7 +2,7 @@ require 'socket'
 
 module Que
   class Locker
-    attr_reader :thread, :workers
+    attr_reader :thread, :workers, :job_queue
 
     def initialize(options = {})
       @queue_name = options[:queue] || ''
@@ -38,7 +38,7 @@ module Que
           Que.execute :clean_lockers
           Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listening]
 
-          Que.execute(:poll_jobs, [@queue_name, 5]).each do |pk|
+          Que.execute(:poll_jobs, [@queue_name, 10]).each do |pk|
             @job_queue.push(pk)
           end
 
@@ -52,6 +52,7 @@ module Que
             break if @stop
           end
 
+          @job_queue.clear.each { |id| unlock_job(id) }
           @job_queue.stop
           @workers.each(&:wait_until_stopped)
 
@@ -74,8 +75,12 @@ module Que
 
     def unlock_finished_jobs
       while id = @result_queue.shift
-        Que.execute "SELECT pg_advisory_unlock($1)", [id]
+        unlock_job(id)
       end
+    end
+
+    def unlock_job(id)
+      Que.execute "SELECT pg_advisory_unlock($1)", [id]
     end
   end
 end
