@@ -54,4 +54,17 @@ describe Que::JobQueue do
       threads.map{|t| t[:id]}.sort.should == (1..4).to_a
     end
   end
+
+  describe "#stop" do
+    it "should return a :stop notification to waiting workers" do
+      threads = 4.times.map { Thread.new { Thread.current[:result] = @jq.shift } }
+
+      sleep_until { threads.all? { |t| t.status == 'sleep' } }
+      @jq.stop
+      sleep_until { threads.all? { |t| t.status == false } }
+
+      threads.map { |t| t[:result].should == :stop }
+      10.times { @jq.shift.should == :stop }
+    end
+  end
 end

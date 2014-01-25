@@ -5,6 +5,7 @@
 module Que
   class JobQueue
     def initialize
+      @stop  = false
       @array = []
       @mutex = Mutex.new
       @cv    = ConditionVariable.new
@@ -25,7 +26,10 @@ module Que
     def shift
       loop do
         @mutex.synchronize do
-          if @array.empty?
+          if @stop
+            @cv.signal
+            return :stop
+          elsif @array.empty?
             @cv.wait(@mutex)
           else
             item = @array.shift
@@ -38,6 +42,13 @@ module Que
 
     def to_a
       @array.dup
+    end
+
+    def stop
+      @mutex.synchronize do
+        @stop = true
+        @cv.signal
+      end
     end
   end
 end
