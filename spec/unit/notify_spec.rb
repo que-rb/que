@@ -41,6 +41,27 @@ describe "An insertion into que_jobs" do
     end
   end
 
+  it "should not notify a locker if run_at is in the future" do
+    DB.synchronize do |conn|
+      begin
+        DB[:que_lockers].insert :pid           => 1,
+                                :worker_count  => 4,
+                                :ruby_pid      => Process.pid,
+                                :ruby_hostname => Socket.gethostname,
+                                :queue         => '',
+                                :listening     => true
+
+        conn.async_exec "LISTEN que_locker_1"
+
+        Que::Job.enqueue :run_at => Time.now + 60
+
+        conn.wait_for_notify(0.01).should be nil
+      ensure
+        conn.async_exec "UNLISTEN *"
+      end
+    end
+  end
+
   it "should not notify lockers of different queues" do
     DB.synchronize do |conn|
       begin

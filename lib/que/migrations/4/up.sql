@@ -9,9 +9,14 @@ CREATE UNLOGGED TABLE que_lockers (
 
 CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
   DECLARE
-    locker_pid integer;
-    primary_key  json;
+    locker_pid  integer;
+    primary_key json;
   BEGIN
+    -- Don't do anything if the job is scheduled for a future time.
+    IF NEW.run_at IS NOT NULL AND NEW.run_at > now() THEN
+      RETURN null;
+    END IF;
+
     -- Pick a locker to notify of the job's insertion, weighted by their
     -- number of workers. Should bounce semi-randomly between lockers on each
     -- invocation, hence the md5-ordering, but still touch each one equally,

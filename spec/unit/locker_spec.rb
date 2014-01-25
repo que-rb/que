@@ -122,8 +122,6 @@ describe Que::Locker do
 
     it "should not lock jobs a second time"
 
-    it "should not lock or work it if it is scheduled to be worked at a later date"
-
     it "of low importance should not lock them or add them to the JobQueue if it is full"
 
     it "of significant importance should lock and add them to the JobQueue and dequeue/unlock the least important one to make room"
