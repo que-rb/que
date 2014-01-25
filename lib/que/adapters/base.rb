@@ -18,11 +18,34 @@ module Que
         raise NotImplementedError
       end
 
-      def execute(*args)
-        checkout { |conn| conn.async_exec(*args) }
+      def execute(command, params = nil)
+        params = params.map do |param|
+          case param
+            # The pg gem unfortunately doesn't convert fractions of time instances, so cast them to a string.
+            when Time then param.strftime("%Y-%m-%d %H:%M:%S.%6N")
+            when Array, Hash then JSON_MODULE.dump(param)
+            else param
+          end
+        end if params
+
+        cast_result \
+          case command
+            when Symbol then execute_prepared(command, params)
+            when String then execute_sql(command, params)
+          end
       end
 
-      def execute_prepared(name, params = [])
+      def in_transaction?
+        checkout { |conn| conn.transaction_status != ::PG::PQTRANS_IDLE }
+      end
+
+      private
+
+      def execute_sql(sql, params)
+        checkout { |conn| conn.async_exec(sql, params) }
+      end
+
+      def execute_prepared(name, params)
         checkout do |conn|
           statements = @prepared_statements[conn] ||= {}
 
@@ -35,8 +58,53 @@ module Que
         end
       end
 
-      def in_transaction?
-        checkout { |conn| conn.transaction_status != ::PG::PQTRANS_IDLE }
+      HASH_DEFAULT_PROC = proc { |hash, key| hash[key.to_s] if Symbol === key }
+
+      INDIFFERENTIATOR = proc do |object|
+        case object
+        when Array
+          object.each(&INDIFFERENTIATOR)
+        when Hash
+          object.default_proc = HASH_DEFAULT_PROC
+          object.each { |key, value| object[key] = INDIFFERENTIATOR.call(value) }
+          object
+        else
+          object
+        end
+      end
+
+      CAST_PROCS = {}
+
+      # Integer, bigint, smallint:
+      CAST_PROCS[23] = CAST_PROCS[20] = CAST_PROCS[21] = proc(&:to_i)
+
+      # Timestamp with time zone.
+      CAST_PROCS[1184] = Time.method(:parse)
+
+      # JSON.
+      CAST_PROCS[114] = JSON_MODULE.method(:load)
+
+      # Boolean:
+      CAST_PROCS[16] = proc { |text| text == 't' }
+
+      def cast_result(result)
+        output = result.to_a
+
+        result.fields.each_with_index do |field, index|
+          if converter = CAST_PROCS[result.ftype(index)]
+            output.each do |hash|
+              unless (value = hash[field]).nil?
+                hash[field] = converter.call(value)
+              end
+            end
+          end
+        end
+
+        if result.first.respond_to?(:with_indifferent_access)
+          output.map(&:with_indifferent_access)
+        else
+          output.each(&INDIFFERENTIATOR)
+        end
       end
     end
   end

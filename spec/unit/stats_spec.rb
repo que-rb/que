@@ -24,19 +24,19 @@ describe Que, '.job_stats' do
 
       qj[:queue].should == ''
       qj[:job_class].should == 'Que::Job'
-      qj[:count].should == '2'
-      qj[:count_working].should == '1'
-      qj[:count_errored].should == '1'
-      qj[:highest_error_count].should == '5'
-      Time.parse(qj[:oldest_run_at]).should be_within(3).of old
+      qj[:count].should == 2
+      qj[:count_working].should == 1
+      qj[:count_errored].should == 1
+      qj[:highest_error_count].should == 5
+      qj[:oldest_run_at].should be_within(3).of old
 
       bj[:queue].should == ''
       bj[:job_class].should == 'BlockJob'
-      bj[:count].should == '1'
-      bj[:count_working].should == '0'
-      bj[:count_errored].should == '0'
-      bj[:highest_error_count].should == '0'
-      Time.parse(bj[:oldest_run_at]).should be_within(3).of Time.now
+      bj[:count].should == 1
+      bj[:count_working].should == 0
+      bj[:count_errored].should == 0
+      bj[:highest_error_count].should == 0
+      bj[:oldest_run_at].should be_within(3).of Time.now
     ensure
       DB.get{pg_advisory_unlock_all{}}
     end

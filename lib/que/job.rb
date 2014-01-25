@@ -3,8 +3,7 @@ module Que
     attr_reader :attrs
 
     def initialize(attrs)
-      @attrs        = attrs
-      @attrs[:args] = Que.indifferentiate JSON_MODULE.load(@attrs[:args]) if @attrs[:args].is_a?(String)
+      @attrs = attrs
     end
 
     # Subclasses should define their own run methods, but keep an empty one
@@ -39,7 +38,7 @@ module Que
           args << options if options.any?
         end
 
-        attrs = {:job_class => job_class || to_s, :args => JSON_MODULE.dump(args)}
+        attrs = {:job_class => job_class || to_s, :args => args}
 
         if t = run_at || @run_at && @run_at.call || @default_run_at && @default_run_at.call
           attrs[:run_at] = t

@@ -23,10 +23,6 @@ module Que
     attr_accessor :logger, :error_handler, :mode
     attr_writer :adapter, :log_formatter
 
-    def adapter
-      @adapter || raise("Que connection not established!")
-    end
-
     def connection=(connection)
       self.adapter = if connection.to_s == 'ActiveRecord'
         Adapters::ActiveRecord.new
@@ -40,22 +36,12 @@ module Que
       end
     end
 
-    # Have to support create! and drop! in old migrations. They just created
-    # and dropped the bare table.
-    def create!
-      migrate! :version => 1
+    def adapter
+      @adapter || raise("Que connection not established!")
     end
 
-    def drop!
-      migrate! :version => 0
-    end
-
-    def migrate!(version = {:version => Migrations::CURRENT_VERSION})
-      Migrations.migrate!(version)
-    end
-
-    def db_version
-      Migrations.db_version
+    def execute(*args)
+      adapter.execute(*args)
     end
 
     def clear!
@@ -70,11 +56,27 @@ module Que
       execute :worker_states
     end
 
-    def execute(command, *args)
-      indifferentiate case command
-                        when Symbol then adapter.execute_prepared(command, *args)
-                        when String then adapter.execute(command, *args)
-                      end.to_a
+    # Give us a cleaner interface when specifying a job_class as a string.
+    def enqueue(*args)
+      Job.enqueue(*args)
+    end
+
+    def db_version
+      Migrations.db_version
+    end
+
+    def migrate!(version = {:version => Migrations::CURRENT_VERSION})
+      Migrations.migrate!(version)
+    end
+
+    # Have to support create! and drop! in old migrations. They just created
+    # and dropped the bare table.
+    def create!
+      migrate! :version => 1
+    end
+
+    def drop!
+      migrate! :version => 0
     end
 
     def log(data)
@@ -86,33 +88,8 @@ module Que
       end
     end
 
-    # Give us a cleaner interface when specifying a job_class as a string.
-    def enqueue(*args)
-      Job.enqueue(*args)
-    end
-
     def log_formatter
       @log_formatter ||= JSON_MODULE.method(:dump)
-    end
-
-    # Helper for making hashes indifferently-accessible, even when nested
-    # within each other and within arrays.
-    def indifferentiate(object)
-      case object
-      when Hash
-        h = if {}.respond_to?(:with_indifferent_access) # Better support for Rails.
-              {}.with_indifferent_access
-            else
-              Hash.new { |hash, key| hash[key.to_s] if Symbol === key }
-            end
-
-        object.each { |k, v| h[k] = indifferentiate(v) }
-        h
-      when Array
-        object.map { |v| indifferentiate(v) }
-      else
-        object
-      end
     end
   end
 end
