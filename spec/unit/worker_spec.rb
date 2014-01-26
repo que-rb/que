@@ -62,6 +62,63 @@ describe Que::Worker do
     DB[:que_jobs].count.should be 0
   end
 
+  it "should handle subclasses of other jobs" do
+    begin
+      class SubClassJob < Que::Job
+        @priority = 2
+
+        def run
+          $job_spec_result << :sub
+        end
+      end
+
+      class SubSubClassJob < SubClassJob
+        @priority = 4
+
+        def run
+          super
+          $job_spec_result << :subsub
+        end
+      end
+
+      $job_spec_result = []
+      SubClassJob.enqueue
+      DB[:que_jobs].select_map(:priority).should == [2]
+      run_jobs Que.execute("SELECT * FROM que_jobs").first
+      $job_spec_result.should == [:sub]
+
+      $job_spec_result = []
+      SubSubClassJob.enqueue
+      DB[:que_jobs].select_map(:priority).should == [4]
+      run_jobs Que.execute("SELECT * FROM que_jobs").first
+      $job_spec_result.should == [:sub, :subsub]
+    ensure
+      $job_spec_result = nil
+    end
+  end
+
+  it "should handle namespaced subclasses" do
+    begin
+      $run = false
+
+      module ModuleJobModule
+        class ModuleJob < Que::Job
+          def run
+            $run = true
+          end
+        end
+      end
+
+      ModuleJobModule::ModuleJob.enqueue
+      DB[:que_jobs].get(:job_class).should == "ModuleJobModule::ModuleJob"
+
+      run_jobs Que.execute("SELECT * FROM que_jobs").first
+      $run.should be true
+    ensure
+      $run = nil
+    end
+  end
+
   it "should make a job's argument hashes indifferently accessible" do
     DB[:que_jobs].count.should be 0
     ArgsJob.enqueue 1, 'two', {'array' => [{'number' => 3}]}

@@ -126,6 +126,24 @@ describe Que::Locker do
       end
     end
 
+    it "when no named queue is assigned should only work jobs from the default queue" do
+      id1 = Que::Job.enqueue.attrs[:job_id]
+      id2 = Que::Job.enqueue(:queue => 'my_queue').attrs[:job_id]
+
+      Que::Locker.new.stop
+
+      DB[:que_jobs].select_map(:job_id).should == [id2]
+    end
+
+    it "when a named queue is assigned should only work jobs from it" do
+      id1 = Que::Job.enqueue.attrs[:job_id]
+      id2 = Que::Job.enqueue(:queue => 'my_queue').attrs[:job_id]
+
+      Que::Locker.new(:queue => 'my_queue').stop
+
+      DB[:que_jobs].select_map(:job_id).should == [id1]
+    end
+
     it "should respect a maximum_queue_size setting"
 
     it "should consider priority settings for workers"
