@@ -5,6 +5,12 @@ describe Que::Locker do
     Que::Locker.new.stop
   end
 
+  it "should have a thread that is of higher priority than others" do
+    locker = Que::Locker.new
+    locker.thread.priority.should be > Thread.current.priority
+    locker.stop
+  end
+
   it "should register its presence or absence in the que_lockers table upon connecting or disconnecting" do
     worker_count = rand(10) + 1
 

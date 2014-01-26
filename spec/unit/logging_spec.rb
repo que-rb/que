@@ -13,20 +13,13 @@ describe "Logging" do
     message['thread'].should == Thread.current.object_id
   end
 
-  it "should not raise an error when no logger is present" do
+  it "should not cause errors to be raised when no logger is present" do
     begin
       Que.logger = nil
 
-      pending
-
-      # Que::Job.enqueue
-      # worker = Que::Worker.new
-      # sleep_until { worker.sleeping? }
-
-      # DB[:que_jobs].should be_empty
-
-      # worker.stop
-      # worker.wait_until_stopped
+      Que::Job.enqueue
+      Que::Locker.new.stop
+      DB[:que_jobs].should be_empty
     ensure
       Que.logger = $logger
     end

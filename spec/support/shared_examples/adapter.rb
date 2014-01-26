@@ -52,21 +52,26 @@ shared_examples "a Que adapter" do
   end
 
   it "should allow multiple workers to complete jobs simultaneously" do
-    pending
+    class SimultaneousJob < BlockJob
+      def run
+        Que.adapter.checkout { super }
+      end
+    end
 
-    # BlockJob.enqueue
-    # worker_1 = Que::Worker.new
-    # $q1.pop
+    SimultaneousJob.enqueue
+    SimultaneousJob.enqueue
 
-    # Que::Job.enqueue
-    # DB[:que_jobs].count.should be 2
+    locker = Que::Locker.new
 
-    # worker_2 = Que::Worker.new
-    # sleep_until { worker_2.sleeping? }
-    # DB[:que_jobs].count.should be 1
+    $q1.pop
+    $q1.pop
 
-    # $q2.push nil
-    # sleep_until { worker_1.sleeping? }
-    # DB[:que_jobs].count.should be 0
+    DB[:que_jobs].count.should be 2
+
+    $q2.push nil
+    $q2.push nil
+
+    locker.stop
+    DB[:que_jobs].count.should be 0
   end
 end

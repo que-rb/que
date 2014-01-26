@@ -14,45 +14,40 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
     it_behaves_like "a Que adapter"
 
     it "should use the same connection that ActiveRecord does" do
-      pending
+      begin
+        class ActiveRecordJob < Que::Job
+          def run
+            $pid1 = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
+            $pid2 = Integer(ActiveRecord::Base.connection.select_value("SELECT pg_backend_pid()"))
+          end
+        end
 
-      # begin
-      #   class ActiveRecordJob < Que::Job
-      #     def run
-      #       $pid1 = Integer(Que.execute("select pg_backend_pid()").first['pg_backend_pid'])
-      #       $pid2 = Integer(ActiveRecord::Base.connection.select_value("select pg_backend_pid()"))
-      #     end
-      #   end
+        ActiveRecordJob.enqueue
+        Que::Locker.new.stop
 
-      #   ActiveRecordJob.enqueue
-      #   Que::Job.work
-
-      #   $pid1.should == $pid2
-      # ensure
-      #   $pid1 = $pid2 = nil
-      # end
+        $pid1.should be_a_kind_of Integer
+        $pid1.should == $pid2
+      ensure
+        $pid1 = $pid2 = nil
+      end
     end
 
     it "should instantiate args as ActiveSupport::HashWithIndifferentAccess" do
-      pending
-
-      # ArgsJob.enqueue :param => 2
-      # Que::Job.work
-      # $passed_args.first[:param].should == 2
-      # $passed_args.first.should be_an_instance_of ActiveSupport::HashWithIndifferentAccess
+      ArgsJob.enqueue :param => 2
+      Que::Locker.new.stop
+      $passed_args.first[:param].should == 2
+      $passed_args.first.should be_an_instance_of ActiveSupport::HashWithIndifferentAccess
     end
 
     it "should support Rails' special extensions for times" do
-      # Que.mode = :async
-      # sleep_until { Que::Worker.workers.all? &:sleeping? }
+      locker = Que::Locker.new :poll_interval => 0.005.seconds
+      sleep 0.01
 
       Que::Job.enqueue :run_at => 1.minute.ago
       DB[:que_jobs].get(:run_at).should be_within(3).of Time.now - 60
 
-      pending
-
-      # Que.wake_interval = 0.005.seconds
-      # sleep_until { DB[:que_jobs].empty? }
+      sleep_until { DB[:que_jobs].empty? }
+      locker.stop
     end
 
     it "should be able to tell when it's in an ActiveRecord transaction" do
