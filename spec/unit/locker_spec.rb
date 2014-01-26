@@ -226,8 +226,6 @@ describe Que::Locker do
   end
 
   describe "when told to shut down" do
-    it "should stop listening and batch polling"
-
     it "should stop all its workers" do
       locker  = Que::Locker.new
       workers = locker.workers
