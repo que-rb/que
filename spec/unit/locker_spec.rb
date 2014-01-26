@@ -72,7 +72,27 @@ describe Que::Locker do
     DB[:que_jobs].select_map(:queue).should == ['other_queue']
   end
 
-  it "should do batch polls at wake_interval to catch jobs that fall through the cracks"
+  it "should repeat batch polls on startup until the supply of available jobs is exhausted" do
+    100.times { Que::Job.enqueue }
+    locker = Que::Locker.new
+
+    sleep_until { DB[:que_jobs].empty? }
+    locker.stop
+  end
+
+  it "should do batch polls at poll_interval to catch jobs that fall through the cracks" do
+    DB[:que_jobs].count.should be 0
+    locker = Que::Locker.new :poll_interval => 0.01
+    sleep_until { DB[:que_lockers].count == 1 }
+
+    Que::Job.enqueue
+    sleep_until { DB[:que_jobs].empty? }
+
+    Que::Job.enqueue
+    sleep_until { DB[:que_jobs].empty? }
+
+    locker.stop
+  end
 
   describe "when doing a batch poll" do
     it "should not try to lock and work jobs it has already locked"

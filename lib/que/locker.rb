@@ -5,8 +5,9 @@ module Que
     attr_reader :thread, :workers, :job_queue
 
     def initialize(options = {})
-      @queue_name = options[:queue] || ''
-      @listening  = !!options[:listening]
+      @queue_name    = options[:queue] || ''
+      @listening     = !!options[:listening]
+      @poll_interval = options[:poll_interval] || 5
 
       @job_queue    = JobQueue.new
       @result_queue = ResultQueue.new
@@ -17,6 +18,7 @@ module Que
       end
 
       @thread = Thread.new { work_loop }
+      @thread.priority = 1
     end
 
     def stop
@@ -28,7 +30,7 @@ module Que
 
     def work_loop
       Que.adapter.checkout do
-        backend_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
+        backend_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
 
         begin
           Que.execute "LISTEN que_locker_#{backend_pid}" if @listening
@@ -38,15 +40,13 @@ module Que
           Que.execute :clean_lockers
           Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listening]
 
-          Que.execute(:poll_jobs, [@queue_name, 10]).each { |pk| @job_queue.push(pk) }
+          poll 10
 
           loop do
-            if pk = Que.adapter.wait_for_job(0.001)
-              pk['run_at'] = Time.parse(pk['run_at'])
-              @job_queue.push(pk) if lock_job?(pk[:job_id])
-            end
+            wait
+            break if @stop
 
-            unlock_finished_jobs
+            poll 5
             break if @stop
           end
 
@@ -65,8 +65,47 @@ module Que
 
     private
 
+    # When waiting, wake up every 10 ms to check what's going on.
+    SLEEP_PERIOD = 0.01
+
+    def wait
+      loop do
+        if @listening
+          if pk = Que.adapter.wait_for_job(SLEEP_PERIOD)
+            pk['run_at'] = Time.parse(pk['run_at'])
+            @job_queue.push(pk) if lock_job?(pk[:job_id])
+          end
+        else
+          sleep SLEEP_PERIOD
+        end
+
+        unlock_finished_jobs
+        break if stop_waiting?
+      end
+    end
+
+    def stop_waiting?
+      if @stop
+        # Bail if the locker should be stopping.
+        true
+      elsif @last_poll_satisfied
+        # If the last poll returned all the jobs we asked it to, assume
+        # there's a backlog and go back for more when the queue runs low.
+        @job_queue.count <= 5
+      else
+        # There's no backlog, so we wait until the poll_interval has elapsed.
+        time_until_next_poll.zero?
+      end
+    end
+
     def lock_job?(id)
-      Que.execute("SELECT pg_try_advisory_lock($1)", [id.to_i]).first[:pg_try_advisory_lock]
+      id = id.to_i
+      Que.execute("SELECT pg_try_advisory_lock($1)", [id]).first[:pg_try_advisory_lock]
+    end
+
+    def unlock_job(id)
+      id = id.to_i
+      Que.execute "SELECT pg_advisory_unlock($1)", [id]
     end
 
     def unlock_finished_jobs
@@ -75,8 +114,16 @@ module Que
       end
     end
 
-    def unlock_job(id)
-      Que.execute "SELECT pg_advisory_unlock($1)", [id]
+    def poll(count)
+      jobs = Que.execute(:poll_jobs, [@queue_name, count])
+      jobs.each { |pk| @job_queue.push(pk) }
+      @last_polled_at      = Time.now
+      @last_poll_satisfied = count == jobs.count
+    end
+
+    def time_until_next_poll
+      wait = @poll_interval - (Time.now - @last_polled_at)
+      wait > 0 ? wait : 0
     end
   end
 end

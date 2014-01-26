@@ -40,6 +40,10 @@ module Que
       end
     end
 
+    def count
+      @array.count
+    end
+
     def to_a
       @array.dup
     end
