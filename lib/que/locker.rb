@@ -1,3 +1,4 @@
+require 'set'
 require 'socket'
 
 module Que
@@ -9,6 +10,7 @@ module Que
       @listening     = !!options[:listening]
       @poll_interval = options[:poll_interval] || 5
 
+      @locks        = Set.new
       @job_queue    = JobQueue.new
       @result_queue = ResultQueue.new
 
@@ -100,12 +102,16 @@ module Que
 
     def lock_job?(id)
       id = id.to_i
-      Que.execute("SELECT pg_try_advisory_lock($1)", [id]).first[:pg_try_advisory_lock]
+      if !@locks.include?(id) && Que.execute("SELECT pg_try_advisory_lock($1)", [id]).first[:pg_try_advisory_lock]
+        @locks.add(id)
+        true
+      end
     end
 
     def unlock_job(id)
       id = id.to_i
       Que.execute "SELECT pg_advisory_unlock($1)", [id]
+      @locks.delete(id)
     end
 
     def unlock_finished_jobs
@@ -115,8 +121,13 @@ module Que
     end
 
     def poll(count)
-      jobs = Que.execute(:poll_jobs, [@queue_name, count])
-      jobs.each { |pk| @job_queue.push(pk) }
+      jobs = Que.execute(:poll_jobs, [@queue_name, "{#{@locks.to_a.join(',')}}", count])
+
+      jobs.each do |pk|
+        @locks.add(pk[:job_id])
+        @job_queue.push(pk)
+      end
+
       @last_polled_at      = Time.now
       @last_poll_satisfied = count == jobs.count
     end

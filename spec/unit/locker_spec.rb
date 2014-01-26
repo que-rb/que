@@ -95,7 +95,36 @@ describe Que::Locker do
   end
 
   describe "when doing a batch poll" do
-    it "should not try to lock and work jobs it has already locked"
+    it "should not try to lock and work jobs it has already locked" do
+      begin
+        $performed = []
+
+        class PollRelockJob < BlockJob
+          def run
+            $performed << @attrs[:job_id]
+            super
+          end
+        end
+
+        locker = Que::Locker.new :poll_interval => 0.01
+
+        id1 = PollRelockJob.enqueue.attrs[:job_id]
+        $q1.pop
+
+        id2 = PollRelockJob.enqueue.attrs[:job_id]
+        $q1.pop
+
+        # Without the relock protection, we'd expect the first job to be worked twice.
+        $performed.should == [id1, id2]
+
+        $q2.push nil
+        $q2.push nil
+
+        locker.stop
+      ensure
+        $performed = nil
+      end
+    end
 
     it "should respect a maximum_queue_size setting"
 
@@ -152,7 +181,42 @@ describe Que::Locker do
       DB[:que_jobs].select_map(:job_id).should == [id]
     end
 
-    it "should not try to lock and work jobs it has already locked"
+    it "should not try to lock and work jobs it has already locked" do
+      begin
+        $performed = []
+
+        class NotifyRelockJob < BlockJob
+          def run
+            $performed << @attrs[:job_id]
+            super
+          end
+        end
+
+        attrs = NotifyRelockJob.enqueue.attrs
+
+        locker = Que::Locker.new :listening => true
+        $q1.pop
+
+        pid = DB[:que_lockers].where(:listening).get(:pid)
+
+        payload = DB[:que_jobs].
+          where(:job_id => attrs[:job_id]).
+          select(:queue, :priority, :run_at, :job_id).
+          from_self(:alias => :t).
+          get{row_to_json(:t)}
+
+        DB.notify "que_locker_#{pid}", :payload => payload
+
+        sleep 0.01 # Hacky
+
+        $q2.push nil
+        locker.stop
+
+        locks = DB[:pg_locks].all
+      ensure
+        $performed = nil
+      end
+    end
 
     it "of low importance should not lock them or add them to the JobQueue if it is full"
 

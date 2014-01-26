@@ -26,6 +26,7 @@ module Que
           SELECT j
           FROM que_jobs AS j
           WHERE queue = $1::text
+          AND NOT job_id = ANY($2::integer[])
           AND run_at <= now()
           ORDER BY priority, run_at, job_id
           LIMIT 1
@@ -37,6 +38,7 @@ module Que
               SELECT j
               FROM que_jobs AS j
               WHERE queue = $1::text
+              AND NOT job_id = ANY($2::integer[])
               AND run_at <= now()
               AND (priority, run_at, job_id) > (jobs.priority, jobs.run_at, jobs.job_id)
               ORDER BY priority, run_at, job_id
@@ -51,7 +53,7 @@ module Que
       SELECT queue, priority, run_at, job_id
       FROM jobs
       WHERE locked
-      LIMIT $2::integer
+      LIMIT $3::integer
     }.freeze,
 
     :check_job => %{
