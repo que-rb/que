@@ -5,6 +5,10 @@ shared_examples "a Que adapter" do
     result.first[:one].should == 1
   end
 
+  it "should be able to execute multiple SQL statements in one string" do
+    Que.execute("SELECT 1 AS one; SELECT 1 AS one")
+  end
+
   it "should be able to queue and work a job" do
     Que::Job.enqueue
     result = Que::Job.work

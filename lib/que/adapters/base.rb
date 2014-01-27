@@ -49,7 +49,8 @@ module Que
       private
 
       def execute_sql(sql, params)
-        checkout { |conn| conn.async_exec(sql, params) }
+        args = params.empty? ? [sql] : [sql, params]
+        checkout { |conn| conn.async_exec(*args) }
       end
 
       def execute_prepared(name, params)
