@@ -93,7 +93,7 @@ module Que
       CAST_PROCS[114] = JSON_MODULE.method(:load)
 
       # Boolean:
-      CAST_PROCS[16] = proc { |text| text == 't' }
+      CAST_PROCS[16] = 't'.method(:==)
 
       def cast_result(result)
         output = result.to_a
