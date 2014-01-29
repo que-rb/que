@@ -1,8 +1,10 @@
 module Que
   class Worker
     attr_reader :thread
+    attr_accessor :priority
 
     def initialize(options)
+      @priority     = options[:priority]
       @job_queue    = options[:job_queue]
       @result_queue = options[:result_queue]
       @thread       = Thread.new { work_loop }
@@ -16,7 +18,7 @@ module Que
 
     def work_loop
       loop do
-        pk = @job_queue.shift
+        pk = @job_queue.shift(*priority)
         break if pk == :stop
 
         begin

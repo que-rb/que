@@ -138,7 +138,17 @@ describe Que::Worker do
     @result_queue.to_a.should == [587648]
   end
 
-  it "should only take jobs that meet its priority requirement, if any"
+  it "should only take jobs that meet its priority requirement" do
+    @worker.priority = 10
+
+    jobs = (1..20).map { |i| {:priority => i, :run_at => Time.now, :job_id => i} }
+
+    @job_queue.push jobs
+
+    sleep_until { @result_queue.to_a == (1..10).to_a }
+
+    @job_queue.to_a.should == jobs[10..19]
+  end
 
   describe "when an error is raised" do
     it "should not crash the worker" do
