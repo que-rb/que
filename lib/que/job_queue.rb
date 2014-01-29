@@ -27,7 +27,6 @@ module Que
       loop do
         @mutex.synchronize do
           if @stop
-            @cv.signal
             return :stop
           elsif (pk = @array.first) && pk[:priority] <= priority
             item = @array.shift
@@ -51,7 +50,7 @@ module Que
     def stop
       @mutex.synchronize do
         @stop = true
-        @cv.signal
+        @cv.broadcast
       end
     end
 
