@@ -53,6 +53,50 @@ describe Que::JobQueue do
 
       threads.map{|t| t[:id]}.sort.should == (1..4).to_a
     end
+
+    it "should accept a priority value and only accept jobs of equal or better priority" do
+      @jq.push :priority => 10,
+               :run_at   => Time.now,
+               :job_id   => 1
+
+      t = Thread.new { Thread.current[:id] = @jq.shift(5)[:job_id] }
+      sleep_until { t.status == 'sleep' }
+
+      @jq.push :priority => 10,
+               :run_at   => Time.now,
+               :job_id   => 2
+
+      sleep_until { t.status == 'sleep' }
+
+      @jq.push :priority => 5,
+               :run_at => Time.now,
+               :job_id => 3
+
+      sleep_until { t.status == false }
+      t[:id].should == 3
+    end
+
+    it "when blocking for multiple threads should only return for one of sufficient priority" do
+      # Randomize order in which threads lock.
+      threads = [5, 10, 15, 20].shuffle.map do |priority|
+        Thread.new do
+          Thread.current[:priority] = priority
+          Thread.current[:result] = @jq.shift(priority)
+        end
+      end
+
+      sleep_until { threads.all? { |t| t.status == 'sleep' } }
+
+      threads.sort_by! { |t| t[:priority] }
+
+      @jq.push :priority => 17,
+               :run_at   => Time.now,
+               :job_id   => 1
+
+      sleep_until { threads[3].status == false }
+      threads[3][:result][:job_id].should == 1
+      threads[0..2].map(&:status).should == %w(sleep) * 3
+    end
   end
 
   describe "#stop" do

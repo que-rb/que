@@ -18,23 +18,23 @@ module Que
         # At some point, for large queue sizes and small numbers of jobs to
         # insert, it may be worth investigating an insertion by binary search.
         @array.push(*jobs).sort_by! { |job| job.values_at(:priority, :run_at, :job_id) }
-        @cv.signal
+        @cv.broadcast
       end
     end
 
-    # Implementation borrowed from the rubysl-thread gem.
-    def shift
+    # Looping/ConditionVariable technique borrowed from the rubysl-thread gem.
+    def shift(priority = Float::INFINITY)
       loop do
         @mutex.synchronize do
           if @stop
             @cv.signal
             return :stop
-          elsif @array.empty?
-            @cv.wait(@mutex)
-          else
+          elsif (pk = @array.first) && pk[:priority] <= priority
             item = @array.shift
             @cv.signal
             return item
+          else
+            @cv.wait(@mutex)
           end
         end
       end
