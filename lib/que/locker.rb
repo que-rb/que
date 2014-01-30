@@ -74,7 +74,7 @@ module Que
     def wait
       loop do
         if @listening
-          if pk = Que.adapter.wait_for_job(SLEEP_PERIOD)
+          if pk = Que.adapter.wait_for_json(SLEEP_PERIOD)
             pk['run_at'] = Time.parse(pk['run_at'])
             if @job_queue.accept?(pk) && lock_job?(pk[:job_id])
               if ids = @job_queue.push(pk)

@@ -39,7 +39,7 @@ module Que
         checkout { |conn| conn.transaction_status != ::PG::PQTRANS_IDLE }
       end
 
-      def wait_for_job(timeout = nil)
+      def wait_for_json(timeout = nil)
         checkout do |conn|
           conn.wait_for_notify(timeout) do |_, _, payload|
             return INDIFFERENTIATOR.call(JSON_MODULE.load(payload))
