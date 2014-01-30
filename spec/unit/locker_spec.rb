@@ -62,7 +62,19 @@ describe Que::Locker do
     DB[:que_lockers].count.should be 0
   end
 
-  it "should respect priority settings for workers"
+  it "should respect priority settings for workers" do
+    locker = Que::Locker.new :worker_count      => 8,
+                             :worker_priorities => [1, 2, 3, 4]
+
+    locker.workers.map(&:priority).should == [1, 2, 3, 4, nil, nil, nil, nil]
+    locker.stop
+
+    locker = Que::Locker.new :worker_count      => 4,
+                             :worker_priorities => [1, 2, 3, 4, 5]
+
+    locker.workers.map(&:priority).should == [1, 2, 3, 4]
+    locker.stop
+  end
 
   it "should do batch polls for jobs on startup" do
     job1, job2 = BlockJob.enqueue, BlockJob.enqueue

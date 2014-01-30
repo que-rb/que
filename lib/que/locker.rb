@@ -14,8 +14,9 @@ module Que
       @job_queue    = JobQueue.new
       @result_queue = ResultQueue.new
 
-      @workers = (options[:worker_count] || 4).times.map do
-        Worker.new :job_queue    => @job_queue,
+      @workers = (options[:worker_count] || 4).times.zip(options[:worker_priorities] || []).map do |_, priority|
+        Worker.new :priority     => priority,
+                   :job_queue    => @job_queue,
                    :result_queue => @result_queue
       end
 
