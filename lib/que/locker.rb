@@ -11,7 +11,7 @@ module Que
       @poll_interval = options[:poll_interval] || 5
 
       @locks        = Set.new
-      @job_queue    = JobQueue.new
+      @job_queue    = JobQueue.new :maximum_size => options[:maximum_queue_size]
       @result_queue = ResultQueue.new
 
       @workers = (options[:worker_count] || 4).times.zip(options[:worker_priorities] || []).map do |_, priority|
@@ -76,7 +76,11 @@ module Que
         if @listening
           if pk = Que.adapter.wait_for_job(SLEEP_PERIOD)
             pk['run_at'] = Time.parse(pk['run_at'])
-            @job_queue.push(pk) if lock_job?(pk[:job_id])
+            if lock_job?(pk[:job_id])
+              if ids = @job_queue.push(pk)
+                ids.each { |id| unlock_job(id) }
+              end
+            end
           end
         else
           sleep SLEEP_PERIOD
@@ -126,7 +130,9 @@ module Que
 
       jobs.each do |pk|
         @locks.add(pk[:job_id])
-        @job_queue.push(pk)
+        if ids = @job_queue.push(pk)
+          ids.each { |id| unlock_job(id) }
+        end
       end
 
       @last_polled_at      = Time.now

@@ -254,9 +254,46 @@ describe Que::Locker do
       end
     end
 
-    it "of low importance should not lock them or add them to the JobQueue if it is full"
+    it "of low importance should not lock them or add them to the JobQueue if it is full" do
+      locker = Que::Locker.new :worker_count       => 1,
+                               :listening          => true,
+                               :maximum_queue_size => 3
 
-    it "of significant importance should lock and add them to the JobQueue and dequeue/unlock the least important one to make room"
+      sleep_until { DB[:que_lockers].count == 1 }
+
+      ids = 4.times.map { BlockJob.enqueue(:priority => 5).attrs[:job_id] }
+      $q1.pop
+
+      sleep_until { locker.job_queue.to_a.map{|h| h[:job_id]} == ids[1..3] }
+
+      id = Que::Job.enqueue(:priority => 10).attrs[:job_id]
+
+      sleep 0.05 # Hacky.
+      locker.job_queue.to_a.map{|h| h[:job_id]}.should_not include id
+
+      4.times { $q2.push nil }
+      locker.stop
+    end
+
+    it "of significant importance should lock and add it to the JobQueue and dequeue/unlock the least important one to make room" do
+      locker = Que::Locker.new :worker_count       => 1,
+                               :listening          => true,
+                               :maximum_queue_size => 3
+
+      sleep_until { DB[:que_lockers].count == 1 }
+
+      ids = 4.times.map { BlockJob.enqueue(:priority => 5).attrs[:job_id] }
+      $q1.pop
+
+      sleep_until { locker.job_queue.to_a.map{|h| h[:job_id]} == ids[1..3] }
+
+      id = Que::Job.enqueue(:priority => 2).attrs[:job_id]
+
+      sleep_until { locker.job_queue.to_a.map{|h| h[:job_id]} == [id] + ids[1..2] }
+
+      4.times { $q2.push nil }
+      locker.stop
+    end
 
     it "should log what it is doing"
   end
