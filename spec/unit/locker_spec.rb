@@ -279,7 +279,8 @@ describe Que::Locker do
 
       4.times { $q1.pop }
 
-      locker.job_queue.to_a.map{|h| h[:job_id].to_i}.should == job_ids[4..5]
+      sleep_until { locker.job_queue.to_a.map{|h| h[:job_id].to_i} == job_ids[4..5] }
+
       t = Thread.new { locker.stop }
 
       sleep_until { locker.job_queue.to_a.empty? }
