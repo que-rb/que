@@ -63,8 +63,6 @@ describe Que::JobQueue do
         @jq.accept?(@array[0]).should be true
       end
 
-      it "should return true if there is insufficient room in the queue, but a thread with a valid priority requirement is idle"
-
       it "should return false if there is insufficient room in the queue, and the job's priority is lower than any in the queue" do
         @jq.accept?(@array[-1]).should be false
       end
