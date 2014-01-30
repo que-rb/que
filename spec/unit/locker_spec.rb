@@ -5,6 +5,12 @@ describe Que::Locker do
     Que::Locker.new.stop
   end
 
+  it "should have sensible defaults for workers and their priorities" do
+    locker = Que::Locker.new
+    locker.workers.map(&:priority).should == [10, 30, 50, nil, nil, nil]
+    locker.stop
+  end
+
   it "should have a high-priority work thread" do
     locker = Que::Locker.new
     locker.thread.priority.should be > Thread.current.priority
@@ -319,16 +325,16 @@ describe Que::Locker do
 
       sleep_until { DB[:pg_locks].where(:locktype => 'advisory').select_order_map(:objid) == job_ids }
 
-      4.times { $q1.pop }
+      3.times { $q1.pop }
 
-      sleep_until { locker.job_queue.to_a.map{|h| h[:job_id].to_i} == job_ids[4..5] }
+      sleep_until { locker.job_queue.to_a.map{|h| h[:job_id].to_i} == job_ids[3..5] }
 
       t = Thread.new { locker.stop }
 
       sleep_until { locker.job_queue.to_a.empty? }
-      sleep_until { DB[:pg_locks].where(:locktype => 'advisory').select_order_map(:objid) == job_ids[0..3] }
+      sleep_until { DB[:pg_locks].where(:locktype => 'advisory').select_order_map(:objid) == job_ids[0..2] }
 
-      4.times { $q2.push nil }
+      3.times { $q2.push nil }
       t.join
     end
 

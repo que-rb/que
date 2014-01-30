@@ -11,10 +11,13 @@ module Que
       @poll_interval = options[:poll_interval] || 5
 
       @locks        = Set.new
-      @job_queue    = JobQueue.new :maximum_size => options[:maximum_queue_size]
+      @job_queue    = JobQueue.new :maximum_size => options[:maximum_queue_size] || 8
       @result_queue = ResultQueue.new
 
-      @workers = (options[:worker_count] || 4).times.zip(options[:worker_priorities] || []).map do |_, priority|
+      worker_count      = options[:worker_count]      || 6
+      worker_priorities = options[:worker_priorities] || [10, 30, 50]
+
+      @workers = worker_count.times.zip(worker_priorities).map do |_, priority|
         Worker.new :priority     => priority,
                    :job_queue    => @job_queue,
                    :result_queue => @result_queue
