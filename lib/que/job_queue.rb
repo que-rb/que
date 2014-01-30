@@ -20,6 +20,12 @@ module Que
 
         # Notify all waiting threads that they can try again to remove a job.
         @cv.broadcast
+
+        # If we passed the maximum queue size, drop the least important jobs
+        # and return their ids to be unlocked.
+        if @max && @max < size
+          @array.pop(size - @max).map{|pk| pk[:job_id]}
+        end
       end
     end
 

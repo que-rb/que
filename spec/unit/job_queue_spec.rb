@@ -35,9 +35,34 @@ describe Que::JobQueue do
     end
 
     describe "when a maximum size is set" do
-      it "should behave normally and return nil if the maximum size hasn't been reached"
+      before do
+        @jq = Que::JobQueue.new :maximum_size => 8
+      end
 
-      it "should return the ids of jobs to unlock if the maximum size has been reached"
+      it "and not reached should behave normally and return nil" do
+        @jq.push(@array[0]).should be nil
+        @jq.push(@array[1..2]).should be nil
+      end
+
+      it "and reached should pop unimportant jobs and return their ids to be unlocked" do
+        @jq.push(@array)
+        @jq.push(@array[0]).should == [8]
+        @jq.push(@array[1..2]).sort.should == [6, 7]
+        @jq.size.should == 8
+
+        # Make sure pushing multiple items that cross the threshold works properly.
+        @jq.clear
+        @jq.push(@array)
+        @jq.shift
+        @jq.push(@array[0..1]).should == [8]
+        @jq.size.should == 8
+
+        # Pushing very low priority jobs shouldn't happen, since we use
+        # #accept? to prevent unnecessary locking, but just in case:
+        @jq.push(:priority => 100, :run_at => Time.now, :job_id => 45).should == [45]
+        @jq.to_a.map{|h| h[:job_id]}.should_not include 45
+        @jq.size.should == 8
+      end
     end
   end
 
