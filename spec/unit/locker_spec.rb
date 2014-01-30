@@ -111,7 +111,19 @@ describe Que::Locker do
       DB[:que_jobs].select_map(:queue).should == ['other_queue']
     end
 
-    it "should request enough jobs to fill the queue"
+    it "should request enough jobs to fill the queue" do
+      ids  = 3.times.map { BlockJob.enqueue(:priority => 5).attrs[:job_id] }
+      ids += 6.times.map { Que::Job.enqueue(:priority => 8).attrs[:job_id] }
+
+      locker = Que::Locker.new
+      3.times { $q1.pop }
+
+      # The default queue size is 8, so it shouldn't lock the 9th job.
+      DB[:pg_locks].where(:locktype => 'advisory').select_order_map(:objid).should == ids[0..-2]
+
+      3.times { $q2.push nil }
+      locker.stop
+    end
 
     it "should repeat batch polls until the supply of available jobs is exhausted" do
       100.times { Que::Job.enqueue }
@@ -172,7 +184,19 @@ describe Que::Locker do
       DB[:que_jobs].select_map(:job_id).should == [id1]
     end
 
-    it "should request as many as necessary to reach the maximum_queue_size"
+    it "should request as many as necessary to reach the maximum_queue_size" do
+      ids  = 3.times.map { BlockJob.enqueue(:priority => 100).attrs[:job_id] }
+      ids += 3.times.map { Que::Job.enqueue(:priority => 101).attrs[:job_id] }
+
+      locker = Que::Locker.new :poll_interval => 0.01
+      3.times { $q1.pop }
+
+      ids += 6.times.map { Que::Job.enqueue(:priority => 101).attrs[:job_id] }
+      sleep_until { DB[:pg_locks].where(:locktype => 'advisory').select_order_map(:objid) == ids[0..10] }
+
+      3.times { $q2.push nil }
+      locker.stop
+    end
 
     it "should trigger a new batch poll when the queue drops to one-quarter full"
 

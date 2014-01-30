@@ -46,13 +46,13 @@ module Que
           Que.execute :clean_lockers
           Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listening]
 
-          poll 10
+          poll
 
           loop do
             wait
             break if @stop
 
-            poll 5
+            poll
             break if @stop
           end
 
@@ -130,7 +130,8 @@ module Que
       end
     end
 
-    def poll(count)
+    def poll
+      count = @job_queue.space
       jobs = Que.execute(:poll_jobs, [@queue_name, "{#{@locks.to_a.join(',')}}", count])
       @locks.merge jobs.map { |pk| pk[:job_id] }
       push_jobs(*jobs)

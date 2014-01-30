@@ -42,6 +42,10 @@ module Que
       end
     end
 
+    def space
+      @max - size if @max
+    end
+
     def accept?(pk)
       return true if @max.nil?
       @mutex.synchronize { size < @max || pk[:priority] < @array[-1][:priority] }
