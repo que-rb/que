@@ -28,7 +28,7 @@ module Que
           end
         rescue => error
           begin
-            count    = job[:error_count].to_i + 1
+            count    = job[:error_count] + 1
             interval = (klass.retry_interval if klass) || Job.retry_interval
             delay    = interval.respond_to?(:call) ? interval.call(count) : interval
             message  = "#{error.message}\n#{error.backtrace.join("\n")}"
@@ -43,7 +43,7 @@ module Que
             Que.error_handler.call(error) rescue nil
           end
         ensure
-          @result_queue.push pk[:job_id].to_i
+          @result_queue.push pk[:job_id]
         end
       end
     end
