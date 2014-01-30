@@ -76,7 +76,7 @@ module Que
         if @listening
           if pk = Que.adapter.wait_for_job(SLEEP_PERIOD)
             pk['run_at'] = Time.parse(pk['run_at'])
-            if lock_job?(pk[:job_id])
+            if @job_queue.accept?(pk) && lock_job?(pk[:job_id])
               if ids = @job_queue.push(pk)
                 ids.each { |id| unlock_job(id) }
               end
