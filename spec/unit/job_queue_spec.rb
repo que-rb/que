@@ -55,7 +55,7 @@ describe Que::JobQueue do
 
       it "should return true if there is sufficient room in the queue" do
         @jq.shift[:job_id].should == 1
-        @jq.count.should be 7
+        @jq.size.should be 7
         @jq.accept?(@array[-1]).should be true
       end
 

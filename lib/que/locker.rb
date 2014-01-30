@@ -94,7 +94,7 @@ module Que
       elsif @last_poll_satisfied
         # If the last poll returned all the jobs we asked it to, assume
         # there's a backlog and go back for more when the queue runs low.
-        @job_queue.count <= 5
+        @job_queue.size <= 5
       else
         # There's no backlog, so we wait until the poll_interval has elapsed.
         time_until_next_poll.zero?

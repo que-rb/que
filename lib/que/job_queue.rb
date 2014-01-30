@@ -40,11 +40,11 @@ module Que
 
     def accept?(pk)
       return true if @max.nil?
-      @mutex.synchronize { count < @max || pk[:priority] < @array[-1][:priority] }
+      @mutex.synchronize { size < @max || pk[:priority] < @array[-1][:priority] }
     end
 
-    def count
-      @array.count
+    def size
+      @array.size
     end
 
     def to_a
@@ -57,7 +57,7 @@ module Que
     end
 
     def clear
-      @mutex.synchronize { @array.pop(count).map { |pk| pk[:job_id] } }
+      @mutex.synchronize { @array.pop(size).map { |pk| pk[:job_id] } }
     end
   end
 end
