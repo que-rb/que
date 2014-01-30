@@ -23,9 +23,7 @@ module Que
 
         # If we passed the maximum queue size, drop the least important jobs
         # and return their ids to be unlocked.
-        if @max && @max < size
-          @array.pop(size - @max).map{|pk| pk[:job_id]}
-        end
+        dequeue(size - @max) if @max && @max < size
       end
     end
 
@@ -63,7 +61,13 @@ module Que
     end
 
     def clear
-      @mutex.synchronize { @array.pop(size).map { |pk| pk[:job_id] } }
+      @mutex.synchronize { dequeue(size) }
+    end
+
+    private
+
+    def dequeue(number)
+      @array.pop(number).map { |pk| pk[:job_id] }
     end
   end
 end
