@@ -1,6 +1,6 @@
-# Similar to the standard library's Queue class in terms of synchronizing
-# access, but keeps jobs in the order we want to work them. Assumes there's
-# many threads competing to retrieve jobs.
+# A thread-safe queue (one publisher, many subscribers) to hold and distribute
+# primary keys for locked jobs. Similar to the Queue class in the standard
+# library, but understands things like job priorities and stopping.
 
 module Que
   class JobQueue
@@ -12,12 +12,12 @@ module Que
     end
 
     def push(*jobs)
-      jobs.flatten!
-
       @mutex.synchronize do
         # At some point, for large queue sizes and small numbers of jobs to
         # insert, it may be worth investigating an insertion by binary search.
-        @array.push(*jobs).sort_by! { |job| job.values_at(:priority, :run_at, :job_id) }
+        @array.push(*jobs.flatten).sort_by! { |job| job.values_at(:priority, :run_at, :job_id) }
+
+        # Notify all waiting threads that they can try again to remove a job.
         @cv.broadcast
       end
     end
@@ -29,9 +29,7 @@ module Que
           if @stop
             return :stop
           elsif (pk = @array.first) && pk[:priority] <= priority
-            item = @array.shift
-            @cv.signal
-            return item
+            return @array.shift
           else
             @cv.wait(@mutex)
           end
@@ -48,19 +46,12 @@ module Que
     end
 
     def stop
-      @mutex.synchronize do
-        @stop = true
-        @cv.broadcast
-      end
+      @stop = true
+      @cv.broadcast
     end
 
     def clear
-      @mutex.synchronize do
-        ids = @array.map { |pk| pk[:job_id] }
-        @array.clear
-        @cv.signal
-        ids
-      end
+      @mutex.synchronize { @array.pop(count).map { |pk| pk[:job_id] } }
     end
   end
 end
