@@ -261,17 +261,17 @@ describe Que::Locker do
 
       sleep_until { DB[:que_lockers].count == 1 }
 
-      ids = 4.times.map { BlockJob.enqueue(:priority => 5).attrs[:job_id] }
+      BlockJob.enqueue(:priority => 5)
       $q1.pop
-
-      sleep_until { locker.job_queue.to_a.map{|h| h[:job_id]} == ids[1..3] }
+      ids = 3.times.map { Que::Job.enqueue(:priority => 5).attrs[:job_id] }
+      sleep_until { locker.job_queue.to_a.map{|h| h[:job_id]} == ids }
 
       id = Que::Job.enqueue(:priority => 10).attrs[:job_id]
 
       sleep 0.05 # Hacky.
       locker.job_queue.to_a.map{|h| h[:job_id]}.should_not include id
 
-      4.times { $q2.push nil }
+      $q2.push nil
       locker.stop
     end
 
@@ -282,16 +282,17 @@ describe Que::Locker do
 
       sleep_until { DB[:que_lockers].count == 1 }
 
-      ids = 4.times.map { BlockJob.enqueue(:priority => 5).attrs[:job_id] }
+      BlockJob.enqueue :priority => 5
       $q1.pop
+      ids = 3.times.map { Que::Job.enqueue(:priority => 5).attrs[:job_id] }
 
-      sleep_until { locker.job_queue.to_a.map{|h| h[:job_id]} == ids[1..3] }
+      sleep_until { locker.job_queue.to_a.map{|h| h[:job_id]} == ids }
 
       id = Que::Job.enqueue(:priority => 2).attrs[:job_id]
 
-      sleep_until { locker.job_queue.to_a.map{|h| h[:job_id]} == [id] + ids[1..2] }
+      sleep_until { locker.job_queue.to_a.map{|h| h[:job_id]} == [id] + ids[0..1] }
 
-      4.times { $q2.push nil }
+      $q2.push nil
       locker.stop
     end
 
