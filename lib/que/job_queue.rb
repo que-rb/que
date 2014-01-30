@@ -4,11 +4,12 @@
 
 module Que
   class JobQueue
-    def initialize
+    def initialize(options = {})
       @stop  = false
       @array = []
       @mutex = Mutex.new
       @cv    = ConditionVariable.new
+      @max   = options[:maximum_size]
     end
 
     def push(*jobs)
@@ -35,6 +36,11 @@ module Que
           end
         end
       end
+    end
+
+    def accept?(pk)
+      return true if @max.nil?
+      @mutex.synchronize { count < @max || pk[:priority] < @array[-1][:priority] }
     end
 
     def count

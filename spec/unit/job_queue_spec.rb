@@ -33,6 +33,42 @@ describe Que::JobQueue do
       @jq.push(@array.shuffle)
       @jq.to_a.should == @array
     end
+
+    describe "when a maximum size is set" do
+      it "should behave normally and return nil if the maximum size hasn't been reached"
+
+      it "should return the ids of jobs to unlock if the maximum size has been reached"
+    end
+  end
+
+  describe "#accept?" do
+    it "when the queue's maximum size is not set should return true" do
+      @jq.push @array
+      @jq.accept?(@array[-1]).should be true
+    end
+
+    describe "when a maximum size is set" do
+      before do
+        @jq = Que::JobQueue.new :maximum_size => 8
+        @jq.push @array
+      end
+
+      it "should return true if there is sufficient room in the queue" do
+        @jq.shift[:job_id].should == 1
+        @jq.count.should be 7
+        @jq.accept?(@array[-1]).should be true
+      end
+
+      it "should return true if there is insufficient room in the queue, but the pk can knock out a lower-priority job" do
+        @jq.accept?(@array[0]).should be true
+      end
+
+      it "should return true if there is insufficient room in the queue, but a thread with a valid priority requirement is idle"
+
+      it "should return false if there is insufficient room in the queue, and the job's priority is lower than any in the queue" do
+        @jq.accept?(@array[-1]).should be false
+      end
+    end
   end
 
   describe "#shift" do
