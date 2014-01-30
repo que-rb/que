@@ -52,8 +52,8 @@ module Que
       execute :job_stats
     end
 
-    def worker_states
-      execute :worker_states
+    def job_states
+      execute :job_states
     end
 
     # Give us a cleaner interface when specifying a job_class as a string.

@@ -123,20 +123,15 @@ module Que
       ORDER BY count(*) DESC
     }.freeze,
 
-    :worker_states => %{
+    :job_states => %{
       SELECT que_jobs.*,
-             pg.pid          AS pg_backend_pid,
-             pg.state        AS pg_state,
-             pg.state_change AS pg_state_changed_at,
-             pg.query        AS pg_last_query,
-             pg.query_start  AS pg_last_query_started_at,
-             pg.xact_start   AS pg_transaction_started_at,
-             pg.waiting      AS pg_waiting_on_lock
+             pg.ruby_hostname,
+             pg.ruby_pid
       FROM que_jobs
       JOIN (
-        SELECT (classid::bigint << 32) + objid::bigint AS job_id, pg_stat_activity.*
+        SELECT (classid::bigint << 32) + objid::bigint AS job_id, que_lockers.*
         FROM pg_locks
-        JOIN pg_stat_activity USING (pid)
+        JOIN que_lockers USING (pid)
         WHERE locktype = 'advisory'
       ) pg USING (job_id)
     }.freeze
