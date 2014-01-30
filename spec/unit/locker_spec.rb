@@ -5,7 +5,7 @@ describe Que::Locker do
     Que::Locker.new.stop
   end
 
-  it "should have a thread that is of higher priority than others" do
+  it "should have a high-priority work thread" do
     locker = Que::Locker.new
     locker.thread.priority.should be > Thread.current.priority
     locker.stop
@@ -76,28 +76,6 @@ describe Que::Locker do
     locker.stop
   end
 
-  it "should do batch polls for jobs on startup" do
-    job1, job2 = BlockJob.enqueue, BlockJob.enqueue
-    job3       = Que::Job.enqueue :queue => 'other_queue'
-
-    locker = Que::Locker.new
-
-    $q1.pop;      $q1.pop
-    $q2.push nil; $q2.push nil
-
-    locker.stop
-
-    DB[:que_jobs].select_map(:queue).should == ['other_queue']
-  end
-
-  it "should repeat batch polls on startup until the supply of available jobs is exhausted" do
-    100.times { Que::Job.enqueue }
-    locker = Que::Locker.new
-
-    sleep_until { DB[:que_jobs].empty? }
-    locker.stop
-  end
-
   it "should do batch polls at poll_interval to catch jobs that fall through the cracks" do
     DB[:que_jobs].count.should be 0
     locker = Que::Locker.new :poll_interval => 0.01
@@ -110,6 +88,32 @@ describe Que::Locker do
     sleep_until { DB[:que_jobs].empty? }
 
     locker.stop
+  end
+
+  describe "on startup" do
+    it "should do batch polls for jobs" do
+      job1, job2 = BlockJob.enqueue, BlockJob.enqueue
+      job3       = Que::Job.enqueue :queue => 'other_queue'
+
+      locker = Que::Locker.new
+
+      $q1.pop;      $q1.pop
+      $q2.push nil; $q2.push nil
+
+      locker.stop
+
+      DB[:que_jobs].select_map(:queue).should == ['other_queue']
+    end
+
+    it "should request enough jobs to fill the queue"
+
+    it "should repeat batch polls until the supply of available jobs is exhausted" do
+      100.times { Que::Job.enqueue }
+      locker = Que::Locker.new
+
+      sleep_until { DB[:que_jobs].empty? }
+      locker.stop
+    end
   end
 
   describe "when doing a batch poll" do
@@ -162,9 +166,9 @@ describe Que::Locker do
       DB[:que_jobs].select_map(:job_id).should == [id1]
     end
 
-    it "should respect a maximum_queue_size setting"
+    it "should request as many as necessary to reach the maximum_queue_size"
 
-    it "should consider priority settings for workers"
+    it "should trigger a new batch poll when the queue drops to one-quarter full"
 
     it "should log what it is doing"
   end
