@@ -53,7 +53,8 @@ module Que
             break if @stop
           end
 
-          @job_queue.clear.each { |id| unlock_job(id) }
+          unlock_jobs(@job_queue.clear)
+
           @job_queue.stop
           @workers.each(&:wait_until_stopped)
 
@@ -76,11 +77,8 @@ module Que
         if @listening
           if pk = Que.adapter.wait_for_json(SLEEP_PERIOD)
             pk['run_at'] = Time.parse(pk['run_at'])
-            if @job_queue.accept?(pk) && lock_job?(pk[:job_id])
-              if ids = @job_queue.push(pk)
-                ids.each { |id| unlock_job(id) }
-              end
-            end
+
+            push_jobs(pk) if @job_queue.accept?(pk) && lock_job?(pk[:job_id])
           end
         else
           sleep SLEEP_PERIOD
@@ -106,34 +104,33 @@ module Que
     end
 
     def lock_job?(id)
-      id = id.to_i
       if !@locks.include?(id) && Que.execute("SELECT pg_try_advisory_lock($1)", [id]).first[:pg_try_advisory_lock]
         @locks.add(id)
         true
       end
     end
 
-    def unlock_job(id)
-      id = id.to_i
-      Que.execute "SELECT pg_advisory_unlock($1)", [id]
-      @locks.delete(id)
+    def unlock_finished_jobs
+      unlock_jobs @result_queue.clear
     end
 
-    def unlock_finished_jobs
-      while id = @result_queue.shift
-        unlock_job(id)
+    def unlock_jobs(ids)
+      ids.each do |id|
+        Que.execute "SELECT pg_advisory_unlock($1)", [id]
+        @locks.delete(id)
+      end
+    end
+
+    def push_jobs(*pks)
+      if ids = @job_queue.push(pks)
+        unlock_jobs(ids)
       end
     end
 
     def poll(count)
       jobs = Que.execute(:poll_jobs, [@queue_name, "{#{@locks.to_a.join(',')}}", count])
-
-      jobs.each do |pk|
-        @locks.add(pk[:job_id])
-        if ids = @job_queue.push(pk)
-          ids.each { |id| unlock_job(id) }
-        end
-      end
+      @locks.merge jobs.map { |pk| pk[:job_id] }
+      push_jobs(*jobs)
 
       @last_polled_at      = Time.now
       @last_poll_satisfied = count == jobs.count

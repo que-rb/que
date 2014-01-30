@@ -16,6 +16,10 @@ module Que
       @mutex.synchronize { @array.shift }
     end
 
+    def clear
+      @mutex.synchronize { @array.pop(@array.size) }
+    end
+
     def to_a
       @array.dup
     end
