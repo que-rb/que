@@ -1,3 +1,5 @@
+require 'time' # For Time.parse.
+
 module Que
   module Adapters
     autoload :ActiveRecord,   'que/adapters/active_record'
