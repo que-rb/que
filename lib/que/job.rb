@@ -3,8 +3,7 @@ module Que
     attr_reader :attrs
 
     def initialize(attrs)
-      @attrs        = attrs
-      @attrs[:args] = Que.indifferentiate JSON_MODULE.load(@attrs[:args])
+      @attrs = attrs
     end
 
     # Subclasses should define their own run methods, but keep an empty one
@@ -39,7 +38,7 @@ module Que
           args << options if options.any?
         end
 
-        attrs = {:job_class => job_class || to_s, :args => JSON_MODULE.dump(args)}
+        attrs = {:job_class => job_class || to_s, :args => args}
 
         if t = run_at || @run_at && @run_at.call || @default_run_at && @default_run_at.call
           attrs[:run_at] = t
@@ -54,7 +53,7 @@ module Que
         end
 
         if Que.mode == :sync && !t
-          class_for(attrs[:job_class]).new(attrs).tap(&:_run)
+          run(*attrs[:args])
         else
           values = Que.execute(:insert_job, attrs.values_at(:queue, :priority, :run_at, :job_class, :args)).first
           Que.adapter.wake_worker_after_commit unless t
@@ -63,6 +62,10 @@ module Que
       end
 
       alias queue enqueue
+
+      def run(*args)
+        new(:args => args).tap(&:_run)
+      end
 
       def work(queue = '')
         # Since we're taking session-level advisory locks, we have to hold the

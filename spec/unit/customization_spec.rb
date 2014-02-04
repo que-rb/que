@@ -7,7 +7,7 @@ describe "Customizing Que" do
     class Cron < Que::Job
       def run
         destroy
-        self.class.enqueue :run_at => Time.parse(@attrs[:run_at]) + 3600
+        self.class.enqueue :run_at => @attrs[:run_at] + 3600
       end
     end
 
@@ -17,8 +17,7 @@ describe "Customizing Que" do
 
     Que::Job.work
 
-    # TODO: Why isn't this more precise?
-    DB[:que_jobs].get(:run_at).to_f.should be_within(1).of(run_at + 3600)
+    DB[:que_jobs].get(:run_at).to_f.should be_within(0.000001).of(run_at + 3600)
   end
 
   it "Object#delay should allow for simpler job enqueueing" do
@@ -129,9 +128,9 @@ describe "Customizing Que" do
               RETURN OLD;
             END;
           $$;
-
-          CREATE TRIGGER keep_all_my_old_jobs BEFORE DELETE ON que_jobs FOR EACH ROW EXECUTE PROCEDURE please_save_my_job();
         SQL
+
+        Que.execute "CREATE TRIGGER keep_all_my_old_jobs BEFORE DELETE ON que_jobs FOR EACH ROW EXECUTE PROCEDURE please_save_my_job();"
 
         Que::Job.enqueue 2, 'arg2', :priority => 45
         Que::Job.work

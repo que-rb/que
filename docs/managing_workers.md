@@ -23,7 +23,7 @@ If you don't want to burden your web processes with too much work and want to ru
     rake que:work
 
     # Or configure the number of workers:
-    WORKER_COUNT=8 rake que:work
+    QUE_WORKER_COUNT=8 rake que:work
 
 ### Thread-Unsafe Application Code
 
@@ -36,7 +36,7 @@ If your application code is not thread-safe, you won't want any workers to be pr
 
 This will prevent Que from trying to process jobs in the background of your web processes. In order to actually work jobs, you'll want to run a single worker at a time, and to do so via a separate rake task, like so:
 
-    WORKER_COUNT=1 rake que:work
+    QUE_WORKER_COUNT=1 rake que:work
 
 ### The Wake Interval
 
