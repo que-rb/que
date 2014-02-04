@@ -27,13 +27,13 @@ After you've connected Que to the database, you can manage the jobs table:
 
 You'll want to migrate to a specific version if you're using migration files, to ensure that they work the same way even when you upgrade Que in the future:
 
-    # Update the schema to version #2.
-    Que.migrate! :version => 2
+    # Update the schema to version #3.
+    Que.migrate! :version => 3
 
     # To reverse the migration, drop the jobs table entirely:
     Que.migrate! :version => 0
 
-There's also a helper method to clear the jobs table:
+There's also a helper method to clear all jobs from the jobs table:
 
     Que.clear!
 
