@@ -1,5 +1,7 @@
 ### Unreleased
 
+*   You can now run a job's logic directly (without enqueueing it) like `MyJob.run(arg1, arg2, :other_arg => arg3)`. This is useful when a job class encapsulates logic that you want to invoke without involving the entire queue.
+
 *   You can now check the current version of Que's database schema with `Que.db_version`.
 
 *   The method for enqueuing a job has been renamed from `MyJob.queue` has been renamed to `MyJob.enqueue`, since we were beginning to use the word 'queue' in a LOT of places. MyJob.queue still works, it's just not recommended, for clarity's sake (and it may be removed at some point). The documentation will be updated with the 0.6.0 release.

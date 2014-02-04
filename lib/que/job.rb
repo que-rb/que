@@ -53,7 +53,7 @@ module Que
         end
 
         if Que.mode == :sync && !t
-          class_for(attrs[:job_class]).new(attrs).tap(&:_run)
+          run(*attrs[:args])
         else
           values = Que.execute(:insert_job, attrs.values_at(:queue, :priority, :run_at, :job_class, :args)).first
           Que.adapter.wake_worker_after_commit unless t
@@ -62,6 +62,10 @@ module Que
       end
 
       alias queue enqueue
+
+      def run(*args)
+        new(:args => args).tap(&:_run)
+      end
 
       def work(queue = '')
         # Since we're taking session-level advisory locks, we have to hold the
