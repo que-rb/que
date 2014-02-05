@@ -18,6 +18,16 @@ Then you can queue jobs just as you would in Rails:
 
 There are other docs to read if you're using [Sequel](https://github.com/chanks/que/blob/master/docs/using_sequel.md) or [plain Postgres connections](https://github.com/chanks/que/blob/master/docs/using_plain_connections.md) (with no ORM at all) instead of ActiveRecord.
 
+### Forking Servers
+
+If you want to run a worker pool in your web process and you're using a forking webserver like Unicorn or Puma in some configurations, you'll want to set `Que.mode = :off` in your application configuration and only start up the worker pool in the child processes. So, for Puma:
+
+    # config/puma.rb
+    on_worker_boot do
+      # Reestablish your database connection, etc...
+      Que.mode = :async
+    end
+
 ### Managing the Jobs Table
 
 After you've connected Que to the database, you can manage the jobs table:
