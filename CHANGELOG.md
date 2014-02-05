@@ -1,4 +1,4 @@
-### Unreleased
+### 0.6.0 (2014-02-04)
 
 *   **A schema upgrade to version 3 is required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
 
