@@ -1,14 +1,18 @@
-### Unreleased
+### 0.6.0 (2014-02-04)
+
+*   **A schema upgrade to version 3 is required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
+
+*   You can now run a job's logic directly (without enqueueing it) like `MyJob.run(arg1, arg2, :other_arg => arg3)`. This is useful when a job class encapsulates logic that you want to invoke without involving the entire queue.
 
 *   You can now check the current version of Que's database schema with `Que.db_version`.
 
-*   The method for enqueuing a job has been renamed from `MyJob.queue` has been renamed to `MyJob.enqueue`, since we were beginning to use the word 'queue' in a LOT of places. MyJob.queue still works, it's just not recommended, for clarity's sake (and it may be removed at some point). The documentation will be updated with the 0.6.0 release.
+*   The method for enqueuing a job has been renamed from `MyJob.queue` to `MyJob.enqueue`, since we were beginning to use the word 'queue' in a LOT of places. `MyJob.queue` still works, but it may be removed at some point.
 
 *   The variables for setting the defaults for a given job class have been changed from `@default_priority` to `@priority` and `@default_run_at` to `@run_at`. The old variables still work, but like `Job.queue`, they may be removed at some point.
 
-*   Logs now also emit the machine's hostname in addition to its pid, since pids may be repeated across different machines.
+*   Log lines now include the machine's hostname, since a pid alone may not uniquely identify a process.
 
-*   Named queues are now supported. Documentation is forthcoming, or read the code. You can run jobs from a certain queue by setting the QUE_QUEUE environment variable. (chanks, joevandyk)
+*   Multiple queues are now supported. See [the docs](https://github.com/chanks/que/blob/master/docs/multiple_queues.md) for details. (chanks, joevandyk)
 
 *   Rubinius 2.2 is now supported. (brixen)
 

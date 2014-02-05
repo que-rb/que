@@ -13,7 +13,7 @@ Que's support for scheduling jobs makes it easy to implement reliable recurring 
 
         ActiveRecord::Base.transaction do
           destroy
-          self.class.queue :run_at => @attrs[:run_at] + 1.hour
+          self.class.enqueue :run_at => @attrs[:run_at] + 1.hour
         end
       end
     end
@@ -48,7 +48,7 @@ That said, if you want to queue jobs in the DelayedJob style, that can be done r
       end
 
       def method_missing(method, *args)
-        Delayed.queue Marshal.dump(@receiver), method, Marshal.dump(args)
+        Delayed.enqueue Marshal.dump(@receiver), method, Marshal.dump(args)
       end
     end
 
@@ -77,7 +77,7 @@ You can mimic this style with Que by using a simple job class:
 
     # Then:
 
-    Command.queue "Kernel.puts", "hello world"
+    Command.enqueue "Kernel.puts", "hello world"
 
 ### Retaining Finished Jobs
 

@@ -53,7 +53,7 @@ module Que
         end
 
         if Que.mode == :sync && !t
-          class_for(attrs[:job_class]).new(attrs).tap(&:_run)
+          run(*attrs[:args])
         else
           values = Que.execute(:insert_job, attrs.values_at(:queue, :priority, :run_at, :job_class, :args)).first
           new(values)
@@ -61,6 +61,10 @@ module Que
       end
 
       alias queue enqueue
+
+      def run(*args)
+        new(:args => args).tap(&:_run)
+      end
 
       def class_for(string)
         string.split('::').inject(Object, &:const_get)

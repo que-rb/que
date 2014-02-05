@@ -68,8 +68,8 @@ Create a class for each type of job you want to run:
     class ChargeCreditCard < Que::Job
       # Default settings for this job. These are optional - without them, jobs
       # will default to priority 100 and run immediately.
-      @default_priority = 10
-      @default_run_at = proc { 1.minute.from_now }
+      @priority = 10
+      @run_at = proc { 1.minute.from_now }
 
       def run(user_id, options)
         # Do stuff.
@@ -95,19 +95,19 @@ Queue your job. Again, it's best to do this in a transaction with other changes 
     ActiveRecord::Base.transaction do
       # Persist credit card information
       card = CreditCard.create(params[:credit_card])
-      ChargeCreditCard.queue(current_user.id, :credit_card_id => card.id)
+      ChargeCreditCard.enqueue(current_user.id, :credit_card_id => card.id)
     end
 
 You can also add options to run the job after a specific time, or with a specific priority:
 
     # The default priority is 100, and a lower number means a higher priority. 5 would be very important.
-    ChargeCreditCard.queue current_user.id, :credit_card_id => card.id, :run_at => 1.day.from_now, :priority => 5
+    ChargeCreditCard.enqueue current_user.id, :credit_card_id => card.id, :run_at => 1.day.from_now, :priority => 5
 
 To determine what happens when a job is queued, you can set Que's mode in your application configuration. There are a few options for the mode:
 
 * `config.que.mode = :off` - In this mode, queueing a job will simply insert it into the database - the current process will make no effort to run it. You should use this if you want to use a dedicated process to work tasks (there's a rake task to do this, see below). This is the default when running `rails console`.
 * `config.que.mode = :async` - In this mode, a pool of background workers is spun up, each running in their own thread. This is the default when running `rails server`. See the docs for [more information on managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md).
-* `config.que.mode = :sync` - In this mode, any jobs you queue will be run in the same thread, synchronously (that is, `MyJob.queue` runs the job and won't return until it's completed). This makes your application's behavior easier to test, so it's the default in the test environment.
+* `config.que.mode = :sync` - In this mode, any jobs you queue will be run in the same thread, synchronously (that is, `MyJob.enqueue` runs the job and won't return until it's completed). This makes your application's behavior easier to test, so it's the default in the test environment.
 
 ## Contributing
 
