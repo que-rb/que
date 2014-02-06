@@ -199,7 +199,22 @@ describe Que::Locker do
       locker.stop
     end
 
-    it "should trigger a new batch poll when the queue drops to one-quarter full"
+    it "should trigger a new batch poll when the queue drops to the minimum_queue_size threshold" do
+      ids = 9.times.map { BlockJob.enqueue(:priority => 100).attrs[:job_id] }
+
+      locker = Que::Locker.new
+      3.times { $q1.pop }
+
+      # Should have locked first 8 only.
+      DB[:pg_locks].where(:locktype => 'advisory').select_order_map(:objid).should == ids[0..7]
+
+      # Get the queue size down to 2, and it should lock the final one.
+      6.times { $q2.push nil }
+      sleep_until { DB[:pg_locks].where(:locktype => 'advisory').select_map(:objid).include?(ids[-1]) }
+      3.times { $q2.push nil }
+
+      locker.stop
+    end
 
     it "should log what it is doing"
   end

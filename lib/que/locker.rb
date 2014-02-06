@@ -10,6 +10,8 @@ module Que
       @listening     = !!options[:listening]
       @poll_interval = options[:poll_interval] || 5
 
+      @minimum_queue_size = options[:minimum_queue_size] || 2
+
       @locks        = Set.new
       @job_queue    = JobQueue.new :maximum_size => options[:maximum_queue_size] || 8
       @result_queue = ResultQueue.new
@@ -95,7 +97,7 @@ module Que
       elsif @last_poll_satisfied
         # If the last poll returned all the jobs we asked it to, assume
         # there's a backlog and go back for more when the queue runs low.
-        @job_queue.size <= 5
+        @job_queue.size <= @minimum_queue_size
       else
         # There's no backlog, so we wait until the poll_interval has elapsed.
         time_until_next_poll.zero?
