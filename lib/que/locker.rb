@@ -46,13 +46,9 @@ module Que
           Que.execute :clean_lockers
           Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listening]
 
-          poll
-
           loop do
-            wait
-            break if @stop
-
             poll
+            wait
             break if @stop
           end
 
