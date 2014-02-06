@@ -23,20 +23,23 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
         end
 
         ActiveRecordJob.enqueue
-        Que::Locker.new.stop
+        locker = Que::Locker.new
 
-        $pid1.should be_a_kind_of Integer
+        sleep_until { Integer === $pid1 && Integer === $pid2 }
         $pid1.should == $pid2
       ensure
         $pid1 = $pid2 = nil
+        locker.stop if locker
       end
     end
 
     it "should instantiate args as ActiveSupport::HashWithIndifferentAccess" do
       ArgsJob.enqueue :param => 2
-      Que::Locker.new.stop
+      locker = Que::Locker.new
+      sleep_until { $passed_args }
       $passed_args.first[:param].should == 2
       $passed_args.first.should be_an_instance_of ActiveSupport::HashWithIndifferentAccess
+      locker.stop
     end
 
     it "should support Rails' special extensions for times" do

@@ -15,9 +15,13 @@ describe "Customizing Que" do
 
     run_at = DB[:que_jobs].get(:run_at).to_f
 
-    Que::Locker.new.stop
+    locker = Que::Locker.new
+
+    sleep_until { DB[:que_jobs].get(:run_at).to_f > run_at }
 
     DB[:que_jobs].get(:run_at).to_f.should be_within(0.000001).of(run_at + 3600)
+
+    locker.stop
   end
 
   it "Object#delay should allow for simpler job enqueueing" do
@@ -53,9 +57,10 @@ describe "Customizing Que" do
       end
 
       MyModule.delay.blah
-      Que::Locker.new.stop
+      locker = Que::Locker.new
 
-      $run.should be true
+      sleep_until { $run }
+      locker.stop
     ensure
       $run = nil
     end
@@ -79,9 +84,9 @@ describe "Customizing Que" do
       end
 
       Command.enqueue "MyModule.blah", "hello world"
-      Que::Locker.new.stop
-
-      $value.should == "hello world"
+      locker = Que::Locker.new
+      sleep_until { $value == "hello world" }
+      locker.stop
     ensure
       $value = nil
     end
@@ -108,12 +113,14 @@ describe "Customizing Que" do
       end
 
       MyJob.enqueue 1, 'arg1', :priority => 89
-      Que::Locker.new.stop
+      locker = Que::Locker.new
 
-      DB[:finished_jobs].count.should == 1
+      sleep_until { DB[:finished_jobs].count == 1 }
       job = DB[:finished_jobs].first
       job[:priority].should == 89
       JSON.load(job[:args]).should == [1, 'arg1']
+
+      locker.stop
     end
 
     it "with a trigger" do
@@ -133,12 +140,14 @@ describe "Customizing Que" do
         Que.execute "CREATE TRIGGER keep_all_my_old_jobs BEFORE DELETE ON que_jobs FOR EACH ROW EXECUTE PROCEDURE please_save_my_job();"
 
         Que::Job.enqueue 2, 'arg2', :priority => 45
-        Que::Locker.new.stop
+        locker = Que::Locker.new
 
-        DB[:finished_jobs].count.should == 1
+        sleep_until { DB[:finished_jobs].count == 1 }
         job = DB[:finished_jobs].first
         job[:priority].should == 45
         JSON.load(job[:args]).should == [2, 'arg2']
+
+        locker.stop
       ensure
         DB.drop_trigger :que_jobs, :keep_all_my_old_jobs, :if_exists => true
         DB.drop_function :please_save_my_job, :if_exists => true

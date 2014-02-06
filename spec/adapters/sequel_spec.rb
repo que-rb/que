@@ -18,12 +18,13 @@ describe "Que using the Sequel adapter" do
       end
 
       SequelJob.enqueue
-      Que::Locker.new.stop
+      locker = Que::Locker.new
 
-      $pid1.should be_a_kind_of Integer
+      sleep_until { Integer === $pid1 && Integer === $pid2 }
       $pid1.should == $pid2
     ensure
       $pid1 = $pid2 = nil
+      locker.stop if locker
     end
   end
 

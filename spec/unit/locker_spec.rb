@@ -170,9 +170,10 @@ describe Que::Locker do
       id1 = Que::Job.enqueue.attrs[:job_id]
       id2 = Que::Job.enqueue(:queue => 'my_queue').attrs[:job_id]
 
-      Que::Locker.new.stop
+      locker = Que::Locker.new
 
-      DB[:que_jobs].select_map(:job_id).should == [id2]
+      sleep_until { DB[:que_jobs].select_map(:job_id) == [id2] }
+      locker.stop
     end
 
     it "when a named queue is assigned should only work jobs from it" do

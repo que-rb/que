@@ -75,7 +75,8 @@ shared_examples "a Que adapter" do
     $q2.push nil
     $q2.push nil
 
+    sleep_until { DB[:que_jobs].count == 0 }
+
     locker.stop
-    DB[:que_jobs].count.should be 0
   end
 end

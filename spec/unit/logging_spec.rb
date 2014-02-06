@@ -18,8 +18,9 @@ describe "Logging" do
       Que.logger = nil
 
       Que::Job.enqueue
-      Que::Locker.new.stop
-      DB[:que_jobs].should be_empty
+      locker = Que::Locker.new
+      sleep_until { DB[:que_jobs].empty? }
+      locker.stop
     ensure
       Que.logger = $logger
     end
