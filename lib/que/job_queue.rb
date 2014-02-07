@@ -60,8 +60,10 @@ module Que
     end
 
     def stop
-      @stop = true
-      @cv.broadcast
+      @mutex.synchronize do
+        @stop = true
+        @cv.broadcast
+      end
     end
 
     def clear
