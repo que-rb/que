@@ -44,7 +44,7 @@ describe Que::Locker do
     # spec the cleaning of lockers previously registered by the same
     # connection. This will have to be revisited if the behavior of
     # ConnectionPool (our default adapter) is ever changed.
-    Que.execute :register_locker, ['', 3, 0, 'blah1', true]
+    Que.execute :register_locker, ['', 3, 0, 'blah1', 'true']
     DB[:que_lockers].insert :pid           => 0,
                             :ruby_pid      => 0,
                             :ruby_hostname => 'blah2',

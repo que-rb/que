@@ -48,7 +48,7 @@ module Que
           # A previous locker that didn't exit cleanly may have left behind
           # a bad locker record, so clean up before registering.
           Que.execute :clean_lockers
-          Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listening]
+          Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listening.to_s]
 
           poll
 
