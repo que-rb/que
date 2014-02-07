@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Que::JobQueue do
   before do
-    @jq = Que::JobQueue.new
+    @jq = Que::JobQueue.new(8)
 
     older = Time.now - 50
     newer = Time.now
@@ -20,77 +20,58 @@ describe Que::JobQueue do
   end
 
   describe "#push" do
-    it "should add an item and retain the sort order" do
+    it "should add a pk and retain the sort order" do
       ids = []
       @array.shuffle.each do |job|
-        @jq.push(job)
+        @jq.push(job).should be nil
         ids << job[:job_id]
         @jq.to_a.map{|j| j[:job_id]}.should == ids.sort
       end
     end
 
     it "should be able to add many items at once" do
-      @jq.push(@array.shuffle)
+      @jq.push(@array.shuffle).should be nil
       @jq.to_a.should == @array
     end
 
-    describe "when a maximum size is set" do
-      before do
-        @jq = Que::JobQueue.new :maximum_size => 8
-      end
+    it "when the max is reached should pop the least important jobs and return their ids to be unlocked" do
+      @jq.push(@array)
+      @jq.push(@array[0]).should == [8]
+      @jq.push(@array[1..2]).sort.should == [6, 7]
+      @jq.size.should == 8
 
-      it "and not reached should behave normally and return nil" do
-        @jq.push(@array[0]).should be nil
-        @jq.push(@array[1..2]).should be nil
-      end
+      # Make sure pushing multiple items that cross the threshold works properly.
+      @jq.clear
+      @jq.push(@array)
+      @jq.shift
+      @jq.push(@array[0..1]).should == [8]
+      @jq.size.should == 8
 
-      it "and reached should pop unimportant jobs and return their ids to be unlocked" do
-        @jq.push(@array)
-        @jq.push(@array[0]).should == [8]
-        @jq.push(@array[1..2]).sort.should == [6, 7]
-        @jq.size.should == 8
-
-        # Make sure pushing multiple items that cross the threshold works properly.
-        @jq.clear
-        @jq.push(@array)
-        @jq.shift
-        @jq.push(@array[0..1]).should == [8]
-        @jq.size.should == 8
-
-        # Pushing very low priority jobs shouldn't happen, since we use
-        # #accept? to prevent unnecessary locking, but just in case:
-        @jq.push(:priority => 100, :run_at => Time.now, :job_id => 45).should == [45]
-        @jq.to_a.map{|h| h[:job_id]}.should_not include 45
-        @jq.size.should == 8
-      end
+      # Pushing very low priority jobs shouldn't happen, since we use
+      # #accept? to prevent unnecessary locking, but just in case:
+      @jq.push(:priority => 100, :run_at => Time.now, :job_id => 45).should == [45]
+      @jq.to_a.map{|h| h[:job_id]}.should_not include 45
+      @jq.size.should == 8
     end
   end
 
   describe "#accept?" do
-    it "when the queue's maximum size is not set should return true" do
+    before do
       @jq.push @array
+    end
+
+    it "should return true if there is sufficient room in the queue" do
+      @jq.shift[:job_id].should == 1
+      @jq.size.should be 7
       @jq.accept?(@array[-1]).should be true
     end
 
-    describe "when a maximum size is set" do
-      before do
-        @jq = Que::JobQueue.new :maximum_size => 8
-        @jq.push @array
-      end
+    it "should return true if there is insufficient room in the queue, but the pk can knock out a lower-priority job" do
+      @jq.accept?(@array[0]).should be true
+    end
 
-      it "should return true if there is sufficient room in the queue" do
-        @jq.shift[:job_id].should == 1
-        @jq.size.should be 7
-        @jq.accept?(@array[-1]).should be true
-      end
-
-      it "should return true if there is insufficient room in the queue, but the pk can knock out a lower-priority job" do
-        @jq.accept?(@array[0]).should be true
-      end
-
-      it "should return false if there is insufficient room in the queue, and the job's priority is lower than any in the queue" do
-        @jq.accept?(@array[-1]).should be false
-      end
+    it "should return false if there is insufficient room in the queue, and the job's priority is lower than any in the queue" do
+      @jq.accept?(@array[-1]).should be false
     end
   end
 

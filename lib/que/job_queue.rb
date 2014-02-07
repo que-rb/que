@@ -4,12 +4,13 @@
 
 module Que
   class JobQueue
-    def initialize(options = {})
+    def initialize(max)
+      @max   = max
       @stop  = false
       @array = []
+
       @mutex = Mutex.new
       @cv    = ConditionVariable.new
-      @max   = options[:maximum_size]
     end
 
     def push(*jobs)
@@ -23,7 +24,7 @@ module Que
 
         # If we passed the maximum queue size, drop the least important jobs
         # and return their ids to be unlocked.
-        dequeue(size - @max) if @max && @max < size
+        dequeue(size - @max) if @max < size
       end
     end
 
@@ -42,13 +43,12 @@ module Que
       end
     end
 
-    def space
-      @max - size if @max
+    def accept?(pk)
+      @mutex.synchronize { size < @max || pk[:priority] < @array[-1][:priority] }
     end
 
-    def accept?(pk)
-      return true if @max.nil?
-      @mutex.synchronize { size < @max || pk[:priority] < @array[-1][:priority] }
+    def space
+      @max - size
     end
 
     def size

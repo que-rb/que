@@ -15,7 +15,7 @@ module Que
       @minimum_queue_size = options[:minimum_queue_size] || 2
 
       @locks        = Set.new
-      @job_queue    = JobQueue.new :maximum_size => options[:maximum_queue_size] || 8
+      @job_queue    = JobQueue.new(options[:maximum_queue_size] || 8)
       @result_queue = ResultQueue.new
 
       worker_count      = options[:worker_count]      || 6

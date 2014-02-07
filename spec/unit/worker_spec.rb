@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Que::Worker do
   before do
-    @job_queue    = Que::JobQueue.new
+    @job_queue    = Que::JobQueue.new(20)
     @result_queue = Que::ResultQueue.new
 
     @worker = Que::Worker.new :job_queue    => @job_queue,
