@@ -135,7 +135,7 @@ describe Que::JobQueue do
 
       sleep_until { threads[3].status == false }
       threads[3][:result][:job_id].should == 1
-      threads[0..2].map(&:status).should == %w(sleep) * 3
+      sleep_until { threads[0..2].all? { |t| t.status == 'sleep' } }
     end
   end
 

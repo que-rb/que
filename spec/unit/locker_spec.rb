@@ -112,8 +112,8 @@ describe Que::Locker do
     end
 
     it "should request enough jobs to fill the queue" do
-      ids  = 3.times.map { BlockJob.enqueue(:priority => 5).attrs[:job_id] }
-      ids += 6.times.map { Que::Job.enqueue(:priority => 8).attrs[:job_id] }
+      ids  = 3.times.map { BlockJob.enqueue(:priority => 100).attrs[:job_id] }
+      ids += 6.times.map { Que::Job.enqueue(:priority => 101).attrs[:job_id] }
 
       locker = Que::Locker.new
       3.times { $q1.pop }
