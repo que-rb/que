@@ -29,6 +29,7 @@ module Que
       else
         case connection.class.to_s
           when 'Sequel::Postgres::Database' then Adapters::Sequel.new(connection)
+          when 'Pond'                       then Adapters::Pond.new(connection)
           when 'ConnectionPool'             then Adapters::ConnectionPool.new(connection)
           when 'NilClass'                   then connection
           else raise "Que connection not recognized: #{connection.inspect}"

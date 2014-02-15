@@ -42,8 +42,7 @@ describe Que::Locker do
     # Note that we assume that the connection we use to register the bogus
     # locker here will be reused by the actual locker below, in order to
     # spec the cleaning of lockers previously registered by the same
-    # connection. This will have to be revisited if the behavior of
-    # ConnectionPool (our default adapter) is ever changed.
+    # connection.
     Que.execute :register_locker, ['', 3, 0, 'blah1', 'true']
     DB[:que_lockers].insert :pid           => 0,
                             :ruby_pid      => 0,
