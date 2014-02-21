@@ -1,3 +1,4 @@
+require 'forwardable'
 require 'socket' # For Socket.gethostname
 
 module Que
@@ -20,6 +21,8 @@ module Que
   end
 
   class << self
+    extend Forwardable
+
     attr_accessor :logger, :error_handler, :mode
     attr_writer :pool, :log_formatter
 
@@ -41,19 +44,6 @@ module Que
 
     def job_states
       execute :job_states
-    end
-
-    # Give us a cleaner interface when specifying a job_class as a string.
-    def enqueue(*args)
-      Job.enqueue(*args)
-    end
-
-    def db_version
-      Migrations.db_version
-    end
-
-    def migrate!(version = {:version => Migrations::CURRENT_VERSION})
-      Migrations.migrate!(version)
     end
 
     # Have to support create! and drop! in old migrations. They just created
@@ -79,10 +69,10 @@ module Que
       @log_formatter ||= JSON_MODULE.method(:dump)
     end
 
-    # Copy some methods on the connection pool wrapper here for convenience.
-    [:execute, :checkout, :in_transaction?].each do |meth|
-      define_method(meth) { |*args, &block| pool.send(meth, *args, &block) }
-    end
+    # Copy some commonly-used methods here, for convenience.
+    def_delegators :pool, :execute, :checkout, :in_transaction?
+    def_delegators Job, :enqueue
+    def_delegators Migrations, :db_version, :migrate!
   end
 end
 
