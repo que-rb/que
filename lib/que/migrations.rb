@@ -54,8 +54,8 @@ module Que
       end
 
       def transaction
-        Que.pool.checkout do
-          if Que.pool.in_transaction?
+        Que.checkout do
+          if Que.in_transaction?
             yield
           else
             begin

@@ -30,9 +30,9 @@ describe "Que using Sequel" do
   end
 
   it "should be able to tell when it's in a Sequel transaction" do
-    Que.pool.should_not be_in_transaction
+    Que.should_not be_in_transaction
     SEQUEL_ADAPTER_DB.transaction do
-      Que.pool.should be_in_transaction
+      Que.should be_in_transaction
     end
   end
 end

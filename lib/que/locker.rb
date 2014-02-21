@@ -39,7 +39,7 @@ module Que
     private
 
     def work_loop
-      Que.pool.checkout do
+      Que.checkout do
         backend_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
 
         begin

@@ -54,9 +54,9 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
     end
 
     it "should be able to tell when it's in an ActiveRecord transaction" do
-      Que.pool.should_not be_in_transaction
+      Que.should_not be_in_transaction
       ActiveRecord::Base.transaction do
-        Que.pool.should be_in_transaction
+        Que.should be_in_transaction
       end
     end
   end

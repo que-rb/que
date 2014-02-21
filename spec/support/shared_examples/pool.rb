@@ -15,7 +15,7 @@ shared_examples "a Que pool" do
   end
 
   it "should yield the same Postgres connection for the duration of the block" do
-    Que.pool.checkout do |conn|
+    Que.checkout do |conn|
       conn.should be_a PG::Connection
       pid1 = Que.execute "SELECT pg_backend_pid()"
       pid2 = Que.execute "SELECT pg_backend_pid()"
@@ -24,8 +24,8 @@ shared_examples "a Que pool" do
   end
 
   it "should allow nested checkouts" do
-    Que.pool.checkout do |a|
-      Que.pool.checkout do |b|
+    Que.checkout do |a|
+      Que.checkout do |b|
         a.object_id.should == b.object_id
       end
     end
@@ -38,14 +38,14 @@ shared_examples "a Que pool" do
     q1, q2 = Queue.new, Queue.new
 
     thread = Thread.new do
-      Que.pool.checkout do |conn|
+      Que.checkout do |conn|
         q1.push nil
         q2.pop
         one = conn.object_id
       end
     end
 
-    Que.pool.checkout do |conn|
+    Que.checkout do |conn|
       q1.pop
       q2.push nil
       two = conn.object_id
@@ -58,7 +58,7 @@ shared_examples "a Que pool" do
   it "should allow multiple workers to complete jobs simultaneously" do
     class SimultaneousJob < BlockJob
       def run
-        Que.pool.checkout { super }
+        Que.checkout { super }
       end
     end
 

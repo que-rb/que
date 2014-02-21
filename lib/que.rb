@@ -31,10 +31,6 @@ module Que
       @pool || raise("Que connection not established!")
     end
 
-    def execute(*args)
-      pool.execute(*args)
-    end
-
     def clear!
       execute "DELETE FROM que_jobs"
     end
@@ -81,6 +77,11 @@ module Que
 
     def log_formatter
       @log_formatter ||= JSON_MODULE.method(:dump)
+    end
+
+    # Copy some methods on the connection pool wrapper here for convenience.
+    [:execute, :checkout, :in_transaction?].each do |meth|
+      define_method(meth) { |*args, &block| pool.send(meth, *args, &block) }
     end
   end
 end
