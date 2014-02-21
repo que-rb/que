@@ -39,7 +39,7 @@ module Que
     private
 
     def work_loop
-      Que.checkout do
+      Que.checkout do |conn|
         backend_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
 
         begin
@@ -70,8 +70,9 @@ module Que
           Que.execute "DELETE FROM que_lockers WHERE pid = $1", [backend_pid]
 
           if @listening
+            # Unlisten and drain notifications before returning connection to pool.
             Que.execute "UNLISTEN *"
-            Que.pool.drain_notifications
+            {} while conn.notifies
           end
         end
       end

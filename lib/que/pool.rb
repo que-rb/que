@@ -42,10 +42,6 @@ module Que
       end
     end
 
-    def drain_notifications
-      checkout { |conn| {} while conn.notifies }
-    end
-
     private
 
     def execute_sql(sql, params)
