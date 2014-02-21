@@ -1,5 +1,5 @@
-# A simple, thread-safe queue. Like the standard library's Queue class, but
-# when empty it just returns nil instead of blocking until there's something.
+# A simple, thread-safe queue. Similar to the standard library's Queue class,
+# but we can dequeue all items at once and doing so won't block when empty.
 
 module Que
   class ResultQueue
@@ -10,10 +10,6 @@ module Que
 
     def push(item)
       @mutex.synchronize { @array.push(item) }
-    end
-
-    def shift
-      @mutex.synchronize { @array.shift }
     end
 
     def clear
