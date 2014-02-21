@@ -1,4 +1,4 @@
-require 'socket' # For hostname
+require 'socket' # For Socket.gethostname
 
 module Que
   autoload :Adapter,     'que/adapter'

@@ -1,4 +1,4 @@
-require 'time' # For Time.parse.
+require 'time' # For Time.parse
 
 module Que
   class Adapter
