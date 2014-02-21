@@ -5,13 +5,13 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
   require 'active_record'
 
   ActiveRecord::Base.establish_connection(QUE_URL)
-  Que.connection = proc { |&block| ActiveRecord::Base.connection_pool.with_connection { |conn| block.call(conn.raw_connection) } }
-  QUE_ADAPTERS[:active_record] = Que.adapter
+  Que.connection_proc = proc { |&block| ActiveRecord::Base.connection_pool.with_connection { |conn| block.call(conn.raw_connection) } }
+  QUE_POOLS[:active_record] = Que.pool
 
-  describe "Que using the ActiveRecord adapter" do
-    before { Que.adapter = QUE_ADAPTERS[:active_record] }
+  describe "Que using the ActiveRecord pool" do
+    before { Que.pool = QUE_POOLS[:active_record] }
 
-    it_behaves_like "a Que adapter"
+    it_behaves_like "a Que pool"
 
     it "should use the same connection that ActiveRecord does" do
       begin
@@ -54,9 +54,9 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
     end
 
     it "should be able to tell when it's in an ActiveRecord transaction" do
-      Que.adapter.should_not be_in_transaction
+      Que.pool.should_not be_in_transaction
       ActiveRecord::Base.transaction do
-        Que.adapter.should be_in_transaction
+        Que.pool.should be_in_transaction
       end
     end
   end

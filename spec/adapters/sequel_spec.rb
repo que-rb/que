@@ -1,13 +1,13 @@
 require 'spec_helper'
 
 SEQUEL_ADAPTER_DB = Sequel.connect(QUE_URL)
-Que.connection = SEQUEL_ADAPTER_DB.method(:synchronize)
-QUE_ADAPTERS[:sequel] = Que.adapter
+Que.connection_proc = SEQUEL_ADAPTER_DB.method(:synchronize)
+QUE_POOLS[:sequel] = Que.pool
 
-describe "Que using the Sequel adapter" do
-  before { Que.adapter = QUE_ADAPTERS[:sequel] }
+describe "Que using Sequel" do
+  before { Que.pool = QUE_POOLS[:sequel] }
 
-  it_behaves_like "a Que adapter"
+  it_behaves_like "a Que pool"
 
   it "should use the same connection that Sequel does" do
     begin
@@ -30,9 +30,9 @@ describe "Que using the Sequel adapter" do
   end
 
   it "should be able to tell when it's in a Sequel transaction" do
-    Que.adapter.should_not be_in_transaction
+    Que.pool.should_not be_in_transaction
     SEQUEL_ADAPTER_DB.transaction do
-      Que.adapter.should be_in_transaction
+      Que.pool.should be_in_transaction
     end
   end
 end

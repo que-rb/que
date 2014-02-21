@@ -39,7 +39,7 @@ module Que
     private
 
     def work_loop
-      Que.adapter.checkout do
+      Que.pool.checkout do
         backend_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
 
         begin
@@ -71,7 +71,7 @@ module Que
 
           if @listening
             Que.execute "UNLISTEN *"
-            Que.adapter.drain_notifications
+            Que.pool.drain_notifications
           end
         end
       end
@@ -92,7 +92,7 @@ module Que
 
     def wait
       if @listening
-        if pk = Que.adapter.wait_for_json(WAIT_PERIOD)
+        if pk = Que.pool.wait_for_json(WAIT_PERIOD)
           pk['run_at'] = Time.parse(pk['run_at'])
 
           push_jobs(pk) if @job_queue.accept?(pk) && lock_job?(pk[:job_id])

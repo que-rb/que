@@ -27,19 +27,17 @@ end
 
 
 
-# Adapters track which statements have been prepared for their connections,
-# and if Que.connection= is called before each spec, we're constantly creating
-# new adapters and losing that information, which is bad. So instead, we hang
-# onto a few adapters and assign them using Que.adapter= as needed. The pond
-# adapter is the default. Since the specs were originally designed for a
-# stack-based pool (the connection_pool gem), use :stack mode to avoid issues.
-
-# Also, let Que initialize the adapter itself, to make sure that the
-# recognition logic works. Similar code can be found in the adapter specs.
+# Connection pools are wrapped by Que::Pool instances, which are responsible
+# for tracking which statements have been prepared for their connections, and
+# if Que.connection_proc= is called before each spec, we're constantly
+# creating new pools and losing that information, which is bad. So instead, we
+# hang onto a few pools and assign them using Que.pool= as needed. The Pond
+# pool is the default. Since the specs were originally designed for a stack-
+# based pool (the connection_pool gem), use :stack mode to avoid issues.
 
 QUE_SPEC_POND = Pond.new :collection => :stack, &NEW_PG_CONNECTION
-Que.connection = QUE_SPEC_POND.method(:checkout)
-QUE_ADAPTERS = {:pond => Que.adapter}
+Que.connection_proc = QUE_SPEC_POND.method(:checkout)
+QUE_POOLS = {:pond => Que.pool}
 
 
 
@@ -94,7 +92,7 @@ RSpec.configure do |config|
     stdout.info "Running spec: #{desc} @ #{line}" if ENV['LOG_SPEC']
 
     $logger.messages.clear
-    Que.adapter = QUE_ADAPTERS[:pond]
+    Que.pool = QUE_POOLS[:pond]
 
     spec.run
 

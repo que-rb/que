@@ -246,7 +246,7 @@ describe Que::Locker do
       id = nil
       q1, q2 = Queue.new, Queue.new
       t = Thread.new do
-        Que.adapter.checkout do
+        Que.pool.checkout do
           # NOTIFY won't propagate until transaction commits.
           Que.execute "BEGIN"
           Que::Job.enqueue

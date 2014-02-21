@@ -1,7 +1,9 @@
+# A wrapper around whatever connection pool is being used in the process.
+
 require 'time' # For Time.parse
 
 module Que
-  class Adapter
+  class Pool
     def initialize(connection_proc)
       @connection_proc = connection_proc
       @prepared_statements = {}

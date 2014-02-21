@@ -1,4 +1,4 @@
-shared_examples "a Que adapter" do
+shared_examples "a Que pool" do
   it "should be able to execute arbitrary SQL and return indifferent hashes" do
     result = Que.execute("SELECT 1 AS one")
     result.should == [{'one'=>1}]
@@ -15,7 +15,7 @@ shared_examples "a Que adapter" do
   end
 
   it "should yield the same Postgres connection for the duration of the block" do
-    Que.adapter.checkout do |conn|
+    Que.pool.checkout do |conn|
       conn.should be_a PG::Connection
       pid1 = Que.execute "SELECT pg_backend_pid()"
       pid2 = Que.execute "SELECT pg_backend_pid()"
@@ -24,8 +24,8 @@ shared_examples "a Que adapter" do
   end
 
   it "should allow nested checkouts" do
-    Que.adapter.checkout do |a|
-      Que.adapter.checkout do |b|
+    Que.pool.checkout do |a|
+      Que.pool.checkout do |b|
         a.object_id.should == b.object_id
       end
     end
@@ -38,14 +38,14 @@ shared_examples "a Que adapter" do
     q1, q2 = Queue.new, Queue.new
 
     thread = Thread.new do
-      Que.adapter.checkout do |conn|
+      Que.pool.checkout do |conn|
         q1.push nil
         q2.pop
         one = conn.object_id
       end
     end
 
-    Que.adapter.checkout do |conn|
+    Que.pool.checkout do |conn|
       q1.pop
       q2.push nil
       two = conn.object_id
@@ -58,7 +58,7 @@ shared_examples "a Que adapter" do
   it "should allow multiple workers to complete jobs simultaneously" do
     class SimultaneousJob < BlockJob
       def run
-        Que.adapter.checkout { super }
+        Que.pool.checkout { super }
       end
     end
 

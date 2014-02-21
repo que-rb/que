@@ -1,11 +1,11 @@
 require 'socket' # For Socket.gethostname
 
 module Que
-  autoload :Adapter,     'que/adapter'
   autoload :Job,         'que/job'
   autoload :JobQueue,    'que/job_queue'
   autoload :Locker,      'que/locker'
   autoload :Migrations,  'que/migrations'
+  autoload :Pool,        'que/pool'
   autoload :ResultQueue, 'que/result_queue'
   autoload :SQL,         'que/sql'
   autoload :Version,     'que/version'
@@ -21,18 +21,18 @@ module Que
 
   class << self
     attr_accessor :logger, :error_handler, :mode
-    attr_writer :adapter, :log_formatter
+    attr_writer :pool, :log_formatter
 
-    def connection=(connection)
-      self.adapter = connection && Adapter.new(connection)
+    def connection_proc=(connection_proc)
+      @pool = connection_proc && Pool.new(connection_proc)
     end
 
-    def adapter
-      @adapter || raise("Que connection not established!")
+    def pool
+      @pool || raise("Que connection not established!")
     end
 
     def execute(*args)
-      adapter.execute(*args)
+      pool.execute(*args)
     end
 
     def clear!
