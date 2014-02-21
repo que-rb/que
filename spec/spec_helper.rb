@@ -37,7 +37,8 @@ end
 # Also, let Que initialize the adapter itself, to make sure that the
 # recognition logic works. Similar code can be found in the adapter specs.
 
-Que.connection = QUE_SPEC_POND = Pond.new :collection => :stack, &NEW_PG_CONNECTION
+QUE_SPEC_POND = Pond.new :collection => :stack, &NEW_PG_CONNECTION
+Que.connection = QUE_SPEC_POND.method(:checkout)
 QUE_ADAPTERS = {:pond => Que.adapter}
 
 

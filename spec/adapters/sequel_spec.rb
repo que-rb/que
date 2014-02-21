@@ -1,6 +1,7 @@
 require 'spec_helper'
 
-Que.connection = SEQUEL_ADAPTER_DB = Sequel.connect(QUE_URL)
+SEQUEL_ADAPTER_DB = Sequel.connect(QUE_URL)
+Que.connection = SEQUEL_ADAPTER_DB.method(:synchronize)
 QUE_ADAPTERS[:sequel] = Que.adapter
 
 describe "Que using the Sequel adapter" do

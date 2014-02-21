@@ -1,7 +1,7 @@
 require 'socket' # For hostname
 
 module Que
-  autoload :Adapters,    'que/adapters/base'
+  autoload :Adapter,     'que/adapter'
   autoload :Job,         'que/job'
   autoload :JobQueue,    'que/job_queue'
   autoload :Locker,      'que/locker'
@@ -24,17 +24,7 @@ module Que
     attr_writer :adapter, :log_formatter
 
     def connection=(connection)
-      self.adapter = if connection.to_s == 'ActiveRecord'
-        Adapters::ActiveRecord.new
-      else
-        case connection.class.to_s
-          when 'Sequel::Postgres::Database' then Adapters::Sequel.new(connection)
-          when 'Pond'                       then Adapters::Pond.new(connection)
-          when 'ConnectionPool'             then Adapters::ConnectionPool.new(connection)
-          when 'NilClass'                   then connection
-          else raise "Que connection not recognized: #{connection.inspect}"
-        end
-      end
+      self.adapter = connection && Adapter.new(connection)
     end
 
     def adapter
