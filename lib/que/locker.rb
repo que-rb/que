@@ -93,7 +93,7 @@ module Que
 
     def wait
       if @listening
-        if pk = Que.pool.wait_for_json(WAIT_PERIOD)
+        if pk = wait_for_json(WAIT_PERIOD)
           pk['run_at'] = Time.parse(pk['run_at'])
 
           push_jobs(pk) if @job_queue.accept?(pk) && lock_job?(pk[:job_id])
@@ -133,6 +133,14 @@ module Que
       ids.each do |id|
         Que.execute "SELECT pg_advisory_unlock($1)", [id]
         @locks.delete(id)
+      end
+    end
+
+    def wait_for_json(timeout = nil)
+      Que.checkout do |conn|
+        conn.wait_for_notify(timeout) do |_, _, payload|
+          return Que.indifferentiate(JSON_MODULE.load(payload))
+        end
       end
     end
   end

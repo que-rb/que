@@ -23,7 +23,7 @@ module Que
         end
       end
 
-      cast_result \
+      process_result \
         case command
           when Symbol then execute_prepared(command, params)
           when String then execute_sql(command, params)
@@ -32,14 +32,6 @@ module Que
 
     def in_transaction?
       checkout { |conn| conn.transaction_status != ::PG::PQTRANS_IDLE }
-    end
-
-    def wait_for_json(timeout = nil)
-      checkout do |conn|
-        conn.wait_for_notify(timeout) do |_, _, payload|
-          return INDIFFERENTIATOR.call(JSON_MODULE.load(payload))
-        end
-      end
     end
 
     private
@@ -62,21 +54,6 @@ module Que
       end
     end
 
-    HASH_DEFAULT_PROC = proc { |hash, key| hash[key.to_s] if Symbol === key }
-
-    INDIFFERENTIATOR = proc do |object|
-      case object
-      when Array
-        object.each(&INDIFFERENTIATOR)
-      when Hash
-        object.default_proc = HASH_DEFAULT_PROC
-        object.each { |key, value| object[key] = INDIFFERENTIATOR.call(value) }
-        object
-      else
-        object
-      end
-    end
-
     CAST_PROCS = {}
 
     # Integer, bigint, smallint:
@@ -91,7 +68,7 @@ module Que
     # Boolean:
     CAST_PROCS[16] = 't'.method(:==)
 
-    def cast_result(result)
+    def process_result(result)
       output = result.to_a
 
       result.fields.each_with_index do |field, index|
@@ -104,11 +81,7 @@ module Que
         end
       end
 
-      if result.first.respond_to?(:with_indifferent_access)
-        output.map(&:with_indifferent_access)
-      else
-        output.each(&INDIFFERENTIATOR)
-      end
+      Que.indifferentiate(output)
     end
   end
 end
