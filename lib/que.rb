@@ -2,16 +2,6 @@ require 'forwardable'
 require 'socket' # For Socket.gethostname
 
 module Que
-  autoload :Job,         'que/job'
-  autoload :JobQueue,    'que/job_queue'
-  autoload :Locker,      'que/locker'
-  autoload :Migrations,  'que/migrations'
-  autoload :Pool,        'que/pool'
-  autoload :ResultQueue, 'que/result_queue'
-  autoload :SQL,         'que/sql'
-  autoload :Version,     'que/version'
-  autoload :Worker,      'que/worker'
-
   begin
     require 'multi_json'
     JSON_MODULE = MultiJson
@@ -19,6 +9,16 @@ module Que
     require 'json'
     JSON_MODULE = JSON
   end
+
+  require_relative 'que/job'
+  require_relative 'que/job_queue'
+  require_relative 'que/locker'
+  require_relative 'que/migrations'
+  require_relative 'que/pool'
+  require_relative 'que/result_queue'
+  require_relative 'que/sql'
+  require_relative 'que/version'
+  require_relative 'que/worker'
 
   class << self
     extend Forwardable
