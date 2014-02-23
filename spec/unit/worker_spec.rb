@@ -2,19 +2,19 @@ require 'spec_helper'
 
 describe Que::Worker do
   before do
-    @job_queue    = Que::JobQueue.new(20)
-    @result_queue = Que::ResultQueue.new
+    @priority_queue = Que::PriorityQueue.new(20)
+    @result_queue   = Que::ResultQueue.new
 
-    @worker = Que::Worker.new :job_queue    => @job_queue,
-                              :result_queue => @result_queue
+    @worker = Que::Worker.new :priority_queue => @priority_queue,
+                              :result_queue   => @result_queue,
+                              :queue_name     => ''
   end
 
   def run_jobs(*jobs)
     @result_queue.clear
-    jobs = jobs.flatten
-    job_ids = jobs.map { |j| j[:job_id].to_i }
-    @job_queue.push(jobs)
-    sleep_until { @result_queue.to_a.sort == job_ids.sort }
+    jobs = jobs.flatten.map { |job| job.values_at(:priority, :run_at, :job_id) }
+    @priority_queue.push *jobs
+    sleep_until { @result_queue.to_a.sort == jobs.sort }
   end
 
   it "should repeatedly work jobs that are passed to it via its job_queue, ordered correctly" do
@@ -32,7 +32,7 @@ describe Que::Worker do
       run_jobs Que.execute("SELECT * FROM que_jobs").shuffle
 
       $results.should == [1, 2, 3]
-      @result_queue.to_a.should == job_ids
+      @result_queue.to_a.map{|pk| pk[-1]}.should == job_ids
     ensure
       $results = nil
     end
@@ -135,19 +135,19 @@ describe Que::Worker do
              :run_at   => Time.now,
              :job_id   => 587648
 
-    @result_queue.to_a.should == [587648]
+    @result_queue.to_a.map{|pk| pk[-1]}.should == [587648]
   end
 
   it "should only take jobs that meet its priority requirement" do
     @worker.priority = 10
 
-    jobs = (1..20).map { |i| {:priority => i, :run_at => Time.now, :job_id => i} }
+    jobs = (1..20).map { |i| [i, Time.now, i] }
 
-    @job_queue.push jobs
+    @priority_queue.push *jobs
 
-    sleep_until { @result_queue.to_a == (1..10).to_a }
+    sleep_until { @result_queue.to_a.map{|pk| pk[-1]} == (1..10).to_a }
 
-    @job_queue.to_a.should == jobs[10..19]
+    @priority_queue.to_a.should == jobs[10..19]
   end
 
   describe "when an error is raised" do
@@ -157,7 +157,7 @@ describe Que::Worker do
 
       job_ids = DB[:que_jobs].order_by(:priority).select_map(:job_id)
       run_jobs Que.execute("SELECT * FROM que_jobs")
-      @result_queue.to_a.should == job_ids
+      @result_queue.to_a.map{|pk| pk[-1]}.should == job_ids
     end
 
     it "should pass it to the error handler" do

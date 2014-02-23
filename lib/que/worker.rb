@@ -4,10 +4,13 @@ module Que
     attr_accessor :priority
 
     def initialize(options)
-      @priority     = options[:priority]
-      @job_queue    = options[:job_queue]
-      @result_queue = options[:result_queue]
-      @thread       = Thread.new { work_loop }
+      @priority   = options[:priority]
+      @queue_name = options[:queue_name]
+
+      @priority_queue = options[:priority_queue]
+      @result_queue   = options[:result_queue]
+
+      @thread = Thread.new { work_loop }
     end
 
     def wait_until_stopped
@@ -18,11 +21,10 @@ module Que
 
     def work_loop
       loop do
-        pk = @job_queue.shift(*priority)
-        break if pk == :stop
+        break unless pk = @priority_queue.shift(*priority)
 
         begin
-          if job = Que.execute(:get_job, pk.values_at(:queue, :priority, :run_at, :job_id)).first
+          if job = Que.execute(:get_job, [@queue_name] + pk).first
             klass = Job.class_for(job[:job_class])
             klass.new(job)._run
           end
@@ -43,7 +45,7 @@ module Que
             Que.error_handler.call(error) rescue nil
           end
         ensure
-          @result_queue.push pk[:job_id]
+          @result_queue.push(pk)
         end
       end
     end

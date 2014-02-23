@@ -3,7 +3,7 @@ require 'socket'
 
 module Que
   class Locker
-    attr_reader :thread, :workers, :job_queue
+    attr_reader :thread, :workers, :priority_queue
 
     # When in the wait loop, wake up at least every 10 ms to check what's going on.
     WAIT_PERIOD = 0.01
@@ -14,17 +14,18 @@ module Que
       @poll_interval      = options[:poll_interval]      || 5
       @minimum_queue_size = options[:minimum_queue_size] || 2
 
-      @locks        = Set.new
-      @job_queue    = JobQueue.new(options[:maximum_queue_size] || 8)
-      @result_queue = ResultQueue.new
+      @locks          = Set.new
+      @priority_queue = PriorityQueue.new(options[:maximum_queue_size] || 8)
+      @result_queue   = ResultQueue.new
 
       worker_count      = options[:worker_count]      || 6
       worker_priorities = options[:worker_priorities] || [10, 30, 50]
 
       @workers = worker_count.times.zip(worker_priorities).map do |_, priority|
-        Worker.new :priority     => priority,
-                   :job_queue    => @job_queue,
-                   :result_queue => @result_queue
+        Worker.new :priority       => priority,
+                   :queue_name     => @queue_name,
+                   :priority_queue => @priority_queue,
+                   :result_queue   => @result_queue
       end
 
       @thread = Thread.new { work_loop }
@@ -60,9 +61,9 @@ module Que
             break if @stop
           end
 
-          unlock_jobs(@job_queue.clear)
+          unlock_jobs(@priority_queue.clear)
 
-          @job_queue.stop
+          @priority_queue.stop
           @workers.each(&:wait_until_stopped)
 
           unlock_finished_jobs
@@ -81,11 +82,11 @@ module Que
     private
 
     def poll
-      count = @job_queue.space
+      count = @priority_queue.space
       jobs  = Que.execute :poll_jobs, [@queue_name, "{#{@locks.to_a.join(',')}}", count]
 
-      @locks.merge jobs.map { |pk| pk[:job_id] }
-      push_jobs *jobs
+      @locks.merge jobs.map { |job| job[:job_id] }
+      push_jobs jobs.map { |job| job.values_at(:priority, :run_at, :job_id) }
 
       @last_polled_at      = Time.now
       @last_poll_satisfied = count == jobs.count
@@ -93,10 +94,8 @@ module Que
 
     def wait
       if @listening
-        if pk = wait_for_json(WAIT_PERIOD)
-          pk['run_at'] = Time.parse(pk['run_at'])
-
-          push_jobs(pk) if @job_queue.accept?(pk) && lock_job?(pk[:job_id])
+        if pk = wait_for_job(WAIT_PERIOD)
+          push_jobs([pk]) if @priority_queue.accept?(pk) && lock_job?(pk[-1])
         end
       else
         sleep WAIT_PERIOD
@@ -104,7 +103,7 @@ module Que
     end
 
     def queue_refill_needed?
-      @last_poll_satisfied && @job_queue.size <= @minimum_queue_size
+      @last_poll_satisfied && @priority_queue.size <= @minimum_queue_size
     end
 
     def poll_interval_elapsed?
@@ -122,24 +121,26 @@ module Que
       unlock_jobs @result_queue.clear
     end
 
-    def push_jobs(*pks)
+    def push_jobs(pks)
       # Unlock any low-importance jobs the new ones may displace.
-      if ids = @job_queue.push(pks)
-        unlock_jobs(ids)
+      if pks = @priority_queue.push(*pks)
+        unlock_jobs(pks)
       end
     end
 
-    def unlock_jobs(ids)
-      ids.each do |id|
+    def unlock_jobs(pks)
+      pks.each do |pk|
+        id = pk[-1]
         Que.execute "SELECT pg_advisory_unlock($1)", [id]
         @locks.delete(id)
       end
     end
 
-    def wait_for_json(timeout = nil)
+    def wait_for_job(timeout = nil)
       Que.checkout do |conn|
         conn.wait_for_notify(timeout) do |_, _, payload|
-          return Que.indifferentiate(JSON_MODULE.load(payload))
+          json = JSON_MODULE.load(payload)
+          return [json['priority'].to_i, Time.parse(json['run_at']), json['job_id'].to_i]
         end
       end
     end
