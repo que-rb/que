@@ -3,7 +3,7 @@ require 'spec_helper'
 describe Que::Worker do
   before do
     @priority_queue = Que::PriorityQueue.new :maximum_size => 20
-    @result_queue   = Que::ResultQueue.new
+    @result_queue   = Que::PriorityQueue.new
 
     @worker = Que::Worker.new :priority_queue => @priority_queue,
                               :result_queue   => @result_queue,
