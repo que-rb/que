@@ -4,8 +4,8 @@
 
 module Que
   class PriorityQueue
-    def initialize(max)
-      @max   = max
+    def initialize(options = {})
+      @max   = options[:maximum_size] || Float::INFINITY
       @stop  = false
       @array = []
 

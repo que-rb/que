@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Que::PriorityQueue do
   before do
-    @pq = Que::PriorityQueue.new(8)
+    @pq = Que::PriorityQueue.new :maximum_size => 8
 
     @older = Time.now - 50
     @newer = Time.now
@@ -151,5 +151,15 @@ describe Que::PriorityQueue do
       @pq.clear.sort.should == @array
       @pq.to_a.should == []
     end
+  end
+
+  it "should still be pushable and clearable if it has an infinite maximum_size" do
+    # Results queues only need these two operations, and shouldn't have a size limit.
+    @pq = Que::PriorityQueue.new
+    value = [100, Time.now, 45]
+    @pq.push value
+    @pq.to_a.should == [value]
+    @pq.clear.should == [value]
+    @pq.to_a.should == []
   end
 end
