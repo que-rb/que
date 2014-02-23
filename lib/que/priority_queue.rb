@@ -1,6 +1,5 @@
-# A thread-safe queue (one publisher, many subscribers) that keeps items in
-# sorted order. Used mainly to hold and distribute primary keys for locked
-# jobs to workers. Similar to the Queue class in the standard library.
+# A thread-safe queue that keeps items in sorted order. Similar to Queue from
+# in the standard library. Used to pass job pks between lockers and workers.
 
 module Que
   class PriorityQueue

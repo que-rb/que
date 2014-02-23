@@ -1,4 +1,4 @@
-# A wrapper around whatever connection pool is being used in the process.
+# A wrapper around whatever connection pool we're using.
 
 require 'time' # For Time.parse
 
@@ -56,7 +56,7 @@ module Que
 
     CAST_PROCS = {}
 
-    # Integer, bigint, smallint:
+    # Integer, bigint, smallint.
     CAST_PROCS[23] = CAST_PROCS[20] = CAST_PROCS[21] = proc(&:to_i)
 
     # Timestamp with time zone.
@@ -65,7 +65,7 @@ module Que
     # JSON.
     CAST_PROCS[114] = JSON_MODULE.method(:load)
 
-    # Boolean:
+    # Boolean.
     CAST_PROCS[16] = 't'.method(:==)
 
     def process_result(result)
