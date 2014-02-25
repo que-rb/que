@@ -92,4 +92,47 @@ describe "The job polling query" do
       DB.get{pg_advisory_unlock(id2)}
     end
   end
+
+  it "should behave itself when being run concurrently by several connections" do
+    q1, q2, q3, q4 = Queue.new, Queue.new, Queue.new, Queue.new
+
+    threads = 4.times.map do
+      Thread.new do
+        Que.checkout do
+          # Make sure that statements are prepared in all connections before
+          # we actually test the query.
+          poll(25).count.should be 0
+
+          q1.push nil
+          q2.pop
+
+          Thread.current[:jobs] = poll(25)
+
+          q3.push nil
+          q4.pop
+
+          Que.execute "SELECT pg_advisory_unlock_all()"
+        end
+      end
+    end
+
+    4.times { q1.pop }
+
+    Que.execute <<-SQL
+      INSERT INTO que_jobs (job_class, priority)
+      SELECT 'Que::Job', 1
+      FROM generate_series(1, 100) AS i;
+    SQL
+
+    job_ids = DB[:que_jobs].select_order_map(:job_id)
+    job_ids.count.should == 100
+
+    4.times { q2.push nil }
+    4.times { q3.pop }
+
+    threads.map{|t| t[:jobs]}.flatten.sort.should == job_ids
+
+    4.times { q4.push nil }
+    threads.each(&:join)
+  end
 end
