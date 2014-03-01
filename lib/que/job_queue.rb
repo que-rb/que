@@ -1,8 +1,7 @@
-# A thread-safe queue that keeps items in sorted order. Similar to Queue from
-# in the standard library. Used to pass job pks between lockers and workers.
+# A thread-safe queue that holds job primary keys in sorted order.
 
 module Que
-  class PriorityQueue
+  class JobQueue
     def initialize(options = {})
       @max   = options[:maximum_size] || Float::INFINITY
       @stop  = false

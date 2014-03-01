@@ -7,8 +7,8 @@ module Que
       @priority   = options[:priority]
       @queue_name = options[:queue_name]
 
-      @priority_queue = options[:priority_queue]
-      @result_queue   = options[:result_queue]
+      @job_queue    = options[:job_queue]
+      @result_queue = options[:result_queue]
 
       @thread = Thread.new { work_loop }
     end
@@ -21,7 +21,7 @@ module Que
 
     def work_loop
       loop do
-        break unless pk = @priority_queue.shift(*priority)
+        break unless pk = @job_queue.shift(*priority)
 
         begin
           if job = Que.execute(:get_job, [@queue_name] + pk).first

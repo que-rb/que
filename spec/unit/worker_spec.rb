@@ -2,18 +2,18 @@ require 'spec_helper'
 
 describe Que::Worker do
   before do
-    @priority_queue = Que::PriorityQueue.new :maximum_size => 20
-    @result_queue   = Que::PriorityQueue.new
+    @job_queue    = Que::JobQueue.new :maximum_size => 20
+    @result_queue = Que::JobQueue.new
 
-    @worker = Que::Worker.new :priority_queue => @priority_queue,
-                              :result_queue   => @result_queue,
-                              :queue_name     => ''
+    @worker = Que::Worker.new :job_queue    => @job_queue,
+                              :result_queue => @result_queue,
+                              :queue_name   => ''
   end
 
   def run_jobs(*jobs)
     @result_queue.clear
     jobs = jobs.flatten.map { |job| job.values_at(:priority, :run_at, :job_id) }
-    @priority_queue.push *jobs
+    @job_queue.push *jobs
     sleep_until { @result_queue.to_a.sort == jobs.sort }
   end
 
@@ -143,11 +143,11 @@ describe Que::Worker do
 
     jobs = (1..20).map { |i| [i, Time.now, i] }
 
-    @priority_queue.push *jobs
+    @job_queue.push *jobs
 
     sleep_until { @result_queue.to_a.map{|pk| pk[-1]} == (1..10).to_a }
 
-    @priority_queue.to_a.should == jobs[10..19]
+    @job_queue.to_a.should == jobs[10..19]
   end
 
   describe "when an error is raised" do

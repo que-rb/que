@@ -313,12 +313,12 @@ describe Que::Locker do
       BlockJob.enqueue(:priority => 5)
       $q1.pop
       ids = 3.times.map { Que::Job.enqueue(:priority => 5).attrs[:job_id] }
-      sleep_until { locker.priority_queue.to_a.map{|h| h[-1]} == ids }
+      sleep_until { locker.job_queue.to_a.map{|h| h[-1]} == ids }
 
       id = Que::Job.enqueue(:priority => 10).attrs[:job_id]
 
       sleep 0.05 # Hacky.
-      locker.priority_queue.to_a.map{|h| h[-1]}.should_not include id
+      locker.job_queue.to_a.map{|h| h[-1]}.should_not include id
 
       $q2.push nil
       locker.stop
@@ -335,11 +335,11 @@ describe Que::Locker do
       $q1.pop
       ids = 3.times.map { Que::Job.enqueue(:priority => 5).attrs[:job_id] }
 
-      sleep_until { locker.priority_queue.to_a.map{|h| h[-1]} == ids }
+      sleep_until { locker.job_queue.to_a.map{|h| h[-1]} == ids }
 
       id = Que::Job.enqueue(:priority => 2).attrs[:job_id]
 
-      sleep_until { locker.priority_queue.to_a.map{|h| h[-1]} == [id] + ids[0..1] }
+      sleep_until { locker.job_queue.to_a.map{|h| h[-1]} == [id] + ids[0..1] }
 
       $q2.push nil
       locker.stop
@@ -366,11 +366,11 @@ describe Que::Locker do
 
       3.times { $q1.pop }
 
-      sleep_until { locker.priority_queue.to_a.map{|h| h[-1]} == job_ids[3..5] }
+      sleep_until { locker.job_queue.to_a.map{|h| h[-1]} == job_ids[3..5] }
 
       t = Thread.new { locker.stop }
 
-      sleep_until { locker.priority_queue.to_a.empty? }
+      sleep_until { locker.job_queue.to_a.empty? }
       sleep_until { DB[:pg_locks].where(:locktype => 'advisory').select_order_map(:objid) == job_ids[0..2] }
 
       3.times { $q2.push nil }
