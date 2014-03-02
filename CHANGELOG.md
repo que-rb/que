@@ -1,6 +1,6 @@
-### Unreleased
+### 1.0.0 (Unreleased)
 
-*   **A schema upgrade to version 4 will be required for the next release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
+*   **A schema upgrade to version 4 will be required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
 
 *   Que's implementation has been changed from one in which worker threads hold their own PG connections and lock their own jobs to one in which a single thread and PG connection locks jobs through LISTEN/NOTIFY and batch polling, and passes jobs along to worker threads. This has many benefits, including:
 
@@ -10,7 +10,7 @@
 
     *   When polling is necessary (to pick up jobs that are scheduled for the future or that need to be retried due to errors), jobs can be locked in batches, rather than one at a time.
 
-*   In keeping with semantic versioning, the next release will bump the version to 1.0.0, since the new implementation requires some backwards-incompatible changes. These changes include:
+*   In keeping with semantic versioning, the major version is being bumped since the new implementation requires some backwards-incompatible changes. These changes include:
 
     *   `Que.connection=` has been removed. Instead, use `Que.connection_proc=` to hook Que into your connection pool directly. See the documentation for details.
 
