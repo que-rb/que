@@ -1,3 +1,9 @@
+### 0.7.0 (Unreleased)
+
+*   `JobClass.queue(*args)` has been deprecated and will be removed in version 1.0.0. Please use `JobClass.enqueue(*args)` instead.
+
+*   The `@default_priority` and `@default_run_at` variables have been deprecated and will be removed in version 1.0.0. Please use `@priority` and `@run_at` instead, respectively.
+
 ### 0.6.0 (2014-02-04)
 
 *   **A schema upgrade to version 3 is required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
