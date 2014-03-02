@@ -3,6 +3,15 @@ require 'spec_helper'
 describe Que::Locker do
   it "should exit on its own when informed to stop" do
     Que::Locker.new.stop
+
+    events = logged_messages.select { |m| m['event'] == 'locker_start' }
+    events.count.should == 1
+    event = events.first
+    event['listening'].should == false
+    event['minimum_queue_size'].should == 2
+    event['poll_interval'].should == nil
+    event['queue'].should == ''
+    event['worker_priorities'].should == [10, 30, 50, nil, nil, nil]
   end
 
   it "should have sensible defaults for workers and their priorities" do
@@ -196,6 +205,11 @@ describe Que::Locker do
 
       3.times { $q2.push nil }
       locker.stop
+
+      event = logged_messages.select{|m| m['event'] == 'locker_polled'}.first
+      event['queue'].should == ''
+      event['limit'].should == 8
+      event['locked'].should == 6
     end
 
     it "should trigger a new batch poll when the queue drops to the minimum_queue_size threshold" do
@@ -214,8 +228,6 @@ describe Que::Locker do
 
       locker.stop
     end
-
-    it "should log what it is doing"
   end
 
   describe "when receiving a NOTIFY of a new job" do
@@ -224,7 +236,7 @@ describe Que::Locker do
       locker = Que::Locker.new :listening => true
       sleep_until { DB[:que_lockers].count == 1 }
 
-      BlockJob.enqueue
+      job = BlockJob.enqueue
       $q1.pop
 
       locks = DB[:pg_locks].where(:locktype => 'advisory').all
@@ -236,6 +248,16 @@ describe Que::Locker do
       sleep_until { DB[:pg_locks].where(:locktype => 'advisory').count == 0 }
 
       locker.stop
+
+      events = logged_messages.select { |m| m['event'] == 'job_notified' }
+      events.count.should be 1
+      event = events.first
+      log = event['job']
+
+      log['queue'].should == ''
+      log['priority'].should == job.attrs[:priority]
+      Time.parse(log['run_at']).should == job.attrs[:run_at]
+      log['job_id'].should == job.attrs[:job_id]
     end
 
     it "should not work jobs that are already locked" do
@@ -344,8 +366,6 @@ describe Que::Locker do
       $q2.push nil
       locker.stop
     end
-
-    it "should log what it is doing"
   end
 
   describe "when told to shut down" do
@@ -354,6 +374,9 @@ describe Que::Locker do
       workers = locker.workers
       locker.stop
       workers.each { |worker| worker.thread.status.should be false }
+
+      events = logged_messages.select { |m| m['event'] == 'locker_stop' }
+      events.count.should be 1
     end
 
     it "should remove and unlock all the jobs in its queue" do
@@ -390,7 +413,5 @@ describe Que::Locker do
 
       DB[:que_jobs].should be_empty
     end
-
-    it "should log what it is doing"
   end
 end

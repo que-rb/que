@@ -8,3 +8,7 @@ def sleep_until(timeout = QUE_TEST_TIMEOUT)
     sleep 0.01
   end
 end
+
+def logged_messages
+  $logger.messages.map { |message| JSON.load(message) }
+end
