@@ -10,8 +10,8 @@ module Que
 
     def initialize(options = {})
       @listening          = !!options[:listening]
-      @queue_name         = options[:queue]              || ''
-      @poll_interval      = options[:poll_interval]      || 5
+      @queue_name         = options[:queue] || ''
+      @poll_interval      = options[:poll_interval]
       @minimum_queue_size = options[:minimum_queue_size] || 2
 
       @locks = Set.new
@@ -110,7 +110,7 @@ module Que
     end
 
     def poll_interval_elapsed?
-      (Time.now - @last_polled_at) > @poll_interval
+      @poll_interval && (Time.now - @last_polled_at) > @poll_interval
     end
 
     def lock_job?(id)
