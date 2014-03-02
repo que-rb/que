@@ -9,12 +9,12 @@ module Que
       @array        = []
       @maximum_size = options[:maximum_size] || Float::INFINITY
 
-      @mutex = Mutex.new
-      @cv    = ConditionVariable.new
+      @monitor = Monitor.new
+      @cv      = Monitor::ConditionVariable.new(@monitor)
     end
 
     def push(*jobs)
-      @mutex.synchronize do
+      sync do
         # At some point, for large queue sizes and small numbers of items to
         # insert, it may be worth investigating an insertion by binary search.
         @array.push(*jobs).sort!
@@ -24,20 +24,20 @@ module Que
 
         # If we passed the maximum queue size, drop the least important items
         # and return their values.
-        @array.pop(@array.size - @maximum_size) if @maximum_size < @array.size
+        @array.pop(size - maximum_size) if maximum_size < size
       end
     end
 
     # Looping/ConditionVariable technique borrowed from the rubysl-thread gem.
     def shift(priority = Float::INFINITY)
       loop do
-        @mutex.synchronize do
+        sync do
           if @stop
             return
           elsif (pk = @array.first) && pk[1] <= priority
             return @array.shift
           else
-            @cv.wait(@mutex)
+            @cv.wait
           end
         end
       end
@@ -46,30 +46,36 @@ module Que
     def accept?(pk)
       # Accept the pk if there's space available or if it will sort lower than
       # the lowest pk currently in the queue.
-      @mutex.synchronize { @array.size < @maximum_size || (pk <=> @array[-1]) == -1 }
+      sync { size < maximum_size || (pk <=> @array[-1]) == -1 }
     end
 
     def space
-      @mutex.synchronize { @maximum_size - @array.size }
+      sync { maximum_size - size }
     end
 
     def size
-      @mutex.synchronize { @array.size }
+      sync { @array.size }
     end
 
     def to_a
-      @mutex.synchronize { @array.dup }
+      sync { @array.dup }
     end
 
     def stop
-      @mutex.synchronize do
+      sync do
         @stop = true
         @cv.broadcast
       end
     end
 
     def clear
-      @mutex.synchronize { @array.pop(@array.size) }
+      sync { @array.pop(size) }
+    end
+
+    private
+
+    def sync(&block)
+      @monitor.synchronize(&block)
     end
   end
 end
