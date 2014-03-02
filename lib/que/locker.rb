@@ -1,5 +1,4 @@
 require 'set'
-require 'socket'
 
 module Que
   class Locker
