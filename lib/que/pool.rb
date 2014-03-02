@@ -37,11 +37,13 @@ module Que
     private
 
     def execute_sql(sql, params)
+      Que.log :level => :debug, :event => :execute_sql, :sql => sql, :params => params
       args = params.empty? ? [sql] : [sql, params]
       checkout { |conn| conn.async_exec(*args) }
     end
 
     def execute_prepared(name, params)
+      Que.log :level => :debug, :event => :execute_statement, :statement => name, :params => params
       checkout do |conn|
         statements = @prepared_statements[conn] ||= {}
 

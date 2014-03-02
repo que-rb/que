@@ -3,6 +3,19 @@ shared_examples "a Que pool" do
     result = Que.execute("SELECT 1 AS one")
     result.should == [{'one'=>1}]
     result.first[:one].should == 1
+
+    logged_messages.map{|m| m['event']}.should == ['execute_sql']
+    logged_messages[0]['sql'].should == "SELECT 1 AS one"
+    logged_messages[0]['params'].should == []
+  end
+
+  it "should be able to prepare and execute statements" do
+    result = Que.execute(:job_stats)
+    result.should == []
+
+    logged_messages.map{|m| m['event']}.should == ['execute_statement']
+    logged_messages[0]['statement'].should == "job_stats"
+    logged_messages[0]['params'].should == []
   end
 
   it "should be able to execute multiple SQL statements in one string" do
