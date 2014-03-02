@@ -81,7 +81,26 @@ module Que
         end
       end
 
-      Que.indifferentiate(output)
+      indifferentiate(output)
     end
+
+    # Make hashes indifferently-accessible.
+    def indifferentiate(object)
+      case object
+      when Hash
+        if object.respond_to?(:with_indifferent_access)
+          object.with_indifferent_access
+        else
+          object.default_proc = HASH_DEFAULT_PROC
+          object.each { |key, value| object[key] = indifferentiate(value) }
+        end
+      when Array
+        object.map! { |element| indifferentiate(element) }
+      else
+        object
+      end
+    end
+
+    HASH_DEFAULT_PROC = proc { |hash, key| hash[key.to_s] if Symbol === key }
   end
 end
