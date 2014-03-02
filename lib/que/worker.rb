@@ -26,9 +26,17 @@ module Que
         begin
           if job = Que.execute(:get_job, [@queue_name] + pk).first
             klass = Job.class_for(job[:job_class])
-            klass.new(job)._run
+            instance = klass.new(job)
+
+            start = Time.now
+            instance._run
+            Que.log :event => :job_worked, :pk => [@queue_name] + pk, :elapsed => (Time.now - start)
+          else
+            Que.log :event => :job_race_condition, :pk => [@queue_name] + pk
           end
         rescue => error
+          Que.log :event => :job_errored, :pk => [@queue_name] + pk, :error => {:class => error.class.to_s, :message => error.message}
+
           begin
             count    = job[:error_count] + 1
             interval = (klass.retry_interval if klass) || Job.retry_interval

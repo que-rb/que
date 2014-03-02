@@ -33,6 +33,10 @@ describe Que::Worker do
 
       $results.should == [1, 2, 3]
       @result_queue.to_a.map{|pk| pk[-1]}.should == job_ids
+
+      events = logged_messages.select{|m| m['event'] == 'job_worked'}
+      events.count.should be 3
+      events.map{|m| m['pk'][1]}.should == [1, 2, 3]
     ensure
       $results = nil
     end
@@ -158,6 +162,13 @@ describe Que::Worker do
       job_ids = DB[:que_jobs].order_by(:priority).select_map(:job_id)
       run_jobs Que.execute("SELECT * FROM que_jobs")
       @result_queue.to_a.map{|pk| pk[-1]}.should == job_ids
+
+      events = logged_messages.select{|m| m['event'] == 'job_errored'}
+      events.count.should be 1
+      event = events.first
+      event['pk'][1].should == 1
+      event['error']['class'].should == 'RuntimeError'
+      event['error']['message'].should == 'ErrorJob!'
     end
 
     it "should pass it to the error handler" do
