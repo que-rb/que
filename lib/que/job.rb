@@ -40,9 +40,13 @@ module Que
 
         attrs = {:job_class => job_class || to_s, :args => args}
 
+        warn "@default_run_at in #{to_s} has been deprecated and will be removed in Que version 1.0.0. Please use @run_at instead." if @default_run_at
+
         if t = run_at || @run_at && @run_at.call || @default_run_at && @default_run_at.call
           attrs[:run_at] = t
         end
+
+        warn "@default_priority in #{to_s} has been deprecated and will be removed in Que version 1.0.0. Please use @priority instead." if @default_priority
 
         if p = priority || @priority || @default_priority
           attrs[:priority] = p
@@ -60,7 +64,10 @@ module Que
         end
       end
 
-      alias queue enqueue
+      def queue(*args)
+        warn "#{to_s}.queue(*args) is deprecated and will be removed in Que version 1.0.0. Please use #{to_s}.enqueue(*args) instead."
+        enqueue(*args)
+      end
 
       def run(*args)
         new(:args => args).tap(&:_run)

@@ -38,7 +38,7 @@ describe "Customizing Que" do
         end
 
         def method_missing(method, *args)
-          Delayed.queue Marshal.dump(@receiver), method, Marshal.dump(args)
+          Delayed.enqueue Marshal.dump(@receiver), method, Marshal.dump(args)
         end
       end
 
