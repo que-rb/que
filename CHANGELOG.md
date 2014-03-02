@@ -20,6 +20,8 @@
 
     *   It is no longer possible to inspect the Postgres connection that is working each job. So, `Que.worker_states` has been removed. Its functionality has been partially replaced with `Que.job_states`, which returns list of locked jobs and the hostname/pid of the Ruby processes that have locked them.
 
+    *   Features deprecated in 0.7.0 have been removed.
+
 ### 0.7.0 (Unreleased)
 
 *   `JobClass.queue(*args)` has been deprecated and will be removed in version 1.0.0. Please use `JobClass.enqueue(*args)` instead.
