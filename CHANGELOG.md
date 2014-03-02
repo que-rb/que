@@ -1,3 +1,25 @@
+### Unreleased
+
+*   **A schema upgrade to version 4 will be required for the next release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
+
+*   Que's implementation has been changed from one in which worker threads hold their own PG connections and lock their own jobs to one in which a single thread and PG connection locks jobs through LISTEN/NOTIFY and batch polling, and passes jobs along to worker threads. This has many benefits, including:
+
+    *   Individual workers no longer need to monopolize their own (possibly idle) connections while working jobs, so each Ruby process may require many fewer Postgres connections. It should also allow for better use of PgBouncer.
+
+    *   Jobs queued for immediate processing can be distributed to workers with LISTEN/NOTIFY, which is more efficient than constantly polling for new jobs.
+
+    *   When polling is necessary (to pick up jobs that are scheduled for the future or that need to be retried due to errors), jobs can be locked in batches, rather than one at a time.
+
+*   In keeping with semantic versioning, the next release will bump the version to 1.0.0, since the new implementation requires some backwards-incompatible changes. These changes include:
+
+    *   `Que.connection=` has been removed. Instead, use `Que.connection_proc=` to hook Que into your connection pool directly. See the documentation for details.
+
+    *   `Que.wake_interval`, `Que.wake_interval=`, `Que.wake!` and `Que.wake_all!` have no meaning under the new implementation, and so have been removed.
+
+    *   It is no longer possible to run Que through a single PG connection. A connection pool with a size of at least 2 is required.
+
+    *   It is no longer possible to inspect the Postgres connection that is working each job. So, `Que.worker_states` has been removed. Its functionality has been partially replaced with `Que.job_states`, which returns list of locked jobs and the hostname/pid of the Ruby processes that have locked them.
+
 ### 0.6.0 (2014-02-04)
 
 *   **A schema upgrade to version 3 is required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.

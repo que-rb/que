@@ -1,17 +1,3 @@
-# Experimental Branch
-
-*This branch is reworking the worker/polling system that is already in place on master. It introduces a single 'locker' thread in each process that is responsible for locking jobs through both LISTEN/NOTIFY and batch polling, then passing them to worker threads for processing. Feedback is welcome, but please don't use this branch for anything serious yet.*
-
-Advantages expected from this architecture are:
-
-* Advisory locks can be held by the locker thread alone, so individual workers no longer need to monopolize their own connections while working jobs. This means that each Ruby process can use many fewer Postgres connections. It should also let us make better use of tools like PgBouncer.
-
-* Using the recursive CTE to poll for jobs is an O(n) operation, where n is the number of high-priority jobs that are currently locked by another worker. This slows things down at high concurrency, and may be why it's been difficult for Que to break past the mark of 10,000 jobs queued and dequeued per second. While the old worker system only polled for jobs one at a time, Locker threads can poll for jobs in batches, breaking down this bottleneck somewhat.
-
-* With LISTEN/NOTIFY, jobs that are queued can be picked up and worked immediately, even by worker pools in other processes. This removes the need for the `rake que:work` task to spam the database with polling queries on a tight loop in order to pick up new work quickly. For worker pools in web processes it also removes the need for ORM-specific hacks to wake up workers when transactions commit. Finally, actively distributing jobs to Ruby processes should allow for more efficient locking than the polling query is able to provide at high concurrencies.
-
-The regular README follows.
-
 # Que
 
 **TL;DR: Que is a high-performance alternative to DelayedJob or QueueClassic that improves the reliability of your application by protecting your jobs with the same [ACID guarantees](https://en.wikipedia.org/wiki/ACID) as the rest of your data.**
