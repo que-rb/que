@@ -24,7 +24,7 @@ module Que
 
         # If we passed the maximum queue size, drop the least important items
         # and return their values.
-        @array.pop(size - @maximum_size) if @maximum_size < size
+        @array.pop(@array.size - @maximum_size) if @maximum_size < @array.size
       end
     end
 
@@ -46,19 +46,19 @@ module Que
     def accept?(pk)
       # Accept the pk if there's space available or if it will sort lower than
       # the lowest pk currently in the queue.
-      @mutex.synchronize { size < @maximum_size || (pk <=> @array[-1]) == -1 }
+      @mutex.synchronize { @array.size < @maximum_size || (pk <=> @array[-1]) == -1 }
     end
 
     def space
-      @maximum_size - size
+      @mutex.synchronize { @maximum_size - @array.size }
     end
 
     def size
-      @array.size
+      @mutex.synchronize { @array.size }
     end
 
     def to_a
-      @array.dup
+      @mutex.synchronize { @array.dup }
     end
 
     def stop
@@ -69,7 +69,7 @@ module Que
     end
 
     def clear
-      @mutex.synchronize { @array.pop(size) }
+      @mutex.synchronize { @array.pop(@array.size) }
     end
   end
 end
