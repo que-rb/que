@@ -34,7 +34,7 @@ module Que
         @mutex.synchronize do
           if @stop
             return
-          elsif (pk = @array.first) && pk.first <= priority
+          elsif (pk = @array.first) && pk[1] <= priority
             return @array.shift
           else
             @cv.wait(@mutex)
@@ -44,7 +44,9 @@ module Que
     end
 
     def accept?(pk)
-      @mutex.synchronize { size < @maximum_size || pk.first < @array[-1].first }
+      # Accept the pk if there's space available or the priority is larger
+      # than that of the lowest-priority item currently.
+      @mutex.synchronize { size < @maximum_size || pk[1] < @array[-1][1] }
     end
 
     def space

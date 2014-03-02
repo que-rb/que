@@ -4,9 +4,7 @@ module Que
     attr_accessor :priority
 
     def initialize(options)
-      @priority   = options[:priority]
-      @queue_name = options[:queue_name]
-
+      @priority     = options[:priority]
       @job_queue    = options[:job_queue]
       @result_queue = options[:result_queue]
 
@@ -24,18 +22,18 @@ module Que
         break unless pk = @job_queue.shift(*priority)
 
         begin
-          if job = Que.execute(:get_job, [@queue_name] + pk).first
+          if job = Que.execute(:get_job, pk).first
             klass = Job.class_for(job[:job_class])
             instance = klass.new(job)
 
             start = Time.now
             instance._run
-            Que.log :event => :job_worked, :pk => [@queue_name] + pk, :elapsed => (Time.now - start)
+            Que.log :event => :job_worked, :pk => pk, :elapsed => (Time.now - start)
           else
-            Que.log :event => :job_race_condition, :pk => [@queue_name] + pk
+            Que.log :event => :job_race_condition, :pk => pk
           end
         rescue => error
-          Que.log :event => :job_errored, :pk => [@queue_name] + pk, :error => {:class => error.class.to_s, :message => error.message}
+          Que.log :event => :job_errored, :pk => pk, :error => {:class => error.class.to_s, :message => error.message}
 
           begin
             count    = job[:error_count] + 1

@@ -8,14 +8,14 @@ describe Que::JobQueue do
     @newer = Time.now
 
     @array = [
-      [1, @older, 1],
-      [1, @older, 2],
-      [1, @newer, 3],
-      [1, @newer, 4],
-      [2, @older, 5],
-      [2, @older, 6],
-      [2, @newer, 7],
-      [2, @newer, 8]
+      ['', 1, @older, 1],
+      ['', 1, @older, 2],
+      ['', 1, @newer, 3],
+      ['', 1, @newer, 4],
+      ['', 2, @older, 5],
+      ['', 2, @older, 6],
+      ['', 2, @newer, 7],
+      ['', 2, @newer, 8]
     ]
   end
 
@@ -49,7 +49,7 @@ describe Que::JobQueue do
 
       # Pushing very low priority jobs shouldn't happen, since we use
       # #accept? to prevent unnecessary locking, but just in case:
-      v = [100, Time.now, 45]
+      v = ['', 100, Time.now, 45]
       @jq.push(v).should == [v]
       @jq.to_a.map(&:first).should_not include 100
       @jq.size.should == 8
@@ -96,15 +96,15 @@ describe Que::JobQueue do
     end
 
     it "should accept a priority value and only accept jobs of equal or better priority" do
-      @jq.push [10, Time.now, 1]
+      @jq.push ['', 10, Time.now, 1]
 
       t = Thread.new { Thread.current[:id] = @jq.shift(5)[-1] }
       sleep_until { t.status == 'sleep' }
 
-      @jq.push [10, Time.now, 2]
+      @jq.push ['', 10, Time.now, 2]
       sleep_until { t.status == 'sleep' }
 
-      @jq.push [5, Time.now, 3]
+      @jq.push ['', 5, Time.now, 3]
       sleep_until { t.status == false }
 
       t[:id].should == 3
@@ -123,7 +123,7 @@ describe Que::JobQueue do
 
       threads.sort_by! { |t| t[:priority] }
 
-      value = [17, Time.now, 1]
+      value = ['', 17, Time.now, 1]
       @jq.push value
 
       sleep_until { threads[3].status == false }
@@ -156,7 +156,7 @@ describe Que::JobQueue do
   it "should still be pushable and clearable if it has an infinite maximum_size" do
     # Results queues only need these two operations, and shouldn't have a size limit.
     @jq = Que::JobQueue.new
-    value = [100, Time.now, 45]
+    value = ['', 100, Time.now, 45]
     @jq.push value
     @jq.to_a.should == [value]
     @jq.clear.should == [value]

@@ -12,7 +12,7 @@ describe Que::Worker do
 
   def run_jobs(*jobs)
     @result_queue.clear
-    jobs = jobs.flatten.map { |job| job.values_at(:priority, :run_at, :job_id) }
+    jobs = jobs.flatten.map { |job| job.values_at(:queue, :priority, :run_at, :job_id) }
     @job_queue.push *jobs
     sleep_until { @result_queue.to_a.sort == jobs.sort }
   end
@@ -145,7 +145,7 @@ describe Que::Worker do
   it "should only take jobs that meet its priority requirement" do
     @worker.priority = 10
 
-    jobs = (1..20).map { |i| [i, Time.now, i] }
+    jobs = (1..20).map { |i| ['', i, Time.now, i] }
 
     @job_queue.push *jobs
 

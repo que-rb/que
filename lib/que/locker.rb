@@ -26,7 +26,6 @@ module Que
 
       @workers = worker_count.times.zip(worker_priorities).map do |_, priority|
         Worker.new :priority     => priority,
-                   :queue_name   => @queue_name,
                    :job_queue    => @job_queue,
                    :result_queue => @result_queue
       end
@@ -100,7 +99,7 @@ module Que
       jobs  = Que.execute :poll_jobs, [@queue_name, "{#{@locks.to_a.join(',')}}", count]
 
       @locks.merge jobs.map { |job| job[:job_id] }
-      push_jobs jobs.map { |job| job.values_at(:priority, :run_at, :job_id) }
+      push_jobs jobs.map { |job| job.values_at(:queue, :priority, :run_at, :job_id) }
 
       @last_polled_at      = Time.now
       @last_poll_satisfied = count == jobs.count
@@ -157,7 +156,7 @@ module Que
         conn.wait_for_notify(timeout) do |_, _, payload|
           json = JSON_MODULE.load(payload)
           Que.log :event => :job_notified, :job => json
-          return [json['priority'].to_i, Time.parse(json['run_at']), json['job_id'].to_i]
+          return [json['queue'], json['priority'], Time.parse(json['run_at']), json['job_id']]
         end
       end
     end
