@@ -2,10 +2,12 @@
 
 module Que
   class JobQueue
+    attr_reader :maximum_size
+
     def initialize(options = {})
-      @max   = options[:maximum_size] || Float::INFINITY
-      @stop  = false
-      @array = []
+      @stop         = false
+      @array        = []
+      @maximum_size = options[:maximum_size] || Float::INFINITY
 
       @mutex = Mutex.new
       @cv    = ConditionVariable.new
@@ -22,7 +24,7 @@ module Que
 
         # If we passed the maximum queue size, drop the least important items
         # and return their values.
-        @array.pop(size - @max) if @max < size
+        @array.pop(size - @maximum_size) if @maximum_size < size
       end
     end
 
@@ -42,11 +44,11 @@ module Que
     end
 
     def accept?(pk)
-      @mutex.synchronize { size < @max || pk.first < @array[-1].first }
+      @mutex.synchronize { size < @maximum_size || pk.first < @array[-1].first }
     end
 
     def space
-      @max - size
+      @maximum_size - size
     end
 
     def size

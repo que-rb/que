@@ -52,6 +52,7 @@ module Que
                 :listening          => @listening,
                 :poll_interval      => @poll_interval,
                 :minimum_queue_size => @minimum_queue_size,
+                :maximum_queue_size => @job_queue.maximum_size,
                 :worker_priorities  => @workers.map(&:priority)
 
         begin
