@@ -44,9 +44,9 @@ module Que
     end
 
     def accept?(pk)
-      # Accept the pk if there's space available or the priority is larger
-      # than that of the lowest-priority item currently.
-      @mutex.synchronize { size < @maximum_size || pk[1] < @array[-1][1] }
+      # Accept the pk if there's space available or if it will sort lower than
+      # the lowest pk currently in the queue.
+      @mutex.synchronize { size < @maximum_size || (pk <=> @array[-1]) == -1 }
     end
 
     def space
