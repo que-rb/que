@@ -285,6 +285,7 @@ describe Que::Locker do
       q1.pop
       locker.stop
       q2.push nil
+      t.join
 
       DB[:que_jobs].select_map(:job_id).should == [id]
     end
