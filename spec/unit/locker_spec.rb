@@ -1,30 +1,49 @@
 require 'spec_helper'
 
 describe Que::Locker do
-  it "should exit on its own when informed to stop" do
+  it "should log its settings on startup" do
     Que::Locker.new.stop
 
     events = logged_messages.select { |m| m['event'] == 'locker_start' }
     events.count.should == 1
     event = events.first
+    event['queue'].should == ''
     event['listening'].should == false
-    event['minimum_queue_size'].should == 2
-    event['maximum_queue_size'].should == 8
+    event['backend_pid'].should be_an_instance_of Fixnum
     event['wait_period'].should == 0.01
     event['poll_interval'].should == nil
-    event['queue'].should == ''
+    event['minimum_queue_size'].should == 2
+    event['maximum_queue_size'].should == 8
     event['worker_priorities'].should == [10, 30, 50, nil, nil, nil]
   end
 
-  it "should have sensible defaults for workers and their priorities" do
-    locker = Que::Locker.new
-    locker.workers.map(&:priority).should == [10, 30, 50, nil, nil, nil]
+  it "should allow configuration of various parameters" do
+    locker = Que::Locker.new :listening          => true,
+                             :minimum_queue_size => 5,
+                             :maximum_queue_size => 45,
+                             :wait_period        => 0.2,
+                             :poll_interval      => 0.4,
+                             :queue              => 'other_queue',
+                             :worker_priorities  => [1, 2, 3, 4],
+                             :worker_count       => 8
     locker.stop
+
+    events = logged_messages.select { |m| m['event'] == 'locker_start' }
+    events.count.should == 1
+    event = events.first
+    event['queue'].should == 'other_queue'
+    event['listening'].should == true
+    event['backend_pid'].should be_an_instance_of Fixnum
+    event['wait_period'].should == 0.2
+    event['poll_interval'].should == 0.4
+    event['minimum_queue_size'].should == 5
+    event['maximum_queue_size'].should == 45
+    event['worker_priorities'].should == [1, 2, 3, 4, nil, nil, nil, nil]
   end
 
   it "should have a high-priority work thread" do
     locker = Que::Locker.new
-    locker.thread.priority.should be > Thread.current.priority
+    locker.thread.priority.should == 1
     locker.stop
   end
 
