@@ -4,14 +4,12 @@ module Que
   class Locker
     attr_reader :thread, :workers, :job_queue
 
-    # When in the wait loop, wake up at least every 10 ms to check what's going on.
-    WAIT_PERIOD = 0.01
-
     def initialize(options = {})
       @listening          = !!options[:listening]
       @queue_name         = options[:queue] || ''
       @poll_interval      = options[:poll_interval]
       @minimum_queue_size = options[:minimum_queue_size] || 2
+      @wait_period        = options[:wait_period] || 0.01
 
       @locks = Set.new
 
@@ -48,6 +46,7 @@ module Que
                 :queue              => @queue_name,
                 :backend_pid        => backend_pid,
                 :listening          => @listening,
+                :wait_period        => @wait_period,
                 :poll_interval      => @poll_interval,
                 :minimum_queue_size => @minimum_queue_size,
                 :maximum_queue_size => @job_queue.maximum_size,
@@ -108,11 +107,11 @@ module Que
 
     def wait
       if @listening
-        if pk = wait_for_job(WAIT_PERIOD)
+        if pk = wait_for_job(@wait_period)
           push_jobs([pk]) if @job_queue.accept?(pk) && lock_job?(pk[-1])
         end
       else
-        sleep WAIT_PERIOD
+        sleep(@wait_period)
       end
     end
 

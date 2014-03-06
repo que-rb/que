@@ -10,6 +10,7 @@ describe Que::Locker do
     event['listening'].should == false
     event['minimum_queue_size'].should == 2
     event['maximum_queue_size'].should == 8
+    event['wait_period'].should == 0.01
     event['poll_interval'].should == nil
     event['queue'].should == ''
     event['worker_priorities'].should == [10, 30, 50, nil, nil, nil]
