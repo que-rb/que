@@ -5,7 +5,7 @@ module Que
     attr_reader :thread, :workers, :job_queue
 
     def initialize(options = {})
-      @listening          = !!options[:listening]
+      @listen             = !!options.fetch(:listen, true)
       @queue_name         = options[:queue] || ''
       @poll_interval      = options[:poll_interval]
       @minimum_queue_size = options[:minimum_queue_size] || 2
@@ -44,8 +44,8 @@ module Que
 
         Que.log :event              => :locker_start,
                 :queue              => @queue_name,
+                :listen             => @listen,
                 :backend_pid        => backend_pid,
-                :listening          => @listening,
                 :wait_period        => @wait_period,
                 :poll_interval      => @poll_interval,
                 :minimum_queue_size => @minimum_queue_size,
@@ -53,12 +53,12 @@ module Que
                 :worker_priorities  => @workers.map(&:priority)
 
         begin
-          Que.execute "LISTEN que_locker_#{backend_pid}" if @listening
+          Que.execute "LISTEN que_locker_#{backend_pid}" if @listen
 
           # A previous locker that didn't exit cleanly may have left behind
           # a bad locker record, so clean up before registering.
           Que.execute :clean_lockers
-          Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listening.to_s]
+          Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listen.to_s]
 
           poll
 
@@ -81,7 +81,7 @@ module Que
         ensure
           Que.execute "DELETE FROM que_lockers WHERE pid = $1", [backend_pid]
 
-          if @listening
+          if @listen
             # Unlisten and drain notifications before returning connection to pool.
             Que.execute "UNLISTEN *"
             {} while conn.notifies
@@ -106,7 +106,7 @@ module Que
     end
 
     def wait
-      if @listening
+      if @listen
         if pk = wait_for_job(@wait_period)
           push_jobs([pk]) if @job_queue.accept?(pk) && lock_job?(pk[-1])
         end

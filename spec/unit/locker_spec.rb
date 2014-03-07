@@ -8,7 +8,7 @@ describe Que::Locker do
     events.count.should == 1
     event = events.first
     event['queue'].should == ''
-    event['listening'].should == false
+    event['listen'].should == true
     event['backend_pid'].should be_an_instance_of Fixnum
     event['wait_period'].should == 0.01
     event['poll_interval'].should == nil
@@ -18,7 +18,7 @@ describe Que::Locker do
   end
 
   it "should allow configuration of various parameters" do
-    locker = Que::Locker.new :listening          => true,
+    locker = Que::Locker.new :listen             => false,
                              :minimum_queue_size => 5,
                              :maximum_queue_size => 45,
                              :wait_period        => 0.2,
@@ -32,7 +32,7 @@ describe Que::Locker do
     events.count.should == 1
     event = events.first
     event['queue'].should == 'other_queue'
-    event['listening'].should == true
+    event['listen'].should == false
     event['backend_pid'].should be_an_instance_of Fixnum
     event['wait_period'].should == 0.2
     event['poll_interval'].should == 0.4
@@ -50,7 +50,7 @@ describe Que::Locker do
   it "should register its presence or absence in the que_lockers table upon connecting or disconnecting" do
     worker_count = rand(10) + 1
 
-    locker = Que::Locker.new(:worker_count => worker_count, :listening => true)
+    locker = Que::Locker.new(:worker_count => worker_count)
 
     sleep_until { DB[:que_lockers].count == 1 }
 
@@ -113,7 +113,7 @@ describe Que::Locker do
 
   it "should do batch polls at poll_interval to catch jobs that fall through the cracks" do
     DB[:que_jobs].count.should be 0
-    locker = Que::Locker.new :poll_interval => 0.01
+    locker = Que::Locker.new :poll_interval => 0.01, :listen => false
     sleep_until { DB[:que_lockers].count == 1 }
 
     Que::Job.enqueue
@@ -175,7 +175,7 @@ describe Que::Locker do
           end
         end
 
-        locker = Que::Locker.new :poll_interval => 0.01
+        locker = Que::Locker.new :poll_interval => 0.01, :listen => false
 
         id1 = PollRelockJob.enqueue.attrs[:job_id]
         $q1.pop
@@ -218,7 +218,7 @@ describe Que::Locker do
       ids  = 3.times.map { BlockJob.enqueue(:priority => 100).attrs[:job_id] }
       ids += 3.times.map { Que::Job.enqueue(:priority => 101).attrs[:job_id] }
 
-      locker = Que::Locker.new :poll_interval => 0.01
+      locker = Que::Locker.new :poll_interval => 0.01, :listen => false
       3.times { $q1.pop }
 
       ids += 6.times.map { Que::Job.enqueue(:priority => 101).attrs[:job_id] }
@@ -254,7 +254,7 @@ describe Que::Locker do
   describe "when receiving a NOTIFY of a new job" do
     it "should immediately lock, work, and unlock them" do
       DB[:que_jobs].count.should be 0
-      locker = Que::Locker.new :listening => true
+      locker = Que::Locker.new
       sleep_until { DB[:que_lockers].count == 1 }
 
       job = BlockJob.enqueue
@@ -283,7 +283,7 @@ describe Que::Locker do
 
     it "should not work jobs that are already locked" do
       DB[:que_jobs].count.should be 0
-      locker = Que::Locker.new :listening => true
+      locker = Que::Locker.new
       sleep_until { DB[:que_lockers].count == 1 }
 
       id = nil
@@ -323,7 +323,7 @@ describe Que::Locker do
 
         attrs = NotifyRelockJob.enqueue.attrs
 
-        locker = Que::Locker.new :listening => true
+        locker = Que::Locker.new
         $q1.pop
 
         pid = DB[:que_lockers].where(:listening).get(:pid)
@@ -349,7 +349,6 @@ describe Que::Locker do
 
     it "of low importance should not lock them or add them to the JobQueue if it is full" do
       locker = Que::Locker.new :worker_count       => 1,
-                               :listening          => true,
                                :maximum_queue_size => 3
 
       sleep_until { DB[:que_lockers].count == 1 }
@@ -370,7 +369,6 @@ describe Que::Locker do
 
     it "of significant importance should lock and add it to the JobQueue and dequeue/unlock the least important one to make room" do
       locker = Que::Locker.new :worker_count       => 1,
-                               :listening          => true,
                                :maximum_queue_size => 3
 
       sleep_until { DB[:que_lockers].count == 1 }
@@ -424,7 +422,7 @@ describe Que::Locker do
     end
 
     it "should wait for its currently running jobs to finish before returning" do
-      locker = Que::Locker.new :listening => true
+      locker = Que::Locker.new
 
       job_id = BlockJob.enqueue.attrs[:job_id]
 
