@@ -1,4 +1,51 @@
 namespace :que do
+  desc "Process Que's jobs using a forking worker"
+  task :fork_and_work => :environment do
+    require 'logger'
+    Que.logger = Logger.new(STDOUT)
+    Que.logger.level  = Logger.const_get((ENV['QUE_LOG_LEVEL'] || 'INFO').upcase)
+    # When we support multiple workers?
+    Que.worker_count  = (ENV['QUE_WORKER_COUNT'] || 1).to_i
+
+    # Preload MultiJson's code for finding the most efficient json loader
+    # so we don't need to do this inside each worker process.
+    if defined?(MultiJson)
+      MultiJson.load('[]')
+    end
+
+    worker_pid = nil
+    stop = false
+
+    trap('INT') do
+      $stderr.puts "Asking worker process to stop..."
+      stop = true
+      Process.kill('INT', worker_pid) if worker_pid
+    end
+
+    loop do
+      break if stop
+      worker_pid = fork do
+        Que.after_fork
+        stop = false
+        trap('INT') {stop = true}
+
+        loop do
+          break if stop
+          result = Que::Job.work
+          if result && result[:event] == :job_unavailable
+            # No jobs worked, check again in a bit.
+            sleep 0.1
+          else
+            # job worked, fork new worker process
+            Que.logger.info "job status: #{ result[:event] }"
+            break
+          end
+        end
+      end
+      Process.wait(worker_pid)
+    end
+  end
+
   desc "Process Que's jobs using a worker pool"
   task :work => :environment do
     require 'logger'
