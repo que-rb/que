@@ -36,7 +36,7 @@ describe Que::Worker do
 
       events = logged_messages.select{|m| m['event'] == 'job_worked'}
       events.count.should be 3
-      events.map{|m| m['pk'][1]}.should == [1, 2, 3]
+      events.map{|m| m['job']['priority']}.should == [1, 2, 3]
     ensure
       $results = nil
     end
@@ -167,6 +167,7 @@ describe Que::Worker do
       events.count.should be 1
       event = events.first
       event['pk'][1].should == 1
+      event['job']['job_id'].should be_an_instance_of Fixnum
       event['error']['class'].should == 'RuntimeError'
       event['error']['message'].should == 'ErrorJob!'
     end
