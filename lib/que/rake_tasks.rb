@@ -4,10 +4,7 @@ namespace :que do
     require 'logger'
     Que.logger = Logger.new(STDOUT)
     Que.logger.level  = Logger.const_get((ENV['QUE_LOG_LEVEL'] || 'INFO').upcase)
-    # When we support multiple workers?
-    # Que.worker_count  = (ENV['QUE_WORKER_COUNT'] || 1).to_i
-    # Need to check into if setting Que.worker_count automatically starts the jobs.
-    # (We don't want that)
+    worker_count  = (ENV['QUE_WORKER_COUNT'] || 1).to_i
 
     # Preload MultiJson's code for finding the most efficient json loader
     # so we don't need to do this inside each worker process.
@@ -24,28 +21,35 @@ namespace :que do
       Process.kill('INT', worker_pid) if worker_pid
     end
 
-    loop do
-      break if stop
-      worker_pid = fork do
-        Que.after_fork
-        stop = false
-        trap('INT') {stop = true}
-
+    pids = []
+    worker_count.times do
+      pid = fork do
         loop do
           break if stop
-          result = Que::Job.work
-          if result && result[:event] == :job_unavailable
-            # No jobs worked, check again in a bit.
-            sleep 0.1
-          else
-            # job worked, fork new worker process
-            Que.logger.info "job status: #{ result[:event] }"
-            break
+          worker_pid = fork do
+            Que.after_fork
+            stop = false
+            trap('INT') {stop = true}
+
+            loop do
+              break if stop
+              result = Que::Job.work
+              if result && result[:event] == :job_unavailable
+                # No jobs worked, check again in a bit.
+                break if stop
+                sleep 0.1
+              else
+                # job worked, fork new worker process
+                break
+              end
+            end
           end
+          Process.wait(worker_pid)
         end
       end
-      Process.wait(worker_pid)
+      pids << pid
     end
+    pids.each { |pid| Process.wait(pid) }
   end
 
   desc "Process Que's jobs using a worker pool"
