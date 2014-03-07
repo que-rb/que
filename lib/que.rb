@@ -21,10 +21,11 @@ module Que
     attr_writer :adapter, :log_formatter
 
     def connection=(connection)
-      self.adapter = if connection.to_s == 'ActiveRecord'
-        Adapters::ActiveRecord.new
-      else
-        case connection.class.to_s
+      self.adapter =
+        if connection.to_s == 'ActiveRecord'
+          Adapters::ActiveRecord.new
+        else
+          case connection.class.to_s
           when 'Sequel::Postgres::Database' then Adapters::Sequel.new(connection)
           when 'ConnectionPool'             then Adapters::ConnectionPool.new(connection)
           when 'PG::Connection'             then Adapters::PG.new(connection)
