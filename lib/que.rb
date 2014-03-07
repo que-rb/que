@@ -84,6 +84,13 @@ module Que
       @log_formatter ||= JSON_MODULE.method(:dump)
     end
 
+    %w(wake_interval wake_interval= wake! wake_all! worker_count worker_count=).each do |meth|
+      define_method meth do |*args|
+        warn "Que.#{meth} no longer serves a purpose and will be removed entirely in version 1.1.0."
+        nil
+      end
+    end
+
     # Copy some commonly-used methods here, for convenience.
     def_delegators :pool, :execute, :checkout, :in_transaction?
     def_delegators Job, :enqueue
