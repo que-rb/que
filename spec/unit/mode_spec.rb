@@ -52,6 +52,24 @@ describe Que, "mode=" do
       Que.mode = :off
     end
 
+    it "should start up a locker that respects settings from environment variables" do
+      pending
+
+      # begin
+      #   ENV['QUE_QUEUE'] = 'other_queue'
+
+      #   Que::Job.enqueue :queue => 'other_queue'
+      #   Que.mode = :async
+      #   sleep_until { DB[:que_jobs].empty? }
+
+      #   Que::Job.enqueue :queue => 'other_queue'
+      #   sleep_until { DB[:que_jobs].empty? }
+      #   Que.mode = :off
+      # ensure
+      #   ENV.delete('QUE_QUEUE')
+      # end
+    end
+
     it "then Que.mode = :async a second time should not do anything" do
       Que.mode = :async
       Que.mode = :async
