@@ -6,15 +6,17 @@
 
     *   Individual workers no longer need to monopolize their own (possibly idle) connections while working jobs, so each Ruby process may require many fewer Postgres connections. It should also allow for better use of PgBouncer.
 
-    *   Jobs queued for immediate processing can be distributed to workers with LISTEN/NOTIFY, which is more efficient than constantly polling for new jobs.
+    *   Jobs queued for immediate processing can be distributed to workers with LISTEN/NOTIFY, which is more efficient than repeatedly polling for new jobs.
 
     *   When polling is necessary (to pick up jobs that are scheduled for the future or that need to be retried due to errors), jobs can be locked in batches, rather than one at a time.
 
 *   In keeping with semantic versioning, the major version is being bumped since the new implementation requires some backwards-incompatible changes. These changes include:
 
-    *   `Que.connection=` has been removed. Instead, use `Que.connection_proc=` to hook Que into your connection pool directly. See the documentation for details.
+    *   JRuby support has been dropped. It will be readded when the jruby-pg gem [fully supports PG::Connection#wait_for_notify](https://github.com/headius/jruby-pg/issues/13).
 
-    *   `Que.wake_interval`, `Que.wake_interval=`, `Que.wake!` and `Que.wake_all!` have no meaning under the new implementation, and so have been removed.
+    *   `Que.connection=` has been removed. If you're using a custom connection (and not letting the Railtie set things up for you) use `Que.connection_proc=` instead to hook Que into your connection pool directly. See the documentation for details.
+
+    *   `Que.wake_interval`, `Que.wake_interval=`, `Que.wake!`, `Que.wake_all!`, `Que.worker_count` and `Que.worker_count=` are not usable under the new implementation, and so have been removed.
 
     *   It is no longer possible to run Que through a single PG connection. A connection pool with a size of at least 2 is required.
 
