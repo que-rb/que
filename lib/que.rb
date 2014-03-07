@@ -22,8 +22,9 @@ module Que
   class << self
     extend Forwardable
 
-    attr_accessor :logger, :error_handler, :mode
+    attr_accessor :logger, :error_handler
     attr_writer :pool, :log_formatter
+    attr_reader :mode, :locker
 
     def connection=(connection)
       warn "Que.connection= has been deprecated and will be removed in version 1.1.0. Please use Que.connection_proc= instead."
@@ -88,6 +89,25 @@ module Que
       define_method meth do |*args|
         warn "Que.#{meth} no longer serves a purpose and will be removed entirely in version 1.1.0."
         nil
+      end
+    end
+
+    def mode=(mode)
+      if @mode != mode
+        case mode
+        when :async
+          @locker = Locker.new
+        when :sync, :off
+          if @locker
+            @locker.stop
+            @locker = nil
+          end
+        else
+          raise "Unknown Que mode: #{mode.inspect}"
+        end
+
+        log :event => 'mode_change', :value => mode.to_s
+        @mode = mode
       end
     end
 

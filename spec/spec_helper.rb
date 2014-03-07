@@ -91,8 +91,9 @@ RSpec.configure do |config|
     # helpful in identifying hanging specs.
     stdout.info "Running spec: #{desc} @ #{line}" if ENV['LOG_SPEC']
 
-    $logger.messages.clear
     Que.pool = QUE_POOLS[:pond]
+    Que.mode = :off
+    $logger.messages.clear
 
     spec.run
 
