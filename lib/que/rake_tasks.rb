@@ -5,6 +5,7 @@ namespace :que do
     Que.logger = Logger.new(STDOUT)
     Que.logger.level  = Logger.const_get((ENV['QUE_LOG_LEVEL'] || 'INFO').upcase)
     worker_count  = (ENV['QUE_WORKER_COUNT'] || 1).to_i
+    queue         = ENV['QUE_QUEUE'] || ''
 
     # Preload MultiJson's code for finding the most efficient json loader
     # so we don't need to do this inside each worker process.
@@ -33,7 +34,7 @@ namespace :que do
 
             loop do
               break if stop
-              result = Que::Job.work
+              result = Que::Job.work(queue)
               if result && result[:event] == :job_unavailable
                 # No jobs worked, check again in a bit.
                 break if stop
