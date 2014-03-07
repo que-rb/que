@@ -8,6 +8,7 @@ describe "Logging" do
     message = JSON.load($logger.messages.first)
     message['lib'].should == 'que'
     message['hostname'].should == Socket.gethostname
+    message['pid'].should == Process.pid
     message['event'].should == 'blah'
     message['source'].should == 4
     message['thread'].should == Thread.current.object_id
