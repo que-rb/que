@@ -23,7 +23,7 @@ Que also includes a worker pool, so that multiple threads can process jobs in th
 
 *Please keep an eye out for problems when running Que in production. It's still new compared to other RDBMS-backed queues, and there may be issues that haven't been ironed out yet. Bug reports are welcome.*
 
-Que is tested on Ruby 2.0, Rubinius and JRuby (with the `jruby-pg` gem, which is [not yet functional with ActiveRecord](https://github.com/chanks/que/issues/4#issuecomment-29561356)). It requires Postgres 9.2+ for the JSON datatype.
+Que is tested on Ruby 1.9, Ruby 2.0, and Rubinius (JRuby support is waiting on bugfixes for the `jruby-pg` gem). Rubinius is recommended due to its threading performance. Que requires Postgres 9.2+ for the JSON datatype.
 
 ## Installation
 
@@ -41,7 +41,7 @@ Or install it yourself as:
 
 ## Usage
 
-The following assumes you're using Rails 4.0 and ActiveRecord. *Que hasn't been tested with versions of Rails before 4.0, and may or may not work with them.* See the [/docs directory](https://github.com/chanks/que/blob/master/docs) for instructions on using Que [outside of Rails](https://github.com/chanks/que/blob/master/docs/advanced_setup.md), and with [Sequel](https://github.com/chanks/que/blob/master/docs/using_sequel.md) or [no ORM](https://github.com/chanks/que/blob/master/docs/using_plain_connections.md), among other things.
+The following assumes you're using Rails 4.0 and ActiveRecord. *Que hasn't been tested with versions of Rails before 4.0, and may or may not work with them.* See the [/docs directory](https://github.com/chanks/que/blob/master/docs) for more information on any of the below, and particularly the [advanced setup instructions](https://github.com/chanks/que/blob/master/docs/advanced_setup.md) if you're not using Rails and ActiveRecord.
 
 First, generate and run a migration for the job table.
 
