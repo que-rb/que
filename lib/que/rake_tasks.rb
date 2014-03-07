@@ -5,7 +5,9 @@ namespace :que do
     Que.logger = Logger.new(STDOUT)
     Que.logger.level  = Logger.const_get((ENV['QUE_LOG_LEVEL'] || 'INFO').upcase)
     # When we support multiple workers?
-    Que.worker_count  = (ENV['QUE_WORKER_COUNT'] || 1).to_i
+    # Que.worker_count  = (ENV['QUE_WORKER_COUNT'] || 1).to_i
+    # Need to check into if setting Que.worker_count automatically starts the jobs.
+    # (We don't want that)
 
     # Preload MultiJson's code for finding the most efficient json loader
     # so we don't need to do this inside each worker process.
