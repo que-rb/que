@@ -97,24 +97,9 @@ describe Que::Locker do
     DB[:que_lockers].count.should be 0
   end
 
-  it "should respect priority settings for workers" do
-    locker = Que::Locker.new :worker_count      => 8,
-                             :worker_priorities => [1, 2, 3, 4]
-
-    locker.workers.map(&:priority).should == [1, 2, 3, 4, nil, nil, nil, nil]
-    locker.stop
-
-    locker = Que::Locker.new :worker_count      => 4,
-                             :worker_priorities => [1, 2, 3, 4, 5]
-
-    locker.workers.map(&:priority).should == [1, 2, 3, 4]
-    locker.stop
-  end
-
-  it "should do batch polls at poll_interval to catch jobs that fall through the cracks" do
+  it "should do batch polls every poll_interval to catch jobs that fall through the cracks" do
     DB[:que_jobs].count.should be 0
     locker = Que::Locker.new :poll_interval => 0.01, :listen => false
-    sleep_until { DB[:que_lockers].count == 1 }
 
     Que::Job.enqueue
     sleep_until { DB[:que_jobs].empty? }
@@ -155,9 +140,13 @@ describe Que::Locker do
     end
 
     it "should repeat batch polls until the supply of available jobs is exhausted" do
-      100.times { Que::Job.enqueue }
-      locker = Que::Locker.new
+      Que.execute <<-SQL
+        INSERT INTO que_jobs (job_class, priority)
+        SELECT 'Que::Job', 1
+        FROM generate_series(1, 100) AS i;
+      SQL
 
+      locker = Que::Locker.new
       sleep_until { DB[:que_jobs].empty? }
       locker.stop
     end
@@ -311,40 +300,25 @@ describe Que::Locker do
     end
 
     it "should not try to lock and work jobs it has already locked" do
-      begin
-        $performed = []
+      attrs  = BlockJob.enqueue.attrs
+      locker = Que::Locker.new
+      $q1.pop
 
-        class NotifyRelockJob < BlockJob
-          def run
-            $performed << @attrs[:job_id]
-            super
-          end
-        end
+      pid = DB[:que_lockers].where(:listening).get(:pid)
 
-        attrs = NotifyRelockJob.enqueue.attrs
+      payload = DB[:que_jobs].
+        where(:job_id => attrs[:job_id]).
+        select(:queue, :priority, :run_at, :job_id).
+        from_self(:alias => :t).
+        get{row_to_json(:t)}
 
-        locker = Que::Locker.new
-        $q1.pop
+      DB.notify "que_locker_#{pid}", :payload => payload
 
-        pid = DB[:que_lockers].where(:listening).get(:pid)
+      sleep 0.05 # Hacky
+      locker.job_queue.to_a.should == []
 
-        payload = DB[:que_jobs].
-          where(:job_id => attrs[:job_id]).
-          select(:queue, :priority, :run_at, :job_id).
-          from_self(:alias => :t).
-          get{row_to_json(:t)}
-
-        DB.notify "que_locker_#{pid}", :payload => payload
-
-        sleep 0.01 # Hacky
-
-        $q2.push nil
-        locker.stop
-
-        locks = DB[:pg_locks].all
-      ensure
-        $performed = nil
-      end
+      $q2.push nil
+      locker.stop
     end
 
     it "of low importance should not lock them or add them to the JobQueue if it is full" do
