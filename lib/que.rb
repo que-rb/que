@@ -25,6 +25,22 @@ module Que
     attr_accessor :logger, :error_handler, :mode
     attr_writer :pool, :log_formatter
 
+    def connection=(connection)
+      warn "Que.connection= has been deprecated and will be removed in version 1.1.0. Please use Que.connection_proc= instead."
+
+      self.connection_proc = if connection.to_s == 'ActiveRecord'
+        proc { |&block| ActiveRecord::Base.connection_pool.with_connection { |conn| block.call(conn.raw_connection) } }
+      else
+        case connection.class.to_s
+          when 'Sequel::Postgres::Database' then connection.method(:synchronize)
+          when 'ConnectionPool'             then connection.method(:with)
+          when 'PG::Connection'             then raise "Que now requires a connection pool and can no longer use a plain PG::Connection."
+          when 'NilClass'                   then connection
+          else raise "Que connection not recognized: #{connection.inspect}"
+        end
+      end
+    end
+
     def connection_proc=(connection_proc)
       @pool = connection_proc && Pool.new(connection_proc)
     end
