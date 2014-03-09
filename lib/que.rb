@@ -80,7 +80,7 @@ module Que
 
     def log(data)
       level = data.delete(:level) || :info
-      data = {:lib => 'que', :hostname => Socket.gethostname, :thread => Thread.current.object_id}.merge(data)
+      data = {:lib => 'que', :hostname => Socket.gethostname, :pid => Process.pid, :thread => Thread.current.object_id}.merge(data)
 
       if logger && output = log_formatter.call(data)
         logger.send level, output
