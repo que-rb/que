@@ -6,6 +6,7 @@ namespace :que do
     Que.logger       = Logger.new(STDOUT)
     Que.logger.level = Logger.const_get((ENV['QUE_LOG_LEVEL'] || 'INFO').upcase)
     worker_count     = (ENV['QUE_WORKER_COUNT'] || 1).to_i
+    wake_interval    = (ENV['QUE_WAKE_INTERVAL'] || 0.1).to_f
     queue            = ENV['QUE_QUEUE'] || ''
 
     # Preload MultiJson's code for finding the most efficient json loader
@@ -36,11 +37,12 @@ namespace :que do
 
             loop do
               break if stop
+              $stdout.puts "checking..."
               result = Que::Job.work(queue)
               if result && result[:event] == :job_unavailable
                 # No jobs worked, check again in a bit.
                 break if stop
-                sleep 0.1
+                sleep wake_interval
               else
                 # Job worked, fork new worker process.
                 break
