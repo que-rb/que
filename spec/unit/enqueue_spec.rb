@@ -21,7 +21,7 @@ describe Que::Job, '.enqueue' do
 
   it "should be aliased to .queue" do
     DB[:que_jobs].count.should be 0
-    Que::Job.queue
+    suppress_warnings { Que::Job.queue }
     DB[:que_jobs].count.should be 1
   end
 
@@ -146,8 +146,10 @@ describe Que::Job, '.enqueue' do
     end
 
     DB[:que_jobs].count.should be 0
-    OldDefaultPriorityJob.enqueue 1
-    OldDefaultPriorityJob.enqueue 1, :priority => 4
+    suppress_warnings do
+      OldDefaultPriorityJob.enqueue 1
+      OldDefaultPriorityJob.enqueue 1, :priority => 4
+    end
     DB[:que_jobs].count.should be 2
 
     first, second = DB[:que_jobs].order(:job_id).all
@@ -196,8 +198,10 @@ describe Que::Job, '.enqueue' do
     end
 
     DB[:que_jobs].count.should be 0
-    OldDefaultRunAtJob.enqueue 1
-    OldDefaultRunAtJob.enqueue 1, :run_at => Time.now + 30
+    suppress_warnings do
+      OldDefaultRunAtJob.enqueue 1
+      OldDefaultRunAtJob.enqueue 1, :run_at => Time.now + 30
+    end
     DB[:que_jobs].count.should be 2
 
     first, second = DB[:que_jobs].order(:job_id).all

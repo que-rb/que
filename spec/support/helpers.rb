@@ -8,3 +8,10 @@ def sleep_until(timeout = QUE_TEST_TIMEOUT)
     sleep 0.01
   end
 end
+
+def suppress_warnings
+  original_verbosity, $VERBOSE = $VERBOSE, nil
+  yield
+ensure
+  $VERBOSE = original_verbosity
+end
