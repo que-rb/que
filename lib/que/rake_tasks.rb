@@ -1,11 +1,12 @@
 namespace :que do
-  desc "Process Que's jobs using a forking worker"
+  desc "Process Que's jobs using a forking worker pool"
   task :fork_and_work => :environment do
     require 'logger'
-    Que.logger = Logger.new(STDOUT)
-    Que.logger.level  = Logger.const_get((ENV['QUE_LOG_LEVEL'] || 'INFO').upcase)
-    worker_count  = (ENV['QUE_WORKER_COUNT'] || 1).to_i
-    queue         = ENV['QUE_QUEUE'] || ''
+
+    Que.logger       = Logger.new(STDOUT)
+    Que.logger.level = Logger.const_get((ENV['QUE_LOG_LEVEL'] || 'INFO').upcase)
+    worker_count     = (ENV['QUE_WORKER_COUNT'] || 1).to_i
+    queue            = ENV['QUE_QUEUE'] || ''
 
     # Preload MultiJson's code for finding the most efficient json loader
     # so we don't need to do this inside each worker process.
@@ -13,11 +14,12 @@ namespace :que do
       MultiJson.load('[]')
     end
 
+    parent_pid = Process.pid
     worker_pid = nil
     stop = false
 
     trap('INT') do
-      $stderr.puts "Asking worker process to stop..."
+      $stderr.puts "Asking worker process(es) to stop..." if Process.pid == parent_pid
       stop = true
       Process.kill('INT', worker_pid) if worker_pid
     end
@@ -40,7 +42,7 @@ namespace :que do
                 break if stop
                 sleep 0.1
               else
-                # job worked, fork new worker process
+                # Job worked, fork new worker process.
                 break
               end
             end
