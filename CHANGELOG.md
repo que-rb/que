@@ -6,6 +6,8 @@
 
 *   Log lines now include the process pid - its omission in the previous release was an oversight.
 
+*   A `que:fork_and_work` task has been added to fork workers when running jobs. For more info, see the doc on [managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md). (joevandyk)
+
 ### 0.6.0 (2014-02-04)
 
 *   **A schema upgrade to version 3 is required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
