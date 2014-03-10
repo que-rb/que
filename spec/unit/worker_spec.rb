@@ -162,4 +162,15 @@ describe Que::Worker do
       @worker.wait_until_stopped
     end
   end
+
+  it "should not continually try to re-run failing jobs" do
+    class J
+      def run
+        true
+      end
+    end
+    @worker = Que::Worker.new
+    Que::Job.enqueue job_class: 'J'
+    sleep_until { @worker.sleeping? }
+  end
 end
