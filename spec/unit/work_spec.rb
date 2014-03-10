@@ -349,5 +349,23 @@ describe Que::Job, '.work' do
       job[:last_error].should =~ /uninitialized constant:? NonexistentClass/
       job[:run_at].should be_within(3).of Time.now + 4
     end
+
+    it "should throw an error properly if the corresponding job class doesn't descend from Que::Job" do
+      class J
+        def run(*args)
+        end
+      end
+
+      Que.enqueue :job_class => "J"
+
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      result[:job][:job_class].should == 'J'
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      job[:run_at].should be_within(3).of Time.now + 4
+    end
   end
 end
