@@ -37,7 +37,6 @@ namespace :que do
 
             loop do
               break if stop
-              $stdout.puts "checking..."
               result = Que::Job.work(queue)
               if result && result[:event] == :job_unavailable
                 # No jobs worked, check again in a bit.
