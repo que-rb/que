@@ -37,7 +37,7 @@ module Que
 
           begin
             count    = job[:error_count] + 1
-            interval = (klass.retry_interval if klass) || Job.retry_interval
+            interval = (klass.retry_interval if klass && klass.respond_to?(:retry_interval)) || Job.retry_interval
             delay    = interval.respond_to?(:call) ? interval.call(count) : interval
             message  = "#{error.message}\n#{error.backtrace.join("\n")}"
             Que.execute :set_error, [count, delay, message] + job.values_at(:queue, :priority, :run_at, :job_id)
