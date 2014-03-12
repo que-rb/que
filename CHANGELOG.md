@@ -10,15 +10,21 @@
 
     *   When polling is necessary (to pick up jobs that are scheduled for the future or that need to be retried due to errors), jobs can be locked in batches, rather than one at a time.
 
+*   Other features introduced in this version include:
+
+    * `Que.connection_proc=` has been added, to allow for the easy integration of custom connection pools.
+
+    * `Que.job_states` returns a list of locked jobs and the hostname/pid of the Ruby processes that have locked them.
+
 *   In keeping with semantic versioning, the major version is being bumped since the new implementation requires some backwards-incompatible changes. These changes include:
 
-    *   JRuby support has been dropped. It will be readded when the jruby-pg gem [fully supports PG::Connection#wait_for_notify](https://github.com/headius/jruby-pg/issues/13).
+    *   JRuby support has been dropped. It will be reintroduced when the jruby-pg gem [fully supports PG::Connection#wait_for_notify](https://github.com/headius/jruby-pg/issues/13).
 
     *   `Que.wake_interval`, `Que.wake_interval=`, `Que.wake!`, `Que.wake_all!`, `Que.worker_count` and `Que.worker_count=` are not usable under the new implementation, and so have been removed.
 
     *   It is no longer possible to run Que through a single PG connection. A connection pool with a size of at least 2 is required.
 
-    *   It is no longer possible to inspect the Postgres connection that is working each job. So, `Que.worker_states` has been removed. Its functionality has been partially replaced with `Que.job_states`, which returns list of locked jobs and the hostname/pid of the Ruby processes that have locked them.
+    *   `Que.worker_states` has been removed, as it is no longer possible to inspect the Postgres connection that is working each job. Its functionality has been partially replaced with `Que.job_states`.
 
     *   Features deprecated in 0.7.0 have been removed.
 
