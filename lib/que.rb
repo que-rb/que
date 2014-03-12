@@ -68,13 +68,23 @@ module Que
       Migrations.migrate!(version)
     end
 
-    # If block given, run the block when the worker forks (if using a forking worker).
-    def after_fork(&block)
-      @blocks ||= []
+    # If block given, run the block before the worker forks (if using a forking worker).
+    def before_fork(&block)
+      @before_fork ||= []
       if block_given?
-        @blocks << block
+        @before_fork << block
       else
-        @blocks.each { |b| b.call }
+        @before_fork.each { |b| b.call }
+      end
+    end
+
+    # If block given, run the block after the worker forks (if using a forking worker).
+    def after_fork(&block)
+      @after_fork ||= []
+      if block_given?
+        @after_fork << block
+      else
+        @after_fork.each { |b| b.call }
       end
     end
 

@@ -30,6 +30,7 @@ namespace :que do
       pid = fork do
         loop do
           break if stop
+          Que.before_fork
           worker_pid = fork do
             Que.after_fork
             stop = false
