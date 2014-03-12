@@ -35,8 +35,7 @@ end
 # pool is the default. Since the specs were originally designed for a stack-
 # based pool (the connection_pool gem), use :stack mode to avoid issues.
 
-QUE_SPEC_POND = Pond.new :collection => :stack, &NEW_PG_CONNECTION
-Que.connection_proc = QUE_SPEC_POND.method(:checkout)
+Que.connection = QUE_SPEC_POND = Pond.new(:collection => :stack, &NEW_PG_CONNECTION)
 QUE_POOLS = {:pond => Que.pool}
 
 

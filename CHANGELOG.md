@@ -14,8 +14,6 @@
 
     *   JRuby support has been dropped. It will be readded when the jruby-pg gem [fully supports PG::Connection#wait_for_notify](https://github.com/headius/jruby-pg/issues/13).
 
-    *   `Que.connection=` has been removed. If you're using a custom connection (and not letting the Railtie set things up for you) use `Que.connection_proc=` instead to hook Que into your connection pool directly. See the documentation for details.
-
     *   `Que.wake_interval`, `Que.wake_interval=`, `Que.wake!`, `Que.wake_all!`, `Que.worker_count` and `Que.worker_count=` are not usable under the new implementation, and so have been removed.
 
     *   It is no longer possible to run Que through a single PG connection. A connection pool with a size of at least 2 is required.

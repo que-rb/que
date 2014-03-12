@@ -5,7 +5,7 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
   require 'active_record'
 
   ActiveRecord::Base.establish_connection(QUE_URL)
-  Que.connection_proc = proc { |&block| ActiveRecord::Base.connection_pool.with_connection { |conn| block.call(conn.raw_connection) } }
+  Que.connection = ActiveRecord
   QUE_POOLS[:active_record] = Que.pool
 
   describe "Que using the ActiveRecord pool" do

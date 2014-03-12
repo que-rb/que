@@ -1,7 +1,6 @@
 require 'spec_helper'
 
-SEQUEL_ADAPTER_DB = Sequel.connect(QUE_URL)
-Que.connection_proc = SEQUEL_ADAPTER_DB.method(:synchronize)
+Que.connection = SEQUEL_ADAPTER_DB = Sequel.connect(QUE_URL)
 QUE_POOLS[:sequel] = Que.pool
 
 describe "Que using Sequel" do

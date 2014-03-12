@@ -27,8 +27,6 @@ module Que
     attr_reader :mode, :locker
 
     def connection=(connection)
-      warn "Que.connection= has been deprecated and will be removed in version 1.1.0. Please use Que.connection_proc= instead."
-
       self.connection_proc = if connection.to_s == 'ActiveRecord'
         proc { |&block| ActiveRecord::Base.connection_pool.with_connection { |conn| block.call(conn.raw_connection) } }
       else
