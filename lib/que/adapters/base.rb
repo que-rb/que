@@ -5,6 +5,7 @@ module Que
     autoload :ActiveRecord,   'que/adapters/active_record'
     autoload :ConnectionPool, 'que/adapters/connection_pool'
     autoload :PG,             'que/adapters/pg'
+    autoload :Pond,           'que/adapters/pond'
     autoload :Sequel,         'que/adapters/sequel'
 
     class Base

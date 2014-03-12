@@ -29,6 +29,7 @@ module Que
           when 'Sequel::Postgres::Database' then Adapters::Sequel.new(connection)
           when 'ConnectionPool'             then Adapters::ConnectionPool.new(connection)
           when 'PG::Connection'             then Adapters::PG.new(connection)
+          when 'Pond'                       then Adapters::Pond.new(connection)
           when 'NilClass'                   then connection
           else raise "Que connection not recognized: #{connection.inspect}"
         end
