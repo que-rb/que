@@ -8,6 +8,8 @@
 
 *   A `que:fork_and_work` task has been added to fork workers when running jobs. For more info, see the doc on [managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md). (joevandyk)
 
+*   The [Pond gem](https://github.com/chanks/pond) is now supported as a connection. It is very similar to the ConnectionPool gem, but creates connections lazily and is dynamically resizable.
+
 ### 0.6.0 (2014-02-04)
 
 *   **A schema upgrade to version 3 is required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
