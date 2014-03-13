@@ -90,9 +90,9 @@ namespace :que do
     end
   end
 
-  desc "Create Que's job table"
-  task :create => :environment do
-    Que.create!
+  desc "Migrate Que's job table to the most recent version (creating it if it doesn't exist)"
+  task :migrate => :environment do
+    Que.migrate!
   end
 
   desc "Drop Que's job table"
