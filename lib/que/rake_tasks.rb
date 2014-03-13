@@ -19,10 +19,12 @@ namespace :que do
     worker_pid = nil
     stop = false
 
-    trap('INT') do
-      $stderr.puts "Asking worker process(es) to stop..." if Process.pid == parent_pid
-      stop = true
-      Process.kill('INT', worker_pid) if worker_pid
+    %w( INT TERM ).each do |signal|
+      trap(signal) do
+        $stderr.puts "Asking worker process(es) to stop..." if Process.pid == parent_pid
+        stop = true
+        Process.kill(signal, worker_pid) if worker_pid
+      end
     end
 
     pids = []
