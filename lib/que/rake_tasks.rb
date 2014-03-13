@@ -27,12 +27,12 @@ namespace :que do
       end
     end
 
+    Que.before_fork
     pids = []
     worker_count.times do
       pid = fork do
         loop do
           break if stop
-          Que.before_fork
           worker_pid = fork do
             Que.after_fork
             stop = false
