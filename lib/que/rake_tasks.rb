@@ -34,7 +34,9 @@ namespace :que do
           worker_pid = fork do
             Que.after_fork
             stop = false
-            trap('INT') {stop = true}
+            %w( INT TERM ).each do |signal|
+              trap(signal) {stop = true}
+            end
 
             loop do
               break if stop
@@ -70,7 +72,9 @@ namespace :que do
     # the rake task in tasks/safe_shutdown.rb.
 
     stop = false
-    trap('INT'){stop = true}
+    %w( INT TERM ).each do |signal|
+      trap(signal) {stop = true}
+    end
 
     at_exit do
       $stdout.puts "Finishing Que's current jobs before exiting..."
