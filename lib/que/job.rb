@@ -101,7 +101,7 @@ module Que
             else
               {:event => :job_unavailable}
             end
-          rescue => error
+          rescue Exception => error
             begin
               if job
                 count    = job[:error_count].to_i + 1
