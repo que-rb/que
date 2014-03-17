@@ -367,5 +367,24 @@ describe Que::Job, '.work' do
       job[:error_count].should be 1
       job[:run_at].should be_within(3).of Time.now + 4
     end
+
+    it "should throw an error properly if the corresponding job class loads code that has syntax error" do
+      class SyntaxErrorJob < Que::Job
+        def run(*args)
+          require_relative 'syntax_error'
+        end
+      end
+
+      Que.enqueue :job_class => "SyntaxErrorJob"
+
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      result[:job][:job_class].should == 'SyntaxErrorJob'
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      job[:run_at].should be_within(3).of Time.now + 4
+    end
   end
 end
