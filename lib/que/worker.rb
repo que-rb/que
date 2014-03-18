@@ -15,6 +15,7 @@ module Que
       @queue  = queue
       @state  = :working
       @thread = Thread.new { work_loop }
+      @thread.abort_on_exception = true
     end
 
     def alive?
