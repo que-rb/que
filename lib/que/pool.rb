@@ -23,11 +23,17 @@ module Que
         end
       end
 
-      process_result \
-        case command
-          when Symbol then execute_prepared(command, params)
-          when String then execute_sql(command, params)
+      result = if Symbol === command
+        if Que.use_prepared_statements
+          execute_prepared(command, params)
+        else
+          execute_sql(SQL[command], params)
         end
+      else
+        execute_sql(command, params)
+      end
+
+      process_result(result)
     end
 
     def in_transaction?
