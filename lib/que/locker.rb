@@ -11,6 +11,11 @@ module Que
       @minimum_queue_size = options[:minimum_queue_size] || 2
       @wait_period        = options[:wait_period] || 0.01
 
+      if c = options[:connection]
+        p = proc { |&block| block.call(c) }
+        @pool = Pool.new(p)
+      end
+
       @locks = Set.new
 
       # We use one JobQueue to send primary keys of reserved jobs to workers,
@@ -39,7 +44,7 @@ module Que
     private
 
     def work_loop
-      Que.checkout do |conn|
+      pool.checkout do |conn|
         backend_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
 
         Que.log :event              => :locker_start,
@@ -53,12 +58,12 @@ module Que
                 :worker_priorities  => @workers.map(&:priority)
 
         begin
-          Que.execute "LISTEN que_locker_#{backend_pid}" if @listen
+          pool.execute "LISTEN que_locker_#{backend_pid}" if @listen
 
           # A previous locker that didn't exit cleanly may have left behind
           # a bad locker record, so clean up before registering.
-          Que.execute :clean_lockers
-          Que.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listen.to_s]
+          pool.execute :clean_lockers
+          pool.execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listen.to_s]
 
           poll
 
@@ -79,11 +84,11 @@ module Que
 
           unlock_finished_jobs
         ensure
-          Que.execute "DELETE FROM que_lockers WHERE pid = $1", [backend_pid]
+          pool.execute "DELETE FROM que_lockers WHERE pid = $1", [backend_pid]
 
           if @listen
             # Unlisten and drain notifications before returning connection to pool.
-            Que.execute "UNLISTEN *"
+            pool.execute "UNLISTEN *"
             {} while conn.notifies
           end
         end
@@ -92,9 +97,13 @@ module Que
 
     private
 
+    def pool
+      @pool || Que.pool
+    end
+
     def poll
       count = @job_queue.space
-      jobs  = Que.execute :poll_jobs, [@queue_name, "{#{@locks.to_a.join(',')}}", count]
+      jobs  = pool.execute :poll_jobs, [@queue_name, "{#{@locks.to_a.join(',')}}", count]
 
       @locks.merge jobs.map { |job| job[:job_id] }
       push_jobs jobs.map { |job| job.values_at(:queue, :priority, :run_at, :job_id) }
@@ -124,7 +133,7 @@ module Que
     end
 
     def lock_job?(id)
-      if !@locks.include?(id) && Que.execute("SELECT pg_try_advisory_lock($1)", [id]).first[:pg_try_advisory_lock]
+      if !@locks.include?(id) && pool.execute("SELECT pg_try_advisory_lock($1)", [id]).first[:pg_try_advisory_lock]
         @locks.add(id)
         true
       end
@@ -150,7 +159,7 @@ module Que
     end
 
     def wait_for_job(timeout = nil)
-      Que.checkout do |conn|
+      pool.checkout do |conn|
         conn.wait_for_notify(timeout) do |_, _, payload|
           json = JSON_MODULE.load(payload)
           Que.log :event => :job_notified, :job => json

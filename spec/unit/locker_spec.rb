@@ -41,6 +41,17 @@ describe Que::Locker do
     event['worker_priorities'].should == [1, 2, 3, 4, nil, nil, nil, nil]
   end
 
+  it "should allow a dedicated PG connection to be specified" do
+    pg = NEW_PG_CONNECTION.call
+    pid = pg.async_exec("select pg_backend_pid()").to_a.first['pg_backend_pid'].to_i
+
+    locker = Que::Locker.new :connection => pg
+
+    sleep_until { DB[:que_lockers].select_map(:pid) == [pid] }
+
+    locker.stop
+  end
+
   it "should have a high-priority work thread" do
     locker = Que::Locker.new
     locker.thread.priority.should == 1
