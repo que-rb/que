@@ -9,6 +9,7 @@ module Que
       @result_queue = options[:result_queue]
 
       @thread = Thread.new { work_loop }
+      @thread.abort_on_exception = true
     end
 
     def wait_until_stopped

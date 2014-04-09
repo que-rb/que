@@ -28,15 +28,13 @@
 
     *   Features deprecated in 0.7.0 have been removed.
 
-### 0.7.0 (Unreleased)
+### 0.7.0 (2014-04-09)
 
 *   `JobClass.queue(*args)` has been deprecated and will be removed in version 1.0.0. Please use `JobClass.enqueue(*args)` instead.
 
 *   The `@default_priority` and `@default_run_at` variables have been deprecated and will be removed in version 1.0.0. Please use `@priority` and `@run_at` instead, respectively.
 
 *   Log lines now include the process pid - its omission in the previous release was an oversight.
-
-*   A `que:fork_and_work` task has been added to fork workers when running jobs. For more info, see the doc on [managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md). (joevandyk)
 
 *   The [Pond gem](https://github.com/chanks/pond) is now supported as a connection. It is very similar to the ConnectionPool gem, but creates connections lazily and is dynamically resizable.
 

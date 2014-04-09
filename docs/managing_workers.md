@@ -25,19 +25,9 @@ If you don't want to burden your web processes with too much work and want to ru
     # Or configure the number of workers:
     QUE_WORKER_COUNT=8 rake que:work
 
-If you require more of a clean slate between jobs (for example, if a job requires a large amount of memory to process data and you'd like it to be freed afterward), you can use the fork_and_work task to run each job in its own forked process. Unlike the threaded system, this task defaults to a single forked worker:
+Other options available via environment variables are `QUE_QUEUE` to determine which named queue jobs are pulled from, and `QUE_WAKE_INTERVAL` to determine how long workers will wait to poll again when there are no jobs available. For example, to run 2 workers that run jobs from the "other_queue" queue and wait a half-second between polls, you could do:
 
-    # Run a single worker that forks between jobs:
-    rake que:fork_and_work
-
-    # Run a pool of four workers that fork between jobs:
-    QUE_WORKER_COUNT=4 rake que:fork_and_work
-
-Note that forking workers have more overhead (a new Postgres connection must be established for each job), so it's best to stick to threaded workers unless you have a special need for forking. Even then, it may be a good idea to put jobs that require forking on their own named queue.
-
-Both of these rake tasks respect the `QUE_QUEUE` environment variable to determine what queue they take jobs from, and `QUE_WAKE_INTERVAL` to determine how long workers will wait to poll again when there are no jobs available. For example, to run 2 forking workers that run jobs from the "fork_queue" queue and wait a half-second between polls, you could do:
-
-    QUE_QUEUE=fork_queue QUE_WORKER_COUNT=2 QUE_WAKE_INTERVAL=0.5 rake que:fork_and_work
+    QUE_QUEUE=other_queue QUE_WORKER_COUNT=2 QUE_WAKE_INTERVAL=0.5 rake que:work
 
 ### Thread-Unsafe Application Code
 
@@ -51,8 +41,6 @@ If your application code is not thread-safe, you won't want any workers to be pr
 This will prevent Que from trying to process jobs in the background of your web processes. In order to actually work jobs, you'll want to run a single worker at a time, and to do so via a separate rake task, like so:
 
     QUE_WORKER_COUNT=1 rake que:work
-
-Alternatively, you can use the work_and_fork task as explained above.
 
 ### The Wake Interval
 
