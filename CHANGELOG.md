@@ -2,19 +2,21 @@
 
 *   **A schema upgrade to version 4 will be required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
 
-*   Que's implementation has been changed from one in which worker threads hold their own PG connections and lock their own jobs to one in which a single thread and PG connection locks jobs through LISTEN/NOTIFY and batch polling, and passes jobs along to worker threads. This has many benefits, including:
+*   Que's implementation has been changed from one in which worker threads hold their own PG connections and lock their own jobs to one in which a single thread (and PG connection) locks jobs through LISTEN/NOTIFY and batch polling, and passes jobs along to worker threads. This has many benefits, including:
 
-    *   Individual workers no longer need to monopolize their own (possibly idle) connections while working jobs, so each Ruby process may require many fewer Postgres connections. It should also allow for better use of PgBouncer.
+    *   Individual workers no longer need to monopolize their own (possibly idle) connections while working jobs, so Ruby processes may require many fewer Postgres connections.
 
-    *   Jobs queued for immediate processing can be distributed to workers with LISTEN/NOTIFY, which is more efficient than repeatedly polling for new jobs.
+    *   PgBouncer can be used for workers' connections (though not for the connection used to lock and listen for jobs).
+
+    *   Jobs queued for immediate processing can be actively distributed to workers with LISTEN/NOTIFY, which is more efficient than repeatedly polling for new jobs.
 
     *   When polling is necessary (to pick up jobs that are scheduled for the future or that need to be retried due to errors), jobs can be locked in batches, rather than one at a time.
 
 *   Other features introduced in this version include:
 
-    * `Que.connection_proc=` has been added, to allow for the easy integration of custom connection pools.
+    *   `Que.connection_proc=` has been added, to allow for the easy integration of custom connection pools.
 
-    * `Que.job_states` returns a list of locked jobs and the hostname/pid of the Ruby processes that have locked them.
+    *   `Que.job_states` returns a list of locked jobs and the hostname/pid of the Ruby processes that have locked them.
 
 *   In keeping with semantic versioning, the major version is being bumped since the new implementation requires some backwards-incompatible changes. These changes include:
 
