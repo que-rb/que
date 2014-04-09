@@ -1,22 +1,14 @@
 ## Advanced Setup
 
-If you're using both Rails and ActiveRecord, the README describes how to get started (which is pretty straightforward, since Que includes a Railtie that handles a lot of setup for you). Otherwise, you'll need to do some manual setup.
-
-### Setting the Connection Proc
-
-The biggest part of Que's setup involves hooking it into whatever connection pool you're already using so that your jobs can be transactionally protected.
-
-You'll need to set Que.connection_proc to a callable object that yields a PG::Connection object. This is not as hard as it might sound - see the following examples:
+If you're using both Rails and ActiveRecord, the README describes how to get started (which is pretty straightforward, since Que includes a Railtie that handles a lot of setup for you). Otherwise, you'll need to do some manual setup, the most important part of which is to hook Que into whatever connection pool you're already using so that your jobs can be transactionally protected.
 
 ##### ActiveRecord (Outside of Rails)
 
-ActiveRecord hides the PG::Connection object behind an extra layer of abstraction, so things are a little messy, but still pretty straightforward:
+You'll need to tell Que to piggyback on ActiveRecord's connection pool, like so:
 
-    Que.connection_proc = proc do |&block|
-      ActiveRecord::Base.connection_pool.with_connection { |conn| block.call(conn.raw_connection) }
-    end
+    Que.connection = ActiveRecord
 
-This is exactly what the Railtie that ships with Que does behind the scenes. With this setup you can safely use transaction blocks just as you would if you were using Rails:
+With this setup you can safely use transaction blocks just as you typically would:
 
     ActiveRecord::Base.transaction do
       @user = User.create(params[:user])
@@ -25,10 +17,10 @@ This is exactly what the Railtie that ships with Que does behind the scenes. Wit
 
 ##### Sequel
 
-If you're using Sequel, setup is even simpler. Que can use the `synchronize` method of the database you've already set up:
+If you're using Sequel, simply give Que the database object you're using:
 
     DB = Sequel.connect(ENV['DATABASE_URL'])
-    Que.connection_proc = DB.method(:synchronize)
+    Que.connection = DB
 
 Then you can safely use the same database object to transactionally protect your jobs, similar to how you would with ActiveRecord:
 
@@ -69,7 +61,7 @@ If you don't feel the need to use a full database library, you can use the [Conn
                           :dbname   => uri.path[1..-1]
     end
 
-    Que.connection_proc = pool.method(:with)
+    Que.connection = pool
 
 Be sure to pick your pool size carefully - if you use 10 for the size, you'll incur the overhead of having 10 connections open to Postgres even if you never use more than a couple of them.
 
@@ -93,19 +85,32 @@ Also, please be aware that if you're using ActiveRecord or Sequel or another dat
                           :dbname   => uri.path[1..-1]
     end
 
-    Que.connection_proc = pond.method(:checkout)
+    Que.connection = pond
 
 ##### Other Connection Pools
 
-If you're using an ORM or other database library not covered here, Que can probably work with it without too much issue. You can set connection_proc to a Proc containing any logic you like, so long as its call method is thread-safe, yields a PG::Connection object, and is [reentrant](https://en.wikipedia.org/wiki/Reentrancy_(computing)). Reentrancy means that, for the proc you give Que, the following must print true:
+If you're using an ORM or other database library not covered here, Que can probably work with it without too much issue, you'll just need to give Que a proc (or other callable object) it can use to get a connection. The proc can contain any logic you like, so long as it is thread-safe, yields a PG::Connection object, and is [reentrant](https://en.wikipedia.org/wiki/Reentrancy_(computing)). Reentrancy means that, for the proc you give Que, the following must print true:
 
-    connection_proc = Proc.new do |&block|
+    connection_proc = proc do |&block|
       # Your logic here, which safely locks a PG::Connection and passes it to block.call()
     end
 
     connection_proc.call do |o1|
       connection_proc.call do |o2|
         puts o1 == o2 # Should be true.
+      end
+    end
+
+As an example of how this works, consider the proc that Que uses internally to support ActiveRecord:
+
+    Que.connection_proc = proc do |&block|
+      ActiveRecord::Base.connection_pool.with_connection do |conn|
+        # We let ActiveRecord's own connection pool handle the locking, but
+        # #with_connection locks a connection adapter, so we still need to
+        # call #raw_connection to get the actual PG::Connection object. Then
+        # we just pass it to the block.
+
+        block.call(conn.raw_connection)
       end
     end
 
