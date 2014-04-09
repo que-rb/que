@@ -1,4 +1,4 @@
-### 0.7.0 (Unreleased)
+### 0.7.0 (2014-04-09)
 
 *   `JobClass.queue(*args)` has been deprecated and will be removed in version 1.0.0. Please use `JobClass.enqueue(*args)` instead.
 
