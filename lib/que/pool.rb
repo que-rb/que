@@ -4,8 +4,8 @@ require 'time' # For Time.parse
 
 module Que
   class Pool
-    def initialize(connection_proc)
-      @connection_proc = connection_proc
+    def initialize(&block)
+      @connection_proc = block
       @prepared_statements = {}
     end
 

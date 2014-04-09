@@ -12,8 +12,7 @@ module Que
       @wait_period        = options[:wait_period] || 0.01
 
       if c = options[:connection]
-        p = proc { |&block| block.call(c) }
-        @pool = Pool.new(p)
+        @pool = Pool.new { |&block| block.call(c) }
       end
 
       @locks = Set.new

@@ -45,7 +45,7 @@ module Que
     end
 
     def connection_proc=(connection_proc)
-      @pool = connection_proc && Pool.new(connection_proc)
+      @pool = connection_proc && Pool.new(&connection_proc)
     end
 
     def pool
