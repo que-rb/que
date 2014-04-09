@@ -69,26 +69,6 @@ module Que
       Migrations.migrate!(version)
     end
 
-    # If block given, run the block before the worker forks (if using a forking worker).
-    def before_fork(&block)
-      @before_fork ||= []
-      if block_given?
-        @before_fork << block
-      else
-        @before_fork.each { |b| b.call }
-      end
-    end
-
-    # If block given, run the block after the worker forks (if using a forking worker).
-    def after_fork(&block)
-      @after_fork ||= []
-      if block_given?
-        @after_fork << block
-      else
-        @after_fork.each { |b| b.call }
-      end
-    end
-
     # Have to support create! and drop! in old migrations. They just created
     # and dropped the bare table.
     def create!
