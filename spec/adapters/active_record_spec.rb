@@ -31,6 +31,26 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       end
     end
 
+    context "if the connection goes down and is reconnected" do
+      class NonsenseJob < Que::Job ; def run ; 2 + 2 end ; end
+      before do
+        NonsenseJob.enqueue
+        ActiveRecord::Base.connection.reconnect!
+      end
+
+      it "should recreate the prepared statements" do
+        expect { NonsenseJob.enqueue }.not_to raise_error
+      end
+
+      it "should log this extraordinary event" do
+        NonsenseJob.enqueue
+        $logger.messages.count.should == 1
+        message = JSON.load($logger.messages.first)
+        message['lib'].should == 'que'
+        message['event'].should match %r{Re-preparing}
+      end
+    end
+
     it "should instantiate args as ActiveSupport::HashWithIndifferentAccess" do
       ArgsJob.enqueue :param => 2
       Que::Job.work
