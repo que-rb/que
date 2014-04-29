@@ -41,6 +41,14 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       it "should recreate the prepared statements" do
         expect { NonsenseJob.enqueue }.not_to raise_error
       end
+
+      it "should log this extraordinary event" do
+        NonsenseJob.enqueue
+        $logger.messages.count.should == 1
+        message = JSON.load($logger.messages.first)
+        message['lib'].should == 'que'
+        message['event'].should match %r{Re-preparing}
+      end
     end
 
     it "should instantiate args as ActiveSupport::HashWithIndifferentAccess" do

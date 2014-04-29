@@ -69,6 +69,7 @@ module Que
             conn.exec_prepared("que_#{name}", params)
           rescue ::PG::InvalidSqlStatementName => e
             unless prepared_just_now
+              Que.log :level => 'warn', :event => "Re-preparing statement que_#{name} which has disappeared"
               statements[name] = false
               retry
             end
