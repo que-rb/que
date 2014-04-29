@@ -60,12 +60,20 @@ module Que
         checkout do |conn|
           statements = @prepared_statements[conn] ||= {}
 
-          unless statements[name]
-            conn.prepare("que_#{name}", SQL[name])
-            statements[name] = true
-          end
+          begin
+            unless statements[name]
+              conn.prepare("que_#{name}", SQL[name])
+              prepared_just_now = statements[name] = true
+            end
 
-          conn.exec_prepared("que_#{name}", params)
+            conn.exec_prepared("que_#{name}", params)
+          rescue ::PG::InvalidSqlStatementName => e
+            unless prepared_just_now
+              statements[name] = false
+              retry
+            end
+            raise e
+          end
         end
       end
 
