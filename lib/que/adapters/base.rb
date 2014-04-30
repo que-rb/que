@@ -67,13 +67,17 @@ module Que
             end
 
             conn.exec_prepared("que_#{name}", params)
-          rescue ::PG::InvalidSqlStatementName => e
+          rescue ::PG::InvalidSqlStatementName => error
+            # Reconnections on ActiveRecord can cause the same connection
+            # objects to refer to new backends, so recover as well as we can.
+
             unless prepared_just_now
-              Que.log :level => 'warn', :event => "Re-preparing statement que_#{name} which has disappeared"
+              Que.log :level => 'warn', :event => "reprepare_statement", :name => name
               statements[name] = false
               retry
             end
-            raise e
+
+            raise error
           end
         end
       end

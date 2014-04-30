@@ -32,22 +32,22 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
     end
 
     context "if the connection goes down and is reconnected" do
-      class NonsenseJob < Que::Job ; def run ; 2 + 2 end ; end
       before do
-        NonsenseJob.enqueue
+        Que::Job.enqueue
         ActiveRecord::Base.connection.reconnect!
       end
 
       it "should recreate the prepared statements" do
-        expect { NonsenseJob.enqueue }.not_to raise_error
+        expect { Que::Job.enqueue }.not_to raise_error
       end
 
       it "should log this extraordinary event" do
-        NonsenseJob.enqueue
+        Que::Job.enqueue
         $logger.messages.count.should == 1
         message = JSON.load($logger.messages.first)
         message['lib'].should == 'que'
-        message['event'].should match %r{Re-preparing}
+        message['event'].should == 'reprepare_statement'
+        message['name'].should == 'insert_job'
       end
     end
 
