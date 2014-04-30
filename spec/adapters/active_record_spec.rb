@@ -41,6 +41,14 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
         expect { Que::Job.enqueue }.not_to raise_error
       end
 
+      it "should work properly even in a transaction" do
+        ActiveRecord::Base.transaction do
+          expect { Que::Job.enqueue }.not_to raise_error
+        end
+
+        DB[:que_jobs].count.should == 2
+      end
+
       it "should log this extraordinary event" do
         Que::Job.enqueue
         $logger.messages.count.should == 1

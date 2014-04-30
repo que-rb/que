@@ -2,6 +2,8 @@
 
 *   Fix errors with prepared statements when ActiveRecord reconnects to the database. (dvrensk)
 
+*   Don't use prepared statements when inside a transaction. This negates the risk of a prepared statement error harming the entire transaction. The query that benefits the most from preparation is the job-lock CTE, which is never run in a transaction, so the performance impact should be negligible.
+
 ### 0.7.0 (2014-04-09)
 
 *   `JobClass.queue(*args)` has been deprecated and will be removed in version 1.0.0. Please use `JobClass.enqueue(*args)` instead.

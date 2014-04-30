@@ -58,6 +58,10 @@ module Que
 
       def execute_prepared(name, params)
         checkout do |conn|
+          # Prepared statement errors have the potential to foul up the entire
+          # transaction, so if we're in one, err on the side of safety.
+          return execute_sql(SQL[name], params) if in_transaction?
+
           statements = @prepared_statements[conn] ||= {}
 
           begin
