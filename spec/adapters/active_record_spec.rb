@@ -39,6 +39,8 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
 
       it "should recreate the prepared statements" do
         expect { Que::Job.enqueue }.not_to raise_error
+
+        DB[:que_jobs].count.should == 2
       end
 
       it "should work properly even in a transaction" do
