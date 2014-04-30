@@ -1,4 +1,4 @@
-### Unreleased
+### 0.7.1 (2014-04-29)
 
 *   Fix errors with prepared statements when ActiveRecord reconnects to the database. (dvrensk)
 
