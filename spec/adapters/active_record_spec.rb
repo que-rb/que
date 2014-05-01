@@ -33,6 +33,37 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       end
     end
 
+    context "if the connection goes down and is reconnected" do
+      before do
+        Que::Job.enqueue
+        ActiveRecord::Base.connection.reconnect!
+      end
+
+      it "should recreate the prepared statements" do
+        expect { Que::Job.enqueue }.not_to raise_error
+
+        DB[:que_jobs].count.should == 2
+      end
+
+      it "should work properly even in a transaction" do
+        ActiveRecord::Base.transaction do
+          expect { Que::Job.enqueue }.not_to raise_error
+        end
+
+        DB[:que_jobs].count.should == 2
+      end
+
+      it "should log this extraordinary event" do
+        $logger.messages.clear
+        Que::Job.enqueue
+        $logger.messages.count.should == 2
+        message = JSON.load($logger.messages[1])
+        message['lib'].should == 'que'
+        message['event'].should == 'reprepare_statement'
+        message['name'].should == 'insert_job'
+      end
+    end
+
     it "should instantiate args as ActiveSupport::HashWithIndifferentAccess" do
       ArgsJob.enqueue :param => 2
       locker = Que::Locker.new

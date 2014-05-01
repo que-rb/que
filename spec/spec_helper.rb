@@ -66,6 +66,11 @@ def $logger.method_missing(m, message)
   $logger_mutex.synchronize { messages << message }
 end
 
+# Object includes Kernel#warn which is not what we expect, so remove:
+def $logger.warn(message)
+  method_missing(:warn, message)
+end
+
 
 
 # Helper to display spec descriptions.

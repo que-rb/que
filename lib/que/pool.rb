@@ -49,16 +49,33 @@ module Que
     end
 
     def execute_prepared(name, params)
-      Que.log :level => :debug, :event => :execute_statement, :statement => name, :params => params
       checkout do |conn|
+        # Prepared statement errors have the potential to cancel the entire
+        # transaction, so if we're in one, err on the side of safety.
+        return execute_sql(SQL[name], params) if in_transaction?
+        Que.log :level => :debug, :event => :execute_statement, :statement => name, :params => params
+
         statements = @prepared_statements[conn] ||= {}
 
-        unless statements[name]
-          conn.prepare("que_#{name}", SQL[name])
-          statements[name] = true
-        end
+        begin
+          unless statements[name]
+            conn.prepare("que_#{name}", SQL[name])
+            prepared_just_now = statements[name] = true
+          end
 
-        conn.exec_prepared("que_#{name}", params)
+          conn.exec_prepared("que_#{name}", params)
+        rescue ::PG::InvalidSqlStatementName => error
+          # Reconnections on ActiveRecord can cause the same connection
+          # objects to refer to new backends, so recover as well as we can.
+
+          unless prepared_just_now
+            Que.log :level => :warn, :event => :reprepare_statement, :name => name
+            statements[name] = false
+            retry
+          end
+
+          raise error
+        end
       end
     end
 
