@@ -14,26 +14,7 @@ module Que
     end
 
     def execute(command, params = [])
-      params = params.map do |param|
-        case param
-          # The pg gem unfortunately doesn't convert fractions of time instances, so cast them to a string.
-          when Time then param.strftime("%Y-%m-%d %H:%M:%S.%6N %z")
-          when Array, Hash then JSON_MODULE.dump(param)
-          else param
-        end
-      end
-
-      result = if Symbol === command
-        if Que.use_prepared_statements
-          execute_prepared(command, params)
-        else
-          execute_sql(SQL[command], params)
-        end
-      else
-        execute_sql(command, params)
-      end
-
-      process_result(result)
+      checkout { convert_result(execute_command(command, convert_params(params))) }
     end
 
     def in_transaction?
@@ -42,19 +23,44 @@ module Que
 
     private
 
+    def convert_params(params)
+      params.map do |param|
+        case param
+          # The pg gem unfortunately doesn't convert fractions of time instances, so cast them to a string.
+          when Time then param.strftime('%Y-%m-%d %H:%M:%S.%6N %z')
+          when Array, Hash then JSON_MODULE.dump(param)
+          else param
+        end
+      end
+    end
+
+    def execute_command(command, params)
+      case command
+      when Symbol
+        # Prepared statement errors have the potential to cancel the entire
+        # transaction, so if we're in one, err on the side of safety.
+        if Que.use_prepared_statements && !in_transaction?
+          execute_prepared(command, params)
+        else
+          execute_sql(SQL[command], params)
+        end
+      when String
+        execute_sql(command, params)
+      else
+        raise "Command not recognized! #{command.inspect}"
+      end
+    end
+
     def execute_sql(sql, params)
       Que.log :level => :debug, :event => :execute_sql, :sql => sql, :params => params
-      args = params.empty? ? [sql] : [sql, params]
+      args = params.empty? ? [sql] : [sql, params] # Work around JRuby bug.
       checkout { |conn| conn.async_exec(*args) }
     end
 
     def execute_prepared(name, params)
-      checkout do |conn|
-        # Prepared statement errors have the potential to cancel the entire
-        # transaction, so if we're in one, err on the side of safety.
-        return execute_sql(SQL[name], params) if in_transaction?
-        Que.log :level => :debug, :event => :execute_statement, :statement => name, :params => params
+      Que.log :level => :debug, :event => :execute_statement, :statement => name, :params => params
 
+      checkout do |conn|
         statements = @prepared_statements[conn] ||= {}
 
         begin
@@ -88,7 +94,7 @@ module Que
     CAST_PROCS[23] = CAST_PROCS[20] = CAST_PROCS[21] = proc(&:to_i) # Integer, bigint, smallint.
     CAST_PROCS.freeze
 
-    def process_result(result)
+    def convert_result(result)
       output = result.to_a
 
       result.fields.each_with_index do |field, index|
@@ -101,21 +107,20 @@ module Que
         end
       end
 
-      indifferentiate(output)
+      convert_to_indifferent_hash(output)
     end
 
-    # Make hashes indifferently-accessible.
-    def indifferentiate(object)
+    def convert_to_indifferent_hash(object)
       case object
       when Hash
         if object.respond_to?(:with_indifferent_access)
           object.with_indifferent_access
         else
           object.default_proc = HASH_DEFAULT_PROC
-          object.each { |key, value| object[key] = indifferentiate(value) }
+          object.each { |key, value| object[key] = convert_to_indifferent_hash(value) }
         end
       when Array
-        object.map! { |element| indifferentiate(element) }
+        object.map! { |element| convert_to_indifferent_hash(element) }
       else
         object
       end
