@@ -44,7 +44,7 @@ module Que
 
     def work_loop
       pool.checkout do |conn|
-        backend_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
+        backend_pid = pool.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
 
         Que.log :event              => :locker_start,
                 :queue              => @queue_name,
@@ -152,7 +152,7 @@ module Que
     def unlock_jobs(pks)
       pks.each do |pk|
         id = pk[-1]
-        Que.execute "SELECT pg_advisory_unlock($1)", [id]
+        pool.execute "SELECT pg_advisory_unlock($1)", [id]
         @locks.delete(id)
       end
     end
