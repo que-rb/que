@@ -151,6 +151,13 @@ describe Que::JobQueue do
       @jq.clear.sort.should == @array
       @jq.to_a.should == []
     end
+
+    it "should return an empty array if there are no items to clear" do
+      @jq.clear.should == []
+      @jq.push *@array
+      @jq.clear.sort.should == @array
+      @jq.clear.should == []
+    end
   end
 
   it "should still be pushable and clearable if it has an infinite maximum_size" do
