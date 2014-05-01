@@ -62,10 +62,7 @@ module Que
     end
 
     def stop
-      sync do
-        @stop = true
-        @cv.broadcast
-      end
+      sync { @stop = true; @cv.broadcast }
     end
 
     def clear

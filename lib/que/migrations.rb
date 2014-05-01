@@ -14,10 +14,10 @@ module Que
           if current == target
             return
           elsif current < target
-            direction = 'up'
+            direction = :up
             steps = ((current + 1)..target).to_a
           elsif current > target
-            direction = 'down'
+            direction = :down
             steps = ((target + 1)..current).to_a.reverse
           end
 
