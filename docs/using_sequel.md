@@ -23,5 +23,5 @@ Then you can safely use the same database object to transactionally protect your
     # In your controller action:
     DB.transaction do
       @user = User.create(params[:user])
-      MyJob.queue :user_id => @user.id
+      MyJob.enqueue :user_id => @user.id
     end
