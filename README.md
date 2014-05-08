@@ -4,16 +4,16 @@
 
 Que is a queue for Ruby and PostgreSQL that manages jobs using [advisory locks](http://www.postgresql.org/docs/current/static/explicit-locking.html#ADVISORY-LOCKS), which gives it several advantages over other RDBMS-backed queues:
 
-* **Concurrency** - Workers don't block each other when trying to lock jobs, as often occurs with "SELECT FOR UPDATE"-style locking. This allows for very high throughput with a large number of workers.
-* **Efficiency** - Locks are held in memory, so locking a job doesn't incur a disk write. These first two points are what limit performance with other queues - all workers trying to lock jobs have to wait behind one that's persisting its UPDATE on a locked_at column to disk (and the disks of however many other servers your database is synchronously replicating to). Under heavy load, Que's bottleneck is CPU, not I/O.
-* **Safety** - If a Ruby process dies, the jobs it's working won't be lost, or left in a locked or ambiguous state - they immediately become available for any other worker to pick up.
+  * **Concurrency** - Workers don't block each other when trying to lock jobs, as often occurs with "SELECT FOR UPDATE"-style locking. This allows for very high throughput with a large number of workers.
+  * **Efficiency** - Locks are held in memory, so locking a job doesn't incur a disk write. These first two points are what limit performance with other queues - all workers trying to lock jobs have to wait behind one that's persisting its UPDATE on a locked_at column to disk (and the disks of however many other servers your database is synchronously replicating to). Under heavy load, Que's bottleneck is CPU, not I/O.
+  * **Safety** - If a Ruby process dies, the jobs it's working won't be lost, or left in a locked or ambiguous state - they immediately become available for any other worker to pick up.
 
 Additionally, there are the general benefits of storing jobs in Postgres, alongside the rest of your data, rather than in Redis or a dedicated queue:
 
-* **Transactional Control** - Queue a job along with other changes to your database, and it'll commit or rollback with everything else. If you're using ActiveRecord or Sequel, Que can piggyback on their connections, so setup is simple and jobs are protected by the transactions you're already using.
-* **Atomic Backups** - Your jobs and data can be backed up together and restored as a snapshot. If your jobs relate to your data (and they usually do), there's no risk of jobs falling through the cracks during a recovery.
-* **Fewer Dependencies** - If you're already using Postgres (and you probably should be), a separate queue is another moving part that can break.
-* **Security** - Postgres' support for SSL connections keeps your data safe in transport, for added protection when you're running workers on cloud platforms that you can't completely control.
+  * **Transactional Control** - Queue a job along with other changes to your database, and it'll commit or rollback with everything else. If you're using ActiveRecord or Sequel, Que can piggyback on their connections, so setup is simple and jobs are protected by the transactions you're already using.
+  * **Atomic Backups** - Your jobs and data can be backed up together and restored as a snapshot. If your jobs relate to your data (and they usually do), there's no risk of jobs falling through the cracks during a recovery.
+  * **Fewer Dependencies** - If you're already using Postgres (and you probably should be), a separate queue is another moving part that can break.
+  * **Security** - Postgres' support for SSL connections keeps your data safe in transport, for added protection when you're running workers on cloud platforms that you can't completely control.
 
 Que's primary goal is reliability. You should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que does everything it can to ensure that jobs you queue are performed exactly once (though the occasional repetition of a job can be impossible to avoid - see the docs on [how to write a reliable job](https://github.com/chanks/que/blob/master/docs/writing_reliable_jobs.md)).
 
@@ -24,6 +24,7 @@ Que also includes a worker pool, so that multiple threads can process jobs in th
 *Please keep an eye out for problems when running Que in production. It's still new compared to other RDBMS-backed queues, and there may be issues that haven't been ironed out yet. Bug reports are welcome.*
 
 Que is tested on Ruby 2.0, Rubinius and JRuby (with the `jruby-pg` gem, which is [not yet functional with ActiveRecord](https://github.com/chanks/que/issues/4#issuecomment-29561356)). It requires Postgres 9.2+ for the JSON datatype.
+
 
 ## Installation
 
@@ -39,70 +40,78 @@ Or install it yourself as:
 
     $ gem install que
 
+
 ## Usage
 
 The following assumes you're using Rails 4.0 and ActiveRecord. *Que hasn't been tested with versions of Rails before 4.0, and may or may not work with them.* See the [/docs directory](https://github.com/chanks/que/blob/master/docs) for instructions on using Que [outside of Rails](https://github.com/chanks/que/blob/master/docs/advanced_setup.md), and with [Sequel](https://github.com/chanks/que/blob/master/docs/using_sequel.md) or [no ORM](https://github.com/chanks/que/blob/master/docs/using_plain_connections.md), among other things.
 
 First, generate and run a migration for the job table.
 
-    rails generate que:install
-    rake db:migrate
+    $ bin/rails generate que:install
+    $ bin/rake db:migrate
 
 Create a class for each type of job you want to run:
 
-    # app/jobs/charge_credit_card.rb
-    class ChargeCreditCard < Que::Job
-      # Default settings for this job. These are optional - without them, jobs
-      # will default to priority 100 and run immediately.
-      @priority = 10
-      @run_at = proc { 1.minute.from_now }
 
-      def run(user_id, options)
-        # Do stuff.
-        user = User[user_id]
-        card = CreditCard[options[:credit_card_id]]
+``` ruby
+# app/jobs/charge_credit_card.rb
+class ChargeCreditCard < Que::Job
+  # Default settings for this job. These are optional - without them, jobs
+  # will default to priority 100 and run immediately.
+  @priority = 10
+  @run_at = proc { 1.minute.from_now }
 
-        ActiveRecord::Base.transaction do
-          # Write any changes you'd like to the database.
-          user.update_attributes :charged_at => Time.now
+  def run(user_id, options)
+    # Do stuff.
+    user = User[user_id]
+    card = CreditCard[options[:credit_card_id]]
 
-          # It's best to destroy the job in the same transaction as any other
-          # changes you make. Que will destroy the job for you after the run
-          # method if you don't do it yourself, but if your job writes to the
-          # DB but doesn't destroy the job in the same transaction, it's
-          # possible that the job could be repeated in the event of a crash.
-          destroy
-        end
-      end
+    ActiveRecord::Base.transaction do
+      # Write any changes you'd like to the database.
+      user.update_attributes :charged_at => Time.now
+
+      # It's best to destroy the job in the same transaction as any other
+      # changes you make. Que will destroy the job for you after the run
+      # method if you don't do it yourself, but if your job writes to the
+      # DB but doesn't destroy the job in the same transaction, it's
+      # possible that the job could be repeated in the event of a crash.
+      destroy
     end
+  end
+end
+```
 
 Queue your job. Again, it's best to do this in a transaction with other changes you're making. Also note that any arguments you pass will be serialized to JSON and back again, so stick to simple types (strings, integers, floats, hashes, and arrays).
 
-    ActiveRecord::Base.transaction do
-      # Persist credit card information
-      card = CreditCard.create(params[:credit_card])
-      ChargeCreditCard.enqueue(current_user.id, :credit_card_id => card.id)
-    end
+``` ruby
+ActiveRecord::Base.transaction do
+  # Persist credit card information
+  card = CreditCard.create(params[:credit_card])
+  ChargeCreditCard.enqueue(current_user.id, :credit_card_id => card.id)
+end
+```
 
 You can also add options to run the job after a specific time, or with a specific priority:
 
-    # The default priority is 100, and a lower number means a higher priority. 5 would be very important.
-    ChargeCreditCard.enqueue current_user.id, :credit_card_id => card.id, :run_at => 1.day.from_now, :priority => 5
+``` ruby
+# The default priority is 100, and a lower number means a higher priority. 5 would be very important.
+ChargeCreditCard.enqueue current_user.id, :credit_card_id => card.id, :run_at => 1.day.from_now, :priority => 5
+```
 
 To determine what happens when a job is queued, you can set Que's mode in your application configuration. There are a few options for the mode:
 
-* `config.que.mode = :off` - In this mode, queueing a job will simply insert it into the database - the current process will make no effort to run it. You should use this if you want to use a dedicated process to work tasks (there's a rake task to do this, see below). This is the default when running `rails console`.
-* `config.que.mode = :async` - In this mode, a pool of background workers is spun up, each running in their own thread. This is the default when running `rails server`. See the docs for [more information on managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md).
-* `config.que.mode = :sync` - In this mode, any jobs you queue will be run in the same thread, synchronously (that is, `MyJob.enqueue` runs the job and won't return until it's completed). This makes your application's behavior easier to test, so it's the default in the test environment.
+  * `config.que.mode = :off` - In this mode, queueing a job will simply insert it into the database - the current process will make no effort to run it. You should use this if you want to use a dedicated process to work tasks (there's a rake task to do this, see below). This is the default when running `bin/rails console`.
+  * `config.que.mode = :async` - In this mode, a pool of background workers is spun up, each running in their own thread. This is the default when running `bin/rails server`. See the docs for [more information on managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md).
+  * `config.que.mode = :sync` - In this mode, any jobs you queue will be run in the same thread, synchronously (that is, `MyJob.enqueue` runs the job and won't return until it's completed). This makes your application's behavior easier to test, so it's the default in the test environment.
 
 ## Contributing
 
-1. Fork it
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
+  1. Fork it
+  2. Create your feature branch (`git checkout -b my-new-feature`)
+  3. Commit your changes (`git commit -am 'Add some feature'`)
+  4. Push to the branch (`git push origin my-new-feature`)
 5. Create new Pull Request
-
+  
 A note on running specs - Que's worker system is multithreaded and therefore prone to race conditions (especially on Rubinius). As such, if you've touched that code, a single spec run passing isn't a guarantee that any changes you've made haven't introduced bugs. One thing I like to do before pushing changes is rerun the specs many times and watching for hangs. You can do this from the command line with something like:
 
     for i in {1..1000}; do rspec -b --seed $i; done
