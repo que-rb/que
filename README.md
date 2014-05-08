@@ -110,7 +110,7 @@ To determine what happens when a job is queued, you can set Que's mode in your a
   2. Create your feature branch (`git checkout -b my-new-feature`)
   3. Commit your changes (`git commit -am 'Add some feature'`)
   4. Push to the branch (`git push origin my-new-feature`)
-5. Create new Pull Request
+  5. Create new Pull Request
   
 A note on running specs - Que's worker system is multithreaded and therefore prone to race conditions (especially on Rubinius). As such, if you've touched that code, a single spec run passing isn't a guarantee that any changes you've made haven't introduced bugs. One thing I like to do before pushing changes is rerun the specs many times and watching for hangs. You can do this from the command line with something like:
 
