@@ -110,12 +110,6 @@ module Que
     # a worker, and make sure to wake up the wrangler when @wake_interval is
     # changed in Que.wake_interval= below.
     @wake_interval = 5
-    @wrangler = Thread.new do
-      loop do
-        sleep *@wake_interval
-        wake! if @wake_interval
-      end
-    end
 
     class << self
       attr_reader :mode, :wake_interval
@@ -136,6 +130,7 @@ module Que
       def worker_count=(count)
         set_mode(count > 0 ? :async : :off)
         set_worker_count(count)
+        wrangler # Make sure the wrangler thread has been instantiated.
       end
 
       def worker_count
@@ -144,7 +139,7 @@ module Que
 
       def wake_interval=(interval)
         @wake_interval = interval
-        @wrangler.wakeup
+        wrangler.wakeup
       end
 
       def wake!
@@ -156,6 +151,15 @@ module Que
       end
 
       private
+
+      def wrangler
+        @wrangler ||= Thread.new do
+          loop do
+            sleep *@wake_interval
+            wake! if @wake_interval
+          end
+        end
+      end
 
       def set_mode(mode)
         if mode != @mode
