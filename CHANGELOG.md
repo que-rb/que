@@ -1,3 +1,7 @@
+### 0.7.2 (2014-05-18)
+
+*   Fix issue wherein intermittent worker wakeups would not work after forking (#44).
+
 ### 0.7.1 (2014-04-29)
 
 *   Fix errors with prepared statements when ActiveRecord reconnects to the database. (dvrensk)
