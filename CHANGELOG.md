@@ -1,3 +1,7 @@
+### Unreleased
+
+*   When mode = :sync, don't touch the database at all when running jobs inline. Needed for ActiveJob compatibility (#46).
+
 ### 0.7.2 (2014-05-18)
 
 *   Fix issue wherein intermittent worker wakeups would not work after forking (#44).
