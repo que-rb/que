@@ -24,6 +24,14 @@ describe "Managing the Worker pool" do
       DB[:que_jobs].count.should be 0
     end
 
+    it "should work fine with enqueuing jobs without a DB connection" do
+      Que.connection = nil
+      Que.mode = :sync
+
+      ArgsJob.enqueue(5, :testing => "synchronous").should be_an_instance_of ArgsJob
+      $passed_args.should == [5, {:testing => "synchronous"}]
+    end
+
     it "should not affect jobs that are queued with specific run_ats" do
       Que.mode = :sync
 
