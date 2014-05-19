@@ -71,7 +71,8 @@ module Que
       end
 
       def run(*args)
-        new(:args => args).tap(&:_run)
+        # Should not fail if there's no DB connection.
+        new(:args => args).tap { |job| job.run(*args) }
       end
 
       def work(queue = '')
