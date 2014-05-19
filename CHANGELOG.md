@@ -1,4 +1,4 @@
-### Unreleased
+### 0.7.3 (2014-05-19)
 
 *   When mode = :sync, don't touch the database at all when running jobs inline. Needed for ActiveJob compatibility (#46).
 
