@@ -252,7 +252,7 @@ describe Que::Job, '.work' do
       job = DB[:que_jobs].first
       job[:error_count].should be 1
       job[:last_error].should =~ /\AErrorJob!\n/
-      job[:run_at].should be_within(3).of RetryIntervalJob.retry_interval.seconds.from_now
+      job[:run_at].to_f.should be_within(3).of Time.now.to_f + RetryIntervalJob.retry_interval
 
       DB[:que_jobs].update :error_count => 5,
                            :run_at => Time.now - 60
@@ -266,7 +266,7 @@ describe Que::Job, '.work' do
       job = DB[:que_jobs].first
       job[:error_count].should be 6
       job[:last_error].should =~ /\AErrorJob!\n/
-      job[:run_at].should be_within(3).of RetryIntervalJob.retry_interval.seconds.from_now
+      job[:run_at].to_f.should be_within(3).of Time.now.to_f + RetryIntervalJob.retry_interval
     end
 
     it "should respect a custom retry interval formula" do
