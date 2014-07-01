@@ -48,7 +48,7 @@ module Que
     :set_error => %{
       UPDATE que_jobs
       SET error_count = $1::integer,
-          run_at      = now() + $2::integer * '1 second'::interval,
+          run_at      = now() + $2::bigint * '1 second'::interval,
           last_error  = $3::text
       WHERE queue     = $4::text
       AND   priority  = $5::smallint

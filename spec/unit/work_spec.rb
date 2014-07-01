@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'active_support/core_ext/date' # For the .seconds.from_now below
 
 describe Que::Job, '.work' do
   it "should pass a job's arguments to the run method and delete it from the database" do
@@ -237,7 +238,7 @@ describe Que::Job, '.work' do
 
     it "should respect a custom retry interval" do
       class RetryIntervalJob < ErrorJob
-        @retry_interval = 5
+        @retry_interval = 3155760000000 # 100,000 years from now
       end
 
       RetryIntervalJob.enqueue
@@ -251,7 +252,7 @@ describe Que::Job, '.work' do
       job = DB[:que_jobs].first
       job[:error_count].should be 1
       job[:last_error].should =~ /\AErrorJob!\n/
-      job[:run_at].should be_within(3).of Time.now + 5
+      job[:run_at].should be_within(3).of RetryIntervalJob.retry_interval.seconds.from_now
 
       DB[:que_jobs].update :error_count => 5,
                            :run_at => Time.now - 60
@@ -265,7 +266,7 @@ describe Que::Job, '.work' do
       job = DB[:que_jobs].first
       job[:error_count].should be 6
       job[:last_error].should =~ /\AErrorJob!\n/
-      job[:run_at].should be_within(3).of Time.now + 5
+      job[:run_at].should be_within(3).of RetryIntervalJob.retry_interval.seconds.from_now
     end
 
     it "should respect a custom retry interval formula" do
