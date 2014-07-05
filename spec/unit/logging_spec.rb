@@ -16,6 +16,7 @@ describe "Logging" do
 
   it "should not raise an error when no logger is present" do
     begin
+      # Make sure we can get through a work cycle without a logger.
       Que.logger = nil
 
       Que::Job.enqueue

@@ -92,15 +92,21 @@ RSpec.configure do |config|
     # helpful in identifying hanging specs.
     stdout.info "Running spec: #{desc} @ #{line}" if ENV['LOG_SPEC']
 
-    $logger.messages.clear
     Que.adapter = QUE_ADAPTERS[:pg]
+
+    Que.worker_count = 0
+    Que.mode = :async
+    Que.wake_interval = nil
+
+    $logger.messages.clear
 
     spec.run
 
-    DB[:que_jobs].delete
+    Que.worker_count = 0
     Que.mode = :off
     Que.wake_interval = nil
-    sleep_until { Que::Worker.workers.all?(&:sleeping?) }
+
+    DB[:que_jobs].delete
 
     # A bit of lint: make sure that no advisory locks are left open.
     unless DB[:pg_locks].where(:locktype => 'advisory').empty?

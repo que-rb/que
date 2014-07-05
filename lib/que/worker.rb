@@ -71,30 +71,33 @@ module Que
 
     def work_loop
       loop do
-        time   = Time.now
-        cycle  = nil
-        result = Job.work(queue)
+        cycle = nil
 
-        case result[:event]
-        when :job_unavailable
-          cycle = false
-          result[:level] = :debug
-        when :job_race_condition
-          cycle = true
-          result[:level] = :debug
-        when :job_worked
-          cycle = true
-          result[:elapsed] = (Time.now - time).round(5)
-        when :job_errored
-          # For PG::Errors, assume we had a problem reaching the database, and
-          # don't hit it again right away.
-          cycle = !result[:error].is_a?(PG::Error)
-          result[:error] = {:class => result[:error].class.to_s, :message => result[:error].message}
-        else
-          raise "Unknown Event: #{result[:event].inspect}"
+        if Que.mode == :async
+          time   = Time.now
+          result = Job.work(queue)
+
+          case result[:event]
+          when :job_unavailable
+            cycle = false
+            result[:level] = :debug
+          when :job_race_condition
+            cycle = true
+            result[:level] = :debug
+          when :job_worked
+            cycle = true
+            result[:elapsed] = (Time.now - time).round(5)
+          when :job_errored
+            # For PG::Errors, assume we had a problem reaching the database, and
+            # don't hit it again right away.
+            cycle = !result[:error].is_a?(PG::Error)
+            result[:error] = {:class => result[:error].class.to_s, :message => result[:error].message}
+          else
+            raise "Unknown Event: #{result[:event].inspect}"
+          end
+
+          Que.log(result)
         end
-
-        Que.log(result)
 
         synchronize { @state = :sleeping unless cycle || @stop }
         sleep if @state == :sleeping
@@ -111,16 +114,17 @@ module Que
     # changed in Que.wake_interval= below.
     @wake_interval = 5
 
+    # Four workers is a sensible default for most use cases.
+    @worker_count = 4
+
     class << self
-      attr_reader :mode, :wake_interval
+      attr_reader :mode, :wake_interval, :worker_count
 
       def mode=(mode)
-        case set_mode(mode)
-        when :async
-          set_worker_count 4 if worker_count.zero?
-        when :sync, :off
-          set_worker_count 0
-        end
+        Que.log :event => 'mode_change', :value => mode.to_s
+        @mode = mode
+        # Make sure the wrangler thread has been instantiated.
+        wrangler if mode == :async
       end
 
       def workers
@@ -128,13 +132,15 @@ module Que
       end
 
       def worker_count=(count)
-        set_mode(count > 0 ? :async : :off)
-        set_worker_count(count)
-        wrangler # Make sure the wrangler thread has been instantiated.
-      end
+        Que.log :event => 'worker_count_change', :value => count.to_s
 
-      def worker_count
-        workers.count
+        if count > worker_count
+          workers.push *(count - worker_count).times.map{new(ENV['QUE_QUEUE'] || '')}
+        elsif count < worker_count
+          workers.pop(worker_count - count).each(&:stop).each(&:wait_until_stopped)
+        end
+
+        @worker_count = count
       end
 
       def wake_interval=(interval)
@@ -156,26 +162,7 @@ module Que
         @wrangler ||= Thread.new do
           loop do
             sleep *@wake_interval
-            wake! if @wake_interval
-          end
-        end
-      end
-
-      def set_mode(mode)
-        if mode != @mode
-          Que.log :event => 'mode_change', :value => mode.to_s
-          @mode = mode
-        end
-      end
-
-      def set_worker_count(count)
-        if count != worker_count
-          Que.log :event => 'worker_count_change', :value => count.to_s
-
-          if count > worker_count
-            workers.push *(count - worker_count).times.map{new(ENV['QUE_QUEUE'] || '')}
-          elsif count < worker_count
-            workers.pop(worker_count - count).each(&:stop).each(&:wait_until_stopped)
+            wake! if @wake_interval && mode == :async
           end
         end
       end

@@ -28,6 +28,7 @@ describe "Que using the Sequel adapter" do
 
   it "should wake up a Worker after queueing a job in async mode, waiting for a transaction to commit if necessary" do
     Que.mode = :async
+    Que.worker_count = 4
     sleep_until { Que::Worker.workers.all? &:sleeping? }
 
     # Wakes a worker immediately when not in a transaction.

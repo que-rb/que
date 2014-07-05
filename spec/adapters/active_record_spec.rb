@@ -71,6 +71,7 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
 
     it "should support Rails' special extensions for times" do
       Que.mode = :async
+      Que.worker_count = 4
       sleep_until { Que::Worker.workers.all? &:sleeping? }
 
       Que::Job.enqueue :run_at => 1.minute.ago
@@ -82,6 +83,7 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
 
     it "should wake up a Worker after queueing a job in async mode, waiting for a transaction to commit if necessary" do
       Que.mode = :async
+      Que.worker_count = 4
       sleep_until { Que::Worker.workers.all? &:sleeping? }
 
       # Wakes a worker immediately when not in a transaction.
