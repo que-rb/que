@@ -17,8 +17,8 @@ module Que
   end
 
   class << self
-    attr_accessor :logger, :error_handler
-    attr_writer :adapter, :log_formatter
+    attr_accessor :error_handler
+    attr_writer :logger, :adapter, :log_formatter
 
     def connection=(connection)
       self.adapter =
@@ -83,9 +83,13 @@ module Que
       level = data.delete(:level) || :info
       data = {:lib => 'que', :hostname => Socket.gethostname, :pid => Process.pid, :thread => Thread.current.object_id}.merge(data)
 
-      if logger && output = log_formatter.call(data)
-        logger.send level, output
+      if (l = logger) && output = log_formatter.call(data)
+        l.send level, output
       end
+    end
+
+    def logger
+      @logger.respond_to?(:call) ? @logger.call : @logger
     end
 
     def log_formatter

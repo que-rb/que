@@ -14,6 +14,27 @@ describe "Logging" do
     message['thread'].should == Thread.current.object_id
   end
 
+  it "should allow a callable to be set as the logger" do
+    begin
+      # Make sure we can get through a work cycle without a logger.
+      Que.logger = proc { $logger }
+
+      Que::Job.enqueue
+      worker = Que::Worker.new
+      sleep_until { worker.sleeping? }
+
+      DB[:que_jobs].should be_empty
+
+      worker.stop
+      worker.wait_until_stopped
+
+      $logger.messages.count.should be 2
+      $logger.messages.map{|m| JSON.load(m)['event']}.should == ['job_worked', 'job_unavailable']
+    ensure
+      Que.logger = $logger
+    end
+  end
+
   it "should not raise an error when no logger is present" do
     begin
       # Make sure we can get through a work cycle without a logger.
