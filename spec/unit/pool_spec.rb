@@ -31,8 +31,8 @@ describe "Managing the Worker pool" do
 
       it "with worker_count > 0 should not hit the db" do
         Que.connection = nil
-        Que.worker_count = 5
         Que.mode = :off
+        Que.worker_count = 5
         sleep_until { Que::Worker.workers.all? &:sleeping? }
         Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == [[:sleeping, 'sleep']] * 5
       end
@@ -49,8 +49,8 @@ describe "Managing the Worker pool" do
 
       it "with worker_count > 0 should not hit the db" do
         Que.connection = nil
-        Que.worker_count = 5
         Que.mode = :sync
+        Que.worker_count = 5
         sleep_until { Que::Worker.workers.all? &:sleeping? }
         Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == [[:sleeping, 'sleep']] * 5
       end
@@ -88,8 +88,8 @@ describe "Managing the Worker pool" do
       end
 
       it "with worker_count > 0 should hit the db" do
-        Que.worker_count = 5
         Que::Job.enqueue
+        Que.worker_count = 5
         Que.mode = :async
         sleep_until { Que::Worker.workers.all? &:sleeping? }
         DB[:que_jobs].count.should == 0
