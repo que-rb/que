@@ -120,32 +120,34 @@ module Que
     class << self
       attr_reader :mode, :wake_interval, :worker_count
 
+      # In order to work in a forking webserver, we need to be able to accept
+      # worker_count and wake_interval settings without actually instantiating
+      # the relevant threads until the mode is actually set to :async in a
+      # post-fork hook (since forking will kill any running background threads).
+
       def mode=(mode)
         Que.log :event => 'mode_change', :value => mode.to_s
         @mode = mode
-        # Make sure the wrangler thread has been instantiated.
-        wrangler if mode == :async
+
+        if mode == :async
+          set_up_workers
+          wrangler
+        end
+      end
+
+      def worker_count=(count)
+        Que.log :event => 'worker_count_change', :value => count.to_s
+        @worker_count = count
+        set_up_workers if mode == :async
       end
 
       def workers
         @workers ||= []
       end
 
-      def worker_count=(count)
-        Que.log :event => 'worker_count_change', :value => count.to_s
-
-        if count > worker_count
-          workers.push *(count - worker_count).times.map{new(ENV['QUE_QUEUE'] || '')}
-        elsif count < worker_count
-          workers.pop(worker_count - count).each(&:stop).each(&:wait_until_stopped)
-        end
-
-        @worker_count = count
-      end
-
       def wake_interval=(interval)
         @wake_interval = interval
-        wrangler.wakeup
+        wrangler.wakeup if mode == :async
       end
 
       def wake!
@@ -157,6 +159,14 @@ module Que
       end
 
       private
+
+      def set_up_workers
+        if worker_count > workers.count
+          workers.push *(worker_count - workers.count).times.map{new(ENV['QUE_QUEUE'] || '')}
+        elsif worker_count < workers.count
+          workers.pop(workers.count - worker_count).each(&:stop).each(&:wait_until_stopped)
+        end
+      end
 
       def wrangler
         @wrangler ||= Thread.new do

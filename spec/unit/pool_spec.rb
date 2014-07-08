@@ -21,38 +21,36 @@ describe "Managing the Worker pool" do
 
   describe "Que.mode=" do
     describe ":off" do
-      it "with worker_count 0 should not hit the db" do
+      it "with worker_count 0 should not instantiate workers or hit the db" do
         Que.connection = nil
         Que.worker_count = 0
         Que.mode = :off
-        sleep_until { Que::Worker.workers.all? &:sleeping? }
-        Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == []
+        Que::Worker.workers.should == []
       end
 
-      it "with worker_count > 0 should not hit the db" do
+      it "with worker_count > 0 should not instantiate workers or hit the db" do
         Que.connection = nil
         Que.mode = :off
         Que.worker_count = 5
-        sleep_until { Que::Worker.workers.all? &:sleeping? }
-        Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == [[:sleeping, 'sleep']] * 5
+        Que.mode = :off
+        Que::Worker.workers.should == []
       end
     end
 
     describe ":sync" do
-      it "with worker_count 0 should not hit the db" do
+      it "with worker_count 0 should not instantiate workers or hit the db" do
         Que.connection = nil
         Que.worker_count = 0
         Que.mode = :sync
-        sleep_until { Que::Worker.workers.all? &:sleeping? }
-        Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == []
+        Que::Worker.workers.should == []
       end
 
-      it "with worker_count > 0 should not hit the db" do
+      it "with worker_count > 0 should not instantiate workers or hit the db" do
         Que.connection = nil
         Que.mode = :sync
         Que.worker_count = 5
-        sleep_until { Que::Worker.workers.all? &:sleeping? }
-        Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == [[:sleeping, 'sleep']] * 5
+        Que.mode = :sync
+        Que::Worker.workers.should == []
       end
 
       it "should make jobs run in the same thread as they are queued" do
@@ -80,14 +78,14 @@ describe "Managing the Worker pool" do
     end
 
     describe ":async" do
-      it "with worker_count 0 should not hit the db" do
+      it "with worker_count 0 should not instantiate workers or hit the db" do
         Que.connection = nil
         Que.worker_count = 0
         Que.mode = :async
         Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == []
       end
 
-      it "with worker_count > 0 should hit the db" do
+      it "with worker_count > 0 should instantiate workers and hit the db" do
         Que::Job.enqueue
         Que.worker_count = 5
         Que.mode = :async
@@ -130,58 +128,52 @@ describe "Managing the Worker pool" do
 
   describe "Que.worker_count=" do
     describe "when the mode is :off" do
-      it "should scale the number of sleeping workers without hitting the DB" do
+      it "should record the setting but not instantiate any workers" do
+        Que.worker_count.should == 0
         Que.connection = nil
         Que.mode = :off
-        Que::Worker.workers.count.should == 0
+        Que::Worker.workers.should == []
 
         Que.worker_count = 4
-        sleep_until { Que::Worker.workers.all?(&:sleeping?) }
-        Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == [[:sleeping, 'sleep']] * 4
-        Que::Worker.workers.count.should == 4
+        Que.worker_count.should == 4
+        Que::Worker.workers.should == []
 
         Que.worker_count = 6
-        sleep_until { Que::Worker.workers.all?(&:sleeping?) }
-        Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == [[:sleeping, 'sleep']] * 6
-        Que::Worker.workers.count.should == 6
+        Que.worker_count.should == 6
+        Que::Worker.workers.should == []
 
         Que.worker_count = 2
-        sleep_until { Que::Worker.workers.all?(&:sleeping?) }
-        Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == [[:sleeping, 'sleep']] * 2
-        Que::Worker.workers.count.should == 2
+        Que.worker_count.should == 2
+        Que::Worker.workers.should == []
 
         Que.worker_count = 0
-        sleep_until { Que::Worker.workers.all?(&:sleeping?) }
-        Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == []
-        Que::Worker.workers.count.should == 0
+        Que.worker_count.should == 0
+        Que::Worker.workers.should == []
       end
     end
 
     describe "when the mode is :sync" do
-      it "should scale the number of sleeping workers without hitting the DB" do
+      it "should record the setting but not instantiate any workers" do
+        Que.worker_count.should == 0
         Que.connection = nil
         Que.mode = :sync
-        Que::Worker.workers.count.should == 0
+        Que::Worker.workers.should == []
 
         Que.worker_count = 4
-        sleep_until { Que::Worker.workers.all?(&:sleeping?) }
-        Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == [[:sleeping, 'sleep']] * 4
-        Que::Worker.workers.count.should == 4
+        Que.worker_count.should == 4
+        Que::Worker.workers.should == []
 
         Que.worker_count = 6
-        sleep_until { Que::Worker.workers.all?(&:sleeping?) }
-        Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == [[:sleeping, 'sleep']] * 6
-        Que::Worker.workers.count.should == 6
+        Que.worker_count.should == 6
+        Que::Worker.workers.should == []
 
         Que.worker_count = 2
-        sleep_until { Que::Worker.workers.all?(&:sleeping?) }
-        Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == [[:sleeping, 'sleep']] * 2
-        Que::Worker.workers.count.should == 2
+        Que.worker_count.should == 2
+        Que::Worker.workers.should == []
 
         Que.worker_count = 0
-        sleep_until { Que::Worker.workers.all?(&:sleeping?) }
-        Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == []
-        Que::Worker.workers.count.should == 0
+        Que.worker_count.should == 0
+        Que::Worker.workers.should == []
       end
     end
 
@@ -191,6 +183,7 @@ describe "Managing the Worker pool" do
         Que::Job.enqueue
         Que.worker_count = 4
         sleep_until { Que::Worker.workers.all?(&:sleeping?) }
+        Que::Worker.workers.map{|w| [w.state, w.thread.status]}.should == [[:sleeping, 'sleep']] * 4
         DB[:que_jobs].count.should == 0
       end
 
