@@ -20,13 +20,24 @@ There are other docs to read if you're using [Sequel](https://github.com/chanks/
 
 ### Forking Servers
 
-If you want to run a worker pool in your web process and you're using a forking webserver like Unicorn or Puma in some configurations, you'll want to set `Que.mode = :off` in your application configuration and only start up the worker pool in the child processes. So, for Puma:
+If you want to run a worker pool in your web process and you're using a forking webserver like Unicorn or Puma in some configurations, you'll want to set `Que.mode = :off` in your application configuration and only start up the worker pool in the child processes after the DB connection has been reestablished. So, for Puma:
 
     # config/puma.rb
     on_worker_boot do
-      # Reestablish your database connection, etc...
+      ActiveRecord::Base.establish_connection
+
       Que.mode = :async
     end
+
+And for Unicorn:
+
+    # config/unicorn.rb
+    after_fork do |server, worker|
+      ActiveRecord::Base.establish_connection
+
+      Que.mode = :async
+    end
+
 
 ### Managing the Jobs Table
 
