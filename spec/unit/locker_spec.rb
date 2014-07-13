@@ -409,6 +409,8 @@ describe Que::Locker do
     it "should wait for its currently running jobs to finish before returning" do
       locker = Que::Locker.new
 
+      sleep_until { DB[:que_lockers].count == 1 }
+
       job_id = BlockJob.enqueue.attrs[:job_id]
 
       $q1.pop

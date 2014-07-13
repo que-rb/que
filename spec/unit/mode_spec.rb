@@ -78,18 +78,22 @@ describe Que, "mode=" do
 
     it "then Que.mode = :off should gracefully shut down the locker" do
       Que.mode = :async
+      sleep_until { DB[:que_lockers].count == 1 }
       BlockJob.enqueue
       $q1.pop
       $q2.push nil
       Que.mode = :off
+      DB[:que_jobs].should be_empty
     end
 
     it "then Que.mode = :sync should gracefully shut down the locker" do
       Que.mode = :async
+      sleep_until { DB[:que_lockers].count == 1 }
       BlockJob.enqueue
       $q1.pop
       $q2.push nil
       Que.mode = :sync
+      DB[:que_jobs].should be_empty
     end
   end
 end
