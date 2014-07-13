@@ -30,6 +30,23 @@
 
     *   Features deprecated in 0.7.0 have been removed.
 
+### 0.8.0 (2014-07-12)
+
+*   A callable can now be set as the logger, like `Que.logger = proc { MyLogger.new }`. Que uses this in its Railtie for cleaner initialization, but it is also available for public use.
+
+*   `Que.mode=` and `Que.worker_count=` now function independently. That is, setting the worker_count to a nonzero number no longer sets mode = :async (triggering the pool to start working jobs), and setting it to zero no longer sets mode = :off. Similarly, setting the mode to :async no longer sets the worker_count to 4 from 0, and setting the mode to :off no longer sets the worker_count to 0. This behavior was changed because it was interfering with configuration during initialization of Rails applications, and because it was unexpected. (#47)
+
+*   Fixed a similar bug wherein setting a wake_interval during application startup would break worker awakening after the process was forked.
+
+### 0.7.3 (2014-05-19)
+
+*   When mode = :sync, don't touch the database at all when running jobs inline. Needed for ActiveJob compatibility (#46).
+
+### 0.7.2 (2014-05-18)
+
+*   Fix issue wherein intermittent worker wakeups would not work after forking (#44).
+>>>>>>> master
+
 ### 0.7.1 (2014-04-29)
 
 *   Fix errors with prepared statements when ActiveRecord reconnects to the database. (dvrensk)

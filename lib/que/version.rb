@@ -1,3 +1,3 @@
 module Que
-  Version = '0.7.1'
+  Version = '0.8.0'
 end

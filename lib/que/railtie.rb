@@ -2,6 +2,7 @@ module Que
   class Railtie < Rails::Railtie
     config.que = Que
 
+    Que.logger     = proc { Rails.logger }
     Que.mode       = :sync if Rails.env.test?
     Que.connection = ::ActiveRecord if defined? ::ActiveRecord
 
@@ -11,8 +12,6 @@ module Que
 
     initializer 'que.setup' do
       ActiveSupport.on_load :after_initialize do
-        Que.logger ||= Rails.logger
-
         # Only start up the worker pool if running as a server.
         Que.mode ||= :async if defined? Rails::Server
 

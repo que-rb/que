@@ -96,10 +96,13 @@ RSpec.configure do |config|
     stdout.info "Running spec: #{desc} @ #{line}" if ENV['LOG_SPEC']
 
     Que.pool = QUE_POOLS[:pond]
-    Que.mode = :off
+    # Que.mode = :async
+
     $logger.messages.clear
 
     spec.run
+
+    Que.mode = :off
 
     DB[:que_jobs].delete
     DB[:que_lockers].delete
