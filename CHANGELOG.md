@@ -1,4 +1,4 @@
-### 0.8.0 (Unreleased)
+### 0.8.0 (2014-07-12)
 
 *   A callable can now be set as the logger, like `Que.logger = proc { MyLogger.new }`. Que uses this in its Railtie for cleaner initialization, but it is also available for public use.
 
