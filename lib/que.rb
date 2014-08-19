@@ -32,8 +32,8 @@ module Que
           when 'Pond'                       then Adapters::Pond.new(connection)
           when 'NilClass'                   then connection
           else raise "Que connection not recognized: #{connection.inspect}"
+          end
         end
-      end
     end
 
     def adapter
