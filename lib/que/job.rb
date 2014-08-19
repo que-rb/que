@@ -12,7 +12,7 @@ module Que
     end
 
     def _run
-      run *attrs[:args]
+      run(*attrs[:args])
       destroy unless @destroyed
     end
 
