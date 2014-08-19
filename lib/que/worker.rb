@@ -151,11 +151,11 @@ module Que
       end
 
       def wake!
-        workers.find &:wake!
+        workers.find(&:wake!)
       end
 
       def wake_all!
-        workers.each &:wake!
+        workers.each(&:wake!)
       end
 
       private
