@@ -151,18 +151,18 @@ module Que
       end
 
       def wake!
-        workers.find &:wake!
+        workers.find(&:wake!)
       end
 
       def wake_all!
-        workers.each &:wake!
+        workers.each(&:wake!)
       end
 
       private
 
       def set_up_workers
         if worker_count > workers.count
-          workers.push *(worker_count - workers.count).times.map{new(ENV['QUE_QUEUE'] || '')}
+          workers.push(*(worker_count - workers.count).times.map{new(ENV['QUE_QUEUE'] || '')})
         elsif worker_count < workers.count
           workers.pop(workers.count - worker_count).each(&:stop).each(&:wait_until_stopped)
         end
@@ -171,7 +171,7 @@ module Que
       def wrangler
         @wrangler ||= Thread.new do
           loop do
-            sleep *@wake_interval
+            sleep(*@wake_interval)
             wake! if @wake_interval && mode == :async
           end
         end
