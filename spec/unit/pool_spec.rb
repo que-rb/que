@@ -75,6 +75,14 @@ describe "Managing the Worker pool" do
         ArgsJob.enqueue(5, :testing => "synchronous", :run_at => Time.now + 60)
         DB[:que_jobs].select_map(:job_class).should == ["ArgsJob"]
       end
+
+      it "should work fine with enqueuing jobs without a DB connection and with specific run_ats" do
+        Que.connection = nil
+        Que.mode = :sync
+
+        ArgsJob.enqueue(5, :testing => "synchronous", :run_at => Time.now + 60).should be_an_instance_of ArgsJob
+        $passed_args.should == [5, {:testing => "synchronous"}]
+      end
     end
 
     describe ":async" do
