@@ -8,7 +8,7 @@ Que's support for scheduling jobs makes it easy to implement reliable recurring 
 
     class Cron < Que::Job
       def run
-        users = User.where(:created_at => @attrs[:run_at]...(@attrs[:run_at] + 1.hour))
+        users = User.where(:created_at => (@attrs[:run_at] - 1.hour)...@attrs[:run_at])
         # Do something with users.
 
         ActiveRecord::Base.transaction do
