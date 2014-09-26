@@ -99,7 +99,7 @@ describe "Customizing Que" do
     it "with a Ruby override" do
       class MyJobClass < Que::Job
         def destroy
-          Que.execute "INSERT INTO finished_jobs SELECT * FROM que_jobs WHERE queue = $1::text AND priority = $2::integer AND run_at = $3::timestamptz AND job_id = $4::bigint", @attrs.values_at(:queue, :priority, :run_at, :job_id)
+          Que.execute "INSERT INTO finished_jobs SELECT * FROM que_jobs WHERE queue = $1::text AND priority = $2::integer AND run_at = $3::timestamp AND job_id = $4::bigint", @attrs.values_at(:queue, :priority, :run_at, :job_id)
           super
         end
       end
