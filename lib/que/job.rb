@@ -43,7 +43,7 @@ module Que
         warn "@default_run_at in #{to_s} has been deprecated and will be removed in Que version 1.0.0. Please use @run_at instead." if @default_run_at
 
         if t = run_at || @run_at && @run_at.call || @default_run_at && @default_run_at.call
-          attrs[:run_at] = t
+          attrs[:run_at] = t.utc
         end
 
         warn "@default_priority in #{to_s} has been deprecated and will be removed in Que version 1.0.0. Please use @priority instead." if @default_priority

@@ -8,7 +8,7 @@ module Que
           SELECT j
           FROM que_jobs AS j
           WHERE queue = $1::text
-          AND run_at <= now()
+          AND run_at <= timezone('UTC'::text, now())
           ORDER BY priority, run_at, job_id
           LIMIT 1
         ) AS t1
@@ -19,7 +19,7 @@ module Que
               SELECT j
               FROM que_jobs AS j
               WHERE queue = $1::text
-              AND run_at <= now()
+              AND run_at <= timezone('UTC'::text, now())
               AND (priority, run_at, job_id) > (job.priority, job.run_at, job.job_id)
               ORDER BY priority, run_at, job_id
               LIMIT 1
@@ -41,18 +41,18 @@ module Que
       FROM   que_jobs
       WHERE  queue    = $1::text
       AND    priority = $2::smallint
-      AND    run_at   = $3::timestamptz
+      AND    run_at   = $3::timestamp
       AND    job_id   = $4::bigint
     }.freeze,
 
     :set_error => %{
       UPDATE que_jobs
       SET error_count = $1::integer,
-          run_at      = now() + $2::bigint * '1 second'::interval,
+          run_at      = timezone('UTC'::text, now()) + $2::bigint * '1 second'::interval,
           last_error  = $3::text
       WHERE queue     = $4::text
       AND   priority  = $5::smallint
-      AND   run_at    = $6::timestamptz
+      AND   run_at    = $6::timestamp
       AND   job_id    = $7::bigint
     }.freeze,
 
@@ -60,7 +60,7 @@ module Que
       INSERT INTO que_jobs
       (queue, priority, run_at, job_class, args)
       VALUES
-      (coalesce($1, '')::text, coalesce($2, 100)::smallint, coalesce($3, 'now')::timestamptz, $4::text, coalesce($5, '[]')::json)
+      (coalesce($1, '')::text, coalesce($2, 100)::smallint, coalesce($3, timezone('UTC'::text, now()))::timestamp, $4::text, coalesce($5, '[]')::json)
       RETURNING *
     }.freeze,
 
@@ -68,7 +68,7 @@ module Que
       DELETE FROM que_jobs
       WHERE queue    = $1::text
       AND   priority = $2::smallint
-      AND   run_at   = $3::timestamptz
+      AND   run_at   = $3::timestamp
       AND   job_id   = $4::bigint
     }.freeze,
 

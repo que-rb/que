@@ -41,6 +41,7 @@ QUE_ADAPTERS = {:pg => Que.adapter}
 
 # We use Sequel to examine the database in specs.
 require 'sequel'
+Sequel.default_timezone = :utc
 DB = Sequel.connect(QUE_URL)
 
 

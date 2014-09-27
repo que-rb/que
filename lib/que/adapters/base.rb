@@ -109,6 +109,14 @@ module Que
       # Timestamp with time zone.
       CAST_PROCS[1184] = Time.method(:parse)
 
+      # Timestamp without time zone.
+      CAST_PROCS[1114] = ->(time_string) do
+        d = Date._parse(time_string)
+        Time.send :make_time, d[:year], d[:mon], d[:mday], d[:hour],
+                              d[:min],  d[:sec], d[:sec_fraction],
+                              'UTC', Time.now.utc
+      end
+
       # JSON.
       CAST_PROCS[114] = JSON_MODULE.method(:load)
 
