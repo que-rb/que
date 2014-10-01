@@ -101,6 +101,14 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       Que::Worker.workers.each { |worker| worker.should be_sleeping }
     end
 
+    it "should be able to survive an ActiveRecord::Rollback without raising an error" do
+      ActiveRecord::Base.transaction do
+        Que::Job.enqueue
+        raise ActiveRecord::Rollback, "Call tech support!"
+      end
+      DB[:que_jobs].count.should be 0
+    end
+
     it "should be able to tell when it's in an ActiveRecord transaction" do
       Que.adapter.should_not be_in_transaction
       ActiveRecord::Base.transaction do
