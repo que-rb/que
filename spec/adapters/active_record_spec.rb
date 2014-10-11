@@ -4,7 +4,11 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
   require 'spec_helper'
   require 'active_record'
 
+  if ActiveRecord.version.release >= Gem::Version.new('4.2')
+    ActiveRecord::Base.raise_in_transactional_callbacks = true
+  end
   ActiveRecord::Base.establish_connection(QUE_URL)
+
   Que.connection = ActiveRecord
   QUE_ADAPTERS[:active_record] = Que.adapter
 
