@@ -8,18 +8,22 @@ module Que
       def wake_worker_after_commit
         # Works with ActiveRecord 3.2 and 4 (possibly earlier, didn't check)
         if in_transaction?
-          checkout_activerecord_adapter { |adapter| adapter.add_transaction_record(CommittedCallback.new) }
+          checkout_activerecord_adapter { |adapter| adapter.add_transaction_record(TransactionCallback.new) }
         else
           Que.wake!
         end
       end
 
-      class CommittedCallback
+      class TransactionCallback
         def has_transactional_callbacks?
           true
         end
 
-        def committed!
+        def rolledback!(force_restore_state = false, should_run_callbacks = true)
+          # no-op
+        end
+
+        def committed!(should_run_callbacks = true)
           Que.wake!
         end
       end
