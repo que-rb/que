@@ -1,3 +1,7 @@
+### 0.8.2 (2014-10-12)
+
+*   Fix errors raised during rollbacks in the ActiveRecord adapter, which remained silent until Rails 4.2. (#64, #65) (Strech)
+
 ### 0.8.1 (2014-07-28)
 
 *   Fix regression introduced in the `que:work` rake task by the `mode` / `worker_count` disentangling in 0.8.0. (#50)
