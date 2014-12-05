@@ -35,8 +35,8 @@ describe "Customizing Que" do
         end
       end
 
-      t = Time.now - 1000
-      MyCronJob.enqueue :start_at => t.to_f, :end_at => t.to_f + 1.5, :arg => 4
+      t = (Time.now - 1000).to_f.round(6)
+      MyCronJob.enqueue :start_at => t, :end_at => t + 1.5, :arg => 4
 
       $args.should be nil
       $time_range.should be nil
@@ -44,13 +44,16 @@ describe "Customizing Que" do
       Que::Job.work
 
       $args.should == {'arg' => 4}
-      $time_range.begin.to_f.should == t.to_f
-      $time_range.end.to_f.should == t.to_f + 1.5
+      $time_range.begin.to_f.round(6).should be_within(0.000001).of t
+      $time_range.end.to_f.round(6).should be_within(0.000001).of t + 1.5
       $time_range.exclude_end?.should be true
 
-      DB[:que_jobs].get(:run_at).to_f.should be_within(0.000001).of(t.to_f + 3.0)
-      args = JSON.parse(DB[:que_jobs].get(:args))
-      args.should == [{'arg' => 4, 'start_at' => t.to_f + 1.5, 'end_at' => t.to_f + 3.0}]
+      DB[:que_jobs].get(:run_at).to_f.round(6).should be_within(0.000001).of(t + 3.0)
+      args = JSON.parse(DB[:que_jobs].get(:args)).first
+      args.keys.should == ['arg', 'start_at', 'end_at']
+      args['arg'].should == 4
+      args['start_at'].should be_within(0.000001).of(t + 1.5)
+      args['end_at'].should be_within(0.000001).of(t + 3.0)
     ensure
       $args       = nil
       $time_range = nil
