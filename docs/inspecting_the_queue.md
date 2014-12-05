@@ -98,3 +98,17 @@ And note that Sequel *does* support composite primary keys:
 Or, you can just use Sequel's dataset methods:
 
     DB[:que_jobs].where{priority > 3}.all
+
+### Web UI
+
+[que-web](https://github.com/statianzo/que-web) is a web interface for inspecting queues. Map it inside your `config.ru`
+
+    require "que/web"
+    map "/que" do
+      run Que::Web
+    end
+    
+or in your Rails `config/routes.rb`
+
+    require "que/web"
+    mount Que::Web => "/que"
