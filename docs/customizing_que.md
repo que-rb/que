@@ -35,6 +35,11 @@ Que's support for scheduling jobs makes it easy to implement reliable recurring 
         end
       end
 
+      # To enqueue:
+      tf = Time.now
+      t0 = Time.now - 3600
+      MyCronJob.enqueue :start_at => t0.to_f, :end_at => tf.to_f
+
 Note that instead of using Time.now in our database query, and requeueing the job at 1.hour.from_now, we use job arguments to track start and end times. This lets us correct for delays in running the job. Suppose that there's a backlog of priority jobs, or that the worker briefly goes down, and this job, which was supposed to run at 11:00 a.m. isn't run until 11:05 a.m. A lazier implementation would look for users created after 1.hour.ago, and miss those that signed up between 10:00 a.m. and 10:05 a.m.
 
 This also compensates for clock drift. `Time.now` on one of your application servers may not match `Time.now` on another application server may not match `now()` on your database server. The best way to stay reliable is have a single authoritative source on what the current time is, and your best source for authoritative information is always your database (this is why Que uses Postgres' `now()` function when locking jobs, by the way).
