@@ -118,7 +118,7 @@ module Que
 
             if Que.error_handler
               # Similarly, protect the work loop from a failure of the error handler.
-              Que.error_handler.call(error) rescue nil
+              Que.error_handler.call(error, job) rescue nil
             end
 
             return {:event => :job_errored, :error => error, :job => job}

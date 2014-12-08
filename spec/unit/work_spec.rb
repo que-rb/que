@@ -323,6 +323,22 @@ describe Que::Job, '.work' do
       end
     end
 
+    it "should pass job to an error handler, if one is defined" do
+      begin
+        jobs = []
+        Que.error_handler = proc { |error, job| jobs << job }
+
+        ErrorJob.enqueue
+        result = Que::Job.work
+
+        jobs.count.should be 1
+        job = jobs[0]
+        job.should be result[:job]
+      ensure
+        Que.error_handler = nil
+      end
+    end
+
     it "should not do anything if the error handler itelf throws an error" do
       begin
         Que.error_handler = proc { |error| raise "Another error!" }
