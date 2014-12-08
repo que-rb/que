@@ -107,6 +107,7 @@ If you're using ActiveRecord to dump your database's schema, you'll probably wan
 ## Related Gems
 
   * [que-web](https://github.com/statianzo/que-web) is a Sinatra-based UI for inspecting your job queue.
+  * [que-testing](https://github.com/statianzo/que-testing) allows making assertions on enqueued jobs.
 
 If you have a gem that uses or relates to Que, feel free to submit a PR adding it to the list!
 
