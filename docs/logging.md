@@ -8,10 +8,6 @@ Of course you can have it log wherever you like:
 
     Que.logger = Logger.new(...)
 
-    # Or, in your Rails configuration:
-
-    config.que.logger = Logger.new(...)
-
 You can use Que's logger in your jobs anywhere you like:
 
     class MyJob

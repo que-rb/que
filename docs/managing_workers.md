@@ -12,9 +12,6 @@ You can change the number of workers in the pool whenever you like by setting th
 
     Que.worker_count = 8
 
-    # Or, in your Rails configuration:
-    config.que.worker_count = 8
-
 ### Working Jobs Via Rake Task
 
 If you don't want to burden your web processes with too much work and want to run workers in a background process instead, similar to how most other queues work, you can:
@@ -35,9 +32,6 @@ If your application code is not thread-safe, you won't want any workers to be pr
 
     Que.mode = :off
 
-    # Or, in your Rails configuration:
-    config.que.mode = :off
-
 This will prevent Que from trying to process jobs in the background of your web processes. In order to actually work jobs, you'll want to run a single worker at a time, and to do so via a separate rake task, like so:
 
     QUE_WORKER_COUNT=1 rake que:work
@@ -46,10 +40,7 @@ This will prevent Que from trying to process jobs in the background of your web 
 
 If a worker checks the job queue and finds no jobs ready for it to work, it will fall asleep. In order to make sure that newly-available jobs don't go unworked, a worker is awoken every so often to check for available work. By default, this happens every five seconds, but you can make it happen more or less often by setting a custom wake_interval:
 
-    Que.wake_interval = 2
-
-    # Or, in your Rails configuration:
-    config.que.wake_interval = 2   # 2.seconds also works fine.
+    Que.wake_interval = 2 # In Rails, 2.seconds also works fine.
 
 You can also choose to never let workers wake up on their own:
 

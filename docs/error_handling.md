@@ -23,7 +23,3 @@ If you're using an error notification system (highly recommended, of course), yo
     Que.error_handler = proc do |error|
       # Do whatever you want with the error object.
     end
-
-    # Or, in your Rails configuration:
-
-    config.que.error_handler = proc { |error| ... }

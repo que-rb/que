@@ -96,11 +96,11 @@ You can also add options to run the job after a specific time, or with a specifi
 ChargeCreditCard.enqueue current_user.id, :credit_card_id => card.id, :run_at => 1.day.from_now, :priority => 5
 ```
 
-To determine what happens when a job is queued, you can set Que's mode in your application configuration. There are a few options for the mode:
+To determine what happens when a job is queued, you can set Que's mode. There are a few options for the mode:
 
-  * `config.que.mode = :off` - In this mode, queueing a job will simply insert it into the database - the current process will make no effort to run it. You should use this if you want to use a dedicated process to work tasks (there's a rake task to do this, see below). This is the default when running `bin/rails console`.
-  * `config.que.mode = :async` - In this mode, a pool of background workers is spun up, each running in their own thread. This is the default when running `bin/rails server`. See the docs for [more information on managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md).
-  * `config.que.mode = :sync` - In this mode, any jobs you queue will be run in the same thread, synchronously (that is, `MyJob.enqueue` runs the job and won't return until it's completed). This makes your application's behavior easier to test, so it's the default in the test environment.
+  * `Que.mode = :off` - In this mode, queueing a job will simply insert it into the database - the current process will make no effort to run it. You should use this if you want to use a dedicated process to work tasks (there's a rake task to do this, see below). This is the default when running `bin/rails console`.
+  * `Que.mode = :async` - In this mode, a pool of background workers is spun up, each running in their own thread. This is the default when running `bin/rails server`. See the docs for [more information on managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md).
+  * `Que.mode = :sync` - In this mode, any jobs you queue will be run in the same thread, synchronously (that is, `MyJob.enqueue` runs the job and won't return until it's completed). This makes your application's behavior easier to test, so it's the default in the test environment.
 
 If you're using ActiveRecord to dump your database's schema, you'll probably want to [set schema_format to :sql](http://guides.rubyonrails.org/migrations.html#types-of-schema-dumps) so that Que's table structure is managed correctly.
 
