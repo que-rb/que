@@ -1,3 +1,7 @@
+### 0.9.2 (Unreleased)
+
+*   Fix a bug wherein the que:work rake task wasn't waiting for jobs to finish before exiting. (#85) (tycooon)
+
 ### 0.9.1 (2015-01-11)
 
 *   Use now() rather than 'now' when inserting jobs, to avoid using an old value as the default run_at in prepared statements. (#74) (bgentry)
