@@ -1,5 +1,7 @@
 ### 0.9.2 (Unreleased)
 
+*   Fix a bug wherein the at_exit hook in the railtie wasn't waiting for jobs to finish before exiting.
+
 *   Fix a bug wherein the que:work rake task wasn't waiting for jobs to finish before exiting. (#85) (tycooon)
 
 ### 0.9.1 (2015-01-11)
