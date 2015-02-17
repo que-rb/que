@@ -40,6 +40,10 @@ module Que
       @adapter || raise("Que connection not established!")
     end
 
+    def supports_jsonb?
+      execute("SELECT data_type FROM information_schema.columns WHERE table_name = 'que_jobs' AND column_name='args'")[0]['data_type'] == 'jsonb'
+    end
+
     def execute(*args)
       adapter.execute(*args)
     end
