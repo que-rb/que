@@ -20,6 +20,6 @@ Unlike DelayedJob, however, there is currently no maximum number of failures aft
 
 If you're using an error notification system (highly recommended, of course), you can hook Que into it by setting a callable as the error handler:
 
-    Que.error_handler = proc do |error|
-      # Do whatever you want with the error object.
+    Que.error_handler = proc do |error, job|
+      # Do whatever you want with the error or job object.
     end
