@@ -7,7 +7,7 @@ module Que
 
     class << self
       def migrate!(options = {:version => CURRENT_VERSION})
-        transaction do
+        Que.transaction do
           version = options[:version]
 
           if (current = db_version) == version
@@ -51,28 +51,6 @@ module Que
       def set_db_version(version)
         i = version.to_i
         Que.execute "COMMENT ON TABLE que_jobs IS '#{i}'" unless i.zero?
-      end
-
-      def transaction
-        Que.adapter.checkout do
-          if Que.adapter.in_transaction?
-            yield
-          else
-            begin
-              Que.execute "BEGIN"
-              yield
-            rescue => error
-              raise
-            ensure
-              # Handle a raised error or a killed thread.
-              if error || Thread.current.status == 'aborting'
-                Que.execute "ROLLBACK"
-              else
-                Que.execute "COMMIT"
-              end
-            end
-          end
-        end
       end
     end
   end

@@ -1,3 +1,7 @@
+### 0.10.0 (Unreleased)
+
+*   Add Que.transaction() helper method, to aid in transaction management in migrations or when the user's ORM doesn't provide one. (#81)
+
 ### 0.9.2 (2015-02-05)
 
 *   Fix a bug wherein the at_exit hook in the railtie wasn't waiting for jobs to finish before exiting.
