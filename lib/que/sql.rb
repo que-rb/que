@@ -9,6 +9,7 @@ module Que
           FROM que_jobs AS j
           WHERE queue = $1::text
           AND run_at <= now()
+          AND retryable = true
           ORDER BY priority, run_at, job_id
           LIMIT 1
         ) AS t1
@@ -20,6 +21,7 @@ module Que
               FROM que_jobs AS j
               WHERE queue = $1::text
               AND run_at <= now()
+              AND retryable = true
               AND (priority, run_at, job_id) > (job.priority, job.run_at, job.job_id)
               ORDER BY priority, run_at, job_id
               LIMIT 1
@@ -30,7 +32,7 @@ module Que
           ) AS t1
         )
       )
-      SELECT queue, priority, run_at, job_id, job_class, args, error_count
+      SELECT queue, priority, run_at, job_id, job_class, retryable, args, error_count
       FROM job
       WHERE locked
       LIMIT 1
@@ -40,6 +42,7 @@ module Que
       SELECT 1 AS one
       FROM   que_jobs
       WHERE  queue    = $1::text
+      AND    retryable = true
       AND    priority = $2::smallint
       AND    run_at   = $3::timestamptz
       AND    job_id   = $4::bigint
@@ -58,9 +61,9 @@ module Que
 
     :insert_job => %{
       INSERT INTO que_jobs
-      (queue, priority, run_at, job_class, args)
+      (queue, priority, run_at, job_class, retryable, args)
       VALUES
-      (coalesce($1, '')::text, coalesce($2, 100)::smallint, coalesce($3, now())::timestamptz, $4::text, coalesce($5, '[]')::json)
+      (coalesce($1, '')::text, coalesce($2, 100)::smallint, coalesce($3, now())::timestamptz, $4::text, $5::bool, coalesce($6, '[]')::json)
       RETURNING *
     }.freeze,
 
@@ -107,5 +110,5 @@ module Que
         WHERE locktype = 'advisory'
       ) pg USING (job_id)
     }.freeze
-  }.freeze
+  }
 end
