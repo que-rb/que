@@ -1,9 +1,6 @@
 namespace :que do
   desc "Process Que's jobs using a worker pool"
   task :work => :environment do
-    require 'logger'
-
-    Que.logger        = Logger.new(STDOUT)
     Que.logger.level  = Logger.const_get((ENV['QUE_LOG_LEVEL'] || 'INFO').upcase)
     Que.worker_count  = (ENV['QUE_WORKER_COUNT'] || 4).to_i
     Que.wake_interval = (ENV['QUE_WAKE_INTERVAL'] || 0.1).to_f
