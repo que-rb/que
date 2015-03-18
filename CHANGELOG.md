@@ -1,5 +1,7 @@
 ### 0.10.0 (Unreleased)
 
+*   When working jobs via the rake task, Rails applications are now eager-loaded if present, to avoid problems with multithreading and autoloading. (#96) (hmarr)
+
 *   Add Que.transaction() helper method, to aid in transaction management in migrations or when the user's ORM doesn't provide one. (#81)
 
 ### 0.9.2 (2015-02-05)
