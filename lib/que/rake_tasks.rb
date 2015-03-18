@@ -3,6 +3,14 @@ namespace :que do
   task :work => :environment do
     require 'logger'
 
+    if defined?(::Rails) && Rails.respond_to?(:application)
+      # ActiveSupport's dependency autoloading isn't threadsafe, and Que uses
+      # multiple threads, which means that eager loading is necessary. Rails
+      # explicitly prevents eager loading when the environment task is invoked,
+      # so we need to manually eager load the app here.
+      Rails.application.eager_load!
+    end
+
     Que.logger        = Logger.new(STDOUT)
     Que.logger.level  = Logger.const_get((ENV['QUE_LOG_LEVEL'] || 'INFO').upcase)
     Que.worker_count  = (ENV['QUE_WORKER_COUNT'] || 4).to_i
