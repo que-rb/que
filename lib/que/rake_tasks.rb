@@ -1,8 +1,6 @@
 namespace :que do
   desc "Process Que's jobs using a worker pool"
   task :work => :environment do
-    require 'logger'
-
     if defined?(::Rails) && Rails.respond_to?(:application)
       # ActiveSupport's dependency autoloading isn't threadsafe, and Que uses
       # multiple threads, which means that eager loading is necessary. Rails
@@ -11,7 +9,6 @@ namespace :que do
       Rails.application.eager_load!
     end
 
-    Que.logger        = Logger.new(STDOUT)
     Que.logger.level  = Logger.const_get((ENV['QUE_LOG_LEVEL'] || 'INFO').upcase)
     Que.worker_count  = (ENV['QUE_WORKER_COUNT'] || 4).to_i
     Que.wake_interval = (ENV['QUE_WAKE_INTERVAL'] || 0.1).to_f
