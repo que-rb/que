@@ -1,4 +1,4 @@
-### 0.10.0 (Unreleased)
+### 0.10.0 (2015-03-18)
 
 *   When working jobs via the rake task, Rails applications are now eager-loaded if present, to avoid problems with multithreading and autoloading. (#96) (hmarr)
 
