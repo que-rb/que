@@ -133,4 +133,44 @@ describe "Customizing Que" do
       end
     end
   end
+
+  describe "with different columns" do
+    # # Waiting on Postgres to get a bit smarter with regards to implicitly
+    # # casting JSON to JSONB.
+
+    # it "when the args hash is stored as JSONB should deserialize it fine" do
+    #   if Que.checkout(&:server_version) >= 90400 # JSONB only in 9.4+
+    #     begin
+    #       DB.transaction do
+    #         DB.alter_table :que_jobs do
+    #           set_column_default :args, nil
+    #         end
+
+    #         DB.alter_table :que_jobs do
+    #           set_column_type :args, :jsonb, using: Sequel.cast(Sequel.cast(:args, :text), :jsonb)
+    #           set_column_default :args, Sequel.lit("'[]'::jsonb")
+    #         end
+    #       end
+
+    #       ArgsJob.enqueue 2, 'arg2', :priority => 45
+
+    #       locker = Que::Locker.new
+
+    #       # sleep_until { $passed_args == [2, 'arg2', {:priority => 45}] }
+    #       locker.stop
+    #     ensure
+    #       DB.transaction do
+    #         DB.alter_table :que_jobs do
+    #           set_column_default :args, nil
+    #         end
+
+    #         DB.alter_table :que_jobs do
+    #           set_column_type :args, :json, using: Sequel.cast(Sequel.cast(:args, :text), :json)
+    #           set_column_default :args, Sequel.lit("'[]'::json")
+    #         end
+    #       end
+    #     end
+    #   end
+    # end
+  end
 end
