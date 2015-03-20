@@ -73,22 +73,13 @@ end
 
 
 
-# Helper to display spec descriptions.
-description_builder = -> hash do
-  if g = hash[:example_group]
-    "#{description_builder.call(g)} #{hash[:description_args].first}"
-  else
-    hash[:description_args].first
-  end
-end
-
 stdout = Logger.new(STDOUT)
 
 RSpec.configure do |config|
   config.around do |spec|
     # Figure out which spec is about to run, for logging purposes.
     data = spec.metadata
-    desc = description_builder.call(data)
+    desc = data[:full_description]
     line = "rspec #{data[:file_path]}:#{data[:line_number]}"
 
     # Optionally log to STDOUT which spec is about to run. This is noisy, but
