@@ -87,7 +87,7 @@ stdout = Logger.new(STDOUT)
 RSpec.configure do |config|
   config.around do |spec|
     # Figure out which spec is about to run, for logging purposes.
-    data = example.metadata
+    data = spec.metadata
     desc = description_builder.call(data)
     line = "rspec #{data[:file_path]}:#{data[:line_number]}"
 
