@@ -20,10 +20,24 @@ Unlike DelayedJob, however, there is currently no maximum number of failures aft
 
 If you're using an error notification system (highly recommended, of course), you can hook Que into it by setting a callable as the error handler:
 
-    Que.error_handler = proc do |error|
-      # Do whatever you want with the error object.
+    Que.error_handler = proc do |error, job|
+      # Do whatever you want with the error object or job row here.
+
+      # Note that the job passed is not the actual job object, but the hash
+      # representing the job row in the database, which looks like:
+
+      # {
+      #   "queue" => "my_queue",
+      #   "priority" => 100,
+      #   "run_at" => 2015-03-06 11:07:08 -0500,
+      #   "job_id" => 65,
+      #   "job_class" => "MyJob",
+      #   "args" => ['argument', 78],
+      #   "error_count" => 0
+      # }
+
+      # This is done because the job may not have been able to be deserialized
+      # properly, if the name of the job class was changed or the job is being
+      # retrieved and worked by the wrong app. The job argument may also be
+      # nil, if there was a connection failure or something similar.
     end
-
-    # Or, in your Rails configuration:
-
-    config.que.error_handler = proc { |error| ... }

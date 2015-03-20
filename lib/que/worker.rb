@@ -49,7 +49,7 @@ module Que
 
           if Que.error_handler
             # Don't let a problem with the error handler crash the work loop.
-            Que.error_handler.call(error) rescue nil
+            Que.error_handler.call(error, job) rescue nil
           end
         ensure
           @result_queue.push(pk)

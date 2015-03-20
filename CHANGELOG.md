@@ -28,7 +28,37 @@
 
     *   `Que.worker_states` has been removed, as it is no longer possible to inspect the Postgres connection that is working each job. Its functionality has been partially replaced with `Que.job_states`.
 
-    *   Features deprecated in 0.7.0 have been removed.
+    *   Features marked as deprecated in the previous release have been removed.
+
+### 0.10.0 (2015-03-18)
+
+*   When working jobs via the rake task, Rails applications are now eager-loaded if present, to avoid problems with multithreading and autoloading. (#96) (hmarr)
+
+*   The que:work rake task now uses whatever logger Que is configured to use normally, rather than forcing the use of STDOUT. (#95)
+
+*   Add Que.transaction() helper method, to aid in transaction management in migrations or when the user's ORM doesn't provide one. (#81)
+
+### 0.9.2 (2015-02-05)
+
+*   Fix a bug wherein the at_exit hook in the railtie wasn't waiting for jobs to finish before exiting.
+
+*   Fix a bug wherein the que:work rake task wasn't waiting for jobs to finish before exiting. (#85) (tycooon)
+
+### 0.9.1 (2015-01-11)
+
+*   Use now() rather than 'now' when inserting jobs, to avoid using an old value as the default run_at in prepared statements. (#74) (bgentry)
+
+### 0.9.0 (2014-12-16)
+
+*   The error_handler callable is now be passed two objects, the error and the job that raised it. If your current error_handler is a proc, as recommended in the docs, you shouldn't need to make any code changes, unless you want to use the job in your error handling. If your error_handler is a lambda, or another callable with a strict arity requirement, you'll want to change it before upgrading. (#69) (statianzo)
+
+### 0.8.2 (2014-10-12)
+
+*   Fix errors raised during rollbacks in the ActiveRecord adapter, which remained silent until Rails 4.2. (#64, #65) (Strech)
+
+### 0.8.1 (2014-07-28)
+
+*   Fix regression introduced in the `que:work` rake task by the `mode` / `worker_count` disentangling in 0.8.0. (#50)
 
 ### 0.8.0 (2014-07-12)
 
@@ -45,7 +75,6 @@
 ### 0.7.2 (2014-05-18)
 
 *   Fix issue wherein intermittent worker wakeups would not work after forking (#44).
->>>>>>> master
 
 ### 0.7.1 (2014-04-29)
 

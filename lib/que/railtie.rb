@@ -18,6 +18,7 @@ module Que
         at_exit do
           if Que.mode == :async
             $stdout.puts "Finishing Que's current jobs before exiting..."
+            Que.worker_count = 0
             Que.mode = :off
             $stdout.puts "Que's jobs finished, exiting..."
           end

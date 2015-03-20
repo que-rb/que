@@ -4,7 +4,11 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
   require 'spec_helper'
   require 'active_record'
 
+  if ActiveRecord.version.release >= Gem::Version.new('4.2')
+    ActiveRecord::Base.raise_in_transactional_callbacks = true
+  end
   ActiveRecord::Base.establish_connection(QUE_URL)
+
   Que.connection = ActiveRecord
   QUE_POOLS[:active_record] = Que.pool
 
@@ -82,6 +86,14 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
 
       sleep_until { DB[:que_jobs].empty? }
       locker.stop
+    end
+
+    it "should be able to survive an ActiveRecord::Rollback without raising an error" do
+      ActiveRecord::Base.transaction do
+        Que::Job.enqueue
+        raise ActiveRecord::Rollback, "Call tech support!"
+      end
+      DB[:que_jobs].count.should be 0
     end
 
     it "should be able to tell when it's in an ActiveRecord transaction" do

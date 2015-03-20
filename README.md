@@ -2,7 +2,7 @@
 
 **TL;DR: Que is a high-performance alternative to DelayedJob or QueueClassic that improves the reliability of your application by protecting your jobs with the same [ACID guarantees](https://en.wikipedia.org/wiki/ACID) as the rest of your data.**
 
-Que is a queue for Ruby and PostgreSQL that manages jobs using [advisory locks](http://www.postgresql.org/docs/current/static/explicit-locking.html#ADVISORY-LOCKS), which gives it several advantages over other RDBMS-backed queues:
+Que ("keɪ", or "kay") is a queue for Ruby and PostgreSQL that manages jobs using [advisory locks](http://www.postgresql.org/docs/current/static/explicit-locking.html#ADVISORY-LOCKS), which gives it several advantages over other RDBMS-backed queues:
 
   * **Concurrency** - Workers don't block each other when trying to lock jobs, as often occurs with "SELECT FOR UPDATE"-style locking. This allows for very high throughput with a large number of workers.
   * **Efficiency** - Locks are held in memory, so locking a job doesn't incur a disk write. These first two points are what limit performance with other queues - all workers trying to lock jobs have to wait behind one that's persisting its UPDATE on a locked_at column to disk (and the disks of however many other servers your database is synchronously replicating to). Under heavy load, Que's bottleneck is CPU, not I/O.
@@ -96,23 +96,36 @@ You can also add options to run the job after a specific time, or with a specifi
 ChargeCreditCard.enqueue current_user.id, :credit_card_id => card.id, :run_at => 1.day.from_now, :priority => 5
 ```
 
-To determine what happens when a job is queued, you can set Que's mode in your application configuration. There are a few options for the mode:
+To determine what happens when a job is queued, you can set Que's mode. There are a few options for the mode:
 
-  * `config.que.mode = :off` - In this mode, queueing a job will simply insert it into the database - the current process will make no effort to run it. You should use this if you want to use a dedicated process to work tasks (there's a rake task to do this, see below). This is the default when running `bin/rails console`.
-  * `config.que.mode = :async` - In this mode, a pool of background workers is spun up, each running in their own thread. This is the default when running `bin/rails server`. See the docs for [more information on managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md).
-  * `config.que.mode = :sync` - In this mode, any jobs you queue will be run in the same thread, synchronously (that is, `MyJob.enqueue` runs the job and won't return until it's completed). This makes your application's behavior easier to test, so it's the default in the test environment.
+  * `Que.mode = :off` - In this mode, queueing a job will simply insert it into the database - the current process will make no effort to run it. You should use this if you want to use a dedicated process to work tasks (there's a rake task to do this, see below). This is the default when running `bin/rails console`.
+  * `Que.mode = :async` - In this mode, a pool of background workers is spun up, each running in their own thread. This is the default when running `bin/rails server`. See the docs for [more information on managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md).
+  * `Que.mode = :sync` - In this mode, any jobs you queue will be run in the same thread, synchronously (that is, `MyJob.enqueue` runs the job and won't return until it's completed). This makes your application's behavior easier to test, so it's the default in the test environment.
 
 If you're using ActiveRecord to dump your database's schema, you'll probably want to [set schema_format to :sql](http://guides.rubyonrails.org/migrations.html#types-of-schema-dumps) so that Que's table structure is managed correctly.
 
-## Contributing
 
-  1. Fork it
-  2. Create your feature branch (`git checkout -b my-new-feature`)
-  3. Commit your changes (`git commit -am 'Add some feature'`)
-  4. Push to the branch (`git push origin my-new-feature`)
-  5. Create new Pull Request
+## Related Projects
 
-A note on running specs - Que's worker system is multithreaded and therefore prone to race conditions (especially on Rubinius). As such, if you've touched that code, a single spec run passing isn't a guarantee that any changes you've made haven't introduced bugs. One thing I like to do before pushing changes is rerun the specs many times and watching for hangs. You can do this from the command line with something like:
+  * [que-web](https://github.com/statianzo/que-web) is a Sinatra-based UI for inspecting your job queue.
+  * [que-testing](https://github.com/statianzo/que-testing) allows making assertions on enqueued jobs.
+  * [que-go](https://github.com/bgentry/que-go) is a port of Que for the Go programming language. It uses the same table structure, so that you can use the same job queue from Ruby and Go applications.
+
+If you have a project that uses or relates to Que, feel free to submit a PR adding it to the list!
+
+
+## Community and Contributing
+
+  * For bugs in the library, please feel free to [open an issue](https://github.com/chanks/que/issues/new).
+  * For general discussion and questions/concerns that don't relate to obvious bugs, try posting on the [que-talk Google Group](https://groups.google.com/forum/#!forum/que-talk).
+  * For contributions, pull requests submitted via Github are welcome.
+
+Regarding contributions, one of the project's priorities is to keep Que as simple, lightweight and dependency-free as possible, and pull requests that change too much or wouldn't be useful to the majority of Que's users have a good chance of being rejected. If you're thinking of submitting a pull request that adds a new feature, consider starting a discussion in [que-talk](https://groups.google.com/forum/#!forum/que-talk) first about what it would do and how it would be implemented. If it's a sufficiently large feature, or if most of Que's users wouldn't find it useful, it may be best implemented as a standalone gem, like some of the related projects above.
+
+
+### Specs
+
+A note on running specs - Que's worker system is multithreaded and therefore prone to race conditions (especially on interpreters without a global lock, like Rubinius or JRuby). As such, if you've touched that code, a single spec run passing isn't a guarantee that any changes you've made haven't introduced bugs. One thing I like to do before pushing changes is rerun the specs many times and watching for hangs. You can do this from the command line with something like:
 
     for i in {1..1000}; do rspec -b --seed $i; done
 

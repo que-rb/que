@@ -91,10 +91,29 @@ module Que
       @log_formatter ||= JSON_MODULE.method(:dump)
     end
 
-    %w(wake_interval wake_interval= wake! wake_all! worker_count worker_count=).each do |meth|
-      define_method meth do |*args|
-        warn "Que.#{meth} no longer serves a purpose and will be removed entirely in version 1.1.0."
-        nil
+    # A helper method to manage transactions, used mainly by the migration
+    # system. It's available for general use, but if you're using an ORM that
+    # provides its own transaction helper, be sure to use that instead, or the
+    # two may interfere with one another.
+    def transaction
+      pool.checkout do
+        if pool.in_transaction?
+          yield
+        else
+          begin
+            execute "BEGIN"
+            yield
+          rescue => error
+            raise
+          ensure
+            # Handle a raised error or a killed thread.
+            if error || Thread.current.status == 'aborting'
+              execute "ROLLBACK"
+            else
+              execute "COMMIT"
+            end
+          end
+        end
       end
     end
 
