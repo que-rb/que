@@ -1,4 +1,4 @@
-### 1.0.0 (Unreleased)
+### 1.0.0.beta (Unreleased)
 
 *   **A schema upgrade to version 4 will be required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
 
