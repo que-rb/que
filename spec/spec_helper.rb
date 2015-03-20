@@ -76,6 +76,8 @@ end
 stdout = Logger.new(STDOUT)
 
 RSpec.configure do |config|
+  config.expect_with(:rspec) { |c| c.syntax = [:expect, :should] }
+
   config.around do |spec|
     # Figure out which spec is about to run, for logging purposes.
     data = spec.metadata
