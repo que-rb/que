@@ -135,37 +135,30 @@ describe "Customizing Que" do
   end
 
   describe "with different columns" do
-    # it "with an additional column makes that column available to the job" do
-    #   # Drop prepared statements that may be invalidated when que_jobs
-    #   # changes, so that trying to use them doesn't raise an error.
-    #   Que.execute "DEALLOCATE ALL"
+    it "with an additional column makes that column available to the job" do
+      begin
+        DB.alter_table :que_jobs do
+          add_column :additional_column, :text, default: 'additional_column_default_value'
+        end
 
-    #   begin
-    #     DB.alter_table :que_jobs do
-    #       add_column :additional_column, :text, default: 'additional_column_default_value'
-    #     end
+        class AdditionalColumnJob < Que::Job
+          def run(*args)
+            $additional_column_value = @attrs[:additional_column]
+          end
+        end
 
-    #     class AdditionalColumnJob < Que::Job
-    #       def run(*args)
-    #         $additional_column_value = @attrs[:additional_column]
-    #       end
-    #     end
+        AdditionalColumnJob.enqueue
 
-    #     AdditionalColumnJob.enqueue
-
-    #     locker = Que::Locker.new
-    #     sleep_until { $additional_column_value == "additional_column_default_value" }
-    #     locker.stop
-    #   ensure
-    #     DB.alter_table :que_jobs do
-    #       drop_column :additional_column
-    #     end
-    #     $additional_column_value = nil
-
-    #     # Statements prepared with that temporary table structure must be dropped.
-    #     Que.execute "DEALLOCATE ALL"
-    #   end
-    # end
+        locker = Que::Locker.new
+        sleep_until { $additional_column_value == "additional_column_default_value" }
+        locker.stop
+      ensure
+        DB.alter_table :que_jobs do
+          drop_column :additional_column
+        end
+        $additional_column_value = nil
+      end
+    end
 
     # # Waiting on Postgres to get a bit smarter with regards to implicitly
     # # casting JSON to JSONB.

@@ -135,3 +135,26 @@ Alternately, if you want a more foolproof solution and you're not scared of Post
     $$;
 
     CREATE TRIGGER keep_all_my_old_jobs BEFORE DELETE ON que_jobs FOR EACH ROW EXECUTE PROCEDURE please_save_my_job();
+
+### Additional Job Information
+
+Que supports non-standard structures for the jobs table. For example, if you want each of your jobs reference rows in another table, you can add a foreign key:
+
+    CREATE TABLE widgets (
+      id serial primary key,
+      name text
+    );
+
+    ALTER TABLE que_jobs
+      ADD COLUMN widget_id integer REFERENCES widgets ON DELETE RESTRICT;
+
+Then simply INSERT rows into the que_jobs table with widget_ids and they'll be available in the job's attributes hash:
+
+    class ProcessWidget < Que::Job
+      def run(*args)
+        widget = Widget.find(@attrs[:widget_id])
+        widget.process!
+      end
+    end
+
+This is useful if you want to make sure that, for example, widgets aren't deleted before they've been processed. Remember that it may or may not be a good idea to index the widget_id column, depending on your use case.

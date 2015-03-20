@@ -1,7 +1,7 @@
 module Que
   SQL = {
     :get_job => %{
-      SELECT queue, priority, run_at, job_id, job_class, args, error_count
+      SELECT *
       FROM que_jobs
       WHERE queue    = $1::text
       AND   priority = $2::smallint
