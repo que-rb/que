@@ -52,9 +52,7 @@ describe Que, "mode=" do
       Que.mode = :off
     end
 
-    it "should start up a locker that respects settings from environment variables" do
-      pending
-
+    it "should start up a locker that respects settings from environment variables" # do
       # begin
       #   ENV['QUE_QUEUE'] = 'other_queue'
 
@@ -68,7 +66,7 @@ describe Que, "mode=" do
       # ensure
       #   ENV.delete('QUE_QUEUE')
       # end
-    end
+    # end
 
     it "then Que.mode = :async a second time should not do anything" do
       Que.mode = :async
