@@ -30,6 +30,8 @@
 
     *   For simplicity, job attributes and keys in argument hashes are now converted to symbols when retrieved from the database, rather than made indifferently-accessible. If you are presently allowing uncontrolled input to be used as keys in the arguments hash (or as keys in a hash nested within the arguments hash), you should either fix that or use a Ruby implementation that garbage-collects symbols, such as MRI 2.2+.
 
+    *   Que no longer uses prepared statements for its built-in queries, since they weren't compatible with configurable tables. This should have no outward-facing change, except that the `Que.use_prepared_statements` configuration accessor no longer exists.
+
     *   Features marked as deprecated in the previous release have been removed.
 
 ### 0.10.0 (2015-03-18)

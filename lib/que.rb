@@ -19,12 +19,10 @@ module Que
   require_relative 'que/version'
   require_relative 'que/worker'
 
-  @use_prepared_statements = true
-
   class << self
     extend Forwardable
 
-    attr_accessor :logger, :error_handler, :use_prepared_statements
+    attr_accessor :logger, :error_handler
     attr_writer :pool, :log_formatter, :logger
     attr_reader :mode, :locker
 

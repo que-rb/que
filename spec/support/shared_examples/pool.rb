@@ -8,15 +8,6 @@ shared_examples "a Que pool" do
     logged_messages[0]['params'].should == []
   end
 
-  it "should be able to prepare and execute statements" do
-    result = Que.execute(:job_stats)
-    result.should == []
-
-    logged_messages.map{|m| m['event']}.should == ['execute_statement']
-    logged_messages[0]['statement'].should == "job_stats"
-    logged_messages[0]['params'].should == []
-  end
-
   it "should be able to execute multiple SQL statements in one string" do
     Que.execute("SELECT 1 AS one; SELECT 1 AS one")
   end

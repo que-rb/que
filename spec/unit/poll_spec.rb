@@ -99,10 +99,6 @@ describe "The job polling query" do
     threads = 4.times.map do
       Thread.new do
         Que.checkout do
-          # Make sure that statements are prepared in all connections before
-          # we actually test the query.
-          poll(25).count.should be 0
-
           q1.push nil
           q2.pop
 
