@@ -49,7 +49,7 @@ describe Que::Worker do
     run_jobs Que.execute("SELECT * FROM que_jobs").first
 
     DB[:que_jobs].count.should be 0
-    $passed_args.should == [1, 'two', {'three' => 3}]
+    $passed_args.should == [1, 'two', {:three => 3}]
   end
 
   it "should make it easy to destroy the job within the same transaction as other changes" do

@@ -85,11 +85,25 @@ module Que
       end
     end
 
+    symbolize_recursively = proc do |object|
+      case object
+      when Hash
+        object.keys.each do |key|
+          object[key.to_sym] = symbolize_recursively.call(object.delete(key))
+        end
+        object
+      when Array
+        object.map!(&symbolize_recursively)
+      else
+        object
+      end
+    end
+
     # Procs used to convert strings from PG into Ruby types.
     CAST_PROCS = {
-      16   => 't'.method(:==),           # Boolean.
-      114  => JSON_MODULE.method(:load), # JSON.
-      1184 => Time.method(:parse)        # Timestamp with time zone.
+      16   => 't'.method(:==),                                                    # Boolean.
+      114  => proc { |json| symbolize_recursively.call(JSON_MODULE.load(json)) }, # JSON.
+      1184 => Time.method(:parse)                                                 # Timestamp with time zone.
     }
     CAST_PROCS[23] = CAST_PROCS[20] = CAST_PROCS[21] = proc(&:to_i) # Integer, bigint, smallint.
     CAST_PROCS.freeze
@@ -98,34 +112,19 @@ module Que
       output = result.to_a
 
       result.fields.each_with_index do |field, index|
-        if converter = CAST_PROCS[result.ftype(index)]
-          output.each do |hash|
-            unless (value = hash[field]).nil?
-              hash[field] = converter.call(value)
-            end
+        symbol = field.to_sym
+        converter = CAST_PROCS[result.ftype(index)]
+
+        output.each do |hash|
+          if (value = hash.delete(field)) && converter
+            value = converter.call(value)
           end
+
+          hash[symbol] = value
         end
       end
 
-      convert_to_indifferent_hash(output)
+      output
     end
-
-    def convert_to_indifferent_hash(object)
-      case object
-      when Hash
-        if object.respond_to?(:with_indifferent_access)
-          object.with_indifferent_access
-        else
-          object.default_proc = HASH_DEFAULT_PROC
-          object.each { |key, value| object[key] = convert_to_indifferent_hash(value) }
-        end
-      when Array
-        object.map! { |element| convert_to_indifferent_hash(element) }
-      else
-        object
-      end
-    end
-
-    HASH_DEFAULT_PROC = proc { |hash, key| hash[key.to_s] if Symbol === key }
   end
 end

@@ -28,6 +28,8 @@
 
     *   `Que.worker_states` has been removed, as it is no longer possible to inspect the Postgres connection that is working each job. Its functionality has been partially replaced with `Que.job_states`.
 
+    *   For simplicity, job attributes and keys in argument hashes are now converted to symbols when retrieved from the database, rather than made indifferently-accessible. If you are presently allowing uncontrolled input to be used as keys in the arguments hash (or as keys in a hash nested within the arguments hash), you should either fix that or use a Ruby implementation that garbage-collects symbols, such as MRI 2.2+.
+
     *   Features marked as deprecated in the previous release have been removed.
 
 ### 0.10.0 (2015-03-18)

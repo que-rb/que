@@ -20,7 +20,7 @@ describe Que, '.job_stats' do
 
       qj, bj = stats
 
-      qj.keys.should == %w(queue job_class count count_working count_errored highest_error_count oldest_run_at)
+      qj.keys.should == %i(queue job_class count count_working count_errored highest_error_count oldest_run_at)
 
       qj[:queue].should == ''
       qj[:job_class].should == 'Que::Job'

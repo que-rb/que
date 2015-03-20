@@ -68,15 +68,6 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       end
     end
 
-    it "should instantiate args as ActiveSupport::HashWithIndifferentAccess" do
-      ArgsJob.enqueue :param => 2
-      locker = Que::Locker.new
-      sleep_until { $passed_args }
-      $passed_args.first[:param].should == 2
-      $passed_args.first.should be_an_instance_of ActiveSupport::HashWithIndifferentAccess
-      locker.stop
-    end
-
     it "should support Rails' special extensions for times" do
       locker = Que::Locker.new :poll_interval => 0.005.seconds
       sleep 0.01

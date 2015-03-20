@@ -18,7 +18,7 @@ describe Que, '.job_states' do
     locker.stop
 
     state = states.first
-    state.keys.should == %w(priority run_at job_id job_class args error_count last_error queue ruby_hostname ruby_pid)
+    state.keys.should == %i(priority run_at job_id job_class args error_count last_error queue ruby_hostname ruby_pid)
 
     state[:priority].should == 2
     state[:run_at].should be_within(3).of Time.now
