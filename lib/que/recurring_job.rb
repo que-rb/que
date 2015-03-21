@@ -36,7 +36,7 @@ module Que
 
     def reenqueue
       new_args = @args_copy << {recurring_interval: [@t_f, next_run_float]}
-      Que.execute :reenqueue_job, attrs.values_at(:queue, :priority, :run_at, :job_id, :job_class) << next_run_time << new_args
+      Que.execute :reenqueue_job, attrs.values_at(:priority, :run_at, :job_id, :job_class) << next_run_time << new_args
       @reenqueued = true
     end
 

@@ -7,7 +7,6 @@ describe Que::Locker do
     events = logged_messages.select { |m| m['event'] == 'locker_start' }
     events.count.should == 1
     event = events.first
-    event['queue'].should == ''
     event['listen'].should == true
     event['backend_pid'].should be_an_instance_of Fixnum
     event['wait_period'].should == 0.01
@@ -23,7 +22,6 @@ describe Que::Locker do
                              :maximum_queue_size => 45,
                              :wait_period        => 0.2,
                              :poll_interval      => 0.4,
-                             :queue              => 'other_queue',
                              :worker_priorities  => [1, 2, 3, 4],
                              :worker_count       => 8
     locker.stop
@@ -31,7 +29,6 @@ describe Que::Locker do
     events = logged_messages.select { |m| m['event'] == 'locker_start' }
     events.count.should == 1
     event = events.first
-    event['queue'].should == 'other_queue'
     event['listen'].should == false
     event['backend_pid'].should be_an_instance_of Fixnum
     event['wait_period'].should == 0.2
@@ -71,7 +68,6 @@ describe Que::Locker do
     record[:ruby_pid].should      == Process.pid
     record[:ruby_hostname].should == Socket.gethostname
     record[:worker_count].should  == worker_count
-    record[:queue].should         == ''
     record[:listening].should     == true
 
     locker.stop
@@ -84,12 +80,11 @@ describe Que::Locker do
     # locker here will be reused by the actual locker below, in order to
     # spec the cleaning of lockers previously registered by the same
     # connection.
-    Que.execute :register_locker, ['', 3, 0, 'blah1', 'true']
+    Que.execute :register_locker, [3, 0, 'blah1', 'true']
     DB[:que_lockers].insert :pid           => 0,
                             :ruby_pid      => 0,
                             :ruby_hostname => 'blah2',
                             :worker_count  => 4,
-                            :queue         => '',
                             :listening     => true
 
     DB[:que_lockers].count.should be 2
@@ -124,7 +119,6 @@ describe Que::Locker do
   describe "on startup" do
     it "should do batch polls for jobs" do
       job1, job2 = BlockJob.enqueue, BlockJob.enqueue
-      job3       = Que::Job.enqueue :queue => 'other_queue'
 
       locker = Que::Locker.new
 
@@ -133,7 +127,7 @@ describe Que::Locker do
 
       locker.stop
 
-      DB[:que_jobs].select_map(:queue).should == ['other_queue']
+      DB[:que_jobs].count.should be 0
     end
 
     it "should request enough jobs to fill the queue" do
@@ -195,25 +189,6 @@ describe Que::Locker do
       end
     end
 
-    it "when no named queue is assigned should only work jobs from the default queue" do
-      id1 = Que::Job.enqueue.attrs[:job_id]
-      id2 = Que::Job.enqueue(:queue => 'my_queue').attrs[:job_id]
-
-      locker = Que::Locker.new
-
-      sleep_until { DB[:que_jobs].select_map(:job_id) == [id2] }
-      locker.stop
-    end
-
-    it "when a named queue is assigned should only work jobs from it" do
-      id1 = Que::Job.enqueue.attrs[:job_id]
-      id2 = Que::Job.enqueue(:queue => 'my_queue').attrs[:job_id]
-
-      Que::Locker.new(:queue => 'my_queue').stop
-
-      DB[:que_jobs].select_map(:job_id).should == [id1]
-    end
-
     it "should request as many as necessary to reach the maximum_queue_size" do
       ids  = 3.times.map { BlockJob.enqueue(:priority => 100).attrs[:job_id] }
       ids += 3.times.map { Que::Job.enqueue(:priority => 101).attrs[:job_id] }
@@ -228,7 +203,6 @@ describe Que::Locker do
       locker.stop
 
       event = logged_messages.select{|m| m['event'] == 'locker_polled'}.first
-      event['queue'].should == ''
       event['limit'].should == 8
       event['locked'].should == 6
     end
@@ -275,7 +249,6 @@ describe Que::Locker do
       event = events.first
       log = event['job']
 
-      log['queue'].should == ''
       log['priority'].should == job.attrs[:priority]
       Time.parse(log['run_at']).should == job.attrs[:run_at]
       log['job_id'].should == job.attrs[:job_id]
@@ -319,7 +292,7 @@ describe Que::Locker do
 
       payload = DB[:que_jobs].
         where(:job_id => attrs[:job_id]).
-        select(:queue, :priority, :run_at, :job_id).
+        select(:priority, :run_at, :job_id).
         from_self(:alias => :t).
         get{row_to_json(:t)}
 

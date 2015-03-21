@@ -1,9 +1,13 @@
+ALTER TABLE que_jobs
+  DROP CONSTRAINT que_jobs_pkey,
+  DROP COLUMN queue,
+  ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (priority, run_at, job_id);
+
 CREATE UNLOGGED TABLE que_lockers (
   pid           integer NOT NULL CONSTRAINT que_lockers_pkey PRIMARY KEY,
   worker_count  integer NOT NULL,
   ruby_pid      integer NOT NULL,
   ruby_hostname text    NOT NULL,
-  queue         text    NOT NULL,
   listening     boolean NOT NULL
 );
 
@@ -32,8 +36,7 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
         FROM (
           SELECT *
           FROM que_lockers ql, generate_series(1, ql.worker_count) AS id
-          WHERE queue = NEW.queue
-          AND listening
+          WHERE listening
           ORDER BY md5(pid::text || id::text)
         ) t1
       ) t2
@@ -48,8 +51,7 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
       SELECT row_to_json(t)
       INTO primary_key
       FROM (
-        SELECT NEW.queue    AS queue,
-               NEW.priority AS priority,
+        SELECT NEW.priority AS priority,
                NEW.run_at   AS run_at,
                NEW.job_id   AS job_id
       ) t;

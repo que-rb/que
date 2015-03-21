@@ -19,7 +19,7 @@ module Que
     private
 
     def destroy
-      Que.execute :destroy_job, attrs.values_at(:queue, :priority, :run_at, :job_id)
+      Que.execute :destroy_job, attrs.values_at(:priority, :run_at, :job_id)
       @destroyed = true
     end
 
@@ -31,7 +31,6 @@ module Que
       def enqueue(*args)
         if args.last.is_a?(Hash)
           options   = args.pop
-          queue     = options.delete(:queue) || '' if options.key?(:queue)
           job_class = options.delete(:job_class)
           run_at    = options.delete(:run_at)
           priority  = options.delete(:priority)
@@ -48,14 +47,10 @@ module Que
           attrs[:priority] = p
         end
 
-        if q = queue || @queue
-          attrs[:queue] = q
-        end
-
         if Que.mode == :sync && !t
           run(*attrs[:args])
         else
-          values = Que.execute(:insert_job, attrs.values_at(:queue, :priority, :run_at, :job_class, :args)).first
+          values = Que.execute(:insert_job, attrs.values_at(:priority, :run_at, :job_class, :args)).first
           new(values)
         end
       end

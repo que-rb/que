@@ -14,7 +14,6 @@ module Que
       end
 
       @listen             = !!options.fetch(:listen, true)
-      @queue_name         = options[:queue] || ''
       @wait_period        = options[:wait_period] || 0.01
       @poll_interval      = options[:poll_interval]
       @minimum_queue_size = options[:minimum_queue_size] || 2
@@ -50,7 +49,6 @@ module Que
 
         Que.log :level              => :debug,
                 :event              => :locker_start,
-                :queue              => @queue_name,
                 :listen             => @listen,
                 :backend_pid        => backend_pid,
                 :wait_period        => @wait_period,
@@ -65,7 +63,7 @@ module Que
           # A previous locker that didn't exit cleanly may have left behind
           # a bad locker record, so clean up before registering.
           execute :clean_lockers
-          execute :register_locker, [@queue_name, @workers.count, Process.pid, Socket.gethostname, @listen.to_s]
+          execute :register_locker, [@workers.count, Process.pid, Socket.gethostname, @listen.to_s]
 
           poll
 
@@ -108,15 +106,15 @@ module Que
 
     def poll
       count = @job_queue.space
-      jobs  = execute :poll_jobs, [@queue_name, "{#{@locks.to_a.join(',')}}", count]
+      jobs  = execute :poll_jobs, ["{#{@locks.to_a.join(',')}}", count]
 
       @locks.merge jobs.map { |job| job[:job_id] }
-      push_jobs jobs.map { |job| job.values_at(:queue, :priority, :run_at, :job_id) }
+      push_jobs jobs.map { |job| job.values_at(:priority, :run_at, :job_id) }
 
       @last_polled_at      = Time.now
       @last_poll_satisfied = count == jobs.count
 
-      Que.log :level => :debug, :event => :locker_polled, :queue => @queue_name, :limit => count, :locked => jobs.count
+      Que.log :level => :debug, :event => :locker_polled, :limit => count, :locked => jobs.count
     end
 
     def wait
@@ -167,7 +165,7 @@ module Que
       checkout do |conn|
         conn.wait_for_notify(timeout) do |_, _, payload|
           Que.log :level => :debug, :event => :job_notified, :job => (json = JSON_MODULE.load(payload))
-          return [json['queue'], json['priority'], Time.parse(json['run_at']), json['job_id']]
+          return [json['priority'], Time.parse(json['run_at']), json['job_id']]
         end
       end
     end

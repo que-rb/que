@@ -2,10 +2,9 @@ require 'spec_helper'
 
 describe "The job polling query" do
   def poll(count, options = {})
-    queue   = options[:queue]   || ''
     job_ids = options[:job_ids] || []
 
-    jobs = Que.execute :poll_jobs, [queue, "{#{job_ids.join(',')}}", count]
+    jobs = Que.execute :poll_jobs, ["{#{job_ids.join(',')}}", count]
 
     returned_job_ids = jobs.map { |j| j[:job_id] }
 
@@ -29,13 +28,6 @@ describe "The job polling query" do
   it "should return only the requested number of jobs" do
     ids = 5.times.map { Que::Job.enqueue.attrs[:job_id] }
     poll(4).should == ids[0..3]
-  end
-
-  it "should return jobs from the given queue" do
-    one = Que::Job.enqueue(:queue => 'one').attrs[:job_id]
-    two = Que::Job.enqueue(:queue => 'two').attrs[:job_id]
-
-    poll(2, :queue => 'one').should == [one]
   end
 
   it "should skip jobs with the given job_ids" do

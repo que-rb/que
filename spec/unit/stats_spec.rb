@@ -20,9 +20,8 @@ describe Que, '.job_stats' do
 
       qj, bj = stats
 
-      qj.keys.should == %i(queue job_class count count_working count_errored highest_error_count oldest_run_at)
+      qj.keys.should == %i(job_class count count_working count_errored highest_error_count oldest_run_at)
 
-      qj[:queue].should == ''
       qj[:job_class].should == 'Que::Job'
       qj[:count].should == 2
       qj[:count_working].should == 1
@@ -30,7 +29,6 @@ describe Que, '.job_stats' do
       qj[:highest_error_count].should == 5
       qj[:oldest_run_at].should be_within(3).of old
 
-      bj[:queue].should == ''
       bj[:job_class].should == 'BlockJob'
       bj[:count].should == 1
       bj[:count_working].should == 0

@@ -6,13 +6,12 @@ describe Que::Worker do
     @result_queue = Que::JobQueue.new
 
     @worker = Que::Worker.new :job_queue    => @job_queue,
-                              :result_queue => @result_queue,
-                              :queue_name   => ''
+                              :result_queue => @result_queue
   end
 
   def run_jobs(*jobs)
     @result_queue.clear
-    jobs = jobs.flatten.map { |job| job.values_at(:queue, :priority, :run_at, :job_id) }
+    jobs = jobs.flatten.map { |job| job.values_at(:priority, :run_at, :job_id) }
     @job_queue.push *jobs
     sleep_until { @result_queue.to_a.sort == jobs.sort }
   end
@@ -134,8 +133,7 @@ describe Que::Worker do
 
   it "should skip a job without incident if passed the pk for a job that doesn't exist" do
     DB[:que_jobs].count.should be 0
-    run_jobs :queue    => '',
-             :priority => 1,
+    run_jobs :priority => 1,
              :run_at   => Time.now,
              :job_id   => 587648
 
@@ -145,7 +143,7 @@ describe Que::Worker do
   it "should only take jobs that meet its priority requirement" do
     @worker.priority = 10
 
-    jobs = (1..20).map { |i| ['', i, Time.now, i] }
+    jobs = (1..20).map { |i| [i, Time.now, i] }
 
     @job_queue.push *jobs
 
@@ -166,7 +164,7 @@ describe Que::Worker do
       events = logged_messages.select{|m| m['event'] == 'job_errored'}
       events.count.should be 1
       event = events.first
-      event['pk'][1].should == 1
+      event['pk'][0].should == 1
       event['job']['job_id'].should be_an_instance_of Fixnum
       event['error']['class'].should == 'RuntimeError'
       event['error']['message'].should == 'ErrorJob!'

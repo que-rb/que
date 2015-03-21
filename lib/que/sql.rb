@@ -3,10 +3,9 @@ module Que
     :get_job => %{
       SELECT *
       FROM que_jobs
-      WHERE queue    = $1::text
-      AND   priority = $2::smallint
-      AND   run_at   = $3::timestamptz
-      AND   job_id   = $4::bigint
+      WHERE priority = $1::smallint
+      AND   run_at   = $2::timestamptz
+      AND   job_id   = $3::bigint
     }.freeze,
 
     # Thanks to RhodiumToad in #postgresql for help with the poll_jobs CTE.
@@ -25,8 +24,7 @@ module Que
         FROM (
           SELECT j
           FROM que_jobs AS j
-          WHERE queue = $1::text
-          AND NOT job_id = ANY($2::integer[])
+          WHERE NOT job_id = ANY($1::integer[])
           AND run_at <= now()
           ORDER BY priority, run_at, job_id
           LIMIT 1
@@ -37,8 +35,7 @@ module Que
             SELECT (
               SELECT j
               FROM que_jobs AS j
-              WHERE queue = $1::text
-              AND NOT job_id = ANY($2::integer[])
+              WHERE NOT job_id = ANY($1::integer[])
               AND run_at <= now()
               AND (priority, run_at, job_id) > (jobs.priority, jobs.run_at, jobs.job_id)
               ORDER BY priority, run_at, job_id
@@ -50,34 +47,32 @@ module Que
           ) AS t1
         )
       )
-      SELECT queue, priority, run_at, job_id
+      SELECT priority, run_at, job_id
       FROM jobs
       WHERE locked
-      LIMIT $3::integer
+      LIMIT $2::integer
     }.freeze,
 
     :reenqueue_job => %{
       WITH deleted_job AS (
         DELETE FROM que_jobs
-          WHERE queue    = $1::text
-          AND   priority = $2::smallint
-          AND   run_at   = $3::timestamptz
-          AND   job_id   = $4::bigint
+          WHERE priority = $1::smallint
+          AND   run_at   = $2::timestamptz
+          AND   job_id   = $3::bigint
       )
       INSERT INTO que_jobs
-      (queue, priority, job_class, run_at, args)
+      (priority, job_class, run_at, args)
       VALUES
-      ($1::text, $2::smallint, $5::text, $6::timestamptz, $7::json)
+      ($1::smallint, $4::text, $5::timestamptz, $6::json)
       RETURNING *
     }.freeze,
 
     :check_job => %{
       SELECT 1 AS one
       FROM   que_jobs
-      WHERE  queue    = $1::text
-      AND    priority = $2::smallint
-      AND    run_at   = $3::timestamptz
-      AND    job_id   = $4::bigint
+      WHERE  priority = $1::smallint
+      AND    run_at   = $2::timestamptz
+      AND    job_id   = $3::bigint
     }.freeze,
 
     :set_error => %{
@@ -85,26 +80,24 @@ module Que
       SET error_count = $1::integer,
           run_at      = now() + $2::bigint * '1 second'::interval,
           last_error  = $3::text
-      WHERE queue     = $4::text
-      AND   priority  = $5::smallint
-      AND   run_at    = $6::timestamptz
-      AND   job_id    = $7::bigint
+      WHERE priority  = $4::smallint
+      AND   run_at    = $5::timestamptz
+      AND   job_id    = $6::bigint
     }.freeze,
 
     :insert_job => %{
       INSERT INTO que_jobs
-      (queue, priority, run_at, job_class, args)
+      (priority, run_at, job_class, args)
       VALUES
-      (coalesce($1, '')::text, coalesce($2, 100)::smallint, coalesce($3, now())::timestamptz, $4::text, coalesce($5, '[]')::json)
+      (coalesce($1, 100)::smallint, coalesce($2, now())::timestamptz, $3::text, coalesce($4, '[]')::json)
       RETURNING *
     }.freeze,
 
     :destroy_job => %{
       DELETE FROM que_jobs
-      WHERE queue    = $1::text
-      AND   priority = $2::smallint
-      AND   run_at   = $3::timestamptz
-      AND   job_id   = $4::bigint
+      WHERE priority = $1::smallint
+      AND   run_at   = $2::timestamptz
+      AND   job_id   = $3::bigint
     }.freeze,
 
     :clean_lockers => %{
@@ -115,14 +108,13 @@ module Que
 
     :register_locker => %{
       INSERT INTO que_lockers
-      (pid, queue, worker_count, ruby_pid, ruby_hostname, listening)
+      (pid, worker_count, ruby_pid, ruby_hostname, listening)
       VALUES
-      (pg_backend_pid(), $1::text, $2::integer, $3::integer, $4::text, $5::boolean);
+      (pg_backend_pid(), $1::integer, $2::integer, $3::text, $4::boolean);
     }.freeze,
 
     :job_stats => %{
-      SELECT queue,
-             job_class,
+      SELECT job_class,
              count(*)                    AS count,
              count(locks.job_id)         AS count_working,
              sum((error_count > 0)::int) AS count_errored,
@@ -134,7 +126,7 @@ module Que
         FROM pg_locks
         WHERE locktype = 'advisory'
       ) locks USING (job_id)
-      GROUP BY queue, job_class
+      GROUP BY job_class
       ORDER BY count(*) DESC
     }.freeze,
 

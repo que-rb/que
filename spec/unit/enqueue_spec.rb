@@ -7,12 +7,10 @@ describe Que::Job, '.enqueue' do
     DB[:que_jobs].count.should be 1
 
     result.should be_an_instance_of Que::Job
-    result.attrs[:queue].should == ''
     result.attrs[:priority].should == 100
     result.attrs[:args].should == []
 
     job = DB[:que_jobs].first
-    job[:queue].should == ''
     job[:priority].should be 100
     job[:run_at].should be_within(3).of Time.now
     job[:job_class].should == "Que::Job"
@@ -25,7 +23,6 @@ describe Que::Job, '.enqueue' do
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
-    job[:queue].should == ''
     job[:priority].should be 100
     job[:run_at].should be_within(3).of Time.now
     job[:job_class].should == "Que::Job"
@@ -42,7 +39,6 @@ describe Que::Job, '.enqueue' do
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
-    job[:queue].should == ''
     job[:priority].should be 100
     job[:run_at].should be_within(3).of Time.now
     job[:job_class].should == "Que::Job"
@@ -64,7 +60,6 @@ describe Que::Job, '.enqueue' do
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
-    job[:queue].should == ''
     job[:priority].should be 100
     job[:run_at].should be_within(3).of Time.now + 60
     job[:job_class].should == "Que::Job"
@@ -77,7 +72,6 @@ describe Que::Job, '.enqueue' do
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
-    job[:queue].should == ''
     job[:priority].should be 4
     job[:run_at].should be_within(3).of Time.now
     job[:job_class].should == "Que::Job"
@@ -90,7 +84,6 @@ describe Que::Job, '.enqueue' do
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
-    job[:queue].should == ''
     job[:priority].should be 4
     job[:run_at].should be_within(3).of Time.now + 60
     job[:job_class].should == "Que::Job"
@@ -98,13 +91,12 @@ describe Que::Job, '.enqueue' do
   end
 
   it "should respect a job class defined as a string" do
-    Que.enqueue 'argument', :queue => 'my_queue', :other_arg => 'other_arg', :job_class => 'MyJobClass'
-    Que::Job.enqueue 'argument', :queue => 'my_queue', :other_arg => 'other_arg', :job_class => 'MyJobClass'
+    Que.enqueue 'argument', :other_arg => 'other_arg', :job_class => 'MyJobClass'
+    Que::Job.enqueue 'argument', :other_arg => 'other_arg', :job_class => 'MyJobClass'
 
     DB[:que_jobs].count.should be 2
     DB[:que_jobs].all.each do |job|
       job[:job_class].should == 'MyJobClass'
-      job[:queue].should == 'my_queue'
       JSON.load(job[:args]).should == ['argument', {'other_arg' => 'other_arg'}]
     end
   end
@@ -121,13 +113,11 @@ describe Que::Job, '.enqueue' do
 
     first, second = DB[:que_jobs].order(:job_id).all
 
-    first[:queue].should == ''
     first[:priority].should be 3
     first[:run_at].should be_within(3).of Time.now
     first[:job_class].should == "DefaultPriorityJob"
     JSON.load(first[:args]).should == [1]
 
-    second[:queue].should == ''
     second[:priority].should be 4
     second[:run_at].should be_within(3).of Time.now
     second[:job_class].should == "DefaultPriorityJob"
@@ -146,38 +136,14 @@ describe Que::Job, '.enqueue' do
 
     first, second = DB[:que_jobs].order(:job_id).all
 
-    first[:queue].should == ''
     first[:priority].should be 100
     first[:run_at].should be_within(3).of Time.now + 60
     first[:job_class].should == "DefaultRunAtJob"
     JSON.load(first[:args]).should == [1]
 
-    second[:queue].should == ''
     second[:priority].should be 100
     second[:run_at].should be_within(3).of Time.now + 30
     second[:job_class].should == "DefaultRunAtJob"
     JSON.load(second[:args]).should == [1]
-  end
-
-  it "should respect a default (but overridable) queue for the job class" do
-    class NamedQueueJob < Que::Job
-      @queue = :my_queue
-    end
-
-    DB[:que_jobs].count.should be 0
-    NamedQueueJob.enqueue 1
-    NamedQueueJob.enqueue 1, :queue => 'my_queue_2'
-    NamedQueueJob.enqueue 1, :queue => :my_queue_2
-    NamedQueueJob.enqueue 1, :queue => ''
-    NamedQueueJob.enqueue 1, :queue => nil
-    DB[:que_jobs].count.should be 5
-
-    first, second, third, fourth, fifth = DB[:que_jobs].order(:job_id).select_map(:queue)
-
-    first.should  == 'my_queue'
-    second.should == 'my_queue_2'
-    third.should  == 'my_queue_2'
-    fourth.should == ''
-    fifth.should  == ''
   end
 end

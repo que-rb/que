@@ -34,7 +34,7 @@ module Que
         sync do
           if @stop
             return
-          elsif (pk = @array.first) && pk[1] <= priority
+          elsif (pk = @array.first) && pk[0] <= priority
             return @array.shift
           else
             @cv.wait
