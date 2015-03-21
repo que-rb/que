@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe 'Que::CronJob' do
+describe Que::RecurringJob do
   it "should allow for easy recurring jobs" do
-    pending "Figure out what to do with Cron Jobs"
+    pending
 
     begin
       class CronJob < Que::Job

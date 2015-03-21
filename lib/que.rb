@@ -15,6 +15,7 @@ module Que
   require_relative 'que/locker'
   require_relative 'que/migrations'
   require_relative 'que/pool'
+  require_relative 'que/recurring_job'
   require_relative 'que/sql'
   require_relative 'que/version'
   require_relative 'que/worker'
