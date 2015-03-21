@@ -5,6 +5,22 @@ class Que::RecurringJob < Que::Job
     reenqueue unless @reenqueued || @destroyed
   end
 
+  def start_time
+    Time.at(@t_i)
+  end
+
+  def end_time
+    Time.at(@t_f)
+  end
+
+  def time_range
+    start_time...end_time
+  end
+
+  def next_run_time
+    end_time + self.class.interval
+  end
+
   private
 
   def reenqueue

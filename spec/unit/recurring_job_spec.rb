@@ -78,9 +78,49 @@ describe Que::RecurringJob do
 
   it "shouldn't allow any mutation of the args hash to be propagated to the next job"
 
-  it "should make the time range helper methods available to the run method"
+  it "should make the time range helper methods available to the run method" do
+    enqueued = CronJob.enqueue 1, 'a', {opt: 45}
 
-  it "should reenqueue itself if it wasn't reenqueued or destroyed already"
+    begin
+      class CronJob
+        def run(*args)
+          $from_db = Que.execute("SELECT * FROM que_jobs LIMIT 1").first
+          $start_time = start_time
+          $end_time = end_time
+          $time_range = time_range # start_time...end_time
+          $next_run_time = next_run_time
+        end
+      end
+
+      run_job
+
+      t_i, t_f = $from_db[:args][-1][:recurring_interval]
+
+      $start_time.should == Time.at(t_i)
+      $end_time.should == Time.at(t_f)
+      $time_range.should == ($start_time...$end_time)
+      $next_run_time.should == $end_time + 60
+    ensure
+      $from_db = $start_time = $end_time = $time_range = $next_run_time = nil
+    end
+  end
+
+  it "shouldn't allow its timings to be thrown off by errors"
+
+  it "should reenqueue itself if it wasn't reenqueued or destroyed already" do
+    enqueued = CronJob.enqueue 1, 'a', {opt: 45}
+
+    class CronJob
+      def run(*args)
+      end
+    end
+
+    run_job
+
+    final = DB[:que_jobs].first
+    final[:job_id].should be > enqueued.attrs[:job_id]
+    final[:run_at].to_f.should be_within(0.000001).of(enqueued.attrs[:args][-1][:recurring_interval][1] + 60)
+  end
 
   it "should allow its arguments to be overridden when reenqueued"
 

@@ -9,10 +9,10 @@ class EmailNewUsersJob < Que::RecurringJob
   @interval = 3600
 
   def run(account_id)
-    run_at
-    last_run_at
-    time_range # last_run_at...run_at
-    time_to_run_next
+    start_time
+    end_time
+    time_range # start_time...end_time
+    next_run_time
 
     users = User.where(created_at: time_range).to_a
 
