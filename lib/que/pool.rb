@@ -47,24 +47,10 @@ module Que
       checkout { |conn| conn.async_exec(*args) }
     end
 
-    symbolize_recursively = proc do |object|
-      case object
-      when Hash
-        object.keys.each do |key|
-          object[key.to_sym] = symbolize_recursively.call(object.delete(key))
-        end
-        object
-      when Array
-        object.map!(&symbolize_recursively)
-      else
-        object
-      end
-    end
-
     # Procs used to convert strings from PG into Ruby types.
     CAST_PROCS = {
       16   => 't'.method(:==),                                                    # Boolean.
-      114  => proc { |json| symbolize_recursively.call(JSON_MODULE.load(json)) }, # JSON.
+      114  => proc { |json| Que.symbolize_recursively!(JSON_MODULE.load(json)) }, # JSON.
       1184 => Time.method(:parse)                                                 # Timestamp with time zone.
     }
     CAST_PROCS[23] = CAST_PROCS[20] = CAST_PROCS[21] = proc(&:to_i) # Integer, bigint, smallint.

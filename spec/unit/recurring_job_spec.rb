@@ -76,7 +76,27 @@ describe Que::RecurringJob do
     end
   end
 
-  it "shouldn't allow any mutation of the args hash to be propagated to the next job"
+  it "shouldn't allow any mutation of the args hash to be propagated to the next job" do
+    enqueued = CronJob.enqueue 1, 'a', {opt: 45}
+
+    begin
+      class CronJob
+        def run(*args)
+          $passed_args = Que.symbolize_recursively!(JSON.load(JSON.dump(args)))
+          args[-1][:opt] = 3525
+          args << 'blah'
+        end
+      end
+
+      run_job
+      $passed_args.should == [1, 'a', {opt: 45}]
+      DB[:que_jobs].update(run_at: Time.now - 60)
+      run_job
+      $passed_args.should == [1, 'a', {opt: 45}]
+    ensure
+      $passed_args = nil
+    end
+  end
 
   it "should make the time range helper methods available to the run method" do
     enqueued = CronJob.enqueue 1, 'a', {opt: 45}
@@ -188,6 +208,8 @@ describe Que::RecurringJob do
       $args = $from_db = $start_time = $end_time = $time_range = $next_run_time = nil
     end
   end
+
+  it "should use a custom run_at as the final value in the interval"
 
   it "should allow its arguments to be overridden when reenqueued"
 
