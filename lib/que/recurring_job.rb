@@ -17,16 +17,18 @@ class Que::RecurringJob < Que::Job
     start_time...end_time
   end
 
+  def next_run_float
+    @t_f + self.class.interval
+  end
+
   def next_run_time
-    end_time + self.class.interval
+    Time.at(next_run_float)
   end
 
   private
 
   def reenqueue
-    next_run_utc = @t_f + self.class.interval
-    next_run_time = Time.at(next_run_utc).utc
-    args = attrs[:args] << {recurring_interval: [@t_f, next_run_utc]}
+    args = attrs[:args] << {recurring_interval: [@t_f, next_run_float]}
 
     params = attrs.values_at(:queue, :priority, :run_at, :job_id)
     params << attrs[:queue] << attrs[:priority] << next_run_time << attrs[:job_class] << args
