@@ -155,5 +155,3 @@ module Que
     def_delegators Migrations, :db_version, :migrate!
   end
 end
-
-require 'que/railtie' if defined? Rails::Railtie

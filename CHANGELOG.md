@@ -20,6 +20,8 @@
 
 *   In keeping with semantic versioning, the major version is being bumped since the new implementation requires some backwards-incompatible changes. These changes include:
 
+    *   The Railtie and Rake tasks providing simple integration with Rails have been moved to another gem (TODO: publish and link here).
+
     *   JRuby support has been dropped. It will be reintroduced when the jruby-pg gem [fully supports PG::Connection#wait_for_notify](https://github.com/headius/jruby-pg/issues/13).
 
     *   `Que.wake_interval`, `Que.wake_interval=`, `Que.wake!`, `Que.wake_all!`, `Que.worker_count` and `Que.worker_count=` are not usable under the new implementation, and so have been removed.
