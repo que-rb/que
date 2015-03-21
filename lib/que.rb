@@ -2,6 +2,8 @@ require 'forwardable'
 require 'socket' # For Socket.gethostname
 
 module Que
+  class Error < StandardError; end
+
   begin
     require 'multi_json'
     JSON_MODULE = MultiJson
@@ -38,7 +40,7 @@ module Que
             when 'Pond'                       then connection.method(:checkout)
             when 'PG::Connection'             then raise "Que now requires a connection pool and can no longer use a plain PG::Connection."
             when 'NilClass'                   then connection
-            else raise "Que connection not recognized: #{connection.inspect}"
+            else raise Error, "Que connection not recognized: #{connection.inspect}"
           end
         end
     end
@@ -48,7 +50,7 @@ module Que
     end
 
     def pool
-      @pool || raise("Que connection not established!")
+      @pool || raise(Error, "Que connection not established!")
     end
 
     def clear!
@@ -127,7 +129,7 @@ module Que
             @locker = nil
           end
         else
-          raise "Unknown Que mode: #{mode.inspect}"
+          raise Error, "Unknown Que mode: #{mode.inspect}"
         end
 
         log :level => :debug, :event => 'mode_change', :value => mode.to_s
