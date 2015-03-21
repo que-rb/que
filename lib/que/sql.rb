@@ -65,9 +65,9 @@ module Que
           AND   job_id   = $4::bigint
       )
       INSERT INTO que_jobs
-      (queue, priority, run_at, job_class, args)
+      (queue, priority, job_class, run_at, args)
       VALUES
-      (coalesce($5, '')::text, coalesce($6, 100)::smallint, coalesce($7, now())::timestamptz, $8::text, coalesce($9, '[]')::json)
+      ($1::text, $2::smallint, $5::text, $6::timestamptz, $7::json)
       RETURNING *
     }.freeze,
 

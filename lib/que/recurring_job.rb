@@ -28,12 +28,8 @@ class Que::RecurringJob < Que::Job
   private
 
   def reenqueue
-    args = attrs[:args] << {recurring_interval: [@t_f, next_run_float]}
-
-    params = attrs.values_at(:queue, :priority, :run_at, :job_id)
-    params << attrs[:queue] << attrs[:priority] << next_run_time << attrs[:job_class] << args
-
-    Que.execute :reenqueue_job, params
+    new_args = attrs[:args] << {recurring_interval: [@t_f, next_run_float]}
+    Que.execute :reenqueue_job, attrs.values_at(:queue, :priority, :run_at, :job_id, :job_class) << next_run_time << new_args
     @reenqueued = true
   end
 
