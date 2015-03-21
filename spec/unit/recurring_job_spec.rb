@@ -145,19 +145,49 @@ describe Que::RecurringJob do
   it "should reenqueue itself if it wasn't reenqueued or destroyed already" do
     enqueued = CronJob.enqueue 1, 'a', {opt: 45}
 
-    class CronJob
-      def run(*args)
+    begin
+      class CronJob
+        def run(*args)
+          $next_run_time = next_run_time
+        end
       end
+
+      run_job
+
+      final = DB[:que_jobs].first
+      final[:job_id].should be > enqueued.attrs[:job_id]
+      final[:run_at].should be_within(0.000001).of($next_run_time)
+    ensure
+      $next_run_time = nil
     end
-
-    run_job
-
-    final = DB[:que_jobs].first
-    final[:job_id].should be > enqueued.attrs[:job_id]
-    final[:run_at].to_f.should be_within(0.000001).of(enqueued.attrs[:args][-1][:recurring_interval][1] + 60)
   end
 
-  it "should support RecurringJob.run" # ?
+  it "should support RecurringJob.run" do
+    # Don't know why someone would do this, but want to make sure the expected behavior happens.
+    begin
+      class CronJob
+        def run(*args)
+          $args = args
+          $from_db = Que.execute("SELECT * FROM que_jobs LIMIT 1").first
+          $start_time = start_time
+          $end_time = end_time
+          $time_range = time_range # start_time...end_time
+          $next_run_time = next_run_time
+        end
+      end
+
+      CronJob.run(456, 'blah', ferret: true)
+
+      $args.should == [456, 'blah', {ferret: true}]
+      $from_db.should == nil
+      $end_time.should be_within(5).of(Time.now)
+      $end_time.should == $start_time + 60
+      $time_range.should == ($start_time...$end_time)
+      $next_run_time.should == $end_time + 60
+    ensure
+      $args = $from_db = $start_time = $end_time = $time_range = $next_run_time = nil
+    end
+  end
 
   it "should allow its arguments to be overridden when reenqueued"
 

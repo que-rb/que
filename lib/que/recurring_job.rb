@@ -1,6 +1,10 @@
 class Que::RecurringJob < Que::Job
-  def _run
+  def initialize(attrs)
     @t_i, @t_f = attrs[:args].pop[:recurring_interval]
+    super
+  end
+
+  def _run
     run(*attrs[:args])
     reenqueue unless @reenqueued || @destroyed
   end
@@ -37,9 +41,18 @@ class Que::RecurringJob < Que::Job
     attr_reader :interval
 
     def enqueue(*args)
+      super(*args_with_interval(*args))
+    end
+
+    def run(*args)
+      super(*args_with_interval(*args))
+    end
+
+    private
+
+    def args_with_interval(*args)
       t = Time.now.utc.to_f.round(6) # Keep same precision as Postgres
       args << {recurring_interval: [t - interval, t]}
-      super(*args)
     end
   end
 end
