@@ -25,7 +25,9 @@ class EmailNewUsersJob < Que::RecurringJob
   end
 end
 
-In the same way that standard jobs destroy themselves after finishing without error if you haven't destroyed them, recurring jobs reenqueue themselves.
+In the same way that standard jobs destroy themselves after finishing without error if you haven't destroyed them, recurring jobs reenqueue themselves. You can also call destroy if you want a recurring job to stop itself at some point.
+
+You can override the interval to the next job by passing an interval option to reenqueue.
 
 Note that in order for these jobs to work, you must have a job table with a run_at column.
 

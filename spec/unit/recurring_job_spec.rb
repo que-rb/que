@@ -1,79 +1,82 @@
 require 'spec_helper'
 
 describe Que::RecurringJob do
-  # it "should allow for easy recurring jobs" do
-  #   pending
+  class CronJob < Que::RecurringJob
+    @interval = 60
+  end
 
-  #   begin
-  #     class CronJob < Que::Job
-  #       # Default repetition interval in seconds. Can be overridden in
-  #       # subclasses. Can use 1.minute if using Rails.
-  #       INTERVAL = 60
+  def run_job
+    job_id = DB[:que_jobs].get(:job_id)
+    locker = Que::Locker.new
+    sleep_until { DB[:que_jobs].where(job_id: job_id).empty? }
+    locker.stop
+  end
 
-  #       attr_reader :start_at, :end_at, :run_again_at, :time_range
+  it "should support being reenqueued in a transaction" do
+    enqueued = CronJob.enqueue 1, 'a', {opt: 45}
 
-  #       def _run
-  #         args = attrs[:args].first
-  #         @start_at, @end_at = Time.at(args.delete('start_at')), Time.at(args.delete('end_at'))
-  #         @run_again_at = @end_at + self.class::INTERVAL
-  #         @time_range = @start_at...@end_at
+    begin
+      class CronJob
+        def run(*args)
+          $passed_to_cron = args
 
-  #         super
+          Que.transaction do
+            $initial = Que.execute("SELECT * FROM que_jobs LIMIT 1").first
+            reenqueue
+            $final = Que.execute("SELECT * FROM que_jobs LIMIT 1").first
+          end
+        end
+      end
 
-  #         args['start_at'] = @end_at.to_f
-  #         args['end_at']   = @run_again_at.to_f
-  #         self.class.enqueue(args, run_at: @run_again_at)
-  #       end
-  #     end
+      run_job
 
-  #     class MyCronJob < CronJob
-  #       INTERVAL = 1.5
+      $initial[:job_id].should == enqueued.attrs[:job_id]
+      $initial[:run_at].should == enqueued.attrs[:run_at]
 
-  #       def run(args)
-  #         $args       = args.dup
-  #         $time_range = time_range
-  #       end
-  #     end
+      $passed_to_cron.should == [1, 'a', {opt: 45}]
+      $final[:job_id].should be > $initial[:job_id]
+      $final[:run_at].should == $initial[:run_at] + 60
+    ensure
+      $initial = $final = $passed_to_cron = nil
+    end
+  end
 
-  #     t = (Time.now - 1000).to_f.round(6)
-  #     MyCronJob.enqueue :start_at => t, :end_at => t + 1.5, :arg => 4
+  it "should support simply being destroyed" do
+    enqueued = CronJob.enqueue 1, 'a', {opt: 45}
 
-  #     $args.should be nil
-  #     $time_range.should be nil
+    begin
+      class CronJob
+        def run(*args)
+          Que.transaction do
+            $initial = Que.execute("SELECT * FROM que_jobs LIMIT 1").first
+            destroy
+            $final = Que.execute("SELECT * FROM que_jobs LIMIT 1").first
+          end
+        end
+      end
 
-  #     locker = Que::Locker.new
-  #     sleep_until { DB[:que_jobs].get(:run_at).to_f > t }
-  #     DB[:que_jobs].get(:run_at).to_f.should be_within(0.000001).of(t + 1.5)
-  #     locker.stop
+      run_job
 
-  #     $args.should == {'arg' => 4}
-  #     $time_range.begin.to_f.round(6).should be_within(0.000001).of t
-  #     $time_range.end.to_f.round(6).should be_within(0.000001).of t + 1.5
-  #     $time_range.exclude_end?.should be true
+      $final.should be nil
 
-  #     DB[:que_jobs].get(:run_at).to_f.round(6).should be_within(0.000001).of(t + 3.0)
-  #     args = JSON.parse(DB[:que_jobs].get(:args)).first
-  #     args.keys.should == ['arg', 'start_at', 'end_at']
-  #     args['arg'].should == 4
-  #     args['start_at'].should be_within(0.000001).of(t + 1.5)
-  #     args['end_at'].should be_within(0.000001).of(t + 3.0)
-  #   ensure
-  #     $args       = nil
-  #     $time_range = nil
-  #   end
-  # end
+      $initial[:job_id].should == enqueued.attrs[:job_id]
+      $initial[:run_at].should == enqueued.attrs[:run_at]
+    ensure
+      $initial = $final = nil
+    end
+  end
 
-  it "should make the time range methods available to the run method"
+  it "should make the time range helper methods available to the run method"
 
   it "should reenqueue by default with the same arguments"
 
-  it "should support being reenqueued in a transaction"
-
-  it "should reenqueue itself if it wasn't reenqueued already"
+  it "should reenqueue itself if it wasn't reenqueued or destroyed already"
 
   it "should allow its arguments to be overridden when reenqueued"
 
   it "should respect the @interval configuration"
+
+  it "should allow the interval to be overridden when reenqueued"
 
   it "should allow @interval to be overridden in subclasses as you would expect"
 
