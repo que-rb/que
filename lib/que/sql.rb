@@ -56,6 +56,21 @@ module Que
       LIMIT $3::integer
     }.freeze,
 
+    :reenqueue_job => %{
+      WITH deleted_job AS (
+        DELETE FROM que_jobs
+          WHERE queue    = $1::text
+          AND   priority = $2::smallint
+          AND   run_at   = $3::timestamptz
+          AND   job_id   = $4::bigint
+      )
+      INSERT INTO que_jobs
+      (queue, priority, run_at, job_class, args)
+      VALUES
+      (coalesce($5, '')::text, coalesce($6, 100)::smallint, coalesce($7, now())::timestamptz, $8::text, coalesce($9, '[]')::json)
+      RETURNING *
+    }.freeze,
+
     :check_job => %{
       SELECT 1 AS one
       FROM   que_jobs
