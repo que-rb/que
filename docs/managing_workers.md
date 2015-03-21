@@ -2,7 +2,7 @@
 
 Que provides a pool of workers to process jobs in a multithreaded fashion - this allows you to save memory by working many jobs simultaneously in the same process.
 
-When the worker pool is active (as it is by default when running `rails server`, or when you set Que.mode = :async), the default number of workers is 4. This is fine for most use cases, but the ideal number for your app will depend on your interpreter and what types of jobs you're running.
+When the worker pool is active (as it is by default when running `rails server`, or when you set `Que.mode = :async`), the default number of workers is 4. This is fine for most use cases, but the ideal number for your app will depend on your interpreter and what types of jobs you're running.
 
 Ruby MRI has a global interpreter lock (GIL), which prevents it from using more than one CPU core at a time. Having multiple workers running makes sense if your jobs tend to spend a lot of time in I/O (waiting on complex database queries, sending emails, making HTTP requests, etc.), as most jobs do. However, if your jobs are doing a lot of work in Ruby, they'll be spending a lot of time blocking each other, and having too many workers running will just slow everything down.
 
