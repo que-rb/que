@@ -12,13 +12,13 @@ describe Que::RecurringJob do
     locker.stop
   end
 
-  it "should support being reenqueued in a transaction" do
+  it "should support being reenqueued in a transaction with the same arguments" do
     enqueued = CronJob.enqueue 1, 'a', {opt: 45}
 
     begin
       class CronJob
         def run(*args)
-          $passed_to_cron = args
+          $passed_to_cron = args.dup
 
           Que.transaction do
             $initial = Que.execute("SELECT * FROM que_jobs LIMIT 1").first
@@ -35,7 +35,17 @@ describe Que::RecurringJob do
 
       $passed_to_cron.should == [1, 'a', {opt: 45}]
       $final[:job_id].should be > $initial[:job_id]
-      $final[:run_at].should == $initial[:run_at] + 60
+
+      t_ii, t_if = $initial[:args][-1].delete(:recurring_interval)
+      t_fi, t_ff = $final[:args][-1].delete(:recurring_interval)
+
+      $final[:run_at].to_f.round(6).should be_within(0.000001).of(t_ff)
+
+      t_ii.should == t_if - 60
+      t_if.should == t_fi
+      t_fi.should == t_ff - 60
+
+      $final[:args].should == $initial[:args]
     ensure
       $initial = $final = $passed_to_cron = nil
     end
@@ -66,9 +76,9 @@ describe Que::RecurringJob do
     end
   end
 
-  it "should make the time range helper methods available to the run method"
+  it "shouldn't allow any mutation of the args hash to be propagated to the next job"
 
-  it "should reenqueue by default with the same arguments"
+  it "should make the time range helper methods available to the run method"
 
   it "should reenqueue itself if it wasn't reenqueued or destroyed already"
 
