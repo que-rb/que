@@ -7,7 +7,7 @@ describe Que::RecurringJob do
 
   def run_job
     job_id = DB[:que_jobs].get(:job_id)
-    locker = Que::Locker.new
+    locker = Que::Locker.new poll_interval: 0.01 # For jobs that error.
     sleep_until { DB[:que_jobs].where(job_id: job_id).empty? }
     locker.stop
   end
@@ -105,7 +105,42 @@ describe Que::RecurringJob do
     end
   end
 
-  it "shouldn't allow its timings to be thrown off by errors"
+  it "shouldn't allow its timings to be thrown off by errors" do
+    enqueued = CronJob.enqueue 1, 'a', {opt: 45}
+
+    begin
+      $run_count = 0
+      $from_dbs = []
+      $start_times = []
+      $end_times = []
+      $time_ranges = []
+      $next_run_times = []
+
+      class CronJob
+        @retry_interval = 0
+
+        def run(*args)
+          $run_count += 1
+          $from_dbs << Que.execute("SELECT * FROM que_jobs LIMIT 1").first
+          $start_times << start_time
+          $end_times << end_time
+          $time_ranges << time_range # start_time...end_time
+          $next_run_times << next_run_time
+          raise if $run_count == 1
+        end
+      end
+
+      run_job
+
+      [$start_times, $end_times, $time_ranges, $next_run_times].each do |a, b|
+        a.should == b
+      end
+
+      $from_dbs[0][:args].should == $from_dbs[1][:args]
+    ensure
+      $start_times = $end_times = $time_ranges = $next_run_times = $from_dbs = $run_count = nil
+    end
+  end
 
   it "should reenqueue itself if it wasn't reenqueued or destroyed already" do
     enqueued = CronJob.enqueue 1, 'a', {opt: 45}
@@ -121,6 +156,8 @@ describe Que::RecurringJob do
     final[:job_id].should be > enqueued.attrs[:job_id]
     final[:run_at].to_f.should be_within(0.000001).of(enqueued.attrs[:args][-1][:recurring_interval][1] + 60)
   end
+
+  it "should support RecurringJob.run" # ?
 
   it "should allow its arguments to be overridden when reenqueued"
 
