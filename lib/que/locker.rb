@@ -48,7 +48,8 @@ module Que
       checkout do |conn|
         backend_pid = execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
 
-        Que.log :event              => :locker_start,
+        Que.log :level              => :debug,
+                :event              => :locker_start,
                 :queue              => @queue_name,
                 :listen             => @listen,
                 :backend_pid        => backend_pid,
@@ -76,7 +77,7 @@ module Que
             break if @stop
           end
 
-          Que.log :event => :locker_stop
+          Que.log :level => :debug, :event => :locker_stop
 
           unlock_jobs(@job_queue.clear)
 
@@ -115,7 +116,7 @@ module Que
       @last_polled_at      = Time.now
       @last_poll_satisfied = count == jobs.count
 
-      Que.log :event => :locker_polled, :queue => @queue_name, :limit => count, :locked => jobs.count
+      Que.log :level => :debug, :event => :locker_polled, :queue => @queue_name, :limit => count, :locked => jobs.count
     end
 
     def wait
@@ -165,7 +166,7 @@ module Que
     def wait_for_job(timeout = nil)
       checkout do |conn|
         conn.wait_for_notify(timeout) do |_, _, payload|
-          Que.log :event => :job_notified, :job => (json = JSON_MODULE.load(payload))
+          Que.log :level => :debug, :event => :job_notified, :job => (json = JSON_MODULE.load(payload))
           return [json['queue'], json['priority'], Time.parse(json['run_at']), json['job_id']]
         end
       end

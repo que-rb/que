@@ -130,7 +130,7 @@ module Que
           raise "Unknown Que mode: #{mode.inspect}"
         end
 
-        log :event => 'mode_change', :value => mode.to_s
+        log :level => :debug, :event => 'mode_change', :value => mode.to_s
         @mode = mode
       end
     end

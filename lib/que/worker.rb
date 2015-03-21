@@ -29,12 +29,12 @@ module Que
 
             start = Time.now
             instance._run
-            Que.log :event => :job_worked, :job => job, :elapsed => (Time.now - start)
+            Que.log :level => :debug, :event => :job_worked, :job => job, :elapsed => (Time.now - start)
           else
-            Que.log :event => :job_race_condition, :pk => pk
+            Que.log :level => :debug, :event => :job_race_condition, :pk => pk
           end
         rescue => error
-          Que.log :event => :job_errored, :pk => pk, :job => job, :error => {:class => error.class.to_s, :message => error.message}
+          Que.log :level => :debug, :event => :job_errored, :pk => pk, :job => job, :error => {:class => error.class.to_s, :message => error.message}
 
           begin
             count    = job[:error_count] + 1
