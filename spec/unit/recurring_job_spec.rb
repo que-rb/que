@@ -36,8 +36,8 @@ describe Que::RecurringJob do
       $passed_to_cron.should == [1, 'a', {opt: 45}]
       $final[:job_id].should be > $initial[:job_id]
 
-      t_ii, t_if = $initial[:args][-1].delete(:recurring_interval)
-      t_fi, t_ff = $final[:args][-1].delete(:recurring_interval)
+      t_ii, t_if = $initial[:args][0].delete(:recurring_interval)
+      t_fi, t_ff = $final[:args][0].delete(:recurring_interval)
 
       $final[:run_at].to_f.round(6).should be_within(0.000001).of(t_ff)
 
@@ -114,7 +114,7 @@ describe Que::RecurringJob do
 
       run_job
 
-      t_i, t_f = $from_db[:args][-1][:recurring_interval]
+      t_i, t_f = $from_db[:args][0][:recurring_interval]
 
       $start_time.should == Time.at(t_i)
       $end_time.should == Time.at(t_f)
@@ -162,7 +162,7 @@ describe Que::RecurringJob do
     end
   end
 
-  it "should reenqueue itself if it wasn't reenqueued or destroyed already" do
+  it "should reenqueue itself automatically if it isn't done manually" do
     enqueued = CronJob.enqueue 1, 'a', {opt: 45}
 
     begin
@@ -180,6 +180,20 @@ describe Que::RecurringJob do
     ensure
       $next_run_time = nil
     end
+  end
+
+  it "should not reenqueue itself if it is manually destroyed" do
+    enqueued = CronJob.enqueue 1, 'a', {opt: 45}
+
+    class CronJob
+      def run(*args)
+        destroy
+      end
+    end
+
+    run_job
+
+    DB[:que_jobs].count.should be 0
   end
 
   it "should support RecurringJob.run" do
@@ -209,17 +223,43 @@ describe Que::RecurringJob do
     end
   end
 
-  it "should use a custom run_at as the final value in the interval"
+  it "should use a custom run_at as the final value in the interval" do
+    begin
+      class CronJob
+        def run(*args)
+          $args = args
+          $start_time = start_time
+          $end_time = end_time
+          $time_range = time_range # start_time...end_time
+          $next_run_time = next_run_time
+        end
+      end
 
-  it "should allow its arguments to be overridden when reenqueued"
+      t = Time.now - 30
+      puts t.inspect
+      CronJob.enqueue(456, 'blah', ferret: true, run_at: t)
+
+      run_job
+
+      $args.should == [456, 'blah', {ferret: true}]
+      $end_time.should be_within(0.000001).of(t)
+      $end_time.should == $start_time + 60
+      $time_range.should == ($start_time...$end_time)
+      $next_run_time.should == $end_time + 60
+    ensure
+      $args = $from_db = $start_time = $end_time = $time_range = $next_run_time = nil
+    end
+  end
 
   it "should respect the @interval configuration"
-
-  it "should allow the interval to be overridden when reenqueued"
 
   it "should allow @interval to be overridden in subclasses as you would expect"
 
   it "should throw an error on the initial enqueueing if an @interval is not set"
 
   it "should throw an error on the reenqueueing if an @interval is not set"
+
+  it "should allow its arguments to be overridden when reenqueued"
+
+  it "should allow the interval to be overridden when reenqueued"
 end
