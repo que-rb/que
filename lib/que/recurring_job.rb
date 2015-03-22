@@ -1,9 +1,9 @@
 module Que
   class RecurringJob < Job
     def initialize(attrs)
-      @t_i, @t_f = attrs[:args].shift[:recurring_interval]
+      @_start_time, @_end_time = attrs[:args].shift[:recurring_interval]
       # Hang onto a deep copy of the args so that if the job mutates them, that won't be passed on to the next job.
-      @args_copy = JSON_MODULE.load(JSON_MODULE.dump(attrs[:args]))
+      @_args_copy = JSON_MODULE.load(JSON_MODULE.dump(attrs[:args]))
       super
     end
 
@@ -13,11 +13,11 @@ module Que
     end
 
     def start_time
-      Time.at(@t_i)
+      Time.at(@_start_time)
     end
 
     def end_time
-      Time.at(@t_f)
+      Time.at(@_end_time)
     end
 
     def time_range
@@ -25,7 +25,7 @@ module Que
     end
 
     def next_run_float
-      @t_f + self.class.interval
+      @_end_time + self.class.interval
     end
 
     def next_run_time
@@ -35,9 +35,9 @@ module Que
     private
 
     def reenqueue(interval: nil, args: nil)
-      args     ||= @args_copy
+      args     ||= @_args_copy
       interval ||= self.class.interval
-      new_args = args.unshift(recurring_interval: [@t_f, @t_f + interval])
+      new_args = args.unshift(recurring_interval: [@_end_time, @_end_time + interval])
       next_run_time = Time.at(end_time + interval)
       Que.execute :reenqueue_job, attrs.values_at(:priority, :run_at, :job_id, :job_class) << next_run_time << new_args
       @reenqueued = true
