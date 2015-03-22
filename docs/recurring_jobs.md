@@ -1,5 +1,7 @@
 ### Recurring Jobs
 
+TODO: Flesh out these notes.
+
 As of 1.0, Que comes with built-in support for reliable recurring jobs. For an example, let's look at a job that runs once an hour and emails all users that have been created since the last run.
 
 class EmailNewUsersJob < Que::RecurringJob
