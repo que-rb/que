@@ -342,7 +342,46 @@ describe Que::RecurringJob do
     job[:last_error].should =~ /Can't enqueue a recurring job \(CronJob\) unless an interval is set!/
   end
 
-  it "should allow its arguments to be overridden when reenqueued"
+  it "should allow its arguments to be overridden when reenqueued" do
+    class CronJob
+      def run(count)
+        reenqueue args: [count + 1]
+      end
+    end
 
-  it "should allow the interval to be overridden when reenqueued"
+    CronJob.enqueue 1
+
+    locker = Que::Locker.new
+    run_job
+    locker.stop
+
+    job = DB[:que_jobs].first
+    JSON.parse(job[:args])[-1].should == 2
+  end
+
+  it "should allow the interval to be overridden when reenqueued" do
+    begin
+      class CronJob
+        def run
+          $end_time = end_time
+          reenqueue interval: 352708
+        end
+      end
+
+      CronJob.enqueue
+
+      locker = Que::Locker.new
+      run_job
+      locker.stop
+
+      job = DB[:que_jobs].first
+      job[:run_at].should be_within(5).of(Time.now + 352708)
+      args = JSON.parse(job[:args])
+
+      a, b = args[0]['recurring_interval']
+      b.should == a + 352708
+    ensure
+      $end_time = nil
+    end
+  end
 end
