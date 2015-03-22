@@ -2,7 +2,6 @@ require 'spec_helper'
 
 describe Que::RecurringJob do
   class CronJob < Que::RecurringJob
-    @interval = 60
   end
 
   def run_job
@@ -10,6 +9,12 @@ describe Que::RecurringJob do
     locker = Que::Locker.new poll_interval: 0.01 # For jobs that error.
     sleep_until { DB[:que_jobs].where(job_id: job_id).empty? }
     locker.stop
+  end
+
+  before do
+    class CronJob
+      @interval = 60
+    end
   end
 
   it "should support being reenqueued in a transaction with the same arguments" do
@@ -157,6 +162,7 @@ describe Que::RecurringJob do
       end
 
       $from_dbs[0][:args].should == $from_dbs[1][:args]
+      DB[:que_jobs].get(:run_at).should be_within(0.000001).of($next_run_times[1])
     ensure
       $start_times = $end_times = $time_ranges = $next_run_times = $from_dbs = $run_count = nil
     end
@@ -236,7 +242,6 @@ describe Que::RecurringJob do
       end
 
       t = Time.now - 30
-      puts t.inspect
       CronJob.enqueue(456, 'blah', ferret: true, run_at: t)
 
       run_job
@@ -251,9 +256,65 @@ describe Que::RecurringJob do
     end
   end
 
-  it "should respect the @interval configuration"
+  it "should respect the @interval configuration" do
+    begin
+      class CronJob
+        @interval = 5000
+        def run(*args)
+          $next_run_time = next_run_time
+        end
+      end
 
-  it "should allow @interval to be overridden in subclasses as you would expect"
+      t = Time.now.utc - 30
+      next_time = t + 5000
+      CronJob.enqueue(456, 'blah', ferret: true, run_at: t)
+
+      DB[:que_jobs].get(:run_at).utc.should be_within(0.000001).of(t)
+      run_job
+
+      $next_run_time.utc.should be_within(0.000001).of(next_time)
+      DB[:que_jobs].get(:run_at).should be_within(0.000001).of(next_time)
+    ensure
+      $next_run_time = nil
+    end
+  end
+
+  it "should allow @interval to be overridden in subclasses as one would expect" do
+    begin
+      class CronJob
+        @interval = 5000
+        def run(*args)
+          $next_run_time = next_run_time
+        end
+      end
+
+      class SubCronJob < CronJob
+        @interval = 70
+      end
+
+      t = Time.now.utc - 30
+      next_time = t + 5000
+      CronJob.enqueue(456, 'blah', ferret: true, run_at: t)
+
+      DB[:que_jobs].get(:run_at).utc.should be_within(0.000001).of(t)
+      run_job
+
+      $next_run_time.utc.should be_within(0.000001).of(next_time)
+      DB[:que_jobs].get(:run_at).should be_within(0.000001).of(next_time)
+      DB[:que_jobs].delete
+
+      next_time = t + 70
+      SubCronJob.enqueue(456, 'blah', ferret: true, run_at: t)
+
+      DB[:que_jobs].get(:run_at).utc.should be_within(0.000001).of(t)
+      run_job
+
+      $next_run_time.utc.should be_within(0.000001).of(next_time)
+      DB[:que_jobs].get(:run_at).should be_within(0.000001).of(next_time)
+    ensure
+      $next_run_time = nil
+    end
+  end
 
   it "should throw an error on the initial enqueueing if an @interval is not set"
 
