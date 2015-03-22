@@ -48,8 +48,15 @@ module Que
           end
 
           if Que.error_handler
-            # Don't let a problem with the error handler crash the work loop.
-            Que.error_handler.call(error, job) rescue nil
+            begin
+              # Don't let a problem with the error handler crash the work loop.
+              Que.error_handler.call(error, job)
+            rescue => error_handler_error
+              # What handles errors from the error handler? Nothing, so just log loudly.
+              Que.log :level => :error, :event => :error_handler_errored, :job => job,
+                :original_error => {:class => error.class.to_s, :message => error.message},
+                :error_handler_error => {:class => error_handler_error.class.to_s, :message => error_handler_error.message, :backtrace => error_handler_error.backtrace}
+            end
           end
         ensure
           @result_queue.push(pk)

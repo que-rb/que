@@ -194,6 +194,11 @@ describe Que::Worker do
         Que::Job.enqueue :priority => 2
 
         run_jobs Que.execute("SELECT * FROM que_jobs")
+
+        message = $logger.messages.map{|m| JSON.load(m)}.find{|m| m['event'] == 'error_handler_errored'}['error_handler_error']
+        message['class'].should == "RuntimeError"
+        message['message'].should == "Error handler error!"
+        message['backtrace'].should be_an_instance_of Array
       ensure
         Que.error_handler = nil
       end
