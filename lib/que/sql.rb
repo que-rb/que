@@ -6,7 +6,7 @@ module Que
       WHERE priority = $1::smallint
       AND   run_at   = $2::timestamptz
       AND   job_id   = $3::bigint
-    }.freeze,
+    },
 
     # Thanks to RhodiumToad in #postgresql for help with the poll_jobs CTE.
 
@@ -51,7 +51,7 @@ module Que
       FROM jobs
       WHERE locked
       LIMIT $2::integer
-    }.freeze,
+    },
 
     :reenqueue_job => %{
       WITH deleted_job AS (
@@ -65,7 +65,7 @@ module Que
       VALUES
       ($1::smallint, $4::text, $5::timestamptz, $6::json)
       RETURNING *
-    }.freeze,
+    },
 
     :check_job => %{
       SELECT 1 AS one
@@ -73,7 +73,7 @@ module Que
       WHERE  priority = $1::smallint
       AND    run_at   = $2::timestamptz
       AND    job_id   = $3::bigint
-    }.freeze,
+    },
 
     :set_error => %{
       UPDATE que_jobs
@@ -83,7 +83,7 @@ module Que
       WHERE priority  = $4::smallint
       AND   run_at    = $5::timestamptz
       AND   job_id    = $6::bigint
-    }.freeze,
+    },
 
     :insert_job => %{
       INSERT INTO que_jobs
@@ -91,27 +91,27 @@ module Que
       VALUES
       (coalesce($1, 100)::smallint, coalesce($2, now())::timestamptz, $3::text, coalesce($4, '[]')::json)
       RETURNING *
-    }.freeze,
+    },
 
     :destroy_job => %{
       DELETE FROM que_jobs
       WHERE priority = $1::smallint
       AND   run_at   = $2::timestamptz
       AND   job_id   = $3::bigint
-    }.freeze,
+    },
 
     :clean_lockers => %{
       DELETE FROM que_lockers
       WHERE pid = pg_backend_pid()
       OR pid NOT IN (SELECT pid FROM pg_stat_activity)
-    }.freeze,
+    },
 
     :register_locker => %{
       INSERT INTO que_lockers
       (pid, worker_count, ruby_pid, ruby_hostname, listening)
       VALUES
       (pg_backend_pid(), $1::integer, $2::integer, $3::text, $4::boolean);
-    }.freeze,
+    },
 
     :job_stats => %{
       SELECT job_class,
@@ -128,7 +128,7 @@ module Que
       ) locks USING (job_id)
       GROUP BY job_class
       ORDER BY count(*) DESC
-    }.freeze,
+    },
 
     :job_states => %{
       SELECT que_jobs.*,
@@ -141,6 +141,12 @@ module Que
         JOIN que_lockers USING (pid)
         WHERE locktype = 'advisory'
       ) pg USING (job_id)
-    }.freeze
-  }.freeze
+    },
+  }
+
+  # Clean up these statements so that logs are clearer.
+  SQL.keys.each do |key|
+    SQL[key] = SQL[key].strip.gsub(/\s+/, ' ').freeze
+  end
+  SQL.freeze
 end
