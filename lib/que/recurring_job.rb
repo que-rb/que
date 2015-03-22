@@ -41,7 +41,9 @@ module Que
     end
 
     class << self
-      attr_reader :interval
+      def interval
+        @interval || raise(Error, "Can't enqueue a recurring job (#{to_s}) unless an interval is set!")
+      end
 
       def enqueue(*args)
         super(*args_with_interval(*args))

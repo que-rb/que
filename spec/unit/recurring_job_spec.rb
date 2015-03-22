@@ -14,6 +14,9 @@ describe Que::RecurringJob do
   before do
     class CronJob
       @interval = 60
+
+      def run(*args)
+      end
     end
   end
 
@@ -316,9 +319,28 @@ describe Que::RecurringJob do
     end
   end
 
-  it "should throw an error on the initial enqueueing if an @interval is not set"
+  it "should throw an error on the initial enqueueing if an @interval is not set" do
+    class CronJob
+      @interval = nil
+    end
 
-  it "should throw an error on the reenqueueing if an @interval is not set"
+    proc { CronJob.enqueue }.should raise_error Que::Error, "Can't enqueue a recurring job (CronJob) unless an interval is set!"
+  end
+
+  it "should throw an error on the reenqueueing if an @interval is not set" do
+    CronJob.enqueue
+
+    class CronJob
+      @interval = nil
+    end
+
+    locker = Que::Locker.new
+    sleep_until { DB[:que_jobs].where(error_count: 0).empty? }
+    locker.stop
+
+    job = DB[:que_jobs].first
+    job[:last_error].should =~ /Can't enqueue a recurring job \(CronJob\) unless an interval is set!/
+  end
 
   it "should allow its arguments to be overridden when reenqueued"
 
