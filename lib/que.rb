@@ -79,8 +79,14 @@ module Que
       level = data.delete(:level) || :info
       data = {:lib => 'que', :hostname => Socket.gethostname, :pid => Process.pid, :thread => Thread.current.object_id}.merge(data)
 
-      if (l = logger) && output = log_formatter.call(data)
-        l.send level, output
+      if l = logger
+        begin
+          if output = log_formatter.call(data)
+            l.send level, output
+          end
+        rescue => e
+          l.error "Error raised from Que.log_formatter proc: #{e.class}: #{e.message}\n#{e.backtrace}"
+        end
       end
     end
 

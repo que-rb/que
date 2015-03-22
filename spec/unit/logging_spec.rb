@@ -87,4 +87,18 @@ describe "Logging" do
       $level = $message = nil
     end
   end
+
+  it "should just log a generic message if the log formatter raises an error" do
+    begin
+      Que.log_formatter = proc { |m| raise "Blah!" }
+
+      Que.log :event => "blah", :source => 4
+      $logger.messages.count.should be 1
+
+      message = $logger.messages.first
+      message.should start_with "Error raised from Que.log_formatter proc: RuntimeError: Blah!"
+    ensure
+      Que.log_formatter = nil
+    end
+  end
 end
