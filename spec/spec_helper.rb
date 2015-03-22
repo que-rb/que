@@ -4,6 +4,7 @@ require 'pg'
 require 'logger'
 require 'json'
 require 'pond'
+require 'pry'
 
 Dir['./spec/support/**/*.rb'].sort.each &method(:require)
 
