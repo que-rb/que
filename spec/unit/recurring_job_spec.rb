@@ -269,11 +269,11 @@ describe Que::RecurringJob do
       next_time = t + 5000
       CronJob.enqueue(456, 'blah', ferret: true, run_at: t)
 
-      DB[:que_jobs].get(:run_at).utc.should be_within(0.000001).of(t)
+      DB[:que_jobs].get(:run_at).utc.should be_within(0.000002).of(t)
       run_job
 
-      $next_run_time.utc.should be_within(0.000001).of(next_time)
-      DB[:que_jobs].get(:run_at).should be_within(0.000001).of(next_time)
+      $next_run_time.utc.should be_within(0.000002).of(next_time)
+      DB[:que_jobs].get(:run_at).should be_within(0.000002).of(next_time)
     ensure
       $next_run_time = nil
     end
@@ -296,21 +296,21 @@ describe Que::RecurringJob do
       next_time = t + 5000
       CronJob.enqueue(456, 'blah', ferret: true, run_at: t)
 
-      DB[:que_jobs].get(:run_at).utc.should be_within(0.000001).of(t)
+      DB[:que_jobs].get(:run_at).utc.should be_within(0.000002).of(t)
       run_job
 
-      $next_run_time.utc.should be_within(0.000001).of(next_time)
-      DB[:que_jobs].get(:run_at).should be_within(0.000001).of(next_time)
+      $next_run_time.utc.should be_within(0.000002).of(next_time)
+      DB[:que_jobs].get(:run_at).should be_within(0.000002).of(next_time)
       DB[:que_jobs].delete
 
       next_time = t + 70
       SubCronJob.enqueue(456, 'blah', ferret: true, run_at: t)
 
-      DB[:que_jobs].get(:run_at).utc.should be_within(0.000001).of(t)
+      DB[:que_jobs].get(:run_at).utc.should be_within(0.000002).of(t)
       run_job
 
-      $next_run_time.utc.should be_within(0.000001).of(next_time)
-      DB[:que_jobs].get(:run_at).should be_within(0.000001).of(next_time)
+      $next_run_time.utc.should be_within(0.000002).of(next_time)
+      DB[:que_jobs].get(:run_at).should be_within(0.000002).of(next_time)
     ensure
       $next_run_time = nil
     end
