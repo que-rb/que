@@ -162,4 +162,21 @@ describe Que::Worker do
       @worker.wait_until_stopped
     end
   end
+
+  it 'configures the desired number of workers' do
+    expect {
+      Que::Worker.worker_count = 2
+    }.to change { Que::Worker.workers.count }.to(2)
+
+    Que::Worker.worker_count = 0 # cleanup
+  end
+
+  it 'accepts multiple queues and configures that number of workers per queue' do
+    stub_const 'ENV', 'QUE_QUEUE' => 'custom,other'
+    expect {
+      Que::Worker.worker_count = 2
+    }.to change { Que::Worker.workers.count }.to(4)
+
+    Que::Worker.worker_count = 0 # cleanup
+  end
 end
