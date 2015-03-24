@@ -161,11 +161,20 @@ module Que
       private
 
       def set_up_workers
-        if worker_count > workers.count
-          workers.push(*(worker_count - workers.count).times.map{new(ENV['QUE_QUEUE'] || '')})
-        elsif worker_count < workers.count
-          workers.pop(workers.count - worker_count).each(&:stop).each(&:wait_until_stopped)
+        count = workers.count * queues.count
+        if worker_count > count
+          queues.each do |queue|
+            workers.push(*(worker_count - count).times.map{ new(queue) })
+          end
+        elsif worker_count < count
+          workers.pop(count - worker_count).each(&:stop).each(&:wait_until_stopped)
         end
+      end
+
+      def queues
+        _queues = ENV.fetch('QUE_QUEUE','').split(',')
+        _queues << '' if _queues.empty?
+        _queues
       end
 
       def wrangler
