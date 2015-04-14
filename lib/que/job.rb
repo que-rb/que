@@ -16,7 +16,6 @@ module Que
       destroy unless @destroyed
     end
 
-
     private
 
     @retry_interval = proc { |count| count ** 4 + 3 }

@@ -236,8 +236,106 @@ describe Que::Job, '.work' do
   end
 
   describe "when encountering an error" do
-    describe "when using the default strategy" do
-      it "should exponentially back off the job" do
+    it "should exponentially back off the job" do
+      ErrorJob.enqueue
+
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      result[:error].should be_an_instance_of RuntimeError
+      result[:job][:job_class].should == 'ErrorJob'
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].should be_within(3).of Time.now + 4
+
+      DB[:que_jobs].update :error_count => 5,
+        :run_at => Time.now - 60
+
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      result[:error].should be_an_instance_of RuntimeError
+      result[:job][:job_class].should == 'ErrorJob'
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 6
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].should be_within(3).of Time.now + 1299
+    end
+
+    it "should respect a custom retry interval" do
+      class RetryIntervalJob < ErrorJob
+        @retry_interval = 3155760000000 # 100,000 years from now
+      end
+
+      RetryIntervalJob.enqueue
+
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      result[:error].should be_an_instance_of RuntimeError
+      result[:job][:job_class].should == 'RetryIntervalJob'
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].to_f.should be_within(3).of Time.now.to_f + RetryIntervalJob.retry_interval
+
+      DB[:que_jobs].update :error_count => 5,
+        :run_at => Time.now - 60
+
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      result[:error].should be_an_instance_of RuntimeError
+      result[:job][:job_class].should == 'RetryIntervalJob'
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 6
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].to_f.should be_within(3).of Time.now.to_f + RetryIntervalJob.retry_interval
+    end
+
+    it "should respect a custom retry interval formula" do
+      class RetryIntervalFormulaJob < ErrorJob
+        @retry_interval = proc { |count| count * 10 }
+      end
+
+      RetryIntervalFormulaJob.enqueue
+
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      result[:error].should be_an_instance_of RuntimeError
+      result[:job][:job_class].should == 'RetryIntervalFormulaJob'
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].should be_within(3).of Time.now + 10
+
+      DB[:que_jobs].update :error_count => 5,
+        :run_at => Time.now - 60
+
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      result[:error].should be_an_instance_of RuntimeError
+      result[:job][:job_class].should == 'RetryIntervalFormulaJob'
+
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 6
+      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:run_at].should be_within(3).of Time.now + 60
+    end
+
+    it "should pass it to an error handler, if one is defined" do
+      begin
+        errors = []
+        Que.error_handler = proc { |error| errors << error }
+
         ErrorJob.enqueue
 
         result = Que::Job.work
@@ -245,177 +343,75 @@ describe Que::Job, '.work' do
         result[:error].should be_an_instance_of RuntimeError
         result[:job][:job_class].should == 'ErrorJob'
 
-        # require 'pry'
-        # binding.pry
-        DB[:que_jobs].count.should be 1
-        job = DB[:que_jobs].first
-        job[:error_count].should be 1
-        job[:last_error].should =~ /\AErrorJob!\n/
-        job[:run_at].should be_within(3).of Time.now + 4
+        errors.count.should be 1
+        error = errors[0]
+        error.should be_an_instance_of RuntimeError
+        error.message.should == "ErrorJob!"
+      ensure
+        Que.error_handler = nil
+      end
+    end
 
-        DB[:que_jobs].update :error_count => 5,
-          :run_at => Time.now - 60
+    it "should pass job to an error handler, if one is defined" do
+      begin
+        jobs = []
+        Que.error_handler = proc { |error, job| jobs << job }
+
+        ErrorJob.enqueue
+        result = Que::Job.work
+
+        jobs.count.should be 1
+        job = jobs[0]
+        job.should be result[:job]
+      ensure
+        Que.error_handler = nil
+      end
+    end
+
+    it "should not do anything if the error handler itelf throws an error" do
+      begin
+        Que.error_handler = proc { |error| raise "Another error!" }
+        ErrorJob.enqueue
 
         result = Que::Job.work
         result[:event].should == :job_errored
         result[:error].should be_an_instance_of RuntimeError
-        result[:job][:job_class].should == 'ErrorJob'
-
-        DB[:que_jobs].count.should be 1
-        job = DB[:que_jobs].first
-        job[:error_count].should be 6
-        job[:last_error].should =~ /\AErrorJob!\n/
-        job[:run_at].should be_within(3).of Time.now + 1299
+      ensure
+        Que.error_handler = nil
       end
+    end
 
-      it "should respect a custom retry interval" do
-        class RetryIntervalJob < ErrorJob
-          @retry_interval = 3155760000000 # 100,000 years from now
-        end
+    it "should throw an error properly if there's no corresponding job class" do
+      DB[:que_jobs].insert :job_class => "NonexistentClass"
 
-        RetryIntervalJob.enqueue
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      result[:error].should be_an_instance_of NameError
+      result[:job][:job_class].should == 'NonexistentClass'
 
-        result = Que::Job.work
-        result[:event].should == :job_errored
-        result[:error].should be_an_instance_of RuntimeError
-        result[:job][:job_class].should == 'RetryIntervalJob'
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      job[:last_error].should =~ /uninitialized constant:? NonexistentClass/
+      job[:run_at].should be_within(3).of Time.now + 4
+    end
 
-        DB[:que_jobs].count.should be 1
-        job = DB[:que_jobs].first
-        job[:error_count].should be 1
-        job[:last_error].should =~ /\AErrorJob!\n/
-        job[:run_at].to_f.should be_within(3).of Time.now.to_f + RetryIntervalJob.retry_interval
-
-        DB[:que_jobs].update :error_count => 5,
-          :run_at => Time.now - 60
-
-        result = Que::Job.work
-        result[:event].should == :job_errored
-        result[:error].should be_an_instance_of RuntimeError
-        result[:job][:job_class].should == 'RetryIntervalJob'
-
-        DB[:que_jobs].count.should be 1
-        job = DB[:que_jobs].first
-        job[:error_count].should be 6
-        job[:last_error].should =~ /\AErrorJob!\n/
-        job[:run_at].to_f.should be_within(3).of Time.now.to_f + RetryIntervalJob.retry_interval
-      end
-
-      it "should respect a custom retry interval formula" do
-        class RetryIntervalFormulaJob < ErrorJob
-          @retry_interval = proc { |count| count * 10 }
-        end
-
-        RetryIntervalFormulaJob.enqueue
-
-        result = Que::Job.work
-        result[:event].should == :job_errored
-        result[:error].should be_an_instance_of RuntimeError
-        result[:job][:job_class].should == 'RetryIntervalFormulaJob'
-
-        DB[:que_jobs].count.should be 1
-        job = DB[:que_jobs].first
-        job[:error_count].should be 1
-        job[:last_error].should =~ /\AErrorJob!\n/
-        job[:run_at].should be_within(3).of Time.now + 10
-
-        DB[:que_jobs].update :error_count => 5,
-          :run_at => Time.now - 60
-
-        result = Que::Job.work
-        result[:event].should == :job_errored
-        result[:error].should be_an_instance_of RuntimeError
-        result[:job][:job_class].should == 'RetryIntervalFormulaJob'
-
-        DB[:que_jobs].count.should be 1
-        job = DB[:que_jobs].first
-        job[:error_count].should be 6
-        job[:last_error].should =~ /\AErrorJob!\n/
-        job[:run_at].should be_within(3).of Time.now + 60
-      end
-
-      it "should pass it to an error handler, if one is defined" do
-        begin
-          errors = []
-          Que.error_handler = proc { |error| errors << error }
-
-          ErrorJob.enqueue
-
-          result = Que::Job.work
-          result[:event].should == :job_errored
-          result[:error].should be_an_instance_of RuntimeError
-          result[:job][:job_class].should == 'ErrorJob'
-
-          errors.count.should be 1
-          error = errors[0]
-          error.should be_an_instance_of RuntimeError
-          error.message.should == "ErrorJob!"
-        ensure
-          Que.error_handler = nil
+    it "should throw an error properly if the corresponding job class doesn't descend from Que::Job" do
+      class J
+        def run(*args)
         end
       end
 
-      it "should pass job to an error handler, if one is defined" do
-        begin
-          jobs = []
-          Que.error_handler = proc { |error, job| jobs << job }
+      Que.enqueue :job_class => "J"
 
-          ErrorJob.enqueue
-          result = Que::Job.work
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      result[:job][:job_class].should == 'J'
 
-          jobs.count.should be 1
-          job = jobs[0]
-          job.should be result[:job]
-        ensure
-          Que.error_handler = nil
-        end
-      end
-
-      it "should not do anything if the error handler itelf throws an error" do
-        begin
-          Que.error_handler = proc { |error| raise "Another error!" }
-          ErrorJob.enqueue
-
-          result = Que::Job.work
-          result[:event].should == :job_errored
-          result[:error].should be_an_instance_of RuntimeError
-        ensure
-          Que.error_handler = nil
-        end
-      end
-
-      it "should throw an error properly if there's no corresponding job class" do
-        DB[:que_jobs].insert :job_class => "NonexistentClass"
-
-        result = Que::Job.work
-        result[:event].should == :job_errored
-        result[:error].should be_an_instance_of NameError
-        result[:job][:job_class].should == 'NonexistentClass'
-
-        DB[:que_jobs].count.should be 1
-        job = DB[:que_jobs].first
-        job[:error_count].should be 1
-        job[:last_error].should =~ /uninitialized constant:? NonexistentClass/
-        job[:run_at].should be_within(3).of Time.now + 4
-      end
-
-      it "should throw an error properly if the corresponding job class doesn't descend from Que::Job" do
-        class J
-          def run(*args)
-          end
-        end
-
-        Que.enqueue :job_class => "J"
-
-        result = Que::Job.work
-        result[:event].should == :job_errored
-        result[:job][:job_class].should == 'J'
-
-        DB[:que_jobs].count.should be 1
-        job = DB[:que_jobs].first
-        job[:error_count].should be 1
-        job[:run_at].should be_within(3).of Time.now + 4
-      end
+      DB[:que_jobs].count.should be 1
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      job[:run_at].should be_within(3).of Time.now + 4
     end
   end
 end

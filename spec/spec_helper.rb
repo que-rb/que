@@ -9,7 +9,7 @@ Dir['./spec/support/**/*.rb'].sort.each &method(:require)
 
 
 # Handy constants for initializing PG connections:
-QUE_URL = ENV['DATABASE_URL'] || 'postgres://baris:@localhost/que_test'
+QUE_URL = ENV['DATABASE_URL'] || 'postgres://postgres:@localhost/que-test'
 
 NEW_PG_CONNECTION = proc do
   uri = URI.parse(QUE_URL)
