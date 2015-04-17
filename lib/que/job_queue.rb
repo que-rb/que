@@ -1,4 +1,6 @@
-# A thread-safe queue that holds job primary keys in sorted order.
+# A thread-safe queue that holds job primary keys in sorted order. Supports
+# blocking while waiting for a job to become available, stopping, and only
+# returning jobs over a minimum priority.
 
 module Que
   class JobQueue
@@ -34,7 +36,7 @@ module Que
         sync do
           if @stop
             return
-          elsif (pk = @array.first) && pk[0] <= priority
+          elsif (pk = @array.first) && pk.first <= priority
             return @array.shift
           else
             @cv.wait
@@ -46,7 +48,7 @@ module Que
     def accept?(pk)
       # Accept the pk if there's space available or if it will sort lower than
       # the lowest pk currently in the queue.
-      sync { size < maximum_size || (pk <=> @array[-1]) == -1 }
+      sync { space > 0 || (pk <=> @array.last) < 0 }
     end
 
     def space
