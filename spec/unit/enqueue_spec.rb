@@ -31,10 +31,10 @@ describe Que::Job, '.enqueue' do
 
   it "should be able to queue a job with complex arguments" do
     DB[:que_jobs].count.should be 0
-    Que::Job.enqueue 1, 'two', :string => "string",
-                             :integer => 5,
-                             :array => [1, "two", {:three => 3}],
-                             :hash => {:one => 1, :two => 'two', :three => [3]}
+    Que::Job.enqueue 1, 'two', string: "string",
+                               integer: 5,
+                               array: [1, "two", {three: 3}],
+                               hash: {one: 1, two: 'two', three: [3]}
 
     DB[:que_jobs].count.should be 1
 
@@ -56,7 +56,7 @@ describe Que::Job, '.enqueue' do
 
   it "should be able to queue a job with a specific time to run" do
     DB[:que_jobs].count.should be 0
-    Que::Job.enqueue 1, :run_at => Time.now + 60
+    Que::Job.enqueue 1, run_at: Time.now + 60
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
@@ -68,7 +68,7 @@ describe Que::Job, '.enqueue' do
 
   it "should be able to queue a job with a specific priority" do
     DB[:que_jobs].count.should be 0
-    Que::Job.enqueue 1, :priority => 4
+    Que::Job.enqueue 1, priority: 4
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
@@ -80,7 +80,7 @@ describe Que::Job, '.enqueue' do
 
   it "should be able to queue a job with queueing options in addition to argument options" do
     DB[:que_jobs].count.should be 0
-    Que::Job.enqueue 1, :string => "string", :run_at => Time.now + 60, :priority => 4
+    Que::Job.enqueue 1, string: "string", run_at: Time.now + 60, priority: 4
     DB[:que_jobs].count.should be 1
 
     job = DB[:que_jobs].first
@@ -91,8 +91,8 @@ describe Que::Job, '.enqueue' do
   end
 
   it "should respect a job class defined as a string" do
-    Que.enqueue 'argument', :other_arg => 'other_arg', :job_class => 'MyJobClass'
-    Que::Job.enqueue 'argument', :other_arg => 'other_arg', :job_class => 'MyJobClass'
+    Que.enqueue 'argument', other_arg: 'other_arg', job_class: 'MyJobClass'
+    Que::Job.enqueue 'argument', other_arg: 'other_arg', job_class: 'MyJobClass'
 
     DB[:que_jobs].count.should be 2
     DB[:que_jobs].all.each do |job|
@@ -108,7 +108,7 @@ describe Que::Job, '.enqueue' do
 
     DB[:que_jobs].count.should be 0
     DefaultPriorityJob.enqueue 1
-    DefaultPriorityJob.enqueue 1, :priority => 4
+    DefaultPriorityJob.enqueue 1, priority: 4
     DB[:que_jobs].count.should be 2
 
     first, second = DB[:que_jobs].order(:job_id).all
@@ -131,7 +131,7 @@ describe Que::Job, '.enqueue' do
 
     DB[:que_jobs].count.should be 0
     DefaultRunAtJob.enqueue 1
-    DefaultRunAtJob.enqueue 1, :run_at => Time.now + 30
+    DefaultRunAtJob.enqueue 1, run_at: Time.now + 30
     DB[:que_jobs].count.should be 2
 
     first, second = DB[:que_jobs].order(:job_id).all

@@ -1,7 +1,7 @@
 shared_examples "a Que pool" do
   it "should be able to execute arbitrary SQL and return symbolized hashes" do
     result = Que.execute("SELECT 1 AS one")
-    result.should == [{:one => 1}]
+    result.should == [{one: 1}]
 
     logged_messages.map{|m| m['event']}.should == ['execute_sql']
     logged_messages[0]['sql'].should == "SELECT 1 AS one"

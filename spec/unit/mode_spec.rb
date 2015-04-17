@@ -35,7 +35,7 @@ describe Que, "mode=" do
     end
 
     it "should not work jobs synchronously if they are scheduled for a future date" do
-      ArgsJob.enqueue(1, 2, 3, :run_at => Time.now + 3).should be_an_instance_of ArgsJob
+      ArgsJob.enqueue(1, 2, 3, run_at: Time.now + 3).should be_an_instance_of ArgsJob
       $passed_args.should == nil
       Que.mode.should == :sync
     end
@@ -56,11 +56,11 @@ describe Que, "mode=" do
       # begin
       #   ENV['QUE_QUEUE'] = 'other_queue'
 
-      #   Que::Job.enqueue :queue => 'other_queue'
+      #   Que::Job.enqueue queue: 'other_queue'
       #   Que.mode = :async
       #   sleep_until { DB[:que_jobs].empty? }
 
-      #   Que::Job.enqueue :queue => 'other_queue'
+      #   Que::Job.enqueue queue: 'other_queue'
       #   sleep_until { DB[:que_jobs].empty? }
       #   Que.mode = :off
       # ensure

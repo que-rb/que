@@ -12,7 +12,7 @@ You can use Que's logger in your jobs anywhere you like:
 
     class MyJob
       def run
-        Que.log :my_output => "my string"
+        Que.log my_output: "my string"
       end
     end
 
@@ -20,7 +20,7 @@ You can use Que's logger in your jobs anywhere you like:
 
 Que will always add a 'lib' key, so you can easily filter its output from that of other sources, and the object_id of the thread that emitted the log, so you can follow the actions of a particular worker if you wish. You can also pass a :level key to set the level of the output:
 
-    Que.log :level => :debug, :my_output => 'my string'
+    Que.log level: :debug, my_output: 'my string'
     #=> D, [2014-01-12T05:16:15.221941 #5088] DEBUG -- : {"lib":"que","thread":24960,"my_output":"my string"}
 
 If you don't like JSON, you can also customize the format of the logging output by passing a callable object (such as a proc) to Que.log_formatter=. The proc should take a hash (the keys are symbols) and return a string. The keys and values are just as you would expect from the JSON output:

@@ -21,7 +21,7 @@ task :safe_shutdown do
   DB = Sequel.connect(url)
 
   if DB.table_exists?(:que_jobs)
-    puts "Uh-oh! Previous shutdown wasn't clean!" if DB[:que_jobs].where(:job_id => 0).count > 0
+    puts "Uh-oh! Previous shutdown wasn't clean!" if DB[:que_jobs].where(job_id: 0).count > 0
     DB.drop_table :que_jobs
   end
 
@@ -33,7 +33,7 @@ task :safe_shutdown do
   class SafeJob < Que::Job
     def run
       DB.transaction do
-        DB[:que_jobs].insert(:job_id => 0, :job_class => 'Que::Job')
+        DB[:que_jobs].insert(job_id: 0, job_class: 'Que::Job')
         $queue.push nil
         sleep
       end

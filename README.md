@@ -66,7 +66,7 @@ class ChargeCreditCard < Que::Job
 
     ActiveRecord::Base.transaction do
       # Write any changes you'd like to the database.
-      user.update_attributes :charged_at => Time.now
+      user.update_attributes charged_at: Time.now
 
       # It's best to destroy the job in the same transaction as any other
       # changes you make. Que will destroy the job for you after the run
@@ -85,7 +85,7 @@ Queue your job. Again, it's best to do this in a transaction with other changes 
 ActiveRecord::Base.transaction do
   # Persist credit card information
   card = CreditCard.create(params[:credit_card])
-  ChargeCreditCard.enqueue(current_user.id, :credit_card_id => card.id)
+  ChargeCreditCard.enqueue(current_user.id, credit_card_id: card.id)
 end
 ```
 
@@ -93,7 +93,7 @@ You can also add options to run the job after a specific time, or with a specifi
 
 ``` ruby
 # The default priority is 100, and a lower number means a higher priority. 5 would be very important.
-ChargeCreditCard.enqueue current_user.id, :credit_card_id => card.id, :run_at => 1.day.from_now, :priority => 5
+ChargeCreditCard.enqueue current_user.id, credit_card_id: card.id, run_at: 1.day.from_now, priority: 5
 ```
 
 To determine what happens when a job is queued, you can set Que's mode. There are a few options for the mode:

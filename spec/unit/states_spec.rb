@@ -2,11 +2,11 @@ require 'spec_helper'
 
 describe Que, '.job_states' do
   it "should return a list of the jobs currently being run, and which Ruby processes are working them" do
-    BlockJob.enqueue :priority => 2
+    BlockJob.enqueue priority: 2
 
     # Ensure that the portion of the SQL query that accounts for bigint
     # job_ids functions correctly.
-    DB[:que_jobs].update(:job_id => 2**33)
+    DB[:que_jobs].update(job_id: 2**33)
 
     locker = Que::Locker.new
     $q1.pop

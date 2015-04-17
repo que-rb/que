@@ -28,16 +28,9 @@ module Que
     class << self
       attr_reader :retry_interval
 
-      def enqueue(*args)
-        if args.last.is_a?(Hash)
-          options   = args.pop
-          job_class = options.delete(:job_class)
-          run_at    = options.delete(:run_at)
-          priority  = options.delete(:priority)
-          args << options if options.any?
-        end
-
-        attrs = {:job_class => job_class || to_s, :args => args}
+      def enqueue(*args, job_class: nil, run_at: nil, priority: nil, **arg_opts)
+        args << arg_opts if arg_opts.any?
+        attrs = {job_class: job_class || to_s, args: args}
 
         if t = run_at || @run_at && @run_at.call
           attrs[:run_at] = t
@@ -57,7 +50,7 @@ module Que
 
       def run(*args)
         # Should not fail if there's no DB connection.
-        new(:args => args).tap { |job| job.run(*args) }
+        new(args: args).tap { |job| job.run(*args) }
       end
 
       def class_for(string)

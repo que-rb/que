@@ -6,19 +6,18 @@ module Que
     CURRENT_VERSION = 4
 
     class << self
-      def migrate!(options = {:version => CURRENT_VERSION})
+      def migrate!(version: CURRENT_VERSION)
         Que.transaction do
           current = db_version
-          target = options[:version]
 
-          if current == target
+          if current == version
             return
-          elsif current < target
+          elsif current < version
             direction = :up
-            steps = ((current + 1)..target).to_a
-          elsif current > target
+            steps = ((current + 1)..version).to_a
+          elsif current > version
             direction = :down
-            steps = ((target + 1)..current).to_a.reverse
+            steps = ((version + 1)..current).to_a.reverse
           end
 
           steps.each do |step|
@@ -26,7 +25,7 @@ module Que
             Que.execute(sql)
           end
 
-          set_db_version(target)
+          set_db_version(version)
         end
       end
 

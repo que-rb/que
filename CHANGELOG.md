@@ -106,7 +106,7 @@
 
 *   **A schema upgrade to version 3 is required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
 
-*   You can now run a job's logic directly (without enqueueing it) like `MyJob.run(arg1, arg2, :other_arg => arg3)`. This is useful when a job class encapsulates logic that you want to invoke without involving the entire queue.
+*   You can now run a job's logic directly (without enqueueing it) like `MyJob.run(arg1, arg2, other_arg: arg3)`. This is useful when a job class encapsulates logic that you want to invoke without involving the entire queue.
 
 *   You can now check the current version of Que's database schema with `Que.db_version`.
 
@@ -132,7 +132,7 @@
 
 *   The default priority for jobs is now 100 (it was 1 before). Like always (and like delayed_job), a lower priority means it's more important. You can migrate the schema version to 2 to set the new default value on the que_jobs table, though it's only necessary if you're doing your own INSERTs - if you use `MyJob.queue`, it's already taken care of.
 
-*   Added a migration system to make it easier to change the schema when updating Que. You can now write, for example, `Que.migrate!(:version => 2)` in your migrations. Migrations are run transactionally.
+*   Added a migration system to make it easier to change the schema when updating Que. You can now write, for example, `Que.migrate!(version: 2)` in your migrations. Migrations are run transactionally.
 
 *   The logging format has changed to be more easily machine-readable. You can also now customize the logging format by assigning a callable to Que.log_formatter=. See the new doc on [logging](https://github.com/chanks/que/blob/master/docs/logging.md)) for details. The default logger level is INFO - for less critical information (such as when no jobs were found to be available or when a job-lock race condition has been detected and avoided) you can set the QUE_LOG_LEVEL environment variable to DEBUG.
 

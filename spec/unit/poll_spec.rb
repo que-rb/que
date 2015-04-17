@@ -34,37 +34,37 @@ describe "The job polling query" do
     one = Que::Job.enqueue.attrs[:job_id]
     two = Que::Job.enqueue.attrs[:job_id]
 
-    poll(2, :job_ids => [one]).should == [two]
+    poll(2, job_ids: [one]).should == [two]
   end
 
   it "should only work a job whose scheduled time to run has passed" do
-    future1 = Que::Job.enqueue(:run_at => Time.now + 30).attrs[:job_id]
-    past    = Que::Job.enqueue(:run_at => Time.now - 30).attrs[:job_id]
-    future2 = Que::Job.enqueue(:run_at => Time.now + 30).attrs[:job_id]
+    future1 = Que::Job.enqueue(run_at: Time.now + 30).attrs[:job_id]
+    past    = Que::Job.enqueue(run_at: Time.now - 30).attrs[:job_id]
+    future2 = Que::Job.enqueue(run_at: Time.now + 30).attrs[:job_id]
 
     poll(5).should == [past]
   end
 
   it "should prefer a job with lower priority" do
     # 1 is highest priority.
-    [5, 4, 3, 2, 1, 2, 3, 4, 5].map { |p| Que::Job.enqueue :priority => p }
+    [5, 4, 3, 2, 1, 2, 3, 4, 5].map { |p| Que::Job.enqueue priority: p }
 
     poll(5).sort.should == DB[:que_jobs].where{priority <= 3}.select_order_map(:job_id)
   end
 
   it "should prefer a job that was scheduled to run longer ago when priorities are equal" do
-    id1 = Que::Job.enqueue(:run_at => Time.now - 30).attrs[:job_id]
-    id2 = Que::Job.enqueue(:run_at => Time.now - 60).attrs[:job_id]
-    id3 = Que::Job.enqueue(:run_at => Time.now - 30).attrs[:job_id]
+    id1 = Que::Job.enqueue(run_at: Time.now - 30).attrs[:job_id]
+    id2 = Que::Job.enqueue(run_at: Time.now - 60).attrs[:job_id]
+    id3 = Que::Job.enqueue(run_at: Time.now - 30).attrs[:job_id]
 
     poll(1).should == [id2]
   end
 
   it "should prefer a job that was queued earlier when priorities and run_ats are equal" do
     run_at = Time.now - 30
-    id1 = Que::Job.enqueue(:run_at => run_at).attrs[:job_id]
-    id2 = Que::Job.enqueue(:run_at => run_at).attrs[:job_id]
-    id3 = Que::Job.enqueue(:run_at => run_at).attrs[:job_id]
+    id1 = Que::Job.enqueue(run_at: run_at).attrs[:job_id]
+    id2 = Que::Job.enqueue(run_at: run_at).attrs[:job_id]
+    id3 = Que::Job.enqueue(run_at: run_at).attrs[:job_id]
 
     first, second, third = DB[:que_jobs].select_order_map(:job_id)
 

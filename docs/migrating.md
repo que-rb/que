@@ -4,18 +4,18 @@ Some new releases of Que may require updates to the database schema. It's recomm
 
     class UpdateQue < ActiveRecord::Migration
       def self.up
-        Que.migrate! :version => 3
+        Que.migrate! version: 3
       end
 
       def self.down
-        Que.migrate! :version => 2
+        Que.migrate! version: 2
       end
     end
 
 This will make sure that your database schema stays consistent with your codebase. If you're looking for something quicker and dirtier, you can always manually migrate in a console session:
 
     # Change schema to version 3.
-    Que.migrate! :version => 3
+    Que.migrate! version: 3
 
     # Update to whatever the latest schema version is.
     Que.migrate!

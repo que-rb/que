@@ -91,7 +91,7 @@ If you're using Sequel, you can use the same technique:
 
 And note that Sequel *does* support composite primary keys:
 
-    job = QueJob.where(:job_class => "ChargeCreditCard").first
+    job = QueJob.where(job_class: "ChargeCreditCard").first
     job.priority = 1
     job.save
 

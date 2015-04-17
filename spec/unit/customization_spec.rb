@@ -91,7 +91,7 @@ describe "Customizing Que" do
       class MyJob < MyJobClass
       end
 
-      MyJob.enqueue 1, 'arg1', :priority => 89
+      MyJob.enqueue 1, 'arg1', priority: 89
       locker = Que::Locker.new
 
       sleep_until { DB[:finished_jobs].count == 1 }
@@ -118,7 +118,7 @@ describe "Customizing Que" do
 
         Que.execute "CREATE TRIGGER keep_all_my_old_jobs BEFORE DELETE ON que_jobs FOR EACH ROW EXECUTE PROCEDURE please_save_my_job();"
 
-        Que::Job.enqueue 2, 'arg2', :priority => 45
+        Que::Job.enqueue 2, 'arg2', priority: 45
         locker = Que::Locker.new
 
         sleep_until { DB[:finished_jobs].count == 1 }
@@ -128,8 +128,8 @@ describe "Customizing Que" do
 
         locker.stop
       ensure
-        DB.drop_trigger :que_jobs, :keep_all_my_old_jobs, :if_exists => true
-        DB.drop_function :please_save_my_job, :if_exists => true
+        DB.drop_trigger :que_jobs, :keep_all_my_old_jobs, if_exists: true
+        DB.drop_function :please_save_my_job, if_exists: true
       end
     end
   end
@@ -177,11 +177,11 @@ describe "Customizing Que" do
     #         end
     #       end
 
-    #       ArgsJob.enqueue 2, 'arg2', :priority => 45
+    #       ArgsJob.enqueue 2, 'arg2', priority: 45
 
     #       locker = Que::Locker.new
 
-    #       # sleep_until { $passed_args == [2, 'arg2', {:priority => 45}] }
+    #       # sleep_until { $passed_args == [2, 'arg2', {priority: 45}] }
     #       locker.stop
     #     ensure
     #       DB.transaction do

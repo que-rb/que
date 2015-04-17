@@ -2,11 +2,11 @@ require 'spec_helper'
 
 describe Que::Worker do
   before do
-    @job_queue    = Que::JobQueue.new :maximum_size => 20
+    @job_queue    = Que::JobQueue.new maximum_size: 20
     @result_queue = Que::JobQueue.new
 
-    @worker = Que::Worker.new :job_queue    => @job_queue,
-                              :result_queue => @result_queue
+    @worker = Que::Worker.new job_queue:    @job_queue,
+                              result_queue: @result_queue
   end
 
   def run_jobs(*jobs)
@@ -26,7 +26,7 @@ describe Que::Worker do
         end
       end
 
-      [1, 2, 3].each { |i| WorkerJob.enqueue i, :priority => i }
+      [1, 2, 3].each { |i| WorkerJob.enqueue i, priority: i }
       job_ids = DB[:que_jobs].order_by(:priority).select_map(:job_id)
       run_jobs Que.execute("SELECT * FROM que_jobs").shuffle
 
@@ -48,7 +48,7 @@ describe Que::Worker do
     run_jobs Que.execute("SELECT * FROM que_jobs").first
 
     DB[:que_jobs].count.should be 0
-    $passed_args.should == [1, 'two', {:three => 3}]
+    $passed_args.should == [1, 'two', {three: 3}]
   end
 
   it "should make it easy to destroy the job within the same transaction as other changes" do
@@ -133,9 +133,9 @@ describe Que::Worker do
 
   it "should skip a job without incident if passed the pk for a job that doesn't exist" do
     DB[:que_jobs].count.should be 0
-    run_jobs :priority => 1,
-             :run_at   => Time.now,
-             :job_id   => 587648
+    run_jobs priority: 1,
+             run_at:   Time.now,
+             job_id:   587648
 
     @result_queue.to_a.map{|pk| pk[-1]}.should == [587648]
   end
@@ -154,8 +154,8 @@ describe Que::Worker do
 
   describe "when an error is raised" do
     it "should not crash the worker" do
-      ErrorJob.enqueue :priority => 1
-      Que::Job.enqueue :priority => 2
+      ErrorJob.enqueue priority: 1
+      Que::Job.enqueue priority: 2
 
       job_ids = DB[:que_jobs].order_by(:priority).select_map(:job_id)
       run_jobs Que.execute("SELECT * FROM que_jobs")
@@ -175,7 +175,7 @@ describe Que::Worker do
         error = nil
         Que.error_handler = proc { |e| error = e }
 
-        ErrorJob.enqueue :priority => 1
+        ErrorJob.enqueue priority: 1
 
         run_jobs Que.execute("SELECT * FROM que_jobs")
 
@@ -190,8 +190,8 @@ describe Que::Worker do
       begin
         Que.error_handler = proc { |e| raise "Error handler error!" }
 
-        ErrorJob.enqueue :priority => 1
-        Que::Job.enqueue :priority => 2
+        ErrorJob.enqueue priority: 1
+        Que::Job.enqueue priority: 2
 
         run_jobs Que.execute("SELECT * FROM que_jobs")
 
@@ -215,8 +215,8 @@ describe Que::Worker do
       job[:last_error].should =~ /\AErrorJob!\n/
       job[:run_at].should be_within(3).of Time.now + 4
 
-      DB[:que_jobs].update :error_count => 5,
-                           :run_at      => Time.now - 60
+      DB[:que_jobs].update error_count: 5,
+                           run_at:      Time.now - 60
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 
@@ -242,8 +242,8 @@ describe Que::Worker do
       job[:last_error].should =~ /\AErrorJob!\n/
       job[:run_at].should be_within(3).of Time.now + 5
 
-      DB[:que_jobs].update :error_count => 5,
-                           :run_at      => Time.now - 60
+      DB[:que_jobs].update error_count: 5,
+                           run_at:      Time.now - 60
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 
@@ -269,8 +269,8 @@ describe Que::Worker do
       job[:last_error].should =~ /\AErrorJob!\n/
       job[:run_at].should be_within(3).of Time.now + 10
 
-      DB[:que_jobs].update :error_count => 5,
-                           :run_at      => Time.now - 60
+      DB[:que_jobs].update error_count: 5,
+                           run_at:      Time.now - 60
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 
@@ -282,7 +282,7 @@ describe Que::Worker do
     end
 
     it "should throw an error properly if there's no corresponding job class" do
-      DB[:que_jobs].insert :job_class => "NonexistentClass"
+      DB[:que_jobs].insert job_class: "NonexistentClass"
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 
@@ -299,7 +299,7 @@ describe Que::Worker do
         end
       end
 
-      Que.enqueue :job_class => "J"
+      Que.enqueue job_class: "J"
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 

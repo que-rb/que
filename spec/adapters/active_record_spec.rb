@@ -38,10 +38,10 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
     end
 
     it "should support Rails' special extensions for times" do
-      locker = Que::Locker.new :poll_interval => 0.005.seconds
+      locker = Que::Locker.new poll_interval: 0.005.seconds
       sleep 0.01
 
-      run_at = Que::Job.enqueue(:run_at => 1.minute.ago).attrs[:run_at]
+      run_at = Que::Job.enqueue(run_at: 1.minute.ago).attrs[:run_at]
       run_at.should be_within(3).of(Time.now - 60)
 
       sleep_until { DB[:que_jobs].empty? }

@@ -19,9 +19,9 @@ describe Que::Migrations do
     end
 
     default.call.should == 100
-    Que::Migrations.migrate! :version => 1
+    Que::Migrations.migrate! version: 1
     default.call.should == 1
-    Que::Migrations.migrate! :version => 2
+    Que::Migrations.migrate! version: 2
     default.call.should == 100
 
     # Clean up.
@@ -38,14 +38,14 @@ describe Que::Migrations do
 
   it "should be able to cycle the jobs table all the way between nonexistent and current without error" do
     Que::Migrations.db_version.should == Que::Migrations::CURRENT_VERSION
-    Que::Migrations.migrate! :version => 0
+    Que::Migrations.migrate! version: 0
     Que::Migrations.db_version.should == 0
     Que.db_version.should == 0
     Que::Migrations.migrate!
     Que::Migrations.db_version.should == Que::Migrations::CURRENT_VERSION
 
     # The helper on the Que module does the same thing.
-    Que.migrate! :version => 0
+    Que.migrate! version: 0
     Que::Migrations.db_version.should == 0
     Que.migrate!
     Que::Migrations.db_version.should == Que::Migrations::CURRENT_VERSION
@@ -62,7 +62,7 @@ describe Que::Migrations do
   end
 
   it "should be able to recognize a que_jobs table created before the versioning system" do
-    Que.migrate! :version => 0
+    Que.migrate! version: 0
     DB.create_table(:que_jobs){serial :id} # Dummy Table.
     Que::Migrations.db_version.should == 1
     DB.drop_table(:que_jobs)
@@ -70,7 +70,7 @@ describe Que::Migrations do
   end
 
   it "should be able to honor the initial behavior of Que.create!" do
-    Que.migrate! :version => 0
+    Que.migrate! version: 0
     Que.create!
     DB.table_exists?(:que_jobs).should be true
     Que::Migrations.db_version.should == 1

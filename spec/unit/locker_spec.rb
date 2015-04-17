@@ -17,13 +17,13 @@ describe Que::Locker do
   end
 
   it "should allow configuration of various parameters" do
-    locker = Que::Locker.new :listen             => false,
-                             :minimum_queue_size => 5,
-                             :maximum_queue_size => 45,
-                             :wait_period        => 0.2,
-                             :poll_interval      => 0.4,
-                             :worker_priorities  => [1, 2, 3, 4],
-                             :worker_count       => 8
+    locker = Que::Locker.new listen:             false,
+                             minimum_queue_size: 5,
+                             maximum_queue_size: 45,
+                             wait_period:        0.2,
+                             poll_interval:      0.4,
+                             worker_priorities:  [1, 2, 3, 4],
+                             worker_count:       8
     locker.stop
 
     events = logged_messages.select { |m| m['event'] == 'locker_start' }
@@ -42,7 +42,7 @@ describe Que::Locker do
     pg = NEW_PG_CONNECTION.call
     pid = pg.async_exec("select pg_backend_pid()").to_a.first['pg_backend_pid'].to_i
 
-    locker = Que::Locker.new :connection => pg
+    locker = Que::Locker.new connection: pg
 
     sleep_until { DB[:que_lockers].select_map(:pid) == [pid] }
 
@@ -58,7 +58,7 @@ describe Que::Locker do
   it "should register its presence or absence in the que_lockers table upon connecting or disconnecting" do
     worker_count = rand(10) + 1
 
-    locker = Que::Locker.new(:worker_count => worker_count)
+    locker = Que::Locker.new(worker_count: worker_count)
 
     sleep_until { DB[:que_lockers].count == 1 }
 
@@ -81,15 +81,15 @@ describe Que::Locker do
     # spec the cleaning of lockers previously registered by the same
     # connection.
     Que.execute :register_locker, [3, 0, 'blah1', 'true']
-    DB[:que_lockers].insert :pid           => 0,
-                            :ruby_pid      => 0,
-                            :ruby_hostname => 'blah2',
-                            :worker_count  => 4,
-                            :listening     => true
+    DB[:que_lockers].insert pid:           0,
+                            ruby_pid:      0,
+                            ruby_hostname: 'blah2',
+                            worker_count:  4,
+                            listening:     true
 
     DB[:que_lockers].count.should be 2
 
-    pid = DB[:que_lockers].exclude(:pid => 0).get(:pid)
+    pid = DB[:que_lockers].exclude(pid: 0).get(:pid)
 
     locker = Que::Locker.new
     sleep_until { DB[:que_lockers].count == 1 }
@@ -105,7 +105,7 @@ describe Que::Locker do
 
   it "should do batch polls every poll_interval to catch jobs that fall through the cracks" do
     DB[:que_jobs].count.should be 0
-    locker = Que::Locker.new :poll_interval => 0.01, :listen => false
+    locker = Que::Locker.new poll_interval: 0.01, listen: false
 
     Que::Job.enqueue
     sleep_until { DB[:que_jobs].empty? }
@@ -131,14 +131,14 @@ describe Que::Locker do
     end
 
     it "should request enough jobs to fill the queue" do
-      ids  = 3.times.map { BlockJob.enqueue(:priority => 100).attrs[:job_id] }
-      ids += 6.times.map { Que::Job.enqueue(:priority => 101).attrs[:job_id] }
+      ids  = 3.times.map { BlockJob.enqueue(priority: 100).attrs[:job_id] }
+      ids += 6.times.map { Que::Job.enqueue(priority: 101).attrs[:job_id] }
 
       locker = Que::Locker.new
       3.times { $q1.pop }
 
       # The default queue size is 8, so it shouldn't lock the 9th job.
-      DB[:pg_locks].where(:locktype => 'advisory').select_order_map(:objid).should == ids[0..-2]
+      DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid).should == ids[0..-2]
 
       3.times { $q2.push nil }
       locker.stop
@@ -169,7 +169,7 @@ describe Que::Locker do
           end
         end
 
-        locker = Que::Locker.new :poll_interval => 0.01, :listen => false
+        locker = Que::Locker.new poll_interval: 0.01, listen: false
 
         id1 = PollRelockJob.enqueue.attrs[:job_id]
         $q1.pop
@@ -190,14 +190,14 @@ describe Que::Locker do
     end
 
     it "should request as many as necessary to reach the maximum_queue_size" do
-      ids  = 3.times.map { BlockJob.enqueue(:priority => 100).attrs[:job_id] }
-      ids += 3.times.map { Que::Job.enqueue(:priority => 101).attrs[:job_id] }
+      ids  = 3.times.map { BlockJob.enqueue(priority: 100).attrs[:job_id] }
+      ids += 3.times.map { Que::Job.enqueue(priority: 101).attrs[:job_id] }
 
-      locker = Que::Locker.new :poll_interval => 0.01, :listen => false
+      locker = Que::Locker.new poll_interval: 0.01, listen: false
       3.times { $q1.pop }
 
-      ids += 6.times.map { Que::Job.enqueue(:priority => 101).attrs[:job_id] }
-      sleep_until { DB[:pg_locks].where(:locktype => 'advisory').select_order_map(:objid) == ids[0..10] }
+      ids += 6.times.map { Que::Job.enqueue(priority: 101).attrs[:job_id] }
+      sleep_until { DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid) == ids[0..10] }
 
       3.times { $q2.push nil }
       locker.stop
@@ -208,17 +208,17 @@ describe Que::Locker do
     end
 
     it "should trigger a new batch poll when the queue drops to the minimum_queue_size threshold" do
-      ids = 9.times.map { BlockJob.enqueue(:priority => 100).attrs[:job_id] }
+      ids = 9.times.map { BlockJob.enqueue(priority: 100).attrs[:job_id] }
 
       locker = Que::Locker.new
       3.times { $q1.pop }
 
       # Should have locked first 8 only.
-      DB[:pg_locks].where(:locktype => 'advisory').select_order_map(:objid).should == ids[0..7]
+      DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid).should == ids[0..7]
 
       # Get the queue size down to 2, and it should lock the final one.
       6.times { $q2.push nil }
-      sleep_until { DB[:pg_locks].where(:locktype => 'advisory').select_map(:objid).include?(ids[-1]) }
+      sleep_until { DB[:pg_locks].where(locktype: 'advisory').select_map(:objid).include?(ids[-1]) }
       3.times { $q2.push nil }
 
       locker.stop
@@ -234,13 +234,13 @@ describe Que::Locker do
       job = BlockJob.enqueue
       $q1.pop
 
-      locks = DB[:pg_locks].where(:locktype => 'advisory').all
+      locks = DB[:pg_locks].where(locktype: 'advisory').all
       locks.count.should be 1
       locks.first[:objid].should == DB[:que_jobs].get(:job_id)
 
       $q2.push nil
       sleep_until { DB[:que_jobs].count == 0 }
-      sleep_until { DB[:pg_locks].where(:locktype => 'advisory').count == 0 }
+      sleep_until { DB[:pg_locks].where(locktype: 'advisory').count == 0 }
 
       locker.stop
 
@@ -291,12 +291,12 @@ describe Que::Locker do
       pid = DB[:que_lockers].where(:listening).get(:pid)
 
       payload = DB[:que_jobs].
-        where(:job_id => attrs[:job_id]).
+        where(job_id: attrs[:job_id]).
         select(:priority, :run_at, :job_id).
-        from_self(:alias => :t).
+        from_self(alias: :t).
         get{row_to_json(:t)}
 
-      DB.notify "que_locker_#{pid}", :payload => payload
+      DB.notify "que_locker_#{pid}", payload: payload
 
       sleep 0.05 # Hacky
       locker.job_queue.to_a.should == []
@@ -306,17 +306,17 @@ describe Que::Locker do
     end
 
     it "of low importance should not lock them or add them to the JobQueue if it is full" do
-      locker = Que::Locker.new :worker_count       => 1,
-                               :maximum_queue_size => 3
+      locker = Que::Locker.new worker_count:       1,
+                               maximum_queue_size: 3
 
       sleep_until { DB[:que_lockers].count == 1 }
 
-      BlockJob.enqueue(:priority => 5)
+      BlockJob.enqueue(priority: 5)
       $q1.pop
-      ids = 3.times.map { Que::Job.enqueue(:priority => 5).attrs[:job_id] }
+      ids = 3.times.map { Que::Job.enqueue(priority: 5).attrs[:job_id] }
       sleep_until { locker.job_queue.to_a.map{|h| h[-1]} == ids }
 
-      id = Que::Job.enqueue(:priority => 10).attrs[:job_id]
+      id = Que::Job.enqueue(priority: 10).attrs[:job_id]
 
       sleep 0.05 # Hacky.
       locker.job_queue.to_a.map{|h| h[-1]}.should_not include id
@@ -326,18 +326,18 @@ describe Que::Locker do
     end
 
     it "of significant importance should lock and add it to the JobQueue and dequeue/unlock the least important one to make room" do
-      locker = Que::Locker.new :worker_count       => 1,
-                               :maximum_queue_size => 3
+      locker = Que::Locker.new worker_count:       1,
+                               maximum_queue_size: 3
 
       sleep_until { DB[:que_lockers].count == 1 }
 
-      BlockJob.enqueue :priority => 5
+      BlockJob.enqueue priority: 5
       $q1.pop
-      ids = 3.times.map { Que::Job.enqueue(:priority => 5).attrs[:job_id] }
+      ids = 3.times.map { Que::Job.enqueue(priority: 5).attrs[:job_id] }
 
       sleep_until { locker.job_queue.to_a.map{|h| h[-1]} == ids }
 
-      id = Que::Job.enqueue(:priority => 2).attrs[:job_id]
+      id = Que::Job.enqueue(priority: 2).attrs[:job_id]
 
       sleep_until { locker.job_queue.to_a.map{|h| h[-1]} == [id] + ids[0..1] }
 
@@ -363,7 +363,7 @@ describe Que::Locker do
 
       job_ids = DB[:que_jobs].select_order_map(:job_id)
 
-      sleep_until { DB[:pg_locks].where(:locktype => 'advisory').select_order_map(:objid) == job_ids }
+      sleep_until { DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid) == job_ids }
 
       3.times { $q1.pop }
 
@@ -372,7 +372,7 @@ describe Que::Locker do
       t = Thread.new { locker.stop }
 
       sleep_until { locker.job_queue.to_a.empty? }
-      sleep_until { DB[:pg_locks].where(:locktype => 'advisory').select_order_map(:objid) == job_ids[0..2] }
+      sleep_until { DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid) == job_ids[0..2] }
 
       3.times { $q2.push nil }
 

@@ -11,7 +11,7 @@ The safest type of job is one that reads in data, either from the database or fr
 
         ActiveRecord::Base.transaction do
           # Make changes to the database.
-          widget.update :price => price
+          widget.update price: price
 
           # Destroy the job.
           destroy
@@ -25,10 +25,10 @@ The more difficult type of job is one that makes changes that can't be controlle
 
     class ChargeCreditCard < Que::Job
       def run(user_id, credit_card_id)
-        CreditCardService.charge(credit_card_id, :amount => "$10.00")
+        CreditCardService.charge(credit_card_id, amount: "$10.00")
 
         ActiveRecord::Base.transaction do
-          User.where(:id => user_id).update_all :charged_at => Time.now
+          User.where(id: user_id).update_all charged_at: Time.now
           destroy
         end
       end
@@ -39,11 +39,11 @@ What if the process abruptly dies after we tell the provider to charge the credi
     class ChargeCreditCard < Que::Job
       def run(user_id, credit_card_id)
         unless CreditCardService.check_for_previous_charge(credit_card_id)
-          CreditCardService.charge(credit_card_id, :amount => "$10.00")
+          CreditCardService.charge(credit_card_id, amount: "$10.00")
         end
 
         ActiveRecord::Base.transaction do
-          User.where(:id => user_id).update_all :charged_at => Time.now
+          User.where(id: user_id).update_all charged_at: Time.now
           destroy
         end
       end

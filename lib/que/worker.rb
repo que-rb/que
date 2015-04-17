@@ -3,10 +3,10 @@ module Que
     attr_reader :thread
     attr_accessor :priority
 
-    def initialize(options)
-      @priority     = options[:priority]
-      @job_queue    = options[:job_queue]
-      @result_queue = options[:result_queue]
+    def initialize(priority: nil, job_queue: nil, result_queue: nil)
+      @priority     = priority
+      @job_queue    = job_queue
+      @result_queue = result_queue
 
       @thread = Thread.new { work_loop }
       @thread.abort_on_exception = true
@@ -29,12 +29,12 @@ module Que
 
             start = Time.now
             instance._run
-            Que.log :level => :debug, :event => :job_worked, :job => job, :elapsed => (Time.now - start)
+            Que.log level: :debug, event: :job_worked, job: job, elapsed: (Time.now - start)
           else
-            Que.log :level => :debug, :event => :job_race_condition, :pk => pk
+            Que.log level: :debug, event: :job_race_condition, pk: pk
           end
         rescue => error
-          Que.log :level => :debug, :event => :job_errored, :pk => pk, :job => job, :error => {:class => error.class.to_s, :message => error.message}
+          Que.log level: :debug, event: :job_errored, pk: pk, job: job, error: {class: error.class.to_s, message: error.message}
 
           begin
             count    = job[:error_count] + 1
@@ -53,9 +53,9 @@ module Que
               Que.error_handler.call(error, job)
             rescue => error_handler_error
               # What handles errors from the error handler? Nothing, so just log loudly.
-              Que.log :level => :error, :event => :error_handler_errored, :job => job,
-                :original_error => {:class => error.class.to_s, :message => error.message},
-                :error_handler_error => {:class => error_handler_error.class.to_s, :message => error_handler_error.message, :backtrace => error_handler_error.backtrace}
+              Que.log level: :error, event: :error_handler_errored, job: job,
+                      original_error: {class: error.class.to_s, message: error.message},
+                      error_handler_error: {class: error_handler_error.class.to_s, message: error_handler_error.message, backtrace: error_handler_error.backtrace}
             end
           end
         ensure

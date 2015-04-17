@@ -5,31 +5,26 @@ module Que
   class Locker
     attr_reader :thread, :workers, :job_queue
 
-    def initialize(options = {})
+    def initialize(connection: nil, listen: true, wait_period: 0.01, poll_interval: nil, minimum_queue_size: 2, maximum_queue_size: 8, worker_count: 6, worker_priorities: [10, 30, 50])
       @locks = Set.new
 
       # Wrap the given connection in a dummy pool.
-      if c = options[:connection]
-        @pool = Pool.new { |&block| block.call(c) }
-      end
+      @pool = Pool.new { |&block| block.call(connection) } if connection
 
-      @listen             = !!options.fetch(:listen, true)
-      @wait_period        = options[:wait_period] || 0.01
-      @poll_interval      = options[:poll_interval]
-      @minimum_queue_size = options[:minimum_queue_size] || 2
+      @listen             = listen
+      @wait_period        = wait_period
+      @poll_interval      = poll_interval
+      @minimum_queue_size = minimum_queue_size
 
       # We use one JobQueue to send primary keys of reserved jobs to workers,
       # and another to retrieve primary keys of finished jobs from workers.
-      @job_queue    = JobQueue.new :maximum_size => options[:maximum_queue_size] || 8
+      @job_queue    = JobQueue.new maximum_size: maximum_queue_size
       @result_queue = JobQueue.new
 
-      worker_count      = options[:worker_count]      || 6
-      worker_priorities = options[:worker_priorities] || [10, 30, 50]
-
       @workers = worker_count.times.zip(worker_priorities).map do |_, priority|
-        Worker.new :priority     => priority,
-                   :job_queue    => @job_queue,
-                   :result_queue => @result_queue
+        Worker.new priority:     priority,
+                   job_queue:    @job_queue,
+                   result_queue: @result_queue
       end
 
       @thread = Thread.new { work_loop }
@@ -47,15 +42,15 @@ module Que
       checkout do |conn|
         backend_pid = execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
 
-        Que.log :level              => :debug,
-                :event              => :locker_start,
-                :listen             => @listen,
-                :backend_pid        => backend_pid,
-                :wait_period        => @wait_period,
-                :poll_interval      => @poll_interval,
-                :minimum_queue_size => @minimum_queue_size,
-                :maximum_queue_size => @job_queue.maximum_size,
-                :worker_priorities  => @workers.map(&:priority)
+        Que.log level:              :debug,
+                event:              :locker_start,
+                listen:             @listen,
+                backend_pid:        backend_pid,
+                wait_period:        @wait_period,
+                poll_interval:      @poll_interval,
+                minimum_queue_size: @minimum_queue_size,
+                maximum_queue_size: @job_queue.maximum_size,
+                worker_priorities:  @workers.map(&:priority)
 
         begin
           execute "LISTEN que_locker_#{backend_pid}" if @listen
@@ -75,7 +70,7 @@ module Que
             break if @stop
           end
 
-          Que.log :level => :debug, :event => :locker_stop
+          Que.log level: :debug, event: :locker_stop
 
           unlock_jobs(@job_queue.clear)
 
@@ -114,7 +109,7 @@ module Que
       @last_polled_at      = Time.now
       @last_poll_satisfied = count == jobs.count
 
-      Que.log :level => :debug, :event => :locker_polled, :limit => count, :locked => jobs.count
+      Que.log level: :debug, event: :locker_polled, limit: count, locked: jobs.count
     end
 
     def wait
@@ -164,7 +159,7 @@ module Que
     def wait_for_job(timeout = nil)
       checkout do |conn|
         conn.wait_for_notify(timeout) do |_, _, payload|
-          Que.log :level => :debug, :event => :job_notified, :job => (json = JSON_MODULE.load(payload))
+          Que.log level: :debug, event: :job_notified, job: (json = JSON_MODULE.load(payload))
           return [json['priority'], Time.parse(json['run_at']), json['job_id']]
         end
       end

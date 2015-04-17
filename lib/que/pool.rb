@@ -42,7 +42,7 @@ module Que
     end
 
     def execute_sql(sql, params)
-      Que.log :level => :debug, :event => :execute_sql, :sql => sql, :params => params
+      Que.log level: :debug, event: :execute_sql, sql: sql, params: params
       args = params.empty? ? [sql] : [sql, params] # Work around JRuby bug.
       checkout { |conn| conn.async_exec(*args) }
     end

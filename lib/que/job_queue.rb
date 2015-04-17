@@ -4,10 +4,10 @@ module Que
   class JobQueue
     attr_reader :maximum_size
 
-    def initialize(options = {})
+    def initialize(maximum_size: Float::INFINITY)
       @stop         = false
       @array        = []
-      @maximum_size = options[:maximum_size] || Float::INFINITY
+      @maximum_size = maximum_size
 
       @monitor = Monitor.new
       @cv      = Monitor::ConditionVariable.new(@monitor)

@@ -15,11 +15,11 @@ QUE_URL = ENV['DATABASE_URL'] || 'postgres://postgres:@localhost/que-test'
 
 NEW_PG_CONNECTION = proc do
   uri = URI.parse(QUE_URL)
-  pg = PG::Connection.open :host     => uri.host,
-                           :user     => uri.user,
-                           :password => uri.password,
-                           :port     => uri.port || 5432,
-                           :dbname   => uri.path[1..-1]
+  pg = PG::Connection.open host:     uri.host,
+                           user:     uri.user,
+                           password: uri.password,
+                           port:     uri.port || 5432,
+                           dbname:   uri.path[1..-1]
 
   # Avoid annoying NOTICE messages in specs.
   pg.async_exec "SET client_min_messages TO 'warning'"
@@ -35,8 +35,8 @@ end
 # the default. Since the specs were originally designed for a stack- based
 # pool (the connection_pool gem), use :stack mode to avoid issues.
 
-Que.connection = QUE_SPEC_POND = Pond.new(:collection => :stack, &NEW_PG_CONNECTION)
-QUE_POOLS = {:pond => Que.pool}
+Que.connection = QUE_SPEC_POND = Pond.new(collection: :stack, &NEW_PG_CONNECTION)
+QUE_POOLS = {pond: Que.pool}
 
 
 
@@ -49,7 +49,7 @@ DB = Sequel.connect(QUE_URL)
 # Reset the table to the most up-to-date version.
 DB.drop_table? :que_jobs
 DB.drop_table? :que_lockers
-DB.drop_function :que_job_notify, :if_exists => true
+DB.drop_function :que_job_notify, if_exists: true
 Que::Migrations.migrate!
 
 
@@ -101,7 +101,7 @@ RSpec.configure do |config|
     DB[:que_lockers].delete
 
     # A bit of lint: make sure that no advisory locks are left open.
-    unless DB[:pg_locks].where(:locktype => 'advisory').empty?
+    unless DB[:pg_locks].where(locktype: 'advisory').empty?
       stdout.info "Advisory lock left open: #{desc} @ #{line}"
     end
   end

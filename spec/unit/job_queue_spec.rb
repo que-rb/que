@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Que::JobQueue do
   before do
-    @jq = Que::JobQueue.new :maximum_size => 8
+    @jq = Que::JobQueue.new maximum_size: 8
 
     @older = Time.now - 50
     @newer = Time.now

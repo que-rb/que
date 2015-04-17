@@ -68,16 +68,15 @@ module Que
     # Have to support create! and drop! in old migrations. They just created
     # and dropped the bare table.
     def create!
-      migrate! :version => 1
+      migrate! version: 1
     end
 
     def drop!
-      migrate! :version => 0
+      migrate! version: 0
     end
 
-    def log(data)
-      level = data.delete(:level) || :info
-      data = {:lib => 'que', :hostname => Socket.gethostname, :pid => Process.pid, :thread => Thread.current.object_id}.merge(data)
+    def log(level: :info, **data)
+      data = {lib: :que, hostname: Socket.gethostname, pid: Process.pid, thread: Thread.current.object_id}.merge(data)
 
       if l = logger
         begin
@@ -138,7 +137,7 @@ module Que
           raise Error, "Unknown Que mode: #{mode.inspect}"
         end
 
-        log :level => :debug, :event => 'mode_change', :value => mode.to_s
+        log level: :debug, event: :mode_change, value: mode
         @mode = mode
       end
     end

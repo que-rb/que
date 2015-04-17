@@ -6,7 +6,7 @@ Que supports the use of multiple queues in a single job table. This feature is i
 
 Then you can set jobs to be enqueued in that queue specifically:
 
-    ProcessCreditCard.enqueue current_user.id, :queue => 'credit_cards'
+    ProcessCreditCard.enqueue current_user.id, queue: 'credit_cards'
 
     # Or:
 
@@ -18,4 +18,4 @@ Then you can set jobs to be enqueued in that queue specifically:
 
 In some cases, the ProcessCreditCard class may not be defined in the application that is enqueueing the job. In that case, you can specify the job class as a string:
 
-    Que.enqueue current_user.id, :job_class => 'ProcessCreditCard', :queue => 'credit_cards'
+    Que.enqueue current_user.id, job_class: 'ProcessCreditCard', queue: 'credit_cards'
