@@ -19,7 +19,7 @@ module Que
       # We use one JobQueue to send primary keys of reserved jobs to workers,
       # and another to retrieve primary keys of finished jobs from workers.
       @job_queue    = JobQueue.new maximum_size: maximum_queue_size
-      @result_queue = JobQueue.new
+      @result_queue = ResultQueue.new
 
       @workers = worker_count.times.zip(worker_priorities).map do |_, priority|
         Worker.new priority:     priority,
