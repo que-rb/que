@@ -2,6 +2,8 @@
 
 One of Que's goals to be easily extensible and hackable (and if anyone has any suggestions on ways to accomplish that, please [open an issue](https://github.com/chanks/que/issues)). This document is meant to demonstrate some of the ways Que can be used to accomplish different tasks that it's not already designed for.
 
+Some of these features may be moved into core Que at some point, depending on how commonly useful they are.
+
 ### Recurring Jobs
 
 Que's support for scheduling jobs makes it easy to implement reliable recurring jobs. For example, suppose you want to run a job every hour that processes the users created in that time:
@@ -135,3 +137,44 @@ Alternately, if you want a more foolproof solution and you're not scared of Post
     $$;
 
     CREATE TRIGGER keep_all_my_old_jobs BEFORE DELETE ON que_jobs FOR EACH ROW EXECUTE PROCEDURE please_save_my_job();
+
+### Not Retrying Certain Failed Jobs
+
+By default, when jobs fail, Que reschedules them to be retried later. If instead you'd like certain jobs to not be retried, and instead move them elsewhere to be examined later, you can accomplish that easily. First, we need a place for the failed jobs to be stored:
+
+    CREATE TABLE failed_jobs AS SELECT * FROM que_jobs LIMIT 0
+
+Then, create a module that you can use in the jobs you don't want to retry:
+
+    module SkipRetries
+      def run(*args)
+        super
+      rescue
+        sql = <<-SQL
+          WITH failed AS (
+            DELETE
+            FROM   que_jobs
+            WHERE  queue    = $1::text
+            AND    priority = $2::smallint
+            AND    run_at   = $3::timestamptz
+            AND    job_id   = $4::bigint
+            RETURNING *
+          )
+          INSERT INTO failed_jobs
+            SELECT * FROM failed;
+        SQL
+
+        Que.execute sql, @attrs.values_at(:queue, :priority, :run_at, :job_id)
+
+        raise # Reraises caught error.
+      end
+    end
+
+    class RunOnceJob < Que::Job
+      prepend SkipRetries
+
+      def run(*args)
+        # Do something - if this job runs an error it'll be moved to the
+        # failed_jobs table and not retried.
+      end
+    end
