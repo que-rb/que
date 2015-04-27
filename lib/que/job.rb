@@ -28,6 +28,14 @@ module Que
     class << self
       attr_reader :retry_interval
 
+      def handle_job_failure(error, job)
+        count    = job[:error_count].to_i + 1
+        interval = retry_interval || superclass.respond_to?(:retry_interval) && superclass.retry_interval
+        delay    = interval.respond_to?(:call) ? interval.call(count) : interval
+        message  = "#{error.message}\n#{error.backtrace.join("\n")}"
+        Que.execute :set_error, [count, delay, message] + job.values_at(:queue, :priority, :run_at, :job_id)
+      end
+
       def enqueue(*args)
         if args.last.is_a?(Hash)
           options   = args.pop
@@ -35,6 +43,7 @@ module Que
           job_class = options.delete(:job_class)
           run_at    = options.delete(:run_at)
           priority  = options.delete(:priority)
+          retryable = options.delete(:retryable)
           args << options if options.any?
         end
 
@@ -56,10 +65,16 @@ module Que
           attrs[:queue] = q
         end
 
+        if retryable.nil?
+          attrs[:retryable] = true
+        else
+          attrs[:retryable] = retryable
+        end
+
         if Que.mode == :sync && !t
           run(*attrs[:args])
         else
-          values = Que.execute(:insert_job, attrs.values_at(:queue, :priority, :run_at, :job_class, :args)).first
+          values = Que.execute(:insert_job, attrs.values_at(:queue, :priority, :run_at, :job_class, :retryable, :args)).first
           Que.adapter.wake_worker_after_commit unless t
           new(values)
         end
@@ -105,11 +120,11 @@ module Que
           rescue => error
             begin
               if job
-                count    = job[:error_count].to_i + 1
-                interval = klass && klass.respond_to?(:retry_interval) && klass.retry_interval || retry_interval
-                delay    = interval.respond_to?(:call) ? interval.call(count) : interval
-                message  = "#{error.message}\n#{error.backtrace.join("\n")}"
-                Que.execute :set_error, [count, delay, message] + job.values_at(:queue, :priority, :run_at, :job_id)
+                if klass && klass.respond_to?(:handle_job_failure)
+                  klass.handle_job_failure(error, job)
+                else
+                  Job.handle_job_failure(error, job)
+                end
               end
             rescue
               # If we can't reach the database for some reason, too bad, but
