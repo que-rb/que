@@ -48,6 +48,7 @@ module Que
           FROM que_jobs AS j
           WHERE queue = $1::text
           AND run_at <= now()
+          AND job_id > $2::bigint
           ORDER BY priority, run_at, job_id
           LIMIT 1
         ) AS t1

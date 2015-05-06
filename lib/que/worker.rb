@@ -70,12 +70,15 @@ module Que
     end
 
     def work_loop
+      min_job_id = 0
+      worked_count = 0
+
       loop do
         cycle = nil
 
         if Que.mode == :async
           time   = Time.now
-          result = Job.work(queue)
+          result = Job.work(queue, min_job_id)
 
           case result[:event]
           when :job_unavailable
@@ -86,6 +89,7 @@ module Que
             result[:level] = :debug
           when :job_worked
             cycle = true
+            min_job_id = result[:job][:job_id]
             result[:elapsed] = (Time.now - time).round(5)
           when :job_errored
             # For PG::Errors, assume we had a problem reaching the database, and
@@ -94,6 +98,20 @@ module Que
             result[:error] = {:class => result[:error].class.to_s, :message => result[:error].message}
           else
             raise "Unknown Event: #{result[:event].inspect}"
+          end
+
+          # Constraining workers to a `job_id` floor has a significant
+          # disadvantage that it's possible for a job to be starved out if it
+          # was inserted with a non-sequential job ID and all workers had
+          # already locked themselves to higher identifiers.
+          #
+          # This block attempts to work around that issue by simply not using
+          # the `job_id` floor every so often, which allows any jobs that may
+          # have been missed to be picked up by doing things the hard way.
+          worked_count += 1
+          if worked_count >= 100
+            min_job_id = 0
+            worked_count = 0
           end
 
           Que.log(result)
