@@ -19,8 +19,7 @@ module Que
     # table as it continues to iterate through `que_jobs` looking for a lock.
     # The jobs table has a sort on (priority, run_at, job_id) which allows it
     # to walk the jobs table in a stable way. As noted above, the recursion
-    # examines one job at at at time so that it only ever acquires a single
-    # lock.
+    # examines one job at a time so that it only ever acquires a single lock.
     #
     # The recursion has two possible end conditions:
     #
