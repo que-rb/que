@@ -18,7 +18,7 @@ module Que
 
   class << self
     attr_accessor :error_handler
-    attr_writer :logger, :adapter, :log_formatter
+    attr_writer :logger, :adapter, :log_formatter, :disable_prepared_statements
 
     def connection=(connection)
       self.adapter =
@@ -94,6 +94,10 @@ module Que
 
     def log_formatter
       @log_formatter ||= JSON_MODULE.method(:dump)
+    end
+
+    def disable_prepared_statements
+      @disable_prepared_statements || false
     end
 
     # A helper method to manage transactions, used mainly by the migration

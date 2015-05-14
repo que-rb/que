@@ -1,3 +1,7 @@
+### 0.11.0 (Unreleased)
+
+*   Add a Que.disable_prepared_transactions= configuration option, to make it easier to use tools like pgbouncer. (#110)
+
 ### 0.10.0 (2015-03-18)
 
 *   When working jobs via the rake task, Rails applications are now eager-loaded if present, to avoid problems with multithreading and autoloading. (#96) (hmarr)
