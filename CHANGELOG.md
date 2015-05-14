@@ -24,7 +24,7 @@
 
     *   JRuby support has been dropped. It will be reintroduced when the jruby-pg gem [fully supports PG::Connection#wait_for_notify](https://github.com/headius/jruby-pg/issues/13).
 
-    *   `Que.wake_interval`, `Que.wake_interval=`, `Que.wake!`, `Que.wake_all!`, `Que.worker_count` and `Que.worker_count=` are not usable under the new implementation, and so have been removed.
+    *   `Que.wake_interval`, `Que.wake_interval=`, `Que.wake!`, `Que.wake_all!`, `Que.worker_count`, `Que.worker_count=` and `Que.disable_prepared_statements=` are not usable under the new implementation, and so have been removed.
 
     *   It is no longer possible to run Que through a single PG connection. A connection pool with a size of at least 2 is required.
 
