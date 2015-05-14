@@ -33,11 +33,15 @@ module Que
     #    because there are no more candidates left that could possibly be
     #    locked. This empty result automatically ends recursion.
     #
+    # Note that this query can be easily modified to lock any number of jobs
+    # by tweaking the LIMIT clause in the main SELECT statement.
+    #
     # [1] http://www.postgresql.org/docs/devel/static/queries-with.html
     #
-    # Thanks to RhodiumToad in #postgresql for help with the job lock CTE.
+    # Thanks to RhodiumToad in #postgresql for help with the original version
+    # of the job lock CTE.
     :lock_job => %{
-      WITH RECURSIVE job AS (
+      WITH RECURSIVE jobs AS (
         SELECT (j).*, pg_try_advisory_lock((j).job_id) AS locked
         FROM (
           SELECT j
@@ -55,18 +59,18 @@ module Que
               FROM que_jobs AS j
               WHERE queue = $1::text
               AND run_at <= now()
-              AND (priority, run_at, job_id) > (job.priority, job.run_at, job.job_id)
+              AND (priority, run_at, job_id) > (jobs.priority, jobs.run_at, jobs.job_id)
               ORDER BY priority, run_at, job_id
               LIMIT 1
             ) AS j
-            FROM job
-            WHERE NOT job.locked
+            FROM jobs
+            WHERE jobs.job_id IS NOT NULL
             LIMIT 1
           ) AS t1
         )
       )
       SELECT queue, priority, run_at, job_id, job_class, args, error_count
-      FROM job
+      FROM jobs
       WHERE locked
       LIMIT 1
     }.freeze,
