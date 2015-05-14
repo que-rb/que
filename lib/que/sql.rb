@@ -8,15 +8,52 @@ module Que
       AND   job_id   = $3::bigint
     },
 
-    # Thanks to RhodiumToad in #postgresql for help with the poll_jobs CTE.
-
-    # We don't retrieve all the job information in poll_jobs due to a race
-    # condition that could result in jobs being run twice. If this query took
-    # its MVCC snapshot while a job was being processed by another worker, but
-    # didn't attempt the advisory lock until it was finished by that worker,
-    # it could return a job that had already been completed. Once we have the
-    # lock we know that a previous worker would have deleted the job by now,
-    # so we use get_job to retrieve it. If it doesn't exist, no problem.
+    # Locks a job using a Postgres recursive CTE [1].
+    #
+    # As noted by the Postgres documentation, it may be slightly easier to
+    # think about this expression as iteration rather than recursion, despite
+    # the `RECURSION` nomenclature defined by the SQL standards committee.
+    # Recursion is used here so that jobs in the table can be iterated one-by-
+    # one until a lock can be acquired, where a non-recursive `SELECT` would
+    # have the undesirable side-effect of locking multiple jobs at once. i.e.
+    # Consider that the following would have the worker lock *all* unlocked
+    # jobs:
+    #
+    #   SELECT (j).*, pg_try_advisory_lock((j).job_id) AS locked
+    #   FROM que_jobs AS j;
+    #
+    # The CTE will initially produce an "anchor" from the non-recursive term
+    # (i.e. before the `UNION`), and then use it as the contents of the
+    # working table as it continues to iterate through `que_jobs` looking for
+    # a lock. The jobs table has a sort on (priority, run_at, job_id) which
+    # allows it to walk the jobs table in a stable manner. As noted above, the
+    # recursion examines one job at a time so that it only ever acquires a
+    # single lock.
+    #
+    # The recursion has two possible end conditions:
+    #
+    # 1. If a lock *can* be acquired, it bubbles up to the top-level `SELECT`
+    #    outside of the `job` CTE which stops recursion because it is
+    #    constrained with a `LIMIT` of 1.
+    #
+    # 2. If a lock *cannot* be acquired, the recursive term of the expression
+    #    (i.e. what's after the `UNION`) will return an empty result set
+    #    because there are no more candidates left that could possibly be
+    #    locked. This empty result automatically ends recursion.
+    #
+    # Also note that we don't retrieve all the job information in poll_jobs
+    # due to a race condition that could result in jobs being run twice. If
+    # this query took its MVCC snapshot while a job was being processed by
+    # another worker, but didn't attempt the advisory lock until it was
+    # finished by that worker, it could return a job that had already been
+    # completed. Once we have the lock we know that a previous worker would
+    # have deleted the job by now, so we use get_job to retrieve it. If it
+    # doesn't exist, no problem.
+    #
+    # [1] http://www.postgresql.org/docs/devel/static/queries-with.html
+    #
+    # Thanks to RhodiumToad in #postgresql for help with the original version
+    # of the job lock CTE.
 
     poll_jobs: %{
       WITH RECURSIVE jobs AS (
