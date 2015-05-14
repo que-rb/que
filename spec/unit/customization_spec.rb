@@ -198,4 +198,67 @@ describe "Customizing Que" do
     #   end
     # end
   end
+
+  describe "not retrying specific failed jobs" do
+    before do
+      Que.execute "CREATE TABLE failed_jobs AS SELECT * FROM que_jobs LIMIT 0"
+    end
+
+    after do
+      DB.drop_table? :failed_jobs
+    end
+
+    it "should be easily achievable with a module" do
+      begin
+        module SkipRetries
+          def run(*args)
+            super
+          rescue
+            sql = <<-SQL
+              WITH failed AS (
+                DELETE
+                FROM  que_jobs
+                WHERE priority = $1::smallint
+                AND   run_at   = $2::timestamptz
+                AND   job_id   = $3::bigint
+                RETURNING *
+              )
+              INSERT INTO failed_jobs
+                SELECT * FROM failed;
+            SQL
+
+            Que.execute sql, @attrs.values_at(:priority, :run_at, :job_id)
+
+            raise
+          end
+        end
+
+        class SkipRetryJob < Que::Job
+          prepend SkipRetries
+
+          def run(*args)
+            $retry_job_args = args
+            raise "Fail!"
+          end
+        end
+
+        SkipRetryJob.enqueue 1, 'arg1', :other_arg => 'blah'
+
+        locker = Que::Locker.new
+        sleep_until { DB[:failed_jobs].count > 0 }
+        locker.stop
+
+        $retry_job_args.should == [1, 'arg1', {other_arg: 'blah'}]
+
+        DB[:que_jobs].count.should == 0
+        DB[:failed_jobs].count.should == 1
+
+        job = DB[:failed_jobs].first
+        JSON.parse(job[:args]).should == [1, 'arg1', {'other_arg' => 'blah'}]
+        job[:job_class].should == 'SkipRetryJob'
+      ensure
+        $retry_job_args = nil
+      end
+    end
+  end
 end

@@ -4,60 +4,68 @@ Que does everything it can to ensure that jobs are worked exactly once, but if s
 
 The safest type of job is one that reads in data, either from the database or from external APIs, then does some number crunching and writes the results to the database. These jobs are easy to make safe - simply write the results to the database inside a transaction, and also have the job destroy itself inside that transaction, like so:
 
-    class UpdateWidgetPrice < Que::Job
-      def run(widget_id)
-        widget = Widget[widget_id]
-        price  = ExternalService.get_widget_price(widget_id)
+```ruby
+class UpdateWidgetPrice < Que::Job
+  def run(widget_id)
+    widget = Widget[widget_id]
+    price  = ExternalService.get_widget_price(widget_id)
 
-        ActiveRecord::Base.transaction do
-          # Make changes to the database.
-          widget.update price: price
+    ActiveRecord::Base.transaction do
+      # Make changes to the database.
+      widget.update price: price
 
-          # Destroy the job.
-          destroy
-        end
-      end
+      # Destroy the job.
+      destroy
     end
+  end
+end
+```
 
 Here, you're taking advantage of the guarantees of an [ACID](https://en.wikipedia.org/wiki/ACID) database. The job is destroyed along with the other changes, so either the write will succeed and the job will be run only once, or it will fail and the database will be left untouched. But even if it fails, the job can simply be retried, and there are no lingering effects from the first attempt, so no big deal.
 
 The more difficult type of job is one that makes changes that can't be controlled transactionally. For example, writing to an external service:
 
-    class ChargeCreditCard < Que::Job
-      def run(user_id, credit_card_id)
-        CreditCardService.charge(credit_card_id, amount: "$10.00")
+```ruby
+class ChargeCreditCard < Que::Job
+  def run(user_id, credit_card_id)
+    CreditCardService.charge(credit_card_id, amount: "$10.00")
 
-        ActiveRecord::Base.transaction do
-          User.where(id: user_id).update_all charged_at: Time.now
-          destroy
-        end
-      end
+    ActiveRecord::Base.transaction do
+      User.where(id: user_id).update_all charged_at: Time.now
+      destroy
     end
+  end
+end
+```
 
 What if the process abruptly dies after we tell the provider to charge the credit card, but before we finish the transaction? Que will retry the job, but there's no way to tell where (or even if) it failed the first time. The credit card will be charged a second time, and then you've got an angry customer. The ideal solution in this case is to make the job [idempotent](https://en.wikipedia.org/wiki/Idempotence), meaning that it will have the same effect no matter how many times it is run:
 
-    class ChargeCreditCard < Que::Job
-      def run(user_id, credit_card_id)
-        unless CreditCardService.check_for_previous_charge(credit_card_id)
-          CreditCardService.charge(credit_card_id, amount: "$10.00")
-        end
-
-        ActiveRecord::Base.transaction do
-          User.where(id: user_id).update_all charged_at: Time.now
-          destroy
-        end
-      end
+```ruby
+class ChargeCreditCard < Que::Job
+  def run(user_id, credit_card_id)
+    unless CreditCardService.check_for_previous_charge(credit_card_id)
+      CreditCardService.charge(credit_card_id, amount: "$10.00")
     end
+
+    ActiveRecord::Base.transaction do
+      User.where(id: user_id).update_all charged_at: Time.now
+      destroy
+    end
+  end
+end
+```
 
 This makes the job slightly more complex, but reliable (or, at least, as reliable as your credit card service).
 
 Finally, there are some jobs where you won't want to write to the database at all:
 
-    class SendVerificationEmail < Que::Job
-      def run(email_address)
-        Mailer.verification_email(email_address).deliver
-      end
-    end
+```ruby
+class SendVerificationEmail < Que::Job
+  def run(email_address)
+    Mailer.verification_email(email_address).deliver
+  end
+end
+```
 
 In this case, we don't have any no way to prevent the occasional double-sending of an email. But, for ease of use, you can leave out the transaction and the `destroy` call entirely - Que will recognize that the job wasn't destroyed and will clean it up for you.
 
@@ -69,36 +77,40 @@ Que doesn't offer a general way to kill jobs that have been running too long, be
 
 However, if there's part of your job that is prone to hang (due to an API call or other HTTP request that never returns, for example), you can timeout those individual parts of your job relatively safely. For example, consider a job that needs to make an HTTP request and then write to the database:
 
-    require 'net/http'
+```ruby
+require 'net/http'
 
-    class ScrapeStuff < Que::Job
-      def run(domain_to_scrape, path_to_scrape)
-        result = Net::HTTP.get(domain_to_scrape, path_to_scrape)
+class ScrapeStuff < Que::Job
+  def run(domain_to_scrape, path_to_scrape)
+    result = Net::HTTP.get(domain_to_scrape, path_to_scrape)
 
-        ActiveRecord::Base.transaction do
-          # Insert result...
+    ActiveRecord::Base.transaction do
+      # Insert result...
 
-          destroy
-        end
-      end
+      destroy
     end
+  end
+end
+```
 
 That request could take a very long time, or never return at all. Let's wrap it in a five-second timeout:
 
-    require 'net/http'
-    require 'timeout'
+```ruby
+require 'net/http'
+require 'timeout'
 
-    class ScrapeStuff < Que::Job
-      def run(domain_to_scrape, path_to_scrape)
-        result = Timeout.timeout(5){Net::HTTP.get(domain_to_scrape, path_to_scrape)}
+class ScrapeStuff < Que::Job
+  def run(domain_to_scrape, path_to_scrape)
+    result = Timeout.timeout(5){Net::HTTP.get(domain_to_scrape, path_to_scrape)}
 
-        ActiveRecord::Base.transaction do
-          # Insert result...
+    ActiveRecord::Base.transaction do
+      # Insert result...
 
-          destroy
-        end
-      end
+      destroy
     end
+  end
+end
+```
 
 Now, if the request takes more than five seconds, a `Timeout::Error` will be raised and Que will just retry the job later. This solution isn't perfect, since Timeout uses Thread#kill under the hood, which can lead to unpredictable behavior. But it's separate from our transaction, so there's no risk of losing data - even a catastrophic error that left Net::HTTP in a bad state would be fixable by restarting the process.
 
