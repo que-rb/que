@@ -5,21 +5,22 @@ module Que
     # As noted by the Postgres documentation, it may be slightly easier to
     # think about this expression as iteration rather than recursion, despite
     # the `RECURSION` nomenclature defined by the SQL standards committee.
-    # Recursion is used here so that jobs in the table can be iterated
-    # one-by-one until a lock can be acquired, where a non-recursive `SELECT`
-    # would have the undesirable side-effect of locking multiple jobs at once.
-    # i.e. Consider that the following would have the worker lock *all*
-    # unlocked jobs:
+    # Recursion is used here so that jobs in the table can be iterated one-by-
+    # one until a lock can be acquired, where a non-recursive `SELECT` would
+    # have the undesirable side-effect of locking multiple jobs at once. i.e.
+    # Consider that the following would have the worker lock *all* unlocked
+    # jobs:
     #
     #   SELECT (j).*, pg_try_advisory_lock((j).job_id) AS locked
     #   FROM que_jobs AS j;
     #
     # The CTE will initially produce an "anchor" from the non-recursive term
-    # (i.e. before the `UNION`), and then use it as the contents of the working
-    # table as it continues to iterate through `que_jobs` looking for a lock.
-    # The jobs table has a sort on (priority, run_at, job_id) which allows it
-    # to walk the jobs table in a stable way. As noted above, the recursion
-    # examines one job at a time so that it only ever acquires a single lock.
+    # (i.e. before the `UNION`), and then use it as the contents of the
+    # working table as it continues to iterate through `que_jobs` looking for
+    # a lock. The jobs table has a sort on (priority, run_at, job_id) which
+    # allows it to walk the jobs table in a stable manner. As noted above, the
+    # recursion examines one job at a time so that it only ever acquires a
+    # single lock.
     #
     # The recursion has two possible end conditions:
     #
