@@ -119,6 +119,7 @@ module Que
 
     class << self
       attr_reader :mode, :wake_interval, :worker_count
+      attr_accessor :queue_name
 
       # In order to work in a forking webserver, we need to be able to accept
       # worker_count and wake_interval settings without actually instantiating
@@ -162,7 +163,7 @@ module Que
 
       def set_up_workers
         if worker_count > workers.count
-          workers.push(*(worker_count - workers.count).times.map{new(ENV['QUE_QUEUE'] || '')})
+          workers.push(*(worker_count - workers.count).times.map{new(queue_name || '')})
         elsif worker_count < workers.count
           workers.pop(workers.count - worker_count).each(&:stop).each(&:wait_until_stopped)
         end
