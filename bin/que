@@ -10,7 +10,7 @@ options.log_level = 'info'
 options.wake_interval = 0.1
 
 OptionParser.new do |opts|
-  opts.banner = 'usage: que [options] (filename) ...'
+  opts.banner = 'usage: que [options] file/to/require ...'
 
   opts.on('-w', '--worker-count [COUNT]', Integer, "Set number of workers in process (default: 4)") do |worker_count|
     options.worker_count = worker_count
@@ -28,16 +28,26 @@ OptionParser.new do |opts|
     options.queue_name = queue_name
   end
 
-  opts.on('-v', '--version', "Print Que's version and exit") do
+  opts.on('-v', '--version', "Show Que version") do
     $stdout.puts "Que version #{Version}"
     exit 0
   end
 
-  opts.on('-h', '--help', "Show help text and exit") do
+  opts.on('-h', '--help', "Show help text") do
     $stdout.puts opts
     exit 0
   end
 end.parse!(ARGV)
+
+if ARGV.length.zero?
+  $stdout.puts <<-OUTPUT
+You didn't include any Ruby files to require!
+Que needs to be able to load your application before it can process jobs.
+(Hint: If you're using Rails, try `que config/environment.rb`)
+(Or use `que -h` for a list of options)
+OUTPUT
+exit 1
+end
 
 ARGV.each do |file|
   begin
@@ -70,6 +80,7 @@ stop = false
 %w(INT TERM).each { |signal| trap(signal) { stop = true } }
 
 at_exit do
+  $stdout.puts
   $stdout.puts "Finishing Que's current jobs before exiting..."
   Que.worker_count = 0
   Que.mode = :off
