@@ -43,7 +43,7 @@ if ARGV.length.zero?
   $stdout.puts <<-OUTPUT
 You didn't include any Ruby files to require!
 Que needs to be able to load your application before it can process jobs.
-(Hint: If you're using Rails, try `que config/environment.rb`)
+(Hint: If you're using Rails, try `que ./config/environment.rb`)
 (Or use `que -h` for a list of options)
 OUTPUT
 exit 1
@@ -51,14 +51,9 @@ end
 
 ARGV.each do |file|
   begin
-    # Need to add '.' to load path for relative requires
-    $LOAD_PATH << '.'
     require file
   rescue LoadError
     $stdout.puts "Could not load file '#{file}'"
-  ensure
-    # Clean up load path
-    $LOAD_PATH.pop
   end
 end
 
