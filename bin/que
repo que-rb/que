@@ -5,9 +5,6 @@ require 'ostruct'
 require 'logger'
 
 options = OpenStruct.new
-options.worker_count = 4
-options.log_level = 'info'
-options.wake_interval = 0.1
 
 OptionParser.new do |opts|
   opts.banner = 'usage: que [options] file/to/require ...'
@@ -59,16 +56,18 @@ end
 
 Que.logger ||= Logger.new(STDOUT)
 
+log_level = options.log_level || 'info'
+
 begin
-  Que.logger.level = Logger.const_get(options.log_level.upcase)
+  Que.logger.level = Logger.const_get(log_level.upcase)
 rescue NameError
-  $stdout.puts "Bad logging level: #{options.log_level}"
+  $stdout.puts "Bad logging level: #{log_level}"
   exit 1
 end
 
-Que.queue_name    = options.queue_name
-Que.worker_count  = options.worker_count
-Que.wake_interval = options.wake_interval
+Que.queue_name    = options.queue_name    || Que.queue_name    || nil
+Que.worker_count  = options.worker_count  || Que.worker_count  || 4
+Que.wake_interval = options.wake_interval || Que.wake_interval || 0.1
 Que.mode          = :async
 
 stop = false
