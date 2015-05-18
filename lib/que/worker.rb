@@ -62,7 +62,8 @@ module Que
     # that it allows any jobs with IDs lower than any current worker is
     # handling to be discovered and locked (that may happen in the case of a
     # crashed worker or an out-of-order transaction commit).
-    HARD_LOCK_INTERVAL = 10
+    HARD_LOCK_INTERVAL =
+      ENV["QUE_HARD_LOCK_INTERVAL"] ? ENV["QUE_HARD_LOCK_INTERVAL"].to_i : 10
 
     # Sleep very briefly while waiting for a thread to get somewhere.
     def wait
