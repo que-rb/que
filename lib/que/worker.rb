@@ -54,6 +54,16 @@ module Que
 
     private
 
+    # The interval in seconds between when the Que worker should perform a
+    # "hard lock" by throwing out the last job ID it worked and locking without
+    # using a predicate on `job_id`. The disadvantage of this is that the lock
+    # may take significantly longer if a long running transaction has caused a
+    # large number of dead tuples to accumulate in the table. The advantage is
+    # that it allows any jobs with IDs lower than any current worker is
+    # handling to be discovered and locked (that may happen in the case of a
+    # crashed worker or an out-of-order transaction commit).
+    HARD_LOCK_INTERVAL = 10
+
     # Sleep very briefly while waiting for a thread to get somewhere.
     def wait
       sleep 0.0001
@@ -70,8 +80,8 @@ module Que
     end
 
     def work_loop
+      last_hard_lock_at = Time.now
       min_job_id = 0
-      worked_count = 0
 
       loop do
         cycle = nil
@@ -100,18 +110,13 @@ module Que
             raise "Unknown Event: #{result[:event].inspect}"
           end
 
-          # Constraining workers to a `job_id` floor has a significant
-          # disadvantage that it's possible for a job to be starved out if it
-          # was inserted with a non-sequential job ID and all workers had
-          # already locked themselves to higher identifiers.
-          #
-          # This block attempts to work around that issue by simply not using
-          # the `job_id` floor every so often, which allows any jobs that may
-          # have been missed to be picked up by doing things the hard way.
-          worked_count += 1
-          if worked_count >= 100
+          # Every so often try to take a lock the "hard" way, which is to say,
+          # without a predicate on `job_id`. This may help to discover jobs
+          # that have been bypassed due to a crashed worker or out-of-order
+          # transaction commit.
+          if HARD_LOCK_INTERVAL == 0 || Time.now > last_hard_lock_at + HARD_LOCK_INTERVAL
+            last_hard_lock_at = Time.now
             min_job_id = 0
-            worked_count = 0
           end
 
           Que.log(result)
