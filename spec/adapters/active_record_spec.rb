@@ -69,7 +69,7 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
     it "should instantiate args as ActiveSupport::HashWithIndifferentAccess" do
       begin
         # Mimic the setting in the Railtie.
-        Que.json_converter = proc(&:with_indifferent_access)
+        Que.json_converter = :with_indifferent_access.to_proc
 
         ArgsJob.enqueue :param => 2
         Que::Job.work

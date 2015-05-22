@@ -5,7 +5,7 @@ module Que
     Que.logger         = proc { Rails.logger }
     Que.mode           = :sync if Rails.env.test?
     Que.connection     = ::ActiveRecord if defined? ::ActiveRecord
-    Que.json_converter = proc(&:with_indifferent_access)
+    Que.json_converter = :with_indifferent_access.to_proc
 
     rake_tasks do
       load 'que/rake_tasks.rb'
