@@ -14,6 +14,24 @@ describe Que::Job, '.work' do
     $passed_args.should == [1, 'two', {'three' => 3}]
   end
 
+  it "should respect a custom json converter when processing the job's arguments" do
+    ArgsJob.enqueue 1, 'two', {'three' => 3}
+    DB[:que_jobs].count.should be 1
+
+    begin
+      Que.json_converter = Que::SYMBOLIZER
+
+      result = Que::Job.work
+      result[:event].should == :job_worked
+      result[:job][:job_class].should == 'ArgsJob'
+
+      DB[:que_jobs].count.should be 0
+      $passed_args.should == [1, 'two', {:three => 3}]
+    ensure
+      Que.json_converter = Que::INDIFFERENTIATOR
+    end
+  end
+
   it "should default to only working jobs without a named queue" do
     Que::Job.enqueue 1, :queue => 'other_queue'
     Que::Job.enqueue 2

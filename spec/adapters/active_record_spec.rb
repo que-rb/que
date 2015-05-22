@@ -67,10 +67,17 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
     end
 
     it "should instantiate args as ActiveSupport::HashWithIndifferentAccess" do
-      ArgsJob.enqueue :param => 2
-      Que::Job.work
-      $passed_args.first[:param].should == 2
-      $passed_args.first.should be_an_instance_of ActiveSupport::HashWithIndifferentAccess
+      begin
+        # Mimic the setting in the Railtie.
+        Que.json_converter = proc(&:with_indifferent_access)
+
+        ArgsJob.enqueue :param => 2
+        Que::Job.work
+        $passed_args.first[:param].should == 2
+        $passed_args.first.should be_an_instance_of ActiveSupport::HashWithIndifferentAccess
+      ensure
+        Que.json_converter = Que::INDIFFERENTIATOR
+      end
     end
 
     it "should support Rails' special extensions for times" do

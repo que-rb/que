@@ -86,21 +86,6 @@ module Que
         end
       end
 
-      HASH_DEFAULT_PROC = proc { |hash, key| hash[key.to_s] if Symbol === key }
-
-      INDIFFERENTIATOR = proc do |object|
-        case object
-        when Array
-          object.each(&INDIFFERENTIATOR)
-        when Hash
-          object.default_proc = HASH_DEFAULT_PROC
-          object.each { |key, value| object[key] = INDIFFERENTIATOR.call(value) }
-          object
-        else
-          object
-        end
-      end
-
       CAST_PROCS = {}
 
       # Integer, bigint, smallint:
@@ -128,11 +113,7 @@ module Que
           end
         end
 
-        if result.first.respond_to?(:with_indifferent_access)
-          output.map(&:with_indifferent_access)
-        else
-          output.each(&INDIFFERENTIATOR)
-        end
+        output.map!(&Que.json_converter)
       end
     end
   end

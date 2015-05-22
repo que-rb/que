@@ -8,6 +8,8 @@
 
 *   Add a Que.disable_prepared_transactions= configuration option, to make it easier to use tools like pgbouncer. (#110)
 
+*   Add a Que.json_converter= option, to configure how arguments are transformed before being passed to the job. By default this is set to the `Que::INDIFFERENTIATOR` proc, which provides simple indifferent access (via strings or symbols) to args hashes. If you're using Rails, the default is to convert the args to HashWithIndifferentAccess instead. You can also pass it the Que::SYMBOLIZER proc, which will destructively convert all keys in the args hash to symbols (this will probably be the default in Que 1.0). If you want to define a custom converter, you will usually want to pass this option a proc, and you'll probably want it to be recursive. See the implementations of Que::INDIFFERENTIATOR and Que::SYMBOLIZER for examples. (#113)
+
 ### 0.10.0 (2015-03-18)
 
 *   When working jobs via the rake task, Rails applications are now eager-loaded if present, to avoid problems with multithreading and autoloading. (#96) (hmarr)
