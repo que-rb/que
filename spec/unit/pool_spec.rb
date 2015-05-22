@@ -103,12 +103,12 @@ describe "Managing the Worker pool" do
         sleep_until { DB[:que_jobs].count == 0 }
       end
 
-      it "should work jobs in the queue defined by QUE_QUEUE" do
+      it "should work jobs in the queue defined by the Que.queue_name config option" do
         begin
           Que::Job.enqueue 1
           Que::Job.enqueue 2, :queue => 'my_queue'
 
-          ENV['QUE_QUEUE'] = 'my_queue'
+          Que.queue_name = 'my_queue'
 
           Que.mode = :async
           Que.worker_count = 2
@@ -120,7 +120,7 @@ describe "Managing the Worker pool" do
           job[:queue].should == ''
           job[:args].should == '[1]'
         ensure
-          ENV.delete('QUE_QUEUE')
+          Que.queue_name = nil
         end
       end
     end
