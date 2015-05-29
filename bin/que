@@ -56,10 +56,10 @@ end
 
 Que.logger ||= Logger.new(STDOUT)
 
-log_level = options.log_level || 'info'
-
 begin
-  Que.logger.level = Logger.const_get(log_level.upcase)
+  if log_level = options.log_level
+    Que.logger.level = Logger.const_get(log_level.upcase)
+  end
 rescue NameError
   $stdout.puts "Bad logging level: #{log_level}"
   exit 1
