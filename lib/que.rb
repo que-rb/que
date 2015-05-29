@@ -127,10 +127,6 @@ module Que
       @log_formatter ||= JSON_MODULE.method(:dump)
     end
 
-    def disable_prepared_statements
-      @disable_prepared_statements || false
-    end
-
     # A helper method to manage transactions, used mainly by the migration
     # system. It's available for general use, but if you're using an ORM that
     # provides its own transaction helper, be sure to use that instead, or the
