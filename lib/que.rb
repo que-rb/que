@@ -176,20 +176,6 @@ module Que
       end
     end
 
-    def symbolize_recursively!(object)
-      case object
-      when Hash
-        object.keys.each do |key|
-          object[key.to_sym] = symbolize_recursively!(object.delete(key))
-        end
-        object
-      when Array
-        object.map! { |e| symbolize_recursively!(e) }
-      else
-        object
-      end
-    end
-
     def json_converter
       @json_converter ||= SYMBOLIZER
     end

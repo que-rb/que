@@ -90,7 +90,7 @@ describe Que::RecurringJob do
     begin
       class CronJob
         def run(*args)
-          $passed_args = Que.symbolize_recursively!(JSON.load(JSON.dump(args)))
+          $passed_args = Que::SYMBOLIZER.call(JSON.load(JSON.dump(args)))
           args[-1][:opt] = 3525
           args << 'blah'
         end
