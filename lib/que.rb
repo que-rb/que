@@ -46,7 +46,7 @@ module Que
   end
 
   class << self
-    attr_accessor :error_handler
+    attr_accessor :error_notifier
     attr_writer :logger, :adapter, :log_formatter, :disable_prepared_statements, :json_converter
 
     def connection=(connection)
@@ -127,6 +127,16 @@ module Que
 
     def disable_prepared_statements
       @disable_prepared_statements || false
+    end
+
+    def error_handler
+      warn "Que.error_handler has been renamed to Que.error_notifier, please update your code. This shim will be removed in Que version 1.0.0."
+      error_notifier
+    end
+
+    def error_handler=(p)
+      warn "Que.error_handler= has been renamed to Que.error_notifier=, please update your code. This shim will be removed in Que version 1.0.0."
+      self.error_notifier = p
     end
 
     # A helper method to manage transactions, used mainly by the migration

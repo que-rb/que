@@ -16,12 +16,12 @@ module Que
       destroy unless @destroyed
     rescue => error
       @_error = error
-      run_error_handler = handle_error(error)
+      run_error_notifier = handle_error(error)
       destroy unless @retried || @destroyed
 
-      if run_error_handler && Que.error_handler
-        # Protect the work loop from a failure of the error handler.
-        Que.error_handler.call(error, @attrs) rescue nil
+      if run_error_notifier && Que.error_notifier
+        # Protect the work loop from a failure of the error notifier.
+        Que.error_notifier.call(error, @attrs) rescue nil
       end
     end
 
@@ -145,9 +145,9 @@ module Que
               # don't let it crash the work loop.
             end
 
-            if Que.error_handler
-              # Similarly, protect the work loop from a failure of the error handler.
-              Que.error_handler.call(error, job) rescue nil
+            if Que.error_notifier
+              # Similarly, protect the work loop from a failure of the error notifier.
+              Que.error_notifier.call(error, job) rescue nil
             end
 
             return {:event => :job_errored, :error => error, :job => job}

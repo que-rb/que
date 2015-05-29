@@ -320,10 +320,10 @@ describe Que::Job, '.work' do
       job[:run_at].should be_within(3).of Time.now + 60
     end
 
-    it "should pass it to an error handler, if one is defined" do
+    it "should pass it to an error notifier, if one is defined" do
       begin
         errors = []
-        Que.error_handler = proc { |error| errors << error }
+        Que.error_notifier = proc { |error| errors << error }
 
         ErrorJob.enqueue
 
@@ -337,14 +337,14 @@ describe Que::Job, '.work' do
         error.should be_an_instance_of RuntimeError
         error.message.should == "ErrorJob!"
       ensure
-        Que.error_handler = nil
+        Que.error_notifier = nil
       end
     end
 
-    it "should pass job to an error handler, if one is defined" do
+    it "should pass job to an error notifier, if one is defined" do
       begin
         jobs = []
-        Que.error_handler = proc { |error, job| jobs << job }
+        Que.error_notifier = proc { |error, job| jobs << job }
 
         ErrorJob.enqueue
         result = Que::Job.work
@@ -353,20 +353,20 @@ describe Que::Job, '.work' do
         job = jobs[0]
         job.should be result[:job]
       ensure
-        Que.error_handler = nil
+        Que.error_notifier = nil
       end
     end
 
-    it "should not do anything if the error handler itelf throws an error" do
+    it "should not do anything if the error notifier itelf throws an error" do
       begin
-        Que.error_handler = proc { |error| raise "Another error!" }
+        Que.error_notifier = proc { |error| raise "Another error!" }
         ErrorJob.enqueue
 
         result = Que::Job.work
         result[:event].should == :job_errored
         result[:error].should be_an_instance_of RuntimeError
       ensure
-        Que.error_handler = nil
+        Que.error_notifier = nil
       end
     end
 
@@ -407,7 +407,7 @@ describe Que::Job, '.work' do
       it "should allow it to schedule a retry after a specific interval" do
         begin
           error = nil
-          Que.error_handler = proc { |e| error = e }
+          Que.error_notifier = proc { |e| error = e }
 
           class CustomRetryIntervalJob < Que::Job
             def run(*args)
@@ -436,14 +436,14 @@ describe Que::Job, '.work' do
 
           error.should == result[:error]
         ensure
-          Que.error_handler = nil
+          Que.error_notifier = nil
         end
       end
 
       it "should allow it to destroy the job" do
         begin
           error = nil
-          Que.error_handler = proc { |e| error = e }
+          Que.error_notifier = proc { |e| error = e }
 
           class CustomRetryIntervalJob < Que::Job
             def run(*args)
@@ -468,14 +468,14 @@ describe Que::Job, '.work' do
 
           error.should == result[:error]
         ensure
-          Que.error_handler = nil
+          Que.error_notifier = nil
         end
       end
 
       it "should allow it to return false to skip the error notification" do
         begin
           error = nil
-          Que.error_handler = proc { |e| error = e }
+          Que.error_notifier = proc { |e| error = e }
 
           class CustomRetryIntervalJob < Que::Job
             def run(*args)
@@ -500,14 +500,14 @@ describe Que::Job, '.work' do
 
           error.should == nil
         ensure
-          Que.error_handler = nil
+          Que.error_notifier = nil
         end
       end
 
       it "should allow it to call super to get the default behavior" do
         begin
           error = nil
-          Que.error_handler = proc { |e| error = e }
+          Que.error_notifier = proc { |e| error = e }
 
           class CustomRetryIntervalJob < Que::Job
             def run(*args)
@@ -534,6 +534,8 @@ describe Que::Job, '.work' do
           result[:error].should be_an_instance_of RuntimeError
           result[:job][:job_class].should == 'CustomRetryIntervalJob'
 
+          $error_handler_failed.should == nil
+
           DB[:que_jobs].count.should be 1
           job = DB[:que_jobs].first
           job[:error_count].should be 1
@@ -542,7 +544,7 @@ describe Que::Job, '.work' do
 
           error.should == result[:error]
         ensure
-          Que.error_handler = nil
+          Que.error_notifier = nil
         end
       end
     end

@@ -30,7 +30,7 @@
 
 ### 0.9.0 (2014-12-16)
 
-*   The error_handler callable is now be passed two objects, the error and the job that raised it. If your current error_handler is a proc, as recommended in the docs, you shouldn't need to make any code changes, unless you want to use the job in your error handling. If your error_handler is a lambda, or another callable with a strict arity requirement, you'll want to change it before upgrading. (#69) (statianzo)
+*   The error_handler callable is now passed two objects, the error and the job that raised it. If your current error_handler is a proc, as recommended in the docs, you shouldn't need to make any code changes, unless you want to use the job in your error handling. If your error_handler is a lambda, or another callable with a strict arity requirement, you'll want to change it before upgrading. (#69) (statianzo)
 
 ### 0.8.2 (2014-10-12)
 
