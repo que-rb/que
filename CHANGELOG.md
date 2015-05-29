@@ -8,7 +8,7 @@
 
     *   PgBouncer can be used for workers' connections (though not for the connection used to lock and listen for jobs).
 
-    *   Jobs queued for immediate processing can be actively distributed to workers with LISTEN/NOTIFY, which is more efficient than repeatedly polling for new jobs.
+    *   Jobs queued for immediate processing can be actively distributed to workers with LISTEN/NOTIFY, which is more efficient than having workers repeatedly poll for new jobs.
 
     *   When polling is necessary (to pick up jobs that are scheduled for the future or that need to be retried due to errors), jobs can be locked in batches, rather than one at a time.
 
@@ -20,21 +20,21 @@
 
 *   In keeping with semantic versioning, the major version is being bumped since the new implementation requires some backwards-incompatible changes. These changes include:
 
-    *   The Railtie and Rake tasks providing simple integration with Rails have been moved to another gem (TODO: publish and link here).
+    *   The Railtie providing simple integration with Rails has been moved to another gem (TODO: publish and link here).
 
     *   JRuby support has been dropped. It will be reintroduced when the jruby-pg gem [fully supports PG::Connection#wait_for_notify](https://github.com/headius/jruby-pg/issues/13).
 
-    *   `Que.wake_interval`, `Que.wake_interval=`, `Que.wake!`, `Que.wake_all!`, `Que.worker_count`, `Que.worker_count=` and `Que.disable_prepared_statements=` are not usable under the new implementation, and so have been removed.
+    *   Que no longer uses prepared statements for its built-in queries, since they weren't compatible with multiple job queues. This should have no outward-facing change, except that the `Que.disable_prepared_statements` configuration accessor no longer exists.
 
-    *   It is no longer possible to run Que through a single PG connection. A connection pool with a size of at least 2 is required.
+    *   In addition to `Que.disable_prepared_statements=`, the following configuration options are not usable under the new implementation and have been removed: `Que.wake_interval`, `Que.wake_interval=`, `Que.wake!`, `Que.wake_all!`, `Que.worker_count`, `Que.worker_count=`.
 
-    *   `Que.worker_states` has been removed, as it is no longer possible to inspect the Postgres connection that is working each job. Its functionality has been partially replaced with `Que.job_states`.
+    *   Since Que needs a dedicated Postgres connection to manage job locks, it is no longer possible to run Que through a single PG connection. A connection pool with a size of at least 2 is required. (Note that it is possible to pass Que a connection pool containing a single connection if you provide a separate dedicated connection to the job locker).
 
-    *   For simplicity, job attributes and keys in argument hashes are now converted to symbols when retrieved from the database, rather than made indifferently-accessible. If you are presently allowing uncontrolled input to be used as keys in the arguments hash (or as keys in a hash nested within the arguments hash), you should either fix that or use a Ruby implementation that garbage-collects symbols, such as MRI 2.2+.
+    *   `Que.worker_states` has been removed, as it is no longer possible to know which Postgres connection is working each job. Its functionality has been partially replaced with `Que.job_states`.
 
-    *   Que no longer uses prepared statements for its built-in queries, since they weren't compatible with configurable tables. This should have no outward-facing change, except that the `Que.use_prepared_statements` configuration accessor no longer exists.
+    *   For simplicity, the new default for job attributes and keys in argument hashes are now converted to symbols when retrieved from the database, rather than made indifferently-accessible. If you are presently allowing uncontrolled input to be used as keys in the arguments hash (or as keys in a hash nested within the arguments hash), you should either fix that or use a Ruby implementation that garbage-collects symbols, such as MRI 2.2+. You can go back to the old behavior by setting `Que.json_converter = Que::INDIFFERENTIATOR`. If you are using the `que-rails` gem, args hashes will be instances of HashWithIndifferentAccess, as before.
 
-    *   Features marked as deprecated in the previous release have been removed.
+    *   Features marked as deprecated in 0.x releases have been removed.
 
 *   Other new features:
 
