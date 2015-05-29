@@ -236,7 +236,7 @@ describe Que::Job, '.work' do
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 1
-      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:last_error].should =~ /\AErrorJob!/
       job[:run_at].should be_within(3).of Time.now + 4
 
       DB[:que_jobs].update :error_count => 5,
@@ -250,7 +250,7 @@ describe Que::Job, '.work' do
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 6
-      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:last_error].should =~ /\AErrorJob!/
       job[:run_at].should be_within(3).of Time.now + 1299
     end
 
@@ -269,7 +269,7 @@ describe Que::Job, '.work' do
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 1
-      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:last_error].should =~ /\AErrorJob!/
       job[:run_at].to_f.should be_within(3).of Time.now.to_f + RetryIntervalJob.retry_interval
 
       DB[:que_jobs].update :error_count => 5,
@@ -283,7 +283,7 @@ describe Que::Job, '.work' do
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 6
-      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:last_error].should =~ /\AErrorJob!/
       job[:run_at].to_f.should be_within(3).of Time.now.to_f + RetryIntervalJob.retry_interval
     end
 
@@ -302,7 +302,7 @@ describe Que::Job, '.work' do
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 1
-      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:last_error].should =~ /\AErrorJob!/
       job[:run_at].should be_within(3).of Time.now + 10
 
       DB[:que_jobs].update :error_count => 5,
@@ -316,7 +316,7 @@ describe Que::Job, '.work' do
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 6
-      job[:last_error].should =~ /\AErrorJob!\n/
+      job[:last_error].should =~ /\AErrorJob!/
       job[:run_at].should be_within(3).of Time.now + 60
     end
 
@@ -401,6 +401,150 @@ describe Que::Job, '.work' do
       job = DB[:que_jobs].first
       job[:error_count].should be 1
       job[:run_at].should be_within(3).of Time.now + 4
+    end
+
+    context "in a job class that has a custom error handler" do
+      it "should allow it to schedule a retry after a specific interval" do
+        begin
+          error = nil
+          Que.error_handler = proc { |e| error = e }
+
+          class CustomRetryIntervalJob < Que::Job
+            def run(*args)
+              raise "Blah!"
+            end
+
+            private
+
+            def handle_error(error)
+              retry_in(42)
+            end
+          end
+
+          CustomRetryIntervalJob.enqueue
+
+          result = Que::Job.work
+          result[:event].should == :job_errored
+          result[:error].should be_an_instance_of RuntimeError
+          result[:job][:job_class].should == 'CustomRetryIntervalJob'
+
+          DB[:que_jobs].count.should be 1
+          job = DB[:que_jobs].first
+          job[:error_count].should be 1
+          job[:last_error].should =~ /\ABlah!/
+          job[:run_at].should be_within(3).of Time.now + 42
+
+          error.should == result[:error]
+        ensure
+          Que.error_handler = nil
+        end
+      end
+
+      it "should allow it to destroy the job" do
+        begin
+          error = nil
+          Que.error_handler = proc { |e| error = e }
+
+          class CustomRetryIntervalJob < Que::Job
+            def run(*args)
+              raise "Blah!"
+            end
+
+            private
+
+            def handle_error(error)
+              destroy
+            end
+          end
+
+          CustomRetryIntervalJob.enqueue
+
+          result = Que::Job.work
+          result[:event].should == :job_errored
+          result[:error].should be_an_instance_of RuntimeError
+          result[:job][:job_class].should == 'CustomRetryIntervalJob'
+
+          DB[:que_jobs].count.should be 0
+
+          error.should == result[:error]
+        ensure
+          Que.error_handler = nil
+        end
+      end
+
+      it "should allow it to return false to skip the error notification" do
+        begin
+          error = nil
+          Que.error_handler = proc { |e| error = e }
+
+          class CustomRetryIntervalJob < Que::Job
+            def run(*args)
+              raise "Blah!"
+            end
+
+            private
+
+            def handle_error(error)
+              false
+            end
+          end
+
+          CustomRetryIntervalJob.enqueue
+
+          result = Que::Job.work
+          result[:event].should == :job_errored
+          result[:error].should be_an_instance_of RuntimeError
+          result[:job][:job_class].should == 'CustomRetryIntervalJob'
+
+          DB[:que_jobs].count.should be 0
+
+          error.should == nil
+        ensure
+          Que.error_handler = nil
+        end
+      end
+
+      it "should allow it to call super to get the default behavior" do
+        begin
+          error = nil
+          Que.error_handler = proc { |e| error = e }
+
+          class CustomRetryIntervalJob < Que::Job
+            def run(*args)
+              raise "Blah!"
+            end
+
+            private
+
+            def handle_error(error)
+              case error
+              when RuntimeError
+                super
+              else
+                $error_handler_failed = true
+                raise "Bad!"
+              end
+            end
+          end
+
+          CustomRetryIntervalJob.enqueue
+
+          result = Que::Job.work
+          result[:event].should == :job_errored
+          result[:error].should be_an_instance_of RuntimeError
+          result[:job][:job_class].should == 'CustomRetryIntervalJob'
+
+          DB[:que_jobs].count.should be 1
+          job = DB[:que_jobs].first
+          job[:error_count].should be 1
+          job[:last_error].should =~ /\ABlah!/
+          job[:run_at].should be_within(3).of Time.now + 4
+
+          error.should == result[:error]
+        ensure
+          Que.error_handler = nil
+        end
+      end
     end
   end
 end

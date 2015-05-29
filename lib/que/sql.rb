@@ -86,13 +86,13 @@ module Que
 
     :set_error => %{
       UPDATE que_jobs
-      SET error_count = $1::integer,
-          run_at      = now() + $2::bigint * '1 second'::interval,
-          last_error  = $3::text
-      WHERE queue     = $4::text
-      AND   priority  = $5::smallint
-      AND   run_at    = $6::timestamptz
-      AND   job_id    = $7::bigint
+      SET error_count = error_count + 1,
+          run_at      = now() + $1::bigint * '1 second'::interval,
+          last_error  = $2::text
+      WHERE queue     = $3::text
+      AND   priority  = $4::smallint
+      AND   run_at    = $5::timestamptz
+      AND   job_id    = $6::bigint
     }.freeze,
 
     :insert_job => %{

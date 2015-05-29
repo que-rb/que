@@ -1,6 +1,6 @@
 module Que
   class Job
-    attr_reader :attrs
+    attr_reader :attrs, :_error
 
     def initialize(attrs)
       @attrs = attrs
@@ -14,9 +14,34 @@ module Que
     def _run
       run(*attrs[:args])
       destroy unless @destroyed
+    rescue => error
+      @_error = error
+      run_error_handler = handle_error(error)
+      destroy unless @retried || @destroyed
+
+      if run_error_handler && Que.error_handler
+        # Protect the work loop from a failure of the error handler.
+        Que.error_handler.call(error, @attrs) rescue nil
+      end
     end
 
     private
+
+    def error_count
+      @attrs[:error_count]
+    end
+
+    def handle_error(error)
+      error_count = @attrs[:error_count] += 1
+      retry_interval = self.class.retry_interval || Job.retry_interval
+      wait = retry_interval.respond_to?(:call) ? retry_interval.call(error_count) : retry_interval
+      retry_in(wait)
+    end
+
+    def retry_in(period)
+      Que.execute :set_error, [period, @_error.message] + @attrs.values_at(:queue, :priority, :run_at, :job_id)
+      @retried = true
+    end
 
     def destroy
       Que.execute :destroy_job, attrs.values_at(:queue, :priority, :run_at, :job_id)
@@ -96,8 +121,13 @@ module Que
                 {:event => :job_race_condition}
               else
                 klass = class_for(job[:job_class])
-                klass.new(job)._run
-                {:event => :job_worked, :job => job}
+                instance = klass.new(job)
+                instance._run
+                if e = instance._error
+                  {:event => :job_errored, :job => job, :error => e}
+                else
+                  {:event => :job_worked, :job => job}
+                end
               end
             else
               {:event => :job_unavailable}
@@ -105,11 +135,10 @@ module Que
           rescue => error
             begin
               if job
-                count    = job[:error_count].to_i + 1
                 interval = klass && klass.respond_to?(:retry_interval) && klass.retry_interval || retry_interval
-                delay    = interval.respond_to?(:call) ? interval.call(count) : interval
+                delay    = interval.respond_to?(:call) ? interval.call(job[:error_count].to_i + 1) : interval
                 message  = "#{error.message}\n#{error.backtrace.join("\n")}"
-                Que.execute :set_error, [count, delay, message] + job.values_at(:queue, :priority, :run_at, :job_id)
+                Que.execute :set_error, [delay, message] + job.values_at(:queue, :priority, :run_at, :job_id)
               end
             rescue
               # If we can't reach the database for some reason, too bad, but
