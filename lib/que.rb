@@ -23,11 +23,40 @@ module Que
   require_relative 'que/version'
   require_relative 'que/worker'
 
+  HASH_DEFAULT_PROC = proc { |hash, key| hash[key.to_s] if Symbol === key }
+
+  INDIFFERENTIATOR = proc do |object|
+    case object
+    when Array
+      object.each(&INDIFFERENTIATOR)
+    when Hash
+      object.default_proc = HASH_DEFAULT_PROC
+      object.each { |key, value| object[key] = INDIFFERENTIATOR.call(value) }
+      object
+    else
+      object
+    end
+  end
+
+  SYMBOLIZER = proc do |object|
+    case object
+    when Hash
+      object.keys.each do |key|
+        object[key.to_sym] = SYMBOLIZER.call(object.delete(key))
+      end
+      object
+    when Array
+      object.map! { |e| SYMBOLIZER.call(e) }
+    else
+      object
+    end
+  end
+
   class << self
     extend Forwardable
 
     attr_accessor :logger, :error_handler
-    attr_writer :pool, :log_formatter, :logger
+    attr_writer :pool, :log_formatter, :logger, :json_converter
     attr_reader :mode, :locker
 
     def connection=(connection)
@@ -159,6 +188,10 @@ module Que
       else
         object
       end
+    end
+
+    def json_converter
+      @json_converter ||= SYMBOLIZER
     end
 
     # Copy some commonly-used methods here, for convenience.
