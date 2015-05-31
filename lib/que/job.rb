@@ -76,6 +76,8 @@ module Que
       end
 
       def work(queue = '')
+        ::ActiveRecord::Base.clear_active_connections!
+
         # Since we're taking session-level advisory locks, we have to hold the
         # same connection throughout the process of getting a job, working it,
         # deleting it, and removing the lock.

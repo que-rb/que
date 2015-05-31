@@ -31,7 +31,6 @@ module Que
       private
 
       def checkout_activerecord_adapter(&block)
-        ::ActiveRecord::Base.clear_active_connections!
         ::ActiveRecord::Base.connection_pool.with_connection(&block)
       end
     end
