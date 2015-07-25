@@ -21,6 +21,11 @@ module Que
         raise NotImplementedError
       end
 
+      # Called after Que has returned its connection to whatever pool it's
+      # using.
+      def cleanup!
+      end
+
       # Called after a job is queued in async mode, to prompt a worker to
       # wake up after the current transaction commits. Not all adapters will
       # implement this.

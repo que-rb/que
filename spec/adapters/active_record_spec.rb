@@ -126,5 +126,25 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
         Que.adapter.should be_in_transaction
       end
     end
+
+    it "should not leak connections to other databases when using ActiveRecord's multiple database support" do
+      class SecondDatabaseModel < ActiveRecord::Base
+        establish_connection(QUE_URL)
+      end
+
+      SecondDatabaseModel.clear_active_connections!
+      SecondDatabaseModel.connection_handler.active_connections?.should == false
+
+      class SecondDatabaseModelJob < Que::Job
+        def run(*args)
+          SecondDatabaseModel.connection.execute("SELECT 1")
+        end
+      end
+
+      SecondDatabaseModelJob.enqueue
+      Que::Job.work
+
+      SecondDatabaseModel.connection_handler.active_connections?.should == false
+    end
   end
 end
