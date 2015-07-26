@@ -1,3 +1,6 @@
+# stub environment task to support non-rails apps
+task :environment
+
 namespace :que do
   desc "Process Que's jobs using a worker pool"
   task :work => :environment do
