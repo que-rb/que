@@ -142,7 +142,7 @@ module Que
       private
 
       def class_for(string)
-        string.split('::').inject(Object, &:const_get)
+        Que.constantize(string)
       end
     end
   end
