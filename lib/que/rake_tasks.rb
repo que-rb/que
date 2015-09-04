@@ -1,6 +1,8 @@
 namespace :que do
   desc "Process Que's jobs using a worker pool"
   task :work => :environment do
+    $stdout.puts "The que:work rake task has been deprecated and will be removed in Que 1.0. Please transition to the que command line interface instead."
+
     if defined?(::Rails) && Rails.respond_to?(:application)
       # ActiveSupport's dependency autoloading isn't threadsafe, and Que uses
       # multiple threads, which means that eager loading is necessary. Rails

@@ -1,8 +1,10 @@
+### 0.11.1 (Unreleased)
+
+*   The `rake que:work` rake task that was specific to Rails has been deprecated and will be removed in Que 1.0. A deprecation warning will display when it is run.
+
 ### 0.11.0 (2015-09-04)
 
 *   A command-line program has been added that can be used to work jobs in a more flexible manner than the previous rake task. Run `que -h` for more information.
-
-*   The `rake que:work` rake task that was specific to Rails has been removed in favor of the CLI, and the various QUE_* environment variables no longer have any effect.
 
 *   The worker pool will no longer start automatically in the same process when running the rails server - this behavior was too prone to breakage. If you'd like to recreate the old behavior, you can manually set `Que.mode = :async` in your app whenever conditions are appropriate (classes have loaded, a database connection has been established, and the process will not be forking).
 
