@@ -1,4 +1,4 @@
-### 0.11.0 (Unreleased)
+### 0.11.0 (2015-09-04)
 
 *   A command-line program has been added that can be used to work jobs in a more flexible manner than the previous rake task. Run `que -h` for more information.
 
