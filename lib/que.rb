@@ -129,6 +129,15 @@ module Que
       @disable_prepared_statements || false
     end
 
+    def constantize(camel_cased_word)
+      if camel_cased_word.respond_to?(:constantize)
+        # Use ActiveSupport's version if it exists.
+        camel_cased_word.constantize
+      else
+        string.split('::').inject(Object, &:const_get)
+      end
+    end
+
     # A helper method to manage transactions, used mainly by the migration
     # system. It's available for general use, but if you're using an ORM that
     # provides its own transaction helper, be sure to use that instead, or the
