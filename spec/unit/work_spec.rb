@@ -1,5 +1,4 @@
 require 'spec_helper'
-require 'active_support/core_ext/date' # For the .seconds.from_now below
 
 describe Que::Job, '.work' do
   it "should pass a job's arguments to the run method and delete it from the database" do
