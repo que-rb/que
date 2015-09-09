@@ -134,7 +134,7 @@ module Que
         # Use ActiveSupport's version if it exists.
         camel_cased_word.constantize
       else
-        string.split('::').inject(Object, &:const_get)
+        camel_cased_word.split('::').inject(Object, &:const_get)
       end
     end
 
