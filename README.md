@@ -129,10 +129,10 @@ Regarding contributions, one of the project's priorities is to keep Que as simpl
 
 A note on running specs - Que's worker system is multithreaded and therefore prone to race conditions (especially on interpreters without a global lock, like Rubinius or JRuby). As such, if you've touched that code, a single spec run passing isn't a guarantee that any changes you've made haven't introduced bugs. One thing I like to do before pushing changes is rerun the specs many times and watching for hangs. You can do this from the command line with something like:
 
-    for i in {1..1000}; do rspec -b --seed $i; done
+    for i in {1..1000}; do bundle exec rspec -b --seed $i; done
 
 This will iterate the specs one thousand times, each with a different ordering. If the specs hang, note what the seed number was on that iteration. For example, if the previous specs finished with a "Randomized with seed 328", you know that there's a hang with seed 329, and you can narrow it down to a specific spec with:
 
-    for i in {1..1000}; do LOG_SPEC=true rspec -b --seed 329; done
+    for i in {1..1000}; do LOG_SPEC=true bundle exec rspec -b --seed 329; done
 
 Note that we iterate because there's no guarantee that the hang would reappear with a single additional run, so we need to rerun the specs until it reappears. The LOG_SPEC parameter will output the name and file location of each spec before it is run, so you can easily tell which spec is hanging, and you can continue narrowing things down from there.
