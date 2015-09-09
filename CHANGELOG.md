@@ -1,3 +1,7 @@
+### Unreleased
+
+*   Fix Job class constantizing when ActiveSupport isn't loaded. (#121) (godfat)
+
 ### 0.11.1 (2015-09-04)
 
 *   The `rake que:work` rake task that was specific to Rails has been deprecated and will be removed in Que 1.0. A deprecation warning will display when it is run.
