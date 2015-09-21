@@ -74,7 +74,7 @@ stop = false
 %w(INT TERM).each { |signal| trap(signal) { stop = true } }
 
 loop do
-  sleep 0.01
+  sleep Que.wake_interval
   break if stop
 end
 
