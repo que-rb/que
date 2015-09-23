@@ -1,3 +1,7 @@
+### Unreleased
+
+*   Fixed bug with displaying the current version of the que executable. (#122) (hardbap)
+
 ### 0.11.2 (2015-09-09)
 
 *   Fix Job class constantizing when ActiveSupport isn't loaded. (#121) (godfat)
