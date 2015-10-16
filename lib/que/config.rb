@@ -57,5 +57,42 @@ module Que
     def log_formatter
       @log_formatter ||= JSON_MODULE.method(:dump)
     end
+
+
+
+    ### JSON Conversion ###
+
+    attr_writer :json_converter
+
+    def json_converter
+      @json_converter ||= SYMBOLIZER
+    end
+
+
+
+    ### Mode/Locker ###
+
+    # To be removed...?
+    attr_reader :mode
+    attr_reader :locker
+
+    def mode=(mode)
+      if @mode != mode
+        case mode
+        when :async
+          @locker = Locker.new
+        when :sync, :off
+          if @locker
+            @locker.stop
+            @locker = nil
+          end
+        else
+          raise Error, "Unknown Que mode: #{mode.inspect}"
+        end
+
+        log level: :debug, event: :mode_change, value: mode
+        @mode = mode
+      end
+    end
   end
 end

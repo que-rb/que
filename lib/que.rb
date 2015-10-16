@@ -24,41 +24,13 @@ module Que
   require_relative 'que/version'
   require_relative 'que/worker'
 
-  # Recursive functions used to process JSON arg hashes on retrieval from the DB.
-  SYMBOLIZER = proc do |object|
-    case object
-    when Hash
-      object.keys.each do |key|
-        object[key.to_sym] = SYMBOLIZER.call(object.delete(key))
-      end
-      object
-    when Array
-      object.map! { |e| SYMBOLIZER.call(e) }
-    else
-      object
-    end
-  end
-
-  HASH_DEFAULT_PROC = proc { |hash, key| hash[key.to_s] if Symbol === key }
-
-  INDIFFERENTIATOR = proc do |object|
-    case object
-    when Array
-      object.each(&INDIFFERENTIATOR)
-    when Hash
-      object.default_proc = HASH_DEFAULT_PROC
-      object.each { |key, value| object[key] = INDIFFERENTIATOR.call(value) }
-      object
-    else
-      object
-    end
-  end
-
   class << self
     extend Forwardable
 
-    attr_writer :json_converter
-    attr_reader :mode, :locker
+    # Copy some commonly-used methods here, for convenience.
+    def_delegators :pool, :execute, :checkout, :in_transaction?
+    def_delegators Job, :enqueue
+    def_delegators Migrations, :db_version, :migrate!
 
     def clear!
       execute "DELETE FROM que_jobs"
@@ -72,7 +44,7 @@ module Que
       execute :job_states
     end
 
-    # Have to support create! and drop! in old migrations. They just created
+    # Have to support create! and drop! for old migrations. They just created
     # and dropped the bare table.
     def create!
       migrate! version: 1
@@ -130,33 +102,35 @@ module Que
         end
       end
     end
-
-    def mode=(mode)
-      if @mode != mode
-        case mode
-        when :async
-          @locker = Locker.new
-        when :sync, :off
-          if @locker
-            @locker.stop
-            @locker = nil
-          end
-        else
-          raise Error, "Unknown Que mode: #{mode.inspect}"
-        end
-
-        log level: :debug, event: :mode_change, value: mode
-        @mode = mode
-      end
-    end
-
-    def json_converter
-      @json_converter ||= SYMBOLIZER
-    end
-
-    # Copy some commonly-used methods here, for convenience.
-    def_delegators :pool, :execute, :checkout, :in_transaction?
-    def_delegators Job, :enqueue
-    def_delegators Migrations, :db_version, :migrate!
   end
+
+  # Recursive functions used to process JSON arg hashes on retrieval from the DB.
+  SYMBOLIZER = proc do |object|
+    case object
+    when Hash
+      object.keys.each do |key|
+        object[key.to_sym] = SYMBOLIZER.call(object.delete(key))
+      end
+      object
+    when Array
+      object.map! { |e| SYMBOLIZER.call(e) }
+    else
+      object
+    end
+  end
+
+  INDIFFERENTIATOR = proc do |object|
+    case object
+    when Array
+      object.each(&INDIFFERENTIATOR)
+    when Hash
+      object.default_proc = HASH_DEFAULT_PROC
+      object.each { |key, value| object[key] = INDIFFERENTIATOR.call(value) }
+      object
+    else
+      object
+    end
+  end
+
+  HASH_DEFAULT_PROC = proc { |hash, key| hash[key.to_s] if Symbol === key }
 end
