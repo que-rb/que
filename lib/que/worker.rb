@@ -32,7 +32,7 @@ module Que
         begin
           if job = Que.execute(:get_job, pk).first
             start = Time.now
-            klass = Que.constantize(job[:job_class])
+            klass = Que.constantizer.call(job[:job_class])
             instance = klass.new(job)
             instance._run
             Que.log level: :debug, event: :job_worked, job: job, elapsed: (Time.now - start)

@@ -40,6 +40,8 @@
 
     *   Que now includes a RecurringJob class that implements all the logic for reliable recurring jobs. See the docs for more information.
 
+    *   There is now a `Que.constantizer=` option, which you can set to a proc to customize how job classes are converted from strings to classes. If you're on Rails and experiencing problems with autoloading, you may want to set `Que.constantizer = proc(&:constantize)`.
+
 ### Unreleased
 
 *   Fixed bug with displaying the current version of the que executable. (#122) (hardbap)
