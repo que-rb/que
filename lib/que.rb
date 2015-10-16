@@ -12,11 +12,11 @@ module Que
     JSON_MODULE = JSON
   end
 
+  require_relative 'que/connection_pool'
   require_relative 'que/job'
   require_relative 'que/job_queue'
   require_relative 'que/locker'
   require_relative 'que/migrations'
-  require_relative 'que/pool'
   require_relative 'que/recurring_job'
   require_relative 'que/result_queue'
   require_relative 'que/sql'
@@ -77,7 +77,7 @@ module Que
     end
 
     def connection_proc=(connection_proc)
-      @pool = connection_proc && Pool.new(&connection_proc)
+      @pool = connection_proc && ConnectionPool.new(&connection_proc)
     end
 
     def pool

@@ -3,7 +3,7 @@
 require 'time' # For Time.parse
 
 module Que
-  class Pool
+  class ConnectionPool
     def initialize(&block)
       @connection_proc = block
     end

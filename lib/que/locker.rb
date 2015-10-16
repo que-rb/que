@@ -8,8 +8,8 @@ module Que
     def initialize(connection: nil, listen: true, wait_period: 0.01, poll_interval: nil, minimum_queue_size: 2, maximum_queue_size: 8, worker_count: 6, worker_priorities: [10, 30, 50])
       @locks = Set.new
 
-      # Wrap the given connection in a dummy pool.
-      @pool = Pool.new { |&block| block.call(connection) } if connection
+      # Wrap the given connection in a dummy connection pool.
+      @pool = ConnectionPool.new { |&block| block.call(connection) } if connection
 
       @listen             = listen
       @wait_period        = wait_period
