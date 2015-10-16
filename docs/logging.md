@@ -43,7 +43,7 @@ If the log formatter returns nil or false, a nothing will be logged at all. You 
 
 ```ruby
 Que.log_formatter = proc do |data|
-  if ['job_worked', 'job_unavailable'].include?(data[:event])
+  if [:job_worked, :job_unavailable].include?(data[:event])
     JSON.dump(data)
   end
 end

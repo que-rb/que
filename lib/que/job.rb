@@ -54,7 +54,7 @@ module Que
       end
 
       def class_for(string)
-        string.split('::').inject(Object, &:const_get)
+        Que.constantize(string)
       end
     end
   end
