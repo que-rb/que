@@ -23,6 +23,21 @@ module Que
   require_relative 'que/version'
   require_relative 'que/worker'
 
+  # Recursive functions used to process JSON arg hashes on retrieval from the DB.
+  SYMBOLIZER = proc do |object|
+    case object
+    when Hash
+      object.keys.each do |key|
+        object[key.to_sym] = SYMBOLIZER.call(object.delete(key))
+      end
+      object
+    when Array
+      object.map! { |e| SYMBOLIZER.call(e) }
+    else
+      object
+    end
+  end
+
   HASH_DEFAULT_PROC = proc { |hash, key| hash[key.to_s] if Symbol === key }
 
   INDIFFERENTIATOR = proc do |object|
@@ -33,20 +48,6 @@ module Que
       object.default_proc = HASH_DEFAULT_PROC
       object.each { |key, value| object[key] = INDIFFERENTIATOR.call(value) }
       object
-    else
-      object
-    end
-  end
-
-  SYMBOLIZER = proc do |object|
-    case object
-    when Hash
-      object.keys.each do |key|
-        object[key.to_sym] = SYMBOLIZER.call(object.delete(key))
-      end
-      object
-    when Array
-      object.map! { |e| SYMBOLIZER.call(e) }
     else
       object
     end
