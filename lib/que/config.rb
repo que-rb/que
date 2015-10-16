@@ -35,5 +35,27 @@ module Que
 
     # Set the current pool. Helpful for specs, but probably shouldn't be used generally.
     attr_writer :pool
+
+
+
+    ### Error Handling ###
+
+    # error_handler is just a proc that is passed errors raised by jobs when
+    # they occur.
+    attr_accessor :error_handler
+
+
+
+    ### Logging ###
+
+    attr_writer :logger, :log_formatter
+
+    def logger
+      @logger.respond_to?(:call) ? @logger.call : @logger
+    end
+
+    def log_formatter
+      @log_formatter ||= JSON_MODULE.method(:dump)
+    end
   end
 end

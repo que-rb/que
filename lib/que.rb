@@ -57,8 +57,7 @@ module Que
   class << self
     extend Forwardable
 
-    attr_accessor :logger, :error_handler
-    attr_writer :log_formatter, :logger, :json_converter
+    attr_writer :json_converter
     attr_reader :mode, :locker
 
     def clear!
@@ -95,18 +94,6 @@ module Que
           l.error "Error raised from Que.log_formatter proc: #{e.class}: #{e.message}\n#{e.backtrace}"
         end
       end
-    end
-
-    def logger
-      @logger.respond_to?(:call) ? @logger.call : @logger
-    end
-
-    def log_formatter
-      @log_formatter ||= JSON_MODULE.method(:dump)
-    end
-
-    def disable_prepared_statements
-      @disable_prepared_statements || false
     end
 
     def constantize(camel_cased_word)
