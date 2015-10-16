@@ -49,9 +49,9 @@ module Que
 
     # Procs used to convert strings from PG into Ruby types.
     CAST_PROCS = {
-      16   => 't'.method(:==),                                              # Boolean.
-      114  => proc { |json| Que::SYMBOLIZER.call(JSON_MODULE.load(json)) }, # JSON.
-      1184 => Time.method(:parse)                                           # Timestamp with time zone.
+      16   => 't'.method(:==),                                                 # Boolean.
+      114  => proc { |json| Que.json_converter.call(JSON_MODULE.load(json)) }, # JSON.
+      1184 => Time.method(:parse)                                              # Timestamp with time zone.
     }
     CAST_PROCS[23] = CAST_PROCS[20] = CAST_PROCS[21] = proc(&:to_i) # Integer, bigint, smallint.
     CAST_PROCS.freeze
