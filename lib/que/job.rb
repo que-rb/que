@@ -1,3 +1,5 @@
+# The class that most jobs inherit from.
+
 module Que
   class Job
     attr_reader :attrs
@@ -51,10 +53,6 @@ module Que
       def run(*args)
         # Should not fail if there's no DB connection.
         new(args: args).tap { |job| job.run(*args) }
-      end
-
-      def class_for(string)
-        Que.constantize(string)
       end
     end
   end

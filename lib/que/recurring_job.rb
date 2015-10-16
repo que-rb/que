@@ -1,3 +1,6 @@
+# Inherit from RecurringJob instead of Job for simple but reliable recurring
+# jobs.
+
 module Que
   class RecurringJob < Job
     def initialize(attrs)

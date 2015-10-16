@@ -1,3 +1,7 @@
+# The Locker class encapsulates a thread that is listening/polling for new
+# jobs in the DB, locking them, passing their primary keys to workers, then
+# cleaning up by unlocking them once the workers are done.
+
 require 'forwardable'
 require 'set'
 

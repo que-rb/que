@@ -1,5 +1,5 @@
-# A thread-safe queue that holds ids for jobs that have been worked, and
-# allows retrieving all of its values in a non-blocking, thread-safe fashion.
+# A thread-safe queue that holds ids for jobs that have been worked. Allows
+# appending single/retrieving all ids in a thread-safe fashion.
 
 module Que
   class ResultQueue

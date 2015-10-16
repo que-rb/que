@@ -1,13 +1,5 @@
 module Que
   SQL = {
-    get_job: %{
-      SELECT *
-      FROM que_jobs
-      WHERE priority = $1::smallint
-      AND   run_at   = $2::timestamptz
-      AND   job_id   = $3::bigint
-    },
-
     # Locks a job using a Postgres recursive CTE [1].
     #
     # As noted by the Postgres documentation, it may be slightly easier to
@@ -90,6 +82,14 @@ module Que
       LIMIT $2::integer
     },
 
+    get_job: %{
+      SELECT *
+      FROM que_jobs
+      WHERE priority = $1::smallint
+      AND   run_at   = $2::timestamptz
+      AND   job_id   = $3::bigint
+    },
+
     reenqueue_job: %{
       WITH deleted_job AS (
         DELETE FROM que_jobs
@@ -102,14 +102,6 @@ module Que
       VALUES
       ($1::smallint, $4::text, $5::timestamptz, $6::json)
       RETURNING *
-    },
-
-    check_job: %{
-      SELECT 1 AS one
-      FROM   que_jobs
-      WHERE  priority = $1::smallint
-      AND    run_at   = $2::timestamptz
-      AND    job_id   = $3::bigint
     },
 
     set_error: %{
