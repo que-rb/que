@@ -20,19 +20,19 @@
 
 *   In keeping with semantic versioning, the major version is being bumped since the new implementation requires some backwards-incompatible changes. These changes include:
 
-    *   The Railtie providing simple integration with Rails has been moved to another gem (TODO: publish and link here).
+    *   The Railtie and generators providing simple integration with Rails have been removed, due to the difficulty of supporting Rails reliably. Que still supports hooking into the ActiveRecord connection pool, if it is present, but doesn't make any special effort to integrate with Rails any more than it would with any other Ruby framework.
 
-    *   JRuby support has been dropped. It will be reintroduced when the jruby-pg gem [fully supports PG::Connection#wait_for_notify](https://github.com/headius/jruby-pg/issues/13).
+    *   JRuby support has been dropped. It will be reintroduced whenever the jruby-pg gem is production-ready.
 
     *   Que no longer uses prepared statements for its built-in queries, since they weren't compatible with multiple job queues. This should have no outward-facing change, except that the `Que.disable_prepared_statements` configuration accessor no longer exists.
 
-    *   In addition to `Que.disable_prepared_statements=`, the following configuration options are not usable under the new implementation and have been removed: `Que.wake_interval`, `Que.wake_interval=`, `Que.wake!`, `Que.wake_all!`, `Que.worker_count`, `Que.worker_count=`.
+    *   In addition to `Que.disable_prepared_statements=`, the following configuration options are not meaningful under the new implementation and have been removed: `Que.wake_interval`, `Que.wake_interval=`, `Que.wake!`, `Que.wake_all!`, `Que.worker_count`, `Que.worker_count=`.
 
     *   Since Que needs a dedicated Postgres connection to manage job locks, it is no longer possible to run Que through a single PG connection. A connection pool with a size of at least 2 is required. (Note that it is possible to pass Que a connection pool containing a single connection if you provide a separate dedicated connection to the job locker).
 
     *   `Que.worker_states` has been removed, as it is no longer possible to know which Postgres connection is working each job. Its functionality has been partially replaced with `Que.job_states`.
 
-    *   For simplicity, the new default for job attributes and keys in argument hashes are now converted to symbols when retrieved from the database, rather than made indifferently-accessible. If you are presently allowing uncontrolled input to be used as keys in the arguments hash (or as keys in a hash nested within the arguments hash), you should either fix that or use a Ruby implementation that garbage-collects symbols, such as MRI 2.2+. You can go back to the old behavior by setting `Que.json_converter = Que::INDIFFERENTIATOR`. If you are using the `que-rails` gem, args hashes will be instances of HashWithIndifferentAccess, as before.
+    *   For simplicity, the new default for job attributes and keys in argument hashes are now converted to symbols when retrieved from the database, rather than made indifferently-accessible. If you are presently allowing uncontrolled input to be used as keys in the arguments hash (or as keys in a hash nested within the arguments hash), you should either fix that or use a Ruby implementation that garbage-collects symbols, such as MRI 2.2+. You can go back to the old behavior by setting `Que.json_converter = Que::INDIFFERENTIATOR`. If you are using Rails, you can get HashWithIndifferentAccess objects by setting `Que.json_converter = proc(&:with_indifferent_access)`.
 
     *   Features marked as deprecated in 0.x releases have been removed.
 
