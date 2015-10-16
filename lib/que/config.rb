@@ -55,14 +55,25 @@ module Que
     end
 
     def log_formatter
-      @log_formatter ||= JSON_MODULE.method(:dump)
+      @log_formatter ||= json_module.method(:dump)
     end
 
 
 
     ### JSON Conversion ###
 
-    attr_writer :json_converter
+    attr_writer :json_module, :json_converter
+
+    def json_module
+      @json_module ||=
+        begin
+          require 'multi_json'
+          MultiJson
+        rescue LoadError
+          require 'json'
+          JSON
+        end
+    end
 
     def json_converter
       @json_converter ||= SYMBOLIZER

@@ -4,14 +4,6 @@ require 'socket' # For Socket.gethostname
 module Que
   class Error < StandardError; end
 
-  begin
-    require 'multi_json'
-    JSON_MODULE = MultiJson
-  rescue LoadError
-    require 'json'
-    JSON_MODULE = JSON
-  end
-
   require_relative 'que/config'
   require_relative 'que/connection_pool'
   require_relative 'que/job'

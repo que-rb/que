@@ -163,7 +163,7 @@ module Que
     def wait_for_job(timeout = nil)
       checkout do |conn|
         conn.wait_for_notify(timeout) do |_, _, payload|
-          Que.log level: :debug, event: :job_notified, job: (json = JSON_MODULE.load(payload))
+          Que.log level: :debug, event: :job_notified, job: (json = Que.json_module.load(payload))
           return [json['priority'], Time.parse(json['run_at']), json['job_id']]
         end
       end
