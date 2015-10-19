@@ -1,10 +1,8 @@
 language: ruby
 rvm:
-  - "1.9.3"
-  - "2.0"
   - "2.1"
+  - "2.2"
   - "rbx-2"
-  # - "jruby-1.7.5" # jruby-pg doesn't support wait_for_notify with a timeout yet: https://github.com/headius/jruby-pg/issues/13
 before_script:
   - psql -c 'create database "que-test"' -U postgres
   - bundle exec ruby -r sequel -r ./lib/que -e 'Que.connection_proc=Sequel.connect("postgres://localhost/que-test").method(:synchronize); Que.migrate!'
@@ -12,4 +10,4 @@ before_script:
 script: "./spec/travis.rb"
 
 addons:
-  postgresql: 9.3
+  postgresql: 9.4
