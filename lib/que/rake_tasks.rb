@@ -1,6 +1,8 @@
 namespace :que do
   desc "Process Que's jobs using a worker pool"
   task :work => :environment do
+    $stdout.sync = true
+
     $stdout.puts "The que:work rake task has been deprecated and will be removed in Que 1.0. Please transition to the que command line interface instead."
 
     if defined?(::Rails) && Rails.respond_to?(:application)

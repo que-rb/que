@@ -161,6 +161,18 @@ describe Que::Job, '.work' do
     end
   end
 
+  it "should skip jobs that are not retryable" do
+    Que::Job.enqueue :priority => 2
+    Que::Job.enqueue :priority => 1, :retryable => false
+    Que::Job.enqueue :priority => 3
+
+    result = Que::Job.work
+    result[:event].should == :job_worked
+    result[:job][:job_class].should == 'Que::Job'
+
+    DB[:que_jobs].order_by(:job_id).select_map(:priority).should == [1, 3]
+  end
+
   it "should handle subclasses of other jobs" do
     class SubClassJob < Que::Job
       @priority = 2
@@ -239,7 +251,7 @@ describe Que::Job, '.work' do
       job[:run_at].should be_within(3).of Time.now + 4
 
       DB[:que_jobs].update :error_count => 5,
-                           :run_at => Time.now - 60
+        :run_at => Time.now - 60
 
       result = Que::Job.work
       result[:event].should == :job_errored
@@ -272,7 +284,7 @@ describe Que::Job, '.work' do
       job[:run_at].to_f.should be_within(3).of Time.now.to_f + RetryIntervalJob.retry_interval
 
       DB[:que_jobs].update :error_count => 5,
-                           :run_at => Time.now - 60
+        :run_at => Time.now - 60
 
       result = Que::Job.work
       result[:event].should == :job_errored
@@ -305,7 +317,7 @@ describe Que::Job, '.work' do
       job[:run_at].should be_within(3).of Time.now + 10
 
       DB[:que_jobs].update :error_count => 5,
-                           :run_at => Time.now - 60
+        :run_at => Time.now - 60
 
       result = Que::Job.work
       result[:event].should == :job_errored

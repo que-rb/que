@@ -4,6 +4,8 @@ require 'optparse'
 require 'ostruct'
 require 'logger'
 
+$stdout.sync = true
+
 options = OpenStruct.new
 
 OptionParser.new do |opts|
