@@ -2,6 +2,8 @@
 
 *   Fixed bug with displaying the current version of the que executable. (#122) (hardbap)
 
+*   Output to STDOUT when running via the executable or rake task is no longer buffered. This prevented logging in some cases. (#129) (hmarr)
+
 ### 0.11.2 (2015-09-09)
 
 *   Fix Job class constantizing when ActiveSupport isn't loaded. (#121) (godfat)
