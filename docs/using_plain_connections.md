@@ -15,7 +15,7 @@ Que.connection = PG::Connection.open :host     => uri.host,
                                      :dbname   => uri.path[1..-1]
 ```
 
-If you want to be able to use multithreading to run multiple jobs simultaneously in the same process, though, you'll need the ConnectionPool gem (be sure to add `gem 'connection_pool'` to your Gemfile):
+**Warning:** If you want to be able to use multithreading to run multiple jobs **simultaneously** (concurrently) in the same process, though, you'll need the ConnectionPool gem (be sure to add `gem 'connection_pool'` to your Gemfile):
 
 ```ruby
 require 'uri'
