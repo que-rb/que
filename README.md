@@ -112,6 +112,7 @@ To determine what happens when a job is queued, you can set Que's mode. There ar
   * [que-web](https://github.com/statianzo/que-web) is a Sinatra-based UI for inspecting your job queue.
   * [que-testing](https://github.com/statianzo/que-testing) allows making assertions on enqueued jobs.
   * [que-go](https://github.com/bgentry/que-go) is a port of Que for the Go programming language. It uses the same table structure, so that you can use the same job queue from Ruby and Go applications.
+  * [wisper-que](https://github.com/joevandyk/wisper-que) adds support for Que to [wisper](https://github.com/krisleech/wisper).
 
 If you have a project that uses or relates to Que, feel free to submit a PR adding it to the list!
 
