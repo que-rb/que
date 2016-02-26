@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 namespace :que do
   desc "Process Que's jobs using a worker pool"
   task :work => :environment do

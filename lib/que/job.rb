@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Que
   class Job
     attr_reader :attrs

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Don't run these specs in JRuby until jruby-pg is compatible with ActiveRecord.
 unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
 

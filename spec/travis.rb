@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #!/usr/bin/env ruby
 
 # Run tests a bunch of times, flush out thread race conditions /  errors.

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 shared_examples "a multi-threaded Que adapter" do
   it_behaves_like "a Que adapter"
 
