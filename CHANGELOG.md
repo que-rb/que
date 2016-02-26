@@ -4,6 +4,10 @@
 
 *   Output to STDOUT when running via the executable or rake task is no longer buffered. This prevented logging in some cases. (#129) (hmarr)
 
+*   Officially added support for Ruby 2.2 and 2.3.
+
+*   String literals are now frozen on Ruby 2.3.
+
 ### 0.11.2 (2015-09-09)
 
 *   Fix Job class constantizing when ActiveSupport isn't loaded. (#121) (godfat)
