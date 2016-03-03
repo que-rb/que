@@ -1,3 +1,7 @@
+### 0.11.4 (Unreleased)
+
+*   Fix incompatibility with ActiveRecord 5.0.0.beta3. (#143, #144) (joevandyk)
+
 ### 0.11.3 (2016-02-26)
 
 *   Fixed bug with displaying the current version of the que executable. (#122) (hardbap)
