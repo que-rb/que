@@ -42,6 +42,10 @@ module Que
         def committed!(should_run_callbacks = true)
           Que.wake!
         end
+
+        def before_committed!(*)
+          # no-op
+        end
       end
 
       private
