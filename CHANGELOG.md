@@ -1,4 +1,4 @@
-### 0.11.4 (Unreleased)
+### 0.11.4 (2016-03-03)
 
 *   Fix incompatibility with ActiveRecord 5.0.0.beta3. (#143, #144) (joevandyk)
 
