@@ -49,7 +49,7 @@ module Que
 
   class << self
     attr_accessor :error_handler
-    attr_writer :logger, :adapter, :log_formatter, :disable_prepared_statements, :json_converter
+    attr_writer :logger, :adapter, :log_formatter, :disable_prepared_statements, :json_converter, :retry_limit
 
     def connection=(connection)
       self.adapter =
@@ -138,6 +138,18 @@ module Que
       else
         camel_cased_word.split('::').inject(Object, &:const_get)
       end
+    end
+
+    # Configure Que to stop trying to work a job
+    # after error_count surpasses this limit
+    # 
+    # This limit should never be reached
+    # 
+    # At the default retry_interval
+    # 100 retries would take over 3 years
+    # 
+    def retry_limit
+      @retry_limit ||= 100
     end
 
     # A helper method to manage transactions, used mainly by the migration

@@ -104,3 +104,17 @@ Que.mode = :sync
 Be sure to read the docs on [managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md) for more information on using the worker pool.
 
 You'll also want to set up [logging](https://github.com/chanks/que/blob/master/docs/logging.md) and an [error handler](https://github.com/chanks/que/blob/master/docs/error_handling.md) to track errors raised by jobs.
+
+### Retry Limit
+
+Que will never delete a job, but it can be configured to stop trying to work a job. The default retry limit is 100, a limit that is very unlikely to be reached. If you wish to stop trying to work a job at a lower error count, you can configure Que like so:
+
+```ruby
+Que.retry_limit = 5
+```
+
+If, however, you've changed the `retry_interval` for your workers and want jobs to retry more times, you can of course raise this limit.
+
+```ruby
+Que.retry_limit = 100_000
+```
