@@ -84,7 +84,7 @@ module Que
         return_value =
           Que.adapter.checkout do
             begin
-              if job = Que.execute(:lock_job, [queue]).first
+              if job = Que.execute(:lock_job, [queue,  Que.retry_limit]).first
                 # Edge case: It's possible for the lock_job query to have
                 # grabbed a job that's already been worked, if it took its MVCC
                 # snapshot while the job was processing, but didn't attempt the

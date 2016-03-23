@@ -403,5 +403,16 @@ describe Que::Job, '.work' do
       job[:error_count].should be 1
       job[:run_at].should be_within(3).of Time.now + 4
     end
+
+    it "should not work a job when error count exceeds retry limit" do
+      ErrorJob.enqueue
+
+      # Set the job error count to exceed the retry limit
+      DB[:que_jobs].update :error_count => (Que.retry_limit + 1),
+                           :run_at => Time.now - 60
+
+      result = Que::Job.work
+      result[:event].should == :job_unavailable
+    end
   end
 end
