@@ -1,14 +1,38 @@
-### 0.11.0 (Unreleased)
+### 0.11.4 (2016-03-03)
+
+*   Fix incompatibility with ActiveRecord 5.0.0.beta3. (#143, #144) (joevandyk)
+
+### 0.11.3 (2016-02-26)
+
+*   Fixed bug with displaying the current version of the que executable. (#122) (hardbap)
+
+*   Output to STDOUT when running via the executable or rake task is no longer buffered. This prevented logging in some cases. (#129) (hmarr)
+
+*   Officially added support for Ruby 2.2 and 2.3.
+
+*   String literals are now frozen on Ruby 2.3.
+
+### 0.11.2 (2015-09-09)
+
+*   Fix Job class constantizing when ActiveSupport isn't loaded. (#121) (godfat)
+
+### 0.11.1 (2015-09-04)
+
+*   The `rake que:work` rake task that was specific to Rails has been deprecated and will be removed in Que 1.0. A deprecation warning will display when it is run.
+
+### 0.11.0 (2015-09-04)
 
 *   A command-line program has been added that can be used to work jobs in a more flexible manner than the previous rake task. Run `que -h` for more information.
-
-*   The `rake que:work` rake task that was specific to Rails has been removed in favor of the CLI, and the various QUE_* environment variables no longer have any effect.
 
 *   The worker pool will no longer start automatically in the same process when running the rails server - this behavior was too prone to breakage. If you'd like to recreate the old behavior, you can manually set `Que.mode = :async` in your app whenever conditions are appropriate (classes have loaded, a database connection has been established, and the process will not be forking).
 
 *   Add a Que.disable_prepared_transactions= configuration option, to make it easier to use tools like pgbouncer. (#110)
 
 *   Add a Que.json_converter= option, to configure how arguments are transformed before being passed to the job. By default this is set to the `Que::INDIFFERENTIATOR` proc, which provides simple indifferent access (via strings or symbols) to args hashes. If you're using Rails, the default is to convert the args to HashWithIndifferentAccess instead. You can also pass it the Que::SYMBOLIZER proc, which will destructively convert all keys in the args hash to symbols (this will probably be the default in Que 1.0). If you want to define a custom converter, you will usually want to pass this option a proc, and you'll probably want it to be recursive. See the implementations of Que::INDIFFERENTIATOR and Que::SYMBOLIZER for examples. (#113)
+
+*   When using Que with ActiveRecord, workers now call `ActiveRecord::Base.clear_active_connections!` between jobs. This cleans up connections that ActiveRecord leaks when it is used to access mutliple databases. (#116)
+
+*   If it exists, use String#constantize to constantize job classes, since ActiveSupport's constantize method behaves better with Rails' autoloading. (#115, #120) (joevandyk)
 
 ### 0.10.0 (2015-03-18)
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'time' # For Time.parse.
 
 module Que
@@ -19,6 +21,11 @@ module Que
       # be re-entrant.
       def checkout(&block)
         raise NotImplementedError
+      end
+
+      # Called after Que has returned its connection to whatever pool it's
+      # using.
+      def cleanup!
       end
 
       # Called after a job is queued in async mode, to prompt a worker to

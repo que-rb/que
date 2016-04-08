@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 # A few specs to ensure that the ideas given in the customizing_que document

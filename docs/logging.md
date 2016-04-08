@@ -1,6 +1,6 @@
 ## Logging
 
-By default, Que logs important information in JSON to either Rails' logger (when running in a Rails web process) or STDOUT (when running as a rake task). So, your logs will look something like:
+By default, Que logs important information in JSON to either Rails' logger (when running in a Rails web process) or STDOUT (when running via the `que` executable). So, your logs will look something like:
 
 ```
 I, [2014-01-12T05:07:31.094201 #4687]  INFO -- : {"lib":"que","thread":104928,"event":"job_worked","elapsed":0.01045,"job":{"priority":"1","run_at":"2014-01-12 05:07:31.081877+00","job_id":"4","job_class":"MyJob","args":[],"error_count":"0"}}
@@ -43,7 +43,7 @@ If the log formatter returns nil or false, a nothing will be logged at all. You 
 
 ```ruby
 Que.log_formatter = proc do |data|
-  if ['job_worked', 'job_unavailable'].include?(data[:event])
+  if [:job_worked, :job_unavailable].include?(data[:event])
     JSON.dump(data)
   end
 end

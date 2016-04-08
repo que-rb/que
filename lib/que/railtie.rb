@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Que
   class Railtie < Rails::Railtie
     config.que = Que

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'socket' # For hostname
 
 module Que
@@ -137,6 +139,15 @@ module Que
     def error_handler=(p)
       warn "Que.error_handler= has been renamed to Que.error_notifier=, please update your code. This shim will be removed in Que version 1.0.0."
       self.error_notifier = p
+    end
+
+    def constantize(camel_cased_word)
+      if camel_cased_word.respond_to?(:constantize)
+        # Use ActiveSupport's version if it exists.
+        camel_cased_word.constantize
+      else
+        camel_cased_word.split('::').inject(Object, &:const_get)
+      end
     end
 
     # A helper method to manage transactions, used mainly by the migration

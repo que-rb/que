@@ -4,6 +4,8 @@ require 'optparse'
 require 'ostruct'
 require 'logger'
 
+$stdout.sync = true
+
 options = OpenStruct.new
 
 OptionParser.new do |opts|
@@ -26,7 +28,7 @@ OptionParser.new do |opts|
   end
 
   opts.on('-v', '--version', "Show Que version") do
-    $stdout.puts "Que version #{Version}"
+    $stdout.puts "Que version #{Que::Version}"
     exit 0
   end
 
@@ -57,7 +59,7 @@ end
 Que.logger ||= Logger.new(STDOUT)
 
 begin
-  if log_level = options.log_level
+  if log_level = (options.log_level || ENV['QUE_LOG_LEVEL'])
     Que.logger.level = Logger.const_get(log_level.upcase)
   end
 rescue NameError
@@ -65,9 +67,9 @@ rescue NameError
   exit 1
 end
 
-Que.queue_name    = options.queue_name    || Que.queue_name    || nil
-Que.worker_count  = options.worker_count  || Que.worker_count  || 4
-Que.wake_interval = options.wake_interval || Que.wake_interval || 0.1
+Que.queue_name    = options.queue_name     || ENV['QUE_QUEUE']         || Que.queue_name    || nil
+Que.worker_count  = (options.worker_count  || ENV['QUE_WORKER_COUNT']  || Que.worker_count  || 4).to_i
+Que.wake_interval = (options.wake_interval || ENV['QUE_WAKE_INTERVAL'] || Que.wake_interval || 0.1).to_f
 Que.mode          = :async
 
 stop = false

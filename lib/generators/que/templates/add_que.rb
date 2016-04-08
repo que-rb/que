@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class AddQue < ActiveRecord::Migration
   def self.up
     # The current version as of this migration's creation.

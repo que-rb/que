@@ -100,8 +100,8 @@ ChargeCreditCard.enqueue current_user.id, :credit_card_id => card.id, :run_at =>
 
 To determine what happens when a job is queued, you can set Que's mode. There are a few options for the mode:
 
-  * `Que.mode = :off` - In this mode, queueing a job will simply insert it into the database - the current process will make no effort to run it. You should use this if you want to use a dedicated process to work tasks (there's a rake task included that will do this, `rake que:work`). This is the default when running `bin/rails console`.
-  * `Que.mode = :async` - In this mode, a pool of background workers is spun up, each running in their own thread. This is the default when running `bin/rails server`. See the docs for [more information on managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md).
+  * `Que.mode = :off` - In this mode, queueing a job will simply insert it into the database - the current process will make no effort to run it. You should use this if you want to use a dedicated process to work tasks (there's an executable included that will do this, `que`). This is the default when running `bin/rails console`.
+  * `Que.mode = :async` - In this mode, a pool of background workers is spun up, each running in their own thread. See the docs for [more information on managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md).
   * `Que.mode = :sync` - In this mode, any jobs you queue will be run in the same thread, synchronously (that is, `MyJob.enqueue` runs the job and won't return until it's completed). This makes your application's behavior easier to test, so it's the default in the test environment.
 
 **If you're using ActiveRecord to dump your database's schema, [set your schema_format to :sql](http://guides.rubyonrails.org/migrations.html#types-of-schema-dumps) so that Que's table structure is managed correctly.** (You can use schema_format as :ruby if you want but keep in mind this is highly advised against, as some parts of Que will not work.)
@@ -112,6 +112,7 @@ To determine what happens when a job is queued, you can set Que's mode. There ar
   * [que-web](https://github.com/statianzo/que-web) is a Sinatra-based UI for inspecting your job queue.
   * [que-testing](https://github.com/statianzo/que-testing) allows making assertions on enqueued jobs.
   * [que-go](https://github.com/bgentry/que-go) is a port of Que for the Go programming language. It uses the same table structure, so that you can use the same job queue from Ruby and Go applications.
+  * [wisper-que](https://github.com/joevandyk/wisper-que) adds support for Que to [wisper](https://github.com/krisleech/wisper).
 
 If you have a project that uses or relates to Que, feel free to submit a PR adding it to the list!
 
@@ -129,10 +130,10 @@ Regarding contributions, one of the project's priorities is to keep Que as simpl
 
 A note on running specs - Que's worker system is multithreaded and therefore prone to race conditions (especially on interpreters without a global lock, like Rubinius or JRuby). As such, if you've touched that code, a single spec run passing isn't a guarantee that any changes you've made haven't introduced bugs. One thing I like to do before pushing changes is rerun the specs many times and watching for hangs. You can do this from the command line with something like:
 
-    for i in {1..1000}; do rspec -b --seed $i; done
+    for i in {1..1000}; do bundle exec rspec -b --seed $i; done
 
 This will iterate the specs one thousand times, each with a different ordering. If the specs hang, note what the seed number was on that iteration. For example, if the previous specs finished with a "Randomized with seed 328", you know that there's a hang with seed 329, and you can narrow it down to a specific spec with:
 
-    for i in {1..1000}; do LOG_SPEC=true rspec -b --seed 329; done
+    for i in {1..1000}; do LOG_SPEC=true bundle exec rspec -b --seed 329; done
 
 Note that we iterate because there's no guarantee that the hang would reappear with a single additional run, so we need to rerun the specs until it reappears. The LOG_SPEC parameter will output the name and file location of each spec before it is run, so you can easily tell which spec is hanging, and you can continue narrowing things down from there.
