@@ -28,6 +28,7 @@ OptionParser.new do |opts|
   end
 
   opts.on('-v', '--version', "Show Que version") do
+    require 'que'
     $stdout.puts "Que version #{Que::Version}"
     exit 0
   end
