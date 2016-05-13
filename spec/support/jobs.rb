@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Common Job classes for use in specs.
 
 # Handy for blocking in the middle of processing a job.

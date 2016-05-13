@@ -1,21 +1,6 @@
 ## Using Plain Postgres Connections
 
-If you're not using an ORM like ActiveRecord or Sequel, you can have Que access jobs using a plain Postgres connection:
-
-```ruby
-require 'uri'
-require 'pg'
-
-uri = URI.parse(ENV['DATABASE_URL'])
-
-Que.connection = PG::Connection.open host:     uri.host,
-                                     user:     uri.user,
-                                     password: uri.password,
-                                     port:     uri.port || 5432,
-                                     dbname:   uri.path[1..-1]
-```
-
-If you want to be able to use multithreading to run multiple jobs simultaneously in the same process, though, you'll need the ConnectionPool gem (be sure to add `gem 'connection_pool'` to your Gemfile):
+If you're not using an ORM like ActiveRecord or Sequel, you can use one of two gems to manage a connection pool for your PG connections. The first is the ConnectionPool gem (be sure to add `gem 'connection_pool'` to your Gemfile):
 
 ```ruby
 require 'uri'
@@ -53,4 +38,4 @@ Que.connection = Pond.new :maximum_size => 10 do
 end
 ```
 
-Please be aware that if you're using ActiveRecord or Sequel to manage your data, there's no reason for you to be using any of these methods - it's less efficient (unnecessary connections will waste memory on your database server) and you lose the reliability benefits of wrapping jobs in the same transactions as the rest of your data.
+Please be aware that if you're using ActiveRecord or Sequel to manage your data, there's no reason for you to be using any of these methods - it's less efficient (unnecessary connections will waste memory on your database server) and you lose the reliability benefits of wrapping jobs in the same transactions as the rest of your data. In general, your app should probably be using a connection pool, and Que should probably hook into whatever connection pool you're already using.

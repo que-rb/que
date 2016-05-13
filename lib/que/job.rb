@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # The class that most jobs inherit from.
 
 module Que

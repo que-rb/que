@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # This task is used to test Que's behavior when its process is shut down.
 
 # The situation we're trying to avoid occurs when the process dies while a job

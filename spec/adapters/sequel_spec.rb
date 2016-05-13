@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 Que.connection = SEQUEL_ADAPTER_DB = Sequel.connect(QUE_URL)

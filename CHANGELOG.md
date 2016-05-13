@@ -42,9 +42,23 @@
 
     *   There is now a `Que.constantizer=` option, which you can set to a proc to customize how job classes are converted from strings to classes. If you're on Rails and experiencing problems with autoloading, you may want to set `Que.constantizer = proc(&:constantize)`.
 
-### Unreleased
+### 0.11.5 (2016-05-13)
+
+*   Fix error when running `que -v`. (#154) (hardbap)
+
+### 0.11.4 (2016-03-03)
+
+*   Fix incompatibility with ActiveRecord 5.0.0.beta3. (#143, #144) (joevandyk)
+
+### 0.11.3 (2016-02-26)
 
 *   Fixed bug with displaying the current version of the que executable. (#122) (hardbap)
+
+*   Output to STDOUT when running via the executable or rake task is no longer buffered. This prevented logging in some cases. (#129) (hmarr)
+
+*   Officially added support for Ruby 2.2 and 2.3.
+
+*   String literals are now frozen on Ruby 2.3.
 
 ### 0.11.2 (2015-09-09)
 

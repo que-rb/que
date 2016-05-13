@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Que
   module Migrations
     # In order to ship a schema change, add the relevant up and down sql files

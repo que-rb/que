@@ -1,5 +1,7 @@
 ## Advanced Setup
 
+### Using ActiveRecord Without Rails
+
 If you're using both Rails and ActiveRecord, the README describes how to get started with Que (which is pretty straightforward, since Que includes a Railtie that handles a lot of setup for you). Otherwise, you'll need to do some manual setup.
 
 If you're using ActiveRecord outside of Rails, you'll need to tell Que to piggyback on its connection pool after you've connected to the database:
@@ -58,6 +60,9 @@ if defined?(PhusionPassenger)
   end
 end
 ```
+
+If there's other setup you want to do for workers, such as setting up the
+configuration, you'll need to do that manually as well.
 
 ### Managing the Jobs Table
 
