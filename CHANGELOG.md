@@ -1,4 +1,4 @@
-### 0.11.5 (Unreleased)
+### 0.11.5 (2016-05-13)
 
 *   Fix error when running `que -v`. (#154) (hardbap)
 
