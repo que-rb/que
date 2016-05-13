@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Que's global configuration lives here.
 
 module Que

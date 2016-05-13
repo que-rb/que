@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 shared_examples "a Que pool" do
   it "should be able to execute arbitrary SQL and return symbolized hashes" do
     result = Que.execute("SELECT 1 AS one")

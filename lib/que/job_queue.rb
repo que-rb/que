@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # A thread-safe queue that holds job primary keys in sorted order. Supports
 # blocking while waiting for a job to become available, stopping, and only
 # returning jobs over a minimum priority.

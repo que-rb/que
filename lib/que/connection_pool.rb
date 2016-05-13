@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # A wrapper around whatever connection pool we're using.
 
 require 'time' # For Time.parse

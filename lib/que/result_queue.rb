@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # A thread-safe queue that holds ids for jobs that have been worked. Allows
 # appending single/retrieving all ids in a thread-safe fashion.
 

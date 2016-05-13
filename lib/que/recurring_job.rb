@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Inherit from RecurringJob instead of Job for simple but reliable recurring
 # jobs.
 
