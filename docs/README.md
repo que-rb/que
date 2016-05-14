@@ -1,33 +1,33 @@
 Docs Index
 ==============
 
-- [Advanced Setup](docs/advanced_setup.md)
+- [Advanced Setup](advanced_setup.md)
   - Using ActiveRecord Without Rails
   - Forking Servers
   - Managing the Jobs Table
   - Other Setup
-- [Customizing Que](docs/customizing_que.md)
+- [Customizing Que](customizing_que.md)
   - Recurring Jobs
   - DelayedJob-style Jobs
   - QueueClassic-style Jobs
   - Retaining Finished Jobs
   - Not Retrying Certain Failed Jobs
-- [Error Handling](docs/error_handling.md)
-- [Inspecting the Queue](docs/inspecting_the_queue.md)
+- [Error Handling](error_handling.md)
+- [Inspecting the Queue](inspecting_the_queue.md)
   - Job Stats
   - Worker States
   - Custom Queries
-- [Logging](docs/logging.md)
-- [Managing Workers](docs/managing_workers.md)
+- [Logging](logging.md)
+- [Managing Workers](managing_workers.md)
   - Working Jobs Via Executable
   - Thread-Unsafe Application Code
   - The Wake Interval
   - Manually Waking Workers
   - Connection Pool Size
-- [Migrating](docs/migrating.md)
-- [Multiple Queues](docs/multiple_queues.md)
-- [Shutting Down Safely](docs/shutting_down_safely.md)
-- [Using Plain Postgres Connections](docs/using_plain_connections.md)
-- [Using Sequel](docs/using_sequel.md)
-- [Writing Reliable Jobs](docs/writing_reliable_jobs.md)
+- [Migrating](migrating.md)
+- [Multiple Queues](multiple_queues.md)
+- [Shutting Down Safely](shutting_down_safely.md)
+- [Using Plain Postgres Connections](using_plain_connections.md)
+- [Using Sequel](using_sequel.md)
+- [Writing Reliable Jobs](writing_reliable_jobs.md)
   - Timeouts
