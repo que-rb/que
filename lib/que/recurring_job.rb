@@ -8,7 +8,7 @@ module Que
     def initialize(attrs)
       @_start_time, @_end_time = attrs[:args].shift[:recurring_interval]
       # Hang onto a deep copy of the args so that if the job mutates them, that won't be passed on to the next job.
-      @_args_copy = Que.json_module.load(Que.json_module.dump(attrs[:args]))
+      @_args_copy = Que.json_deserializer.call(Que.json_serializer.call(attrs[:args]))
       super
     end
 

@@ -57,28 +57,21 @@ module Que
     end
 
     def log_formatter
-      @log_formatter ||= json_module.method(:dump)
+      @log_formatter ||= JSON.method(:dump)
     end
 
 
 
     ### JSON Conversion ###
 
-    attr_writer :json_module, :json_converter
+    attr_writer :json_serializer, :json_deserializer
 
-    def json_module
-      @json_module ||=
-        begin
-          require 'multi_json'
-          MultiJson
-        rescue LoadError
-          require 'json'
-          JSON
-        end
+    def json_deserializer
+      @json_deserializer ||= proc { |json| JSON.parse(json, symbolize_names: true) }
     end
 
-    def json_converter
-      @json_converter ||= SYMBOLIZER
+    def json_serializer
+      @json_serializer ||= JSON.method(:dump)
     end
 
 
@@ -121,34 +114,4 @@ module Que
       @constantizer ||= proc { |string| string.split('::').inject(Object, &:const_get) }
     end
   end
-
-  # Recursive functions used to process JSON arg hashes on retrieval from the DB.
-  SYMBOLIZER = proc do |object|
-    case object
-    when Hash
-      object.keys.each do |key|
-        object[key.to_sym] = SYMBOLIZER.call(object.delete(key))
-      end
-      object
-    when Array
-      object.map! { |e| SYMBOLIZER.call(e) }
-    else
-      object
-    end
-  end
-
-  INDIFFERENTIATOR = proc do |object|
-    case object
-    when Array
-      object.each(&INDIFFERENTIATOR)
-    when Hash
-      object.default_proc = HASH_DEFAULT_PROC
-      object.each { |key, value| object[key] = INDIFFERENTIATOR.call(value) }
-      object
-    else
-      object
-    end
-  end
-
-  HASH_DEFAULT_PROC = proc { |hash, key| hash[key.to_s] if Symbol === key }
 end

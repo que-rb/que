@@ -32,7 +32,9 @@
 
     *   `Que.worker_states` has been removed, as it is no longer possible to know which Postgres connection is working each job. Its functionality has been partially replaced with `Que.job_states`.
 
-    *   For simplicity, the new default for job attributes and keys in argument hashes are now converted to symbols when retrieved from the database, rather than made indifferently-accessible. If you are presently allowing uncontrolled input to be used as keys in the arguments hash (or as keys in a hash nested within the arguments hash), you should either fix that or use a Ruby implementation that garbage-collects symbols, such as MRI 2.2+. You can go back to the old behavior by setting `Que.json_converter = Que::INDIFFERENTIATOR`. If you are using Rails, you can get HashWithIndifferentAccess objects by setting `Que.json_converter = proc(&:with_indifferent_access)`.
+    *   For simplicity, the new default for job attributes and keys in argument hashes are now converted to symbols when retrieved from the database, rather than made indifferently-accessible. If you are presently allowing uncontrolled input to be used as keys in the arguments hash (or as keys in a hash nested within the arguments hash), you should either fix that or use a Ruby implementation that garbage-collects symbols, such as MRI 2.2+.
+
+    *   In keeping with the simplification of how Que handles JSON, the `Que.json_converter=` and `Que.json_module=` configuration options have been removed. You can set `Que.json_serializer` and `Que.json_deserializer` to procs instead to customize serializing and deserializing JSON, respectively. Additionally, MultiJson will no longer be detected and used automatically.
 
     *   Features marked as deprecated in 0.x releases have been removed.
 

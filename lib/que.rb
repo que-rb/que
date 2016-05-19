@@ -2,6 +2,7 @@
 
 require 'forwardable'
 require 'socket' # For Socket.gethostname
+require 'json'
 
 module Que
   class Error < StandardError; end
