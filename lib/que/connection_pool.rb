@@ -22,7 +22,7 @@ module Que
             end
 
       p = convert_params(params)
-      result = checkout{execute_sql(sql, p)}
+      result = execute_sql(sql, p)
       convert_result(result)
     end
 
@@ -45,7 +45,7 @@ module Que
 
     def execute_sql(sql, params)
       Que.log level: :debug, event: :execute_sql, sql: sql, params: params
-      args = params.empty? ? [sql] : [sql, params] # Work around JRuby bug.
+      args = params.empty? ? [sql] : [sql, params]
       checkout { |conn| conn.async_exec(*args) }
     end
 
