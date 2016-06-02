@@ -1,5 +1,5 @@
 Docs Index
-==============
+===============
 
 - [Advanced Setup](advanced_setup.md#advanced-setup)
   - [Using ActiveRecord Without Rails](advanced_setup.md#using-activerecord-without-rails)
