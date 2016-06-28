@@ -103,11 +103,21 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       Que::Job.enqueue
       sleep_until { Que::Worker.workers.all?(&:sleeping?) && DB[:que_jobs].empty? }
 
+      # Wakes a worker on transaction commit when in a transaction.
       ActiveRecord::Base.transaction do
         Que::Job.enqueue
         Que::Worker.workers.each { |worker| worker.should be_sleeping }
       end
       sleep_until { Que::Worker.workers.all?(&:sleeping?) && DB[:que_jobs].empty? }
+
+      # Does nothing when in a nested transaction.
+      # TODO: ideally this would wake after the outer transaction commits
+      ActiveRecord::Base.transaction do
+        ActiveRecord::Base.transaction(requires_new: true) do
+          Que::Job.enqueue
+          Que::Worker.workers.each { |worker| worker.should be_sleeping }
+        end
+      end
 
       # Do nothing when queueing with a specific :run_at.
       BlockJob.enqueue :run_at => Time.now

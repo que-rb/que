@@ -46,6 +46,14 @@ module Que
         def before_committed!(*)
           # no-op
         end
+
+        def add_to_transaction
+          # no-op.
+          #
+          # This is called when we're in a nested transaction. Ideally we would
+          # `wake!` when the outer transaction gets committed, but that would be
+          # a bigger refactor!
+        end
       end
 
       private
