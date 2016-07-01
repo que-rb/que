@@ -6,7 +6,7 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
   require 'spec_helper'
   require 'active_record'
 
-  if ActiveRecord.version.release >= Gem::Version.new('4.2')
+  if ActiveRecord.version.release >= Gem::Version.new('4.2') && ActiveRecord.version.release < Gem::Version.new('5.0')
     ActiveRecord::Base.raise_in_transactional_callbacks = true
   end
   ActiveRecord::Base.establish_connection(QUE_URL)
@@ -112,10 +112,12 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
 
       # Does nothing when in a nested transaction.
       # TODO: ideally this would wake after the outer transaction commits
-      ActiveRecord::Base.transaction do
-        ActiveRecord::Base.transaction(requires_new: true) do
-          Que::Job.enqueue
-          Que::Worker.workers.each { |worker| worker.should be_sleeping }
+      if ActiveRecord.version.release >= Gem::Version.new('5.0')
+        ActiveRecord::Base.transaction do
+          ActiveRecord::Base.transaction(requires_new: true) do
+            Que::Job.enqueue
+            Que::Worker.workers.each { |worker| worker.should be_sleeping }
+          end
         end
       end
 
