@@ -1,3 +1,7 @@
+### 0.11.6 (Unreleased)
+
+*   Fix for operating in nested transactions in Rails 5.0. (#160) (greysteil)
+
 ### 0.11.5 (2016-05-13)
 
 *   Fix error when running `que -v`. (#154) (hardbap)
