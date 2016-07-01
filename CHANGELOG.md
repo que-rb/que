@@ -1,4 +1,4 @@
-### 0.11.6 (Unreleased)
+### 0.11.6 (2016-07-01)
 
 *   Fix for operating in nested transactions in Rails 5.0. (#160) (greysteil)
 
