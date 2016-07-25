@@ -35,7 +35,7 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
         SELECT *, row_number() OVER () - 1 AS row_number
         FROM (
           SELECT *
-          FROM que_lockers ql, generate_series(1, ql.worker_count) AS id
+          FROM public.que_lockers ql, generate_series(1, ql.worker_count) AS id
           WHERE listening
           ORDER BY md5(pid::text || id::text)
         ) t1
