@@ -4,7 +4,9 @@ module Que
   module Adapters
     class ActiveRecord < Base
       def checkout
-        checkout_activerecord_adapter { |conn| yield conn.raw_connection }
+        checkout_activerecord_adapter do |conn|
+          yield conn.raw_connection
+        end
       end
 
       def wake_worker_after_commit
@@ -27,6 +29,7 @@ module Que
         # feature to unknowingly leak connections to other databases. So, take
         # the additional step of telling ActiveRecord to check in all of the
         # current thread's connections between jobs.
+        Thread.current[:que_activerecord_connection] = nil
         ::ActiveRecord::Base.clear_active_connections!
       end
 
@@ -59,7 +62,8 @@ module Que
       private
 
       def checkout_activerecord_adapter(&block)
-        ::ActiveRecord::Base.connection_pool.with_connection(&block)
+        Thread.current[:que_activerecord_connection] ||= ::ActiveRecord::Base.connection
+        block.call(Thread.current[:que_ar_conn])
       end
     end
   end
