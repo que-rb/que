@@ -63,7 +63,7 @@ module Que
 
       def checkout_activerecord_adapter(&block)
         Thread.current[:que_activerecord_connection] ||= ::ActiveRecord::Base.connection
-        block.call(Thread.current[:que_ar_conn])
+        block.call(Thread.current[:que_activerecord_connection])
       end
     end
   end
