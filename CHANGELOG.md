@@ -38,6 +38,8 @@
 
     *   Features marked as deprecated in 0.x releases have been removed.
 
+    *   Que.connection= has been removed, use Que.connection_proc= instead.
+
 *   Other new features:
 
     *   Que now includes a RecurringJob class that implements all the logic for reliable recurring jobs. See the docs for more information.

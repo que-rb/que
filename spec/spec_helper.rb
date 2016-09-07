@@ -30,15 +30,9 @@ end
 
 
 
-# Connection pools are wrapped by Que::Pool instances, and if
-# Que.connection_proc= is called before each spec, we're constantly creating
-# new pools and losing that information, which is bad. So instead, we hang
-# onto a few pools and assign them using Que.pool= as needed. The Pond pool is
-# the default. Since the specs were originally designed for a stack- based
-# pool (the connection_pool gem), use :stack mode to avoid issues.
-
-Que.connection = QUE_SPEC_POND = Pond.new(collection: :stack, &NEW_PG_CONNECTION)
-QUE_POOLS = {pond: Que.pool}
+QUE_POND = Pond.new(collection: :stack, &NEW_PG_CONNECTION)
+Que.connection_proc = QUE_POND.method(:checkout)
+QUE_POOL = Que.pool
 
 
 
@@ -90,7 +84,7 @@ RSpec.configure do |config|
     # helpful in identifying hanging specs.
     stdout.info "Running spec: #{desc} @ #{line}" if ENV['LOG_SPEC']
 
-    Que.pool = QUE_POOLS[:pond]
+    Que.pool = QUE_POOL
     # Que.mode = :async
 
     $logger.messages.clear
