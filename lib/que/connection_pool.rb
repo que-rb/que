@@ -15,14 +15,30 @@ module Que
     end
 
     def execute(command, params = [])
-      sql = case command
-            when Symbol then SQL[command] || raise(Error, "Bad command! #{command.inspect}")
-            when String then command
-            else raise(Error, "Bad command! #{command.inspect}")
-            end
+      sql = nil
+      log = {level: :debug, params: params}
+
+      case command
+      when Symbol
+        sql = SQL[command] || raise(Error, "Bad command! #{command.inspect}")
+        log[:event] = :execute
+        log[:command] = command
+      when String
+        sql = command
+        log[:event] = :execute_sql
+        log[:sql] = sql
+      else
+        raise Error, "Bad command! #{command.inspect}"
+      end
 
       p = convert_params(params)
+
+      t = Time.now
       result = execute_sql(sql, p)
+      log[:elapsed] = Time.now - t
+
+      Que.log(log)
+
       convert_result(result)
     end
 
@@ -44,7 +60,6 @@ module Que
     end
 
     def execute_sql(sql, params)
-      Que.log level: :debug, event: :execute_sql, sql: sql, params: params
       args = params.empty? ? [sql] : [sql, params]
       checkout { |conn| conn.async_exec(*args) }
     end
