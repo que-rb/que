@@ -37,8 +37,16 @@ module Que
       @thread.priority = 1
     end
 
+    def stop!
+      stop
+      wait_for_stop
+    end
+
     def stop
       @stop = true
+    end
+
+    def wait_for_stop
       @thread.join
     end
 

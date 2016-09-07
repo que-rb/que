@@ -10,7 +10,7 @@ describe Que::RecurringJob do
     job_id = DB[:que_jobs].get(:job_id)
     locker = Que::Locker.new poll_interval: 0.01 # For jobs that error.
     sleep_until { DB[:que_jobs].where(job_id: job_id).empty? }
-    locker.stop
+    locker.stop!
   end
 
   before do
@@ -338,7 +338,7 @@ describe Que::RecurringJob do
 
     locker = Que::Locker.new
     sleep_until { DB[:que_jobs].where(error_count: 0).empty? }
-    locker.stop
+    locker.stop!
 
     job = DB[:que_jobs].first
     job[:last_error].should =~ /Can't enqueue a recurring job \(CronJob\) unless an interval is set!/
@@ -355,7 +355,7 @@ describe Que::RecurringJob do
 
     locker = Que::Locker.new
     run_job
-    locker.stop
+    locker.stop!
 
     job = DB[:que_jobs].first
     JSON.parse(job[:args])[-1].should == 2
@@ -374,7 +374,7 @@ describe Que::RecurringJob do
 
       locker = Que::Locker.new
       run_job
-      locker.stop
+      locker.stop!
 
       job = DB[:que_jobs].first
       job[:run_at].should be_within(5).of(Time.now + 352708)

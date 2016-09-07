@@ -82,6 +82,6 @@ shared_examples "a Que pool" do
 
     sleep_until { DB[:que_jobs].count == 0 }
 
-    locker.stop
+    locker.stop!
   end
 end

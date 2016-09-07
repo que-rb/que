@@ -4,7 +4,7 @@ require 'spec_helper'
 
 describe Que::Locker do
   it "should log its settings on startup" do
-    Que::Locker.new.stop
+    Que::Locker.new.stop!
 
     events = logged_messages.select { |m| m['event'] == 'locker_start' }
     events.count.should == 1
@@ -26,7 +26,7 @@ describe Que::Locker do
                              poll_interval:      0.4,
                              worker_priorities:  [1, 2, 3, 4],
                              worker_count:       8
-    locker.stop
+    locker.stop!
 
     events = logged_messages.select { |m| m['event'] == 'locker_start' }
     events.count.should == 1
@@ -48,13 +48,13 @@ describe Que::Locker do
 
     sleep_until { DB[:que_lockers].select_map(:pid) == [pid] }
 
-    locker.stop
+    locker.stop!
   end
 
   it "should have a high-priority work thread" do
     locker = Que::Locker.new
     locker.thread.priority.should == 1
-    locker.stop
+    locker.stop!
   end
 
   it "should register its presence or absence in the que_lockers table upon connecting or disconnecting" do
@@ -72,7 +72,7 @@ describe Que::Locker do
     record[:worker_count].should  == worker_count
     record[:listening].should     == true
 
-    locker.stop
+    locker.stop!
 
     DB[:que_lockers].count.should be 0
   end
@@ -100,7 +100,7 @@ describe Que::Locker do
     record[:pid].should == pid
     record[:ruby_pid].should == Process.pid
 
-    locker.stop
+    locker.stop!
 
     DB[:que_lockers].count.should be 0
   end
@@ -115,7 +115,7 @@ describe Que::Locker do
     Que::Job.enqueue
     sleep_until { DB[:que_jobs].empty? }
 
-    locker.stop
+    locker.stop!
   end
 
   describe "on startup" do
@@ -127,7 +127,7 @@ describe Que::Locker do
       $q1.pop;      $q1.pop
       $q2.push nil; $q2.push nil
 
-      locker.stop
+      locker.stop!
 
       DB[:que_jobs].count.should be 0
     end
@@ -143,7 +143,7 @@ describe Que::Locker do
       DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid).should == ids[0..-2]
 
       3.times { $q2.push nil }
-      locker.stop
+      locker.stop!
     end
 
     it "should repeat batch polls until the supply of available jobs is exhausted" do
@@ -155,7 +155,7 @@ describe Que::Locker do
 
       locker = Que::Locker.new
       sleep_until { DB[:que_jobs].empty? }
-      locker.stop
+      locker.stop!
     end
   end
 
@@ -185,7 +185,7 @@ describe Que::Locker do
         $q2.push nil
         $q2.push nil
 
-        locker.stop
+        locker.stop!
       ensure
         $performed = nil
       end
@@ -202,7 +202,7 @@ describe Que::Locker do
       sleep_until { DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid) == ids[0..10] }
 
       3.times { $q2.push nil }
-      locker.stop
+      locker.stop!
 
       event = logged_messages.select{|m| m['event'] == 'locker_polled'}.first
       event['limit'].should == 8
@@ -223,7 +223,7 @@ describe Que::Locker do
       sleep_until { DB[:pg_locks].where(locktype: 'advisory').select_map(:objid).include?(ids[-1]) }
       3.times { $q2.push nil }
 
-      locker.stop
+      locker.stop!
     end
   end
 
@@ -244,7 +244,7 @@ describe Que::Locker do
       sleep_until { DB[:que_jobs].count == 0 }
       sleep_until { DB[:pg_locks].where(locktype: 'advisory').count == 0 }
 
-      locker.stop
+      locker.stop!
 
       events = logged_messages.select { |m| m['event'] == 'job_notified' }
       events.count.should be 1
@@ -278,7 +278,7 @@ describe Que::Locker do
       end
 
       q1.pop
-      locker.stop
+      locker.stop!
       q2.push nil
       t.join
 
@@ -304,7 +304,7 @@ describe Que::Locker do
       locker.job_queue.to_a.should == []
 
       $q2.push nil
-      locker.stop
+      locker.stop!
     end
 
     it "of low importance should not lock them or add them to the JobQueue if it is full" do
@@ -324,7 +324,7 @@ describe Que::Locker do
       locker.job_queue.to_a.map{|h| h[-1]}.should_not include id
 
       $q2.push nil
-      locker.stop
+      locker.stop!
     end
 
     it "of significant importance should lock and add it to the JobQueue and dequeue/unlock the least important one to make room" do
@@ -344,15 +344,31 @@ describe Que::Locker do
       sleep_until { locker.job_queue.to_a.map{|h| h[-1]} == [id] + ids[0..1] }
 
       $q2.push nil
-      locker.stop
+      locker.stop!
     end
   end
 
   describe "when told to shut down" do
-    it "should stop all its workers" do
+    it "with #stop should inform its workers to stop" do
+      BlockJob.enqueue
       locker  = Que::Locker.new
       workers = locker.workers
       locker.stop
+
+      $q1.pop
+
+      sleep_until { workers.count{|worker| worker.thread.status != false} == 1 }
+
+      $q2.push nil
+
+      locker.wait_for_stop
+      workers.each { |worker| worker.thread.status.should be false }
+    end
+
+    it "with #stop! should block until its workers are done" do
+      locker  = Que::Locker.new
+      workers = locker.workers
+      locker.stop!
       workers.each { |worker| worker.thread.status.should be false }
 
       events = logged_messages.select { |m| m['event'] == 'locker_stop' }
@@ -371,7 +387,7 @@ describe Que::Locker do
 
       sleep_until { locker.job_queue.to_a.map{|h| h[-1]} == job_ids[3..5] }
 
-      t = Thread.new { locker.stop }
+      t = Thread.new { locker.stop! }
 
       sleep_until { locker.job_queue.to_a.empty? }
       sleep_until { DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid) == job_ids[0..2] }
@@ -389,7 +405,7 @@ describe Que::Locker do
       job_id = BlockJob.enqueue.attrs[:job_id]
 
       $q1.pop
-      t = Thread.new { locker.stop }
+      t = Thread.new { locker.stop! }
       $q2.push :nil
       t.join
 

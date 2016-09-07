@@ -17,7 +17,7 @@ describe Que, '.job_states' do
     states.length.should be 1
 
     $q2.push nil
-    locker.stop
+    locker.stop!
 
     state = states.first
     state.keys.should == %i(priority run_at job_id job_class args error_count last_error ruby_hostname ruby_pid)

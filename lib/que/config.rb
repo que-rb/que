@@ -89,7 +89,7 @@ module Que
           @locker = Locker.new
         when :sync, :off
           if @locker
-            @locker.stop
+            @locker.stop!
             @locker = nil
           end
         else

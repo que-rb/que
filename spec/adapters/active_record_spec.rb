@@ -32,7 +32,7 @@ describe "Que using the ActiveRecord pool" do
       $pid1.should == $pid2
     ensure
       $pid1 = $pid2 = nil
-      locker.stop if locker
+      locker.stop! if locker
     end
   end
 
@@ -47,7 +47,7 @@ describe "Que using the ActiveRecord pool" do
     run_at.should be_within(3).of(Time.now - 60)
 
     sleep_until { DB[:que_jobs].empty? }
-    locker.stop
+    locker.stop!
   end
 
   it "should be able to survive an ActiveRecord::Rollback without raising an error" do

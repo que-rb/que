@@ -41,7 +41,7 @@ describe "Customizing Que" do
       locker = Que::Locker.new
 
       sleep_until { $run }
-      locker.stop
+      locker.stop!
     ensure
       $run = nil
     end
@@ -67,7 +67,7 @@ describe "Customizing Que" do
       Command.enqueue "MyModule.blah", "hello world"
       locker = Que::Locker.new
       sleep_until { $value == "hello world" }
-      locker.stop
+      locker.stop!
     ensure
       $value = nil
     end
@@ -101,7 +101,7 @@ describe "Customizing Que" do
       job[:priority].should == 89
       JSON.load(job[:args]).should == [1, 'arg1']
 
-      locker.stop
+      locker.stop!
     end
 
     it "with a trigger" do
@@ -128,7 +128,7 @@ describe "Customizing Que" do
         job[:priority].should == 45
         JSON.load(job[:args]).should == [2, 'arg2']
 
-        locker.stop
+        locker.stop!
       ensure
         DB.drop_trigger :que_jobs, :keep_all_my_old_jobs, if_exists: true
         DB.drop_function :please_save_my_job, if_exists: true
@@ -153,7 +153,7 @@ describe "Customizing Que" do
 
         locker = Que::Locker.new
         sleep_until { $additional_column_value == "additional_column_default_value" }
-        locker.stop
+        locker.stop!
       ensure
         DB.alter_table :que_jobs do
           drop_column :additional_column
@@ -184,7 +184,7 @@ describe "Customizing Que" do
     #       locker = Que::Locker.new
 
     #       # sleep_until { $passed_args == [2, 'arg2', {priority: 45}] }
-    #       locker.stop
+    #       locker.stop!
     #     ensure
     #       DB.transaction do
     #         DB.alter_table :que_jobs do
@@ -248,7 +248,7 @@ describe "Customizing Que" do
 
         locker = Que::Locker.new
         sleep_until { DB[:failed_jobs].count > 0 }
-        locker.stop
+        locker.stop!
 
         $retry_job_args.should == [1, 'arg1', {other_arg: 'blah'}]
 

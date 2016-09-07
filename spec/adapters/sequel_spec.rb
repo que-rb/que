@@ -26,7 +26,7 @@ describe "Que using Sequel" do
       $pid1.should == $pid2
     ensure
       $pid1 = $pid2 = nil
-      locker.stop if locker
+      locker.stop! if locker
     end
   end
 
