@@ -11,7 +11,7 @@ module Que
   class Locker
     attr_reader :thread, :workers, :job_queue
 
-    def initialize(connection: nil, listen: true, wait_period: 0.01, poll_interval: nil, minimum_queue_size: 2, maximum_queue_size: 8, worker_count: 6, worker_priorities: [10, 30, 50])
+    def initialize(connection: nil, listen: true, wait_period: 0.01, poll_interval: nil, minimum_queue_size: 2, maximum_queue_size: 8, worker_count: 6, worker_priorities: [10, 30, 50], on_worker_start: nil)
       @locks = Set.new
 
       # Wrap the given connection in a dummy connection pool.
@@ -28,9 +28,10 @@ module Que
       @result_queue = ResultQueue.new
 
       @workers = worker_count.times.zip(worker_priorities).map do |_, priority|
-        Worker.new priority:     priority,
-                   job_queue:    @job_queue,
-                   result_queue: @result_queue
+        Worker.new priority:       priority,
+                   job_queue:      @job_queue,
+                   result_queue:   @result_queue,
+                   start_callback: on_worker_start
       end
 
       @thread = Thread.new { work_loop }

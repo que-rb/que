@@ -157,6 +157,16 @@ describe Que::Locker do
       sleep_until { DB[:que_jobs].empty? }
       locker.stop!
     end
+
+    it "should run the on_worker_start callback for each worker, if passed" do
+      a = []
+      m = Mutex.new
+      locker = Que::Locker.new on_worker_start: proc { |w| m.synchronize { a << [w.object_id, Thread.current.object_id] } }
+      ids = locker.workers.map{|w| [w.object_id, w.thread.object_id]}
+      locker.stop!
+
+      a.sort.should == ids.sort
+    end
   end
 
   describe "when doing a batch poll" do

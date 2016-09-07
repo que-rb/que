@@ -9,13 +9,16 @@ module Que
     attr_reader :thread
     attr_accessor :priority
 
-    def initialize(priority: nil, job_queue:, result_queue:)
+    def initialize(job_queue:, result_queue:, priority: nil, start_callback: nil)
       @priority     = priority
       @job_queue    = job_queue
       @result_queue = result_queue
 
-      @thread = Thread.new { work_loop }
-      @thread.abort_on_exception = true
+      @thread = Thread.new do
+        Thread.current.abort_on_exception = true
+        start_callback.call(self) if start_callback.respond_to?(:call)
+        work_loop
+      end
     end
 
     def wait_until_stopped
