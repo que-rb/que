@@ -1,5 +1,7 @@
 ### 0.12.0 (Unreleased)
 
+*   The error_handler configuration option has been renamed to error_notifier, which is more descriptive of what it's actually supposed to do. You can still use error_handler for configuration, but you'll get a warning.
+
 *   Introduced a new framework for handling errors on a per-job basis. See the docs for more information. (#106, #147)
 
 ### 0.11.6 (2016-07-01)
