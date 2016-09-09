@@ -1,3 +1,7 @@
+### 0.12.0 (Unreleased)
+
+*   Introduced a new framework for handling errors on a per-job basis. See the docs for more information. (#106, #147)
+
 ### 0.11.6 (2016-07-01)
 
 *   Fix for operating in nested transactions in Rails 5.0. (#160) (greysteil)
