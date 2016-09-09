@@ -1,3 +1,11 @@
+### 0.11.6 (2016-07-01)
+
+*   Fix for operating in nested transactions in Rails 5.0. (#160) (greysteil)
+
+### 0.11.5 (2016-05-13)
+
+*   Fix error when running `que -v`. (#154) (hardbap)
+
 ### 0.11.4 (2016-03-03)
 
 *   Fix incompatibility with ActiveRecord 5.0.0.beta3. (#143, #144) (joevandyk)
