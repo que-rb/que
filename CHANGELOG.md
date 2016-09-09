@@ -46,6 +46,10 @@
 
     *   There is now a `Que.constantizer=` option, which you can set to a proc to customize how job classes are converted from strings to classes. If you're on Rails and experiencing problems with autoloading, you may want to set `Que.constantizer = proc(&:constantize)`.
 
+### 0.11.6 (2016-07-01)
+
+*   Fix for operating in nested transactions in Rails 5.0. (#160) (greysteil)
+
 ### 0.11.5 (2016-05-13)
 
 *   Fix error when running `que -v`. (#154) (hardbap)
