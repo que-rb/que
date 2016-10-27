@@ -53,6 +53,30 @@ describe Que::Worker do
     $passed_args.should == [1, 'two', {three: 3}]
   end
 
+  it "should work well with keyword arguments" do
+    $passed_args.should == nil
+
+    class KeywordArgsJob < Que::Job
+      def run(keyword_arg_1:, keyword_arg_2: 'default')
+        $passed_args = [keyword_arg_1, keyword_arg_2]
+      end
+    end
+
+    KeywordArgsJob.enqueue(keyword_arg_1: 'passed', keyword_arg_2: 'passed_2')
+    DB[:que_jobs].count.should be 1
+    JSON.parse(DB[:que_jobs].first[:args]).should == [{"keyword_arg_1" => 'passed', 'keyword_arg_2' => 'passed_2'}]
+    run_jobs Que.execute("SELECT * FROM que_jobs").first
+    DB[:que_jobs].count.should be 0
+    $passed_args.should == ['passed', 'passed_2']
+
+    KeywordArgsJob.enqueue(keyword_arg_1: 'passed')
+    DB[:que_jobs].count.should be 1
+    JSON.parse(DB[:que_jobs].first[:args]).should == [{"keyword_arg_1" => 'passed'}]
+    run_jobs Que.execute("SELECT * FROM que_jobs").first
+    DB[:que_jobs].count.should be 0
+    $passed_args.should == ['passed', 'default']
+  end
+
   it "should make it easy to destroy the job within the same transaction as other changes" do
     class DestroyJob < Que::Job
       def run
