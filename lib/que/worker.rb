@@ -12,9 +12,10 @@ module Que
 
     attr_reader :thread, :state, :queue
 
-    def initialize(queue = '')
+    def initialize(queue = DEFAULT_QUEUE)
       super() # For MonitorMixin.
       @queue  = queue
+      @queue = DEFAULT_QUEUE if @queue.empty?
       @state  = :working
       @thread = Thread.new { work_loop }
       @thread.abort_on_exception = true

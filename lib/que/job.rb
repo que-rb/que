@@ -6,6 +6,7 @@ module Que
 
     def initialize(attrs)
       @attrs = attrs
+      @attrs[:queue] = DEFAULT_QUEUE if @attrs[:queue].empty?
     end
 
     # Subclasses should define their own run methods, but keep an empty one
@@ -58,7 +59,7 @@ module Que
       def enqueue(*args)
         if args.last.is_a?(Hash)
           options   = args.pop
-          queue     = options.delete(:queue) || '' if options.key?(:queue)
+          queue     = options.delete(:queue) || DEFAULT_QUEUE if options.key?(:queue)
           job_class = options.delete(:job_class)
           run_at    = options.delete(:run_at)
           priority  = options.delete(:priority)
@@ -82,6 +83,7 @@ module Que
         if q = queue || @queue
           attrs[:queue] = q
         end
+        attrs[:queue] = DEFAULT_QUEUE if attrs[:queue].nil? || attrs[:queue].empty?
 
         if Que.mode == :sync && !t
           run(*attrs[:args])
@@ -102,7 +104,7 @@ module Que
         new(:args => args).tap { |job| job.run(*args) }
       end
 
-      def work(queue = '')
+      def work(queue = DEFAULT_QUEUE)
         # Since we're taking session-level advisory locks, we have to hold the
         # same connection throughout the process of getting a job, working it,
         # deleting it, and removing the lock.
