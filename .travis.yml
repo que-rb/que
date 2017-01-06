@@ -18,25 +18,16 @@ gemfile:
   # - spec/gemfiles/Gemfile.sequel-3.x
 
 env:
-  - DATABASE_URL=postgres://postgres:@localhost:5432/que-test
-  - DATABASE_URL=postgres://postgres:@localhost:5433/que-test
-  # - DATABASE_URL=postgres://postgres:@localhost:5434/que-test
-  # - DATABASE_URL=postgres://postgres:@localhost:5435/que-test
+  - PG_VERSION=9.3
+  - PG_VERSION=9.4
+  # - PG_VERSION=9.5
+  # - PG_VERSION=9.6
 
 before_install:
-  - sudo apt-get update
-  - sudo apt-get remove postgresql-9.1
-  - sudo apt-get remove postgresql-9.2
-  - sudo apt-get install postgresql-9.3
-  - sudo apt-get install postgresql-9.4
-  - sudo apt-get install postgresql-9.5
-  - sudo apt-get install postgresql-9.6
-  - sudo sed -i "s/port = ..../port = 5432/g" /etc/postgresql/9.3/main/postgresql.conf
-  - sudo sed -i "s/port = ..../port = 5433/g" /etc/postgresql/9.4/main/postgresql.conf
-  - sudo sed -i "s/port = ..../port = 5434/g" /etc/postgresql/9.5/main/postgresql.conf
-  - sudo sed -i "s/port = ..../port = 5435/g" /etc/postgresql/9.6/main/postgresql.conf
+  - sudo apt-get install postgresql-$PG_VERSION
+  - sudo sed -i "s/port = ..../port = 5432/g" /etc/postgresql/$PG_VERSION/main/postgresql.conf
   - sudo /etc/init.d/postgresql stop
-  - sudo /etc/init.d/postgresql start
+  - sudo /etc/init.d/postgresql start $PG_VERSION
 
 before_script:
   - psql -c 'create database "que-test"' -U postgres

@@ -48,7 +48,7 @@ DB = Sequel.connect(QUE_URL)
 
 
 
-if ENV['RUNNING_ON_CI']
+if ENV['CI']
   DB.synchronize do |conn|
     puts "Ruby #{RUBY_VERSION}"
     puts "Sequel #{Sequel::VERSION}"
