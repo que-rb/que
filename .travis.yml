@@ -25,6 +25,7 @@ env:
   - PG_VERSION=9.6
 
 before_install:
+  - sudo /etc/init.d/postgresql stop
   - sudo apt-get install postgresql-$PG_VERSION
   - sudo sed -i "s/port = ..../port = 5432/g" /etc/postgresql/$PG_VERSION/main/postgresql.conf
   - sudo /etc/init.d/postgresql stop
