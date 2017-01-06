@@ -7,7 +7,9 @@ rvm:
   - "2.3"
   - "2.4"
   - "rbx-2"
-  - "jruby-1.7.5"
+  - "rbx"
+  - "jruby-1.7"
+  - "jruby"
 before_script:
   - psql -c 'create database "que-test"' -U postgres
   - bundle exec ruby -r sequel -r ./lib/que -e 'Que.connection=Sequel.connect("postgres://localhost/que-test"); Que.migrate!'
