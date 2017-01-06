@@ -26,6 +26,8 @@ env:
 before_install:
   - sudo /etc/init.d/postgresql stop
   - sudo apt-get install postgresql-$PG_VERSION
+  # If we just installed Postgres 9.6 it won't have a proper pg_hba set up, so...
+  - sudo cp -v /etc/postgresql/9.{5,6}/main/pg_hba.conf
   - sudo sed -i "s/port = ..../port = 5432/g" /etc/postgresql/$PG_VERSION/main/postgresql.conf
   - sudo /etc/init.d/postgresql stop
   - sudo /etc/init.d/postgresql start $PG_VERSION
