@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 
 group :development, :test do
-  gem 'rake'
+  gem 'rake', '< 11.0'
 
   gem 'activerecord',    :require => nil
   gem 'sequel',          :require => nil
