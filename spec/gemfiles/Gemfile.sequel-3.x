@@ -5,8 +5,8 @@ gem 'que', path: '../..'
 group :development, :test do
   gem 'rake'
 
-  gem 'activerecord',    '~> 3.2', :require => nil
-  gem 'sequel',          '~> 3', :require => nil
+  gem 'activerecord',    :require => nil
+  gem 'sequel',          '~> 3.0', :require => nil
   gem 'connection_pool', :require => nil
   gem 'pg',              :require => nil, :platform => :ruby
   gem 'pg_jruby',        :require => nil, :platform => :jruby

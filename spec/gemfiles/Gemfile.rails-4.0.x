@@ -1,12 +1,12 @@
 source 'https://rubygems.org'
 
-gem 'que', path: "../.."
+gem 'que', path: '../..'
 
 group :development, :test do
   gem 'rake'
 
-  gem 'activerecord',    '~> 4.0', :require => nil
-  gem 'sequel',          '~> 4', :require => nil
+  gem 'activerecord',    '~> 4.0.0', :require => nil
+  gem 'sequel',          :require => nil
   gem 'connection_pool', :require => nil
   gem 'pg',              :require => nil, :platform => :ruby
   gem 'pg_jruby',        :require => nil, :platform => :jruby

@@ -48,6 +48,16 @@ DB = Sequel.connect(QUE_URL)
 
 
 
+if ENV['RUNNING_ON_CI']
+  DB.synchronize do |conn|
+    puts "Ruby #{RUBY_VERSION}"
+    puts "Sequel #{Sequel::VERSION}"
+    puts conn.async_exec("SELECT version()").to_a.first['version']
+  end
+end
+
+
+
 # Reset the table to the most up-to-date version.
 DB.drop_table? :que_jobs
 Que::Migrations.migrate!

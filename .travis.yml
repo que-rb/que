@@ -1,20 +1,37 @@
 language: ruby
+
 rvm:
-  - "1.9.3"
-  - "2.0"
-  - "2.1"
-  - "2.2"
-  - "2.3"
-  - "2.4"
-  - "rbx-2"
-  - "rbx"
-  - "jruby-1.7"
-  - "jruby"
+  - 2.2
+  - 2.3
+  - 2.4
+  - rbx-2
+  - rbx
+  - jruby-1.7
+  - jruby
+
+gemfile:
+  - spec/gemfiles/Gemfile.edge
+  - spec/gemfiles/Gemfile.rails-3.2.x
+  - spec/gemfiles/Gemfile.rails-4.0.x
+  - spec/gemfiles/Gemfile.rails-4.1.x
+  - spec/gemfiles/Gemfile.rails-4.2.x
+  - spec/gemfiles/Gemfile.sequel-3.x
+
+env:
+  - RUNNING_ON_CI=true DATABASE_URL=postgres://postgres:@localhost:5432/que-test
+  - RUNNING_ON_CI=true DATABASE_URL=postgres://postgres:@localhost:5433/que-test
+  - RUNNING_ON_CI=true DATABASE_URL=postgres://postgres:@localhost:5434/que-test
+  - RUNNING_ON_CI=true DATABASE_URL=postgres://postgres:@localhost:5435/que-test
+
 before_script:
   - psql -c 'create database "que-test"' -U postgres
   - bundle exec ruby -r sequel -r ./lib/que -e 'Que.connection=Sequel.connect("postgres://localhost/que-test"); Que.migrate!'
 
-script: "./spec/travis.rb"
+script: "bundle exec rake"
 
-addons:
-  postgresql: 9.3
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install postgresql-9.3
+  - sudo apt-get install postgresql-9.4
+  - sudo apt-get install postgresql-9.5
+  - sudo apt-get install postgresql-9.6
