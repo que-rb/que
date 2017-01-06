@@ -1,27 +1,27 @@
 language: ruby
 
 rvm:
-  - 2.2
+  # - 2.2
   - 2.3
-  - 2.4
-  - rbx-2
-  - rbx
-  - jruby-1.7
-  - jruby
+  # - 2.4
+  # - rbx-2
+  # - rbx
+  # - jruby-1.7
+  # - jruby
 
 gemfile:
   - spec/gemfiles/Gemfile.edge
-  - spec/gemfiles/Gemfile.rails-3.2.x
-  - spec/gemfiles/Gemfile.rails-4.0.x
-  - spec/gemfiles/Gemfile.rails-4.1.x
-  - spec/gemfiles/Gemfile.rails-4.2.x
-  - spec/gemfiles/Gemfile.sequel-3.x
+  # - spec/gemfiles/Gemfile.rails-3.2.x
+  # - spec/gemfiles/Gemfile.rails-4.0.x
+  # - spec/gemfiles/Gemfile.rails-4.1.x
+  # - spec/gemfiles/Gemfile.rails-4.2.x
+  # - spec/gemfiles/Gemfile.sequel-3.x
 
 env:
   - RUNNING_ON_CI=true DATABASE_URL=postgres://postgres:@localhost:5432/que-test
   - RUNNING_ON_CI=true DATABASE_URL=postgres://postgres:@localhost:5433/que-test
-  - RUNNING_ON_CI=true DATABASE_URL=postgres://postgres:@localhost:5434/que-test
-  - RUNNING_ON_CI=true DATABASE_URL=postgres://postgres:@localhost:5435/que-test
+  # - RUNNING_ON_CI=true DATABASE_URL=postgres://postgres:@localhost:5434/que-test
+  # - RUNNING_ON_CI=true DATABASE_URL=postgres://postgres:@localhost:5435/que-test
 
 before_script:
   - psql -c 'create database "que-test"' -U postgres
@@ -31,6 +31,8 @@ script: "bundle exec rake"
 
 before_install:
   - sudo apt-get update
+  - sudo apt-get remove postgresql-9.1
+  - sudo apt-get remove postgresql-9.2
   - sudo apt-get install postgresql-9.3
   - sudo apt-get install postgresql-9.4
   - sudo apt-get install postgresql-9.5
