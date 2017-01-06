@@ -2,9 +2,9 @@ language: ruby
 cache: bundler
 
 rvm:
-  - 2.2
+  # - 2.2
   - 2.3
-  - 2.4
+  # - 2.4
   # - rbx-2
   # - rbx
   # - jruby-1.7
@@ -12,16 +12,16 @@ rvm:
 
 gemfile:
   - spec/gemfiles/Gemfile.edge
-  - spec/gemfiles/Gemfile.rails-4.0.x
-  - spec/gemfiles/Gemfile.rails-4.1.x
   - spec/gemfiles/Gemfile.rails-4.2.x
-  - spec/gemfiles/Gemfile.sequel-3.x
+  # - spec/gemfiles/Gemfile.rails-4.1.x
+  # - spec/gemfiles/Gemfile.rails-4.0.x
+  # - spec/gemfiles/Gemfile.sequel-3.x
 
 env:
   - PG_VERSION=9.3
   - PG_VERSION=9.4
   - PG_VERSION=9.5
-  - PG_VERSION=9.6
+  # - PG_VERSION=9.6
 
 before_install:
   - sudo /etc/init.d/postgresql stop
