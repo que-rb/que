@@ -8,6 +8,7 @@ group :development, :test do
   gem 'activerecord',    '~> 4.1.0', :require => nil
   gem 'sequel',          :require => nil
   gem 'connection_pool', :require => nil
+  gem 'pond',            :require => nil
   gem 'pg',              :require => nil, :platform => :ruby
   gem 'pg_jruby',        :require => nil, :platform => :jruby
 end
