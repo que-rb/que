@@ -84,7 +84,13 @@ module Que
     end
 
     def worker_states
-      execute :worker_states
+      adapter.checkout do |conn|
+        if conn.server_version >= 90600
+          execute :worker_states_96
+        else
+          execute :worker_states_95
+        end
+      end
     end
 
     # Give us a cleaner interface when specifying a job_class as a string.
