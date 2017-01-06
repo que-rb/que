@@ -12,7 +12,6 @@ rvm:
 
 gemfile:
   - spec/gemfiles/Gemfile.edge
-  - spec/gemfiles/Gemfile.rails-3.2.x
   - spec/gemfiles/Gemfile.rails-4.0.x
   - spec/gemfiles/Gemfile.rails-4.1.x
   - spec/gemfiles/Gemfile.rails-4.2.x
