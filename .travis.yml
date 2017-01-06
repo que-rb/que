@@ -31,6 +31,7 @@ before_install:
   - sudo sed -i "s/port = ..../port = 5432/g" /etc/postgresql/$PG_VERSION/main/postgresql.conf
   - sudo /etc/init.d/postgresql stop
   - sudo /etc/init.d/postgresql start $PG_VERSION
+  - sudo -u postgres createuser -p 5432 travis &>/dev/null
 
 before_script:
   - psql -c 'create database "que-test"' -U postgres
