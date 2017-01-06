@@ -41,7 +41,7 @@ before_install:
   - sudo /etc/init.d/postgresql start $PG_VERSION
   # A newly-installed Postgres won't have a travis user, so create one. But, if
   # one already exists this will fail, so drop it first. Kinda stupid.
-  - sudo -u postgres dropuser -p 5432 travis &>/dev/null
+  - sudo -u postgres dropuser --if-exists -p 5432 travis &>/dev/null
   - sudo -u postgres createuser -p 5432 travis &>/dev/null
 
 before_script:
