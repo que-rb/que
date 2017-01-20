@@ -4,11 +4,11 @@ language: ruby
 rvm:
   - 2.2
   - 2.3
-  - 2.4
-  - rbx-2
-  - rbx
-  - jruby-1.7
-  - jruby
+  - 2.4.0
+  # - rbx-2
+  # - rbx
+  # - jruby-1.7
+  # - jruby
 
 gemfile:
   - spec/gemfiles/Gemfile.edge
