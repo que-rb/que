@@ -49,7 +49,7 @@ before_script:
   - bundle clean --force
   - bundle exec ruby -r sequel -r ./lib/que -e 'Que.connection=Sequel.connect("postgres://localhost/que-test"); Que.migrate!'
 
-script: "bundle exec rake"
+script: "bundle exec rspec -fd -b"
 
 notifications:
   email: false
