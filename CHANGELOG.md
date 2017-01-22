@@ -1,3 +1,7 @@
+### 0.12.1 (2017-01-22)
+
+* Fix incompatibility with Rails 5.0. (#166) (nbibler, thedarkone)
+
 ### 0.12.0 (2016-09-09)
 
 *   The error_handler configuration option has been renamed to error_notifier, which is more descriptive of what it's actually supposed to do. You can still use error_handler for configuration, but you'll get a warning.
