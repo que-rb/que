@@ -5,8 +5,8 @@ rvm:
   - 2.2
   - 2.3
   - 2.4.0
-  # - rbx-2
-  # - rbx
+  - rbx-2
+  - rbx
   # - jruby-1.7
   # - jruby
 
