@@ -38,16 +38,7 @@ module Que
           # Have to set the state here so that another thread checking
           # immediately after this won't see the worker as asleep.
           @state = :working
-
-          begin
-            @thread.wakeup
-          rescue ThreadError # killed thread for some reason.
-            v = @thread.value # Reraise the error that killed the thread.
-            # if that didn't raise an error, something else is wrong, so raise
-            # whatever this is:
-            raise "Dead thread!: #{v.inspect}"
-          end
-
+          @thread.wakeup
           true
         end
       end
@@ -159,7 +150,14 @@ module Que
 
       def wake_interval=(interval)
         @wake_interval = interval
-        wrangler.wakeup if mode == :async
+        begin
+          wrangler.wakeup if mode == :async
+        rescue ThreadError # killed thread for some reason.
+          v = wrangler.value # Reraise the error that killed the thread.
+          # if that didn't raise an error, something else is wrong, so raise
+          # whatever this is:
+          raise "Dead thread!: #{v.inspect}"
+        end
       end
 
       def wake!
