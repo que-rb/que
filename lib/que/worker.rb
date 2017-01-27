@@ -38,7 +38,16 @@ module Que
           # Have to set the state here so that another thread checking
           # immediately after this won't see the worker as asleep.
           @state = :working
-          @thread.wakeup
+
+          begin
+            @thread.wakeup
+          rescue ThreadError # killed thread for some reason.
+            v = @thread.value # Reraise the error that killed the thread.
+            # if that didn't raise an error, something else is wrong, so raise
+            # whatever this is:
+            raise "Dead thread!: #{v.inspect}"
+          end
+
           true
         end
       end

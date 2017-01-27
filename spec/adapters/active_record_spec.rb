@@ -60,6 +60,11 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       it "should log this extraordinary event" do
         $logger.messages.clear
         Que::Job.enqueue
+
+        if $logger.messages.count != 1
+          puts $logger.messages.inspect
+        end
+
         $logger.messages.count.should == 1
         message = JSON.load($logger.messages.first)
         message['lib'].should == 'que'
