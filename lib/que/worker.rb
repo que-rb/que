@@ -181,7 +181,12 @@ module Que
       def wrangler
         @wrangler ||= Thread.new do
           loop do
-            sleep(*@wake_interval)
+            if @wake_interval
+              sleep(@wake_interval)
+            else
+              sleep
+            end
+
             wake! if @wake_interval && mode == :async
           end
         end
