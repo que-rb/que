@@ -5,10 +5,14 @@ rvm:
   - 2.2
   - 2.3
   - 2.4.0
-  - rbx-2
-  - rbx
-  # - jruby-1.7
-  # - jruby
+  - ruby-head
+  # The Rubinii aren't installing properly on Travis :/
+  # - rbx-2
+  # - rbx
+
+matrix:
+  allow_failures:
+    - rvm: ruby-head
 
 gemfile:
   - spec/gemfiles/Gemfile.edge
