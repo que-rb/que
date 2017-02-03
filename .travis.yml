@@ -51,7 +51,12 @@ before_install:
 before_script:
   - psql -c 'create database "que-test"' -U postgres
 
-script: "bundle exec rspec -fd -b"
+script:
+  # Run the complete test suite:
+  - bundle exec rspec -fd -b
+  # Run the test suite without adapters/ActiveRecord, to make sure we don't
+  # accidentally rely on any ActiveSupport-isms.
+  - bundle exec rspec -fd -b -P ./spec/unit/*_spec.rb
 
 notifications:
   email: false
