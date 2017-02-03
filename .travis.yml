@@ -12,6 +12,8 @@ rvm:
 
 matrix:
   allow_failures:
+    # Ruby head failures aren't disastrous, because we won't support it until
+    # it's released, but it's good to be aware of.
     - rvm: ruby-head
 
 gemfile:
@@ -54,8 +56,8 @@ before_script:
 script:
   # Run the complete test suite:
   - bundle exec rspec -fd -b
-  # Run the test suite without adapters/ActiveRecord, to make sure we don't
-  # accidentally rely on any ActiveSupport-isms.
+  # Run the test suite without adapters/ActiveRecord, to make sure the codebase
+  # doesn't accidentally rely on any ActiveSupport-isms.
   - bundle exec rspec -fd -b -P ./spec/unit/*_spec.rb
 
 notifications:
