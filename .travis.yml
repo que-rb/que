@@ -17,11 +17,10 @@ matrix:
     - rvm: ruby-head
 
 gemfile:
-  - spec/gemfiles/Gemfile.edge
-  - spec/gemfiles/Gemfile.rails-4.2.x
-  - spec/gemfiles/Gemfile.rails-4.1.x
-  - spec/gemfiles/Gemfile.rails-4.0.x
-  - spec/gemfiles/Gemfile.sequel-3.x
+  - spec/gemfiles/Gemfile.current
+  - spec/gemfiles/Gemfile.old
+  - spec/gemfiles/Gemfile.older
+  - spec/gemfiles/Gemfile.oldest
 
 env:
   - PG_VERSION=9.3
