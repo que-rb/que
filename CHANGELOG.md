@@ -46,6 +46,12 @@
 
     *   There is now a `Que.constantizer=` option, which you can set to a proc to customize how job classes are converted from strings to classes. If you're on Rails and experiencing problems with autoloading, you may want to set `Que.constantizer = proc(&:constantize)`.
 
+### 0.12.0 (2016-09-09)
+
+*   The error_handler configuration option has been renamed to error_notifier, which is more descriptive of what it's actually supposed to do. You can still use error_handler for configuration, but you'll get a warning.
+
+*   Introduced a new framework for handling errors on a per-job basis. See the docs for more information. (#106, #147)
+
 ### 0.11.6 (2016-07-01)
 
 *   Fix for operating in nested transactions in Rails 5.0. (#160) (greysteil)
@@ -110,7 +116,7 @@
 
 ### 0.9.0 (2014-12-16)
 
-*   The error_handler callable is now be passed two objects, the error and the job that raised it. If your current error_handler is a proc, as recommended in the docs, you shouldn't need to make any code changes, unless you want to use the job in your error handling. If your error_handler is a lambda, or another callable with a strict arity requirement, you'll want to change it before upgrading. (#69) (statianzo)
+*   The error_handler callable is now passed two objects, the error and the job that raised it. If your current error_handler is a proc, as recommended in the docs, you shouldn't need to make any code changes, unless you want to use the job in your error handling. If your error_handler is a lambda, or another callable with a strict arity requirement, you'll want to change it before upgrading. (#69) (statianzo)
 
 ### 0.8.2 (2014-10-12)
 

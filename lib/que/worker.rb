@@ -40,7 +40,17 @@ module Que
             klass = Que.constantizer.call(job[:job_class])
             instance = klass.new(job)
             instance._run
-            Que.log level: :debug, event: :job_worked, job: job, elapsed: (Time.now - start)
+
+            log_message = {level: :debug, job: job, elapsed: (Time.now - start)}
+
+            if e = instance._error
+              log_message[:event] = :job_errored
+              log_message[:error] = e
+            else
+              log_message[:event] = :job_worked
+            end
+
+            Que.log(log_message)
           else
             # The job was locked but doesn't exist anymore, due to the race
             # condition that exists because advisory locks don't obey MVCC.
@@ -63,7 +73,7 @@ module Que
             interval = (klass.retry_interval if klass && klass.respond_to?(:retry_interval)) || Job.retry_interval
             delay    = interval.respond_to?(:call) ? interval.call(count) : interval
             message  = "#{error.message}\n#{error.backtrace.join("\n")}"
-            Que.execute :set_error, [count, delay, message] + job.values_at(:priority, :run_at, :job_id)
+            Que.execute :set_error, [delay, message] + job.values_at(:priority, :run_at, :job_id)
           rescue
             # If we can't reach the database for some reason, too bad, but
             # don't let it crash the work loop.
