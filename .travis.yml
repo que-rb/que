@@ -1,18 +1,63 @@
 language: ruby
+cache: bundler
+
 rvm:
-  - "2.1"
-  - "2.2"
-  - "2.3"
-  - "2.4"
-  - "rbx-2"
-  # - "rbx"
-  # - "jruby-1.7"
-  # - "jruby"
+  - 2.2
+  - 2.3
+  - 2.4.0
+  - ruby-head
+  # The Rubinii aren't installing properly on Travis :/
+  # - rbx-2
+  # - rbx
+
+matrix:
+  allow_failures:
+    # Ruby head failures aren't disastrous, because we won't support it until
+    # it's released, but it's good to be aware of.
+    - rvm: ruby-head
+
+gemfile:
+  - spec/gemfiles/Gemfile.current
+  - spec/gemfiles/Gemfile.old
+  - spec/gemfiles/Gemfile.older
+  - spec/gemfiles/Gemfile.oldest
+
+env:
+  - PG_VERSION=9.3
+  - PG_VERSION=9.4
+  - PG_VERSION=9.5
+  - PG_VERSION=9.6
+
+before_install:
+  # Stop all running Postgreses, so we don't get port conflicts when installing
+  # a new version.
+  - sudo /etc/init.d/postgresql stop
+  # Install whatever version we're using.
+  - sudo apt-get install postgresql-$PG_VERSION
+  # If we just installed Postgres 9.6 it won't have a proper pg_hba set up, so...
+  - sudo mkdir -p /etc/postgresql/9.6/main
+  - sudo cp -v /etc/postgresql/9.{5,6}/main/pg_hba.conf
+  # Hook up the Postgres version we care about to the right port.
+  - sudo sed -i "s/port = ..../port = 5432/g" /etc/postgresql/$PG_VERSION/main/postgresql.conf
+  # If we just installed a new Postgres version it'll be running, so make sure
+  # they're all stopped, again.
+  - sudo /etc/init.d/postgresql stop
+  # Start up the one we care about.
+  - sudo /etc/init.d/postgresql start $PG_VERSION
+  # A newly-installed Postgres won't have a travis user, so create one. But, if
+  # one already exists this will fail, so drop it first. Kinda stupid.
+  - sudo -u postgres dropuser --if-exists -p 5432 travis &>/dev/null
+  - sudo -u postgres createuser -p 5432 travis &>/dev/null
+
 before_script:
   - psql -c 'create database "que-test"' -U postgres
-  - bundle exec ruby -r sequel -r ./lib/que -e 'Que.connection_proc=Sequel.connect("postgres://localhost/que-test").method(:synchronize); Que.migrate!'
 
-script: "./spec/travis.rb"
+script:
+  # Run the complete test suite:
+  - bundle exec rspec -fd -b -P ./spec/**/*_spec.rb
+  # Run the test suite without adapters/ActiveRecord, to make sure the codebase
+  # doesn't accidentally rely on any ActiveSupport-isms.
+  - bundle exec rspec -fd -b -P ./spec/unit/*_spec.rb
 
-addons:
-  postgresql: 9.4
+notifications:
+  email: false

@@ -46,6 +46,10 @@
 
     *   There is now a `Que.constantizer=` option, which you can set to a proc to customize how job classes are converted from strings to classes. If you're on Rails and experiencing problems with autoloading, you may want to set `Que.constantizer = proc(&:constantize)`.
 
+### 0.12.1 (2017-01-22)
+
+* Fix incompatibility with Rails 5.0. (#166) (nbibler, thedarkone)
+
 ### 0.12.0 (2016-09-09)
 
 *   The error_handler configuration option has been renamed to error_notifier, which is more descriptive of what it's actually supposed to do. You can still use error_handler for configuration, but you'll get a warning.

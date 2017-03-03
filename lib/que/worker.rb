@@ -78,27 +78,6 @@ module Que
             # If we can't reach the database for some reason, too bad, but
             # don't let it crash the work loop.
           end
-
-          if Que.error_notifier
-            begin
-              # Don't let a problem with the error notifier crash the work loop.
-              Que.error_notifier.call(error, job)
-            rescue => error_notifier_error
-              # What handles errors from the error notifier? Nothing, so just log loudly.
-              Que.log level: :error,
-                      event: :error_notifier_errored,
-                      job: job,
-                      original_error: {
-                        class: error.class.to_s,
-                        message: error.message
-                      },
-                      error_notifier_error: {
-                        class: error_notifier_error.class.to_s,
-                        message: error_notifier_error.message,
-                        backtrace: error_notifier_error.backtrace
-                      }
-            end
-          end
         ensure
           @result_queue.push(pk)
         end
