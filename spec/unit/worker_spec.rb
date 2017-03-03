@@ -196,10 +196,10 @@ describe Que::Worker do
       event['error']['message'].should == 'ErrorJob!'
     end
 
-    it "should pass it to the error handler" do
+    it "should pass it to the error notifier" do
       begin
         error = nil
-        Que.error_handler = proc { |e| error = e }
+        Que.error_notifier = proc { |e| error = e }
 
         ErrorJob.enqueue priority: 1
 
@@ -208,25 +208,25 @@ describe Que::Worker do
         error.should be_an_instance_of RuntimeError
         error.message.should == "ErrorJob!"
       ensure
-        Que.error_handler = nil
+        Que.error_notifier = nil
       end
     end
 
-    it "should not crash the worker if the error handler is problematic" do
+    it "should not crash the worker if the error notifier is problematic" do
       begin
-        Que.error_handler = proc { |e| raise "Error handler error!" }
+        Que.error_notifier = proc { |e| raise "Error notifier error!" }
 
         ErrorJob.enqueue priority: 1
         Que::Job.enqueue priority: 2
 
         run_jobs Que.execute("SELECT * FROM que_jobs")
 
-        message = $logger.messages.map{|m| JSON.load(m)}.find{|m| m['event'] == 'error_handler_errored'}['error_handler_error']
+        message = $logger.messages.map{|m| JSON.load(m)}.find{|m| m['event'] == 'error_notifier_errored'}['error_notifier_error']
         message['class'].should == "RuntimeError"
-        message['message'].should == "Error handler error!"
+        message['message'].should == "Error notifier error!"
         message['backtrace'].should be_an_instance_of Array
       ensure
-        Que.error_handler = nil
+        Que.error_notifier = nil
       end
     end
 

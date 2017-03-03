@@ -69,23 +69,23 @@ module Que
             # don't let it crash the work loop.
           end
 
-          if Que.error_handler
+          if Que.error_notifier
             begin
-              # Don't let a problem with the error handler crash the work loop.
-              Que.error_handler.call(error, job)
-            rescue => error_handler_error
-              # What handles errors from the error handler? Nothing, so just log loudly.
+              # Don't let a problem with the error notifier crash the work loop.
+              Que.error_notifier.call(error, job)
+            rescue => error_notifier_error
+              # What handles errors from the error notifier? Nothing, so just log loudly.
               Que.log level: :error,
-                      event: :error_handler_errored,
+                      event: :error_notifier_errored,
                       job: job,
                       original_error: {
                         class: error.class.to_s,
                         message: error.message
                       },
-                      error_handler_error: {
-                        class: error_handler_error.class.to_s,
-                        message: error_handler_error.message,
-                        backtrace: error_handler_error.backtrace
+                      error_notifier_error: {
+                        class: error_notifier_error.class.to_s,
+                        message: error_notifier_error.message,
+                        backtrace: error_notifier_error.backtrace
                       }
             end
           end

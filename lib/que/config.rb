@@ -24,9 +24,9 @@ module Que
 
     ### Error Handling ###
 
-    # error_handler is just a proc that is passed errors raised by jobs when
+    # error_notifier is just a proc that is passed errors raised by jobs when
     # they occur.
-    attr_accessor :error_handler
+    attr_accessor :error_notifier
 
 
 
