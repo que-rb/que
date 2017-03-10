@@ -11,14 +11,3 @@ end
 
 task default: :test
 task spec:    :test
-
-namespace :test do
-  desc "Run tests in parallel (alias: \`rake p\`)"
-  task :parallel do
-    ENV['PARALLELIZE_TESTS'] = 'true'
-    ENV['N'] ||= '4'
-    Rake::Task[:test].invoke
-  end
-end
-
-task p: :'test:parallel'
