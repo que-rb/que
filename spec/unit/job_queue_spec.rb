@@ -25,36 +25,36 @@ describe Que::JobQueue do
     it "should add an item and retain the sort order" do
       ids = []
       @array.shuffle.each do |job|
-        @jq.push(job).should be nil
+        assert_nil @jq.push(job)
         ids << job[-1]
-        @jq.to_a.map{|j| j[-1]}.should == ids.sort
+        assert_equal ids.sort, @jq.to_a.map{|j| j[-1]}
       end
     end
 
     it "should be able to add many items at once" do
-      @jq.push(*@array.shuffle).should be nil
-      @jq.to_a.should == @array
+      assert_nil @jq.push(*@array.shuffle)
+      assert_equal @array, @jq.to_a
     end
 
     it "when the max is reached should pop the least important jobs and return their ids to be unlocked" do
       @jq.push(*@array)
-      @jq.push(@array[0]).should == [@array[7]]
-      @jq.push(*@array[1..2]).sort.should == @array[5..6]
-      @jq.size.should == 8
+      assert_equal [@array[7]], @jq.push(@array[0])
+      assert_equal @array[5..6], @jq.push(*@array[1..2]).sort
+      assert_equal 8, @jq.size
 
       # Make sure pushing multiple items that cross the threshold works properly.
       @jq.clear
       @jq.push(*@array)
-      @jq.shift.should == @array[0]
-      @jq.push(*@array[0..1]).should == [@array[7]]
-      @jq.size.should == 8
+      assert_equal @array[0], @jq.shift
+      assert_equal [@array[7]], @jq.push(*@array[0..1])
+      assert_equal 8, @jq.size
 
       # Pushing very low priority jobs shouldn't happen, since we use
       # #accept? to prevent unnecessary locking, but just in case:
       v = [100, Time.now, 45]
-      @jq.push(v).should == [v]
-      @jq.to_a.map(&:first).should_not include 100
-      @jq.size.should == 8
+      assert_equal [v], @jq.push(v)
+      refute_includes @jq.to_a.map(&:first), 100
+      assert_equal 8, @jq.size
     end
   end
 
@@ -64,27 +64,27 @@ describe Que::JobQueue do
     end
 
     it "should return true if there is sufficient room in the queue" do
-      @jq.shift.should == @array[0]
-      @jq.size.should be 7
-      @jq.accept?(@array[-1]).should be true
+      assert_equal @array[0], @jq.shift
+      assert_equal 7, @jq.size
+      assert_equal true, @jq.accept?(@array[-1])
     end
 
     it "should return true if there is insufficient room in the queue, but the pk can knock out a lower-priority job" do
-      @jq.accept?(@array[0]).should be true
+      assert_equal true, @jq.accept?(@array[0])
     end
 
     it "should return false if there is insufficient room in the queue, and the job's priority is lower than any in the queue" do
-      @jq.accept?(@array[-1]).should be false
+      assert_equal false, @jq.accept?(@array[-1])
     end
   end
 
   describe "#shift" do
     it "should return the lowest item by sort order" do
       @jq.push *@array
-      @jq.shift.should == @array[0]
-      @jq.to_a.should  == @array[1..7]
-      @jq.shift.should == @array[1]
-      @jq.to_a.should  == @array[2..7]
+      assert_equal @array[0],    @jq.shift
+      assert_equal @array[1..7], @jq.to_a
+      assert_equal @array[1],    @jq.shift
+      assert_equal @array[2..7], @jq.to_a
     end
 
     it "should block for multiple threads when the queue is empty" do
@@ -94,7 +94,7 @@ describe Que::JobQueue do
       @jq.push *@array
       sleep_until { threads.all? { |t| t.status == false } }
 
-      threads.map{|t| t[:id][-1]}.sort.should == (1..4).to_a
+      assert_equal (1..4).to_a, threads.map{|t| t[:id][-1]}.sort
     end
 
     it "should accept a priority value and only accept jobs of equal or better priority" do
@@ -109,7 +109,7 @@ describe Que::JobQueue do
       @jq.push [5, Time.now, 3]
       sleep_until { t.status == false }
 
-      t[:id].should == 3
+      assert_equal 3, t[:id]
     end
 
     it "when blocking for multiple threads should only return for one of sufficient priority" do
@@ -129,7 +129,7 @@ describe Que::JobQueue do
       @jq.push value
 
       sleep_until { threads[3].status == false }
-      threads[3][:result].should == value
+      assert_equal value, threads[3][:result]
       sleep_until { threads[0..2].all? { |t| t.status == 'sleep' } }
     end
   end
@@ -142,23 +142,23 @@ describe Que::JobQueue do
       @jq.stop
       sleep_until { threads.all? { |t| t.status == false } }
 
-      threads.map { |t| t[:result].should == nil }
-      10.times { @jq.shift.should == nil }
+      threads.map { |t| assert_nil t[:result] }
+      10.times { assert_nil @jq.shift }
     end
   end
 
   describe "#clear" do
     it "should remove and return all items" do
       @jq.push *@array
-      @jq.clear.sort.should == @array
-      @jq.to_a.should == []
+      assert_equal @array, @jq.clear.sort
+      assert_equal [], @jq.to_a
     end
 
     it "should return an empty array if there are no items to clear" do
-      @jq.clear.should == []
+      assert_equal [], @jq.clear
       @jq.push *@array
-      @jq.clear.sort.should == @array
-      @jq.clear.should == []
+      assert_equal @array, @jq.clear.sort
+      assert_equal [], @jq.clear
     end
   end
 
@@ -167,8 +167,8 @@ describe Que::JobQueue do
     @jq = Que::JobQueue.new
     value = [100, Time.now, 45]
     @jq.push value
-    @jq.to_a.should == [value]
-    @jq.clear.should == [value]
-    @jq.to_a.should == []
+    assert_equal [value], @jq.to_a
+    assert_equal [value], @jq.clear
+    assert_equal [],      @jq.to_a
   end
 end

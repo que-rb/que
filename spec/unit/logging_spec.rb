@@ -5,15 +5,15 @@ require 'spec_helper'
 describe "Logging" do
   it "by default should record the library and hostname and thread id in JSON" do
     Que.log event: "blah", source: 4
-    $logger.messages.count.should be 1
+    assert_equal 1, $logger.messages.count
 
     message = JSON.load($logger.messages.first)
-    message['lib'].should == 'que'
-    message['hostname'].should == Socket.gethostname
-    message['pid'].should == Process.pid
-    message['event'].should == 'blah'
-    message['source'].should == 4
-    message['thread'].should == Thread.current.object_id
+    assert_equal 'que', message['lib']
+    assert_equal Socket.gethostname, message['hostname']
+    assert_equal Process.pid, message['pid']
+    assert_equal 'blah', message['event']
+    assert_equal 4, message['source']
+    assert_equal Thread.current.object_id, message['thread']
   end
 
   it "should allow a callable to be set as the logger" do
@@ -26,7 +26,7 @@ describe "Logging" do
       sleep_until { DB[:que_jobs].empty? }
       locker.stop!
 
-      $logger.messages.count.should be > 0
+      assert $logger.messages.count > 0
     ensure
       Que.logger = $logger
     end
@@ -50,8 +50,8 @@ describe "Logging" do
     begin
       Que.log_formatter = proc { |data| "Logged event is #{data[:event]}" }
       Que.log event: 'my_event'
-      $logger.messages.count.should be 1
-      $logger.messages.first.should == "Logged event is my_event"
+      assert_equal 1, $logger.messages.count
+      assert_equal "Logged event is my_event", $logger.messages.first
     ensure
       Que.log_formatter = nil
     end
@@ -62,7 +62,7 @@ describe "Logging" do
       Que.log_formatter = proc { |data| false }
 
       Que.log event: "blah"
-      $logger.messages.should be_empty
+      assert_empty $logger.messages
     ensure
       Que.log_formatter = nil
     end
@@ -78,12 +78,12 @@ describe "Logging" do
       end
 
       Que.log message: 'one'
-      $level.should == :info
-      JSON.load($message)['message'].should == 'one'
+      assert_equal :info, $level
+      assert_equal 'one', JSON.load($message)['message']
 
       Que.log message: 'two', level: 'debug'
-      $level.should == :debug
-      JSON.load($message)['message'].should == 'two'
+      assert_equal :debug, $level
+      assert_equal 'two', JSON.load($message)['message']
     ensure
       Que.logger = $logger
       $level = $message = nil
@@ -95,10 +95,10 @@ describe "Logging" do
       Que.log_formatter = proc { |m| raise "Blah!" }
 
       Que.log event: "blah", source: 4
-      $logger.messages.count.should be 1
+      assert_equal 1, $logger.messages.count
 
       message = $logger.messages.first
-      message.should start_with "Error raised from Que.log_formatter proc: RuntimeError: Blah!"
+      assert message.start_with? "Error raised from Que.log_formatter proc: RuntimeError: Blah!"
     ensure
       Que.log_formatter = nil
     end

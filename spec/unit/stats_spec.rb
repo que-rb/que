@@ -18,25 +18,25 @@ describe Que, '.job_stats' do
       DB.get{pg_advisory_lock(2**33)}
 
       stats = Que.job_stats
-      stats.length.should == 2
+      assert_equal 2, stats.length
 
       qj, bj = stats
 
-      qj.keys.should == %i(job_class count count_working count_errored highest_error_count oldest_run_at)
+      assert_equal %i(job_class count count_working count_errored highest_error_count oldest_run_at), qj.keys
 
-      qj[:job_class].should == 'Que::Job'
-      qj[:count].should == 2
-      qj[:count_working].should == 1
-      qj[:count_errored].should == 1
-      qj[:highest_error_count].should == 5
-      qj[:oldest_run_at].should be_within(3).of old
+      assert_equal 'Que::Job', qj[:job_class]
+      assert_equal 2, qj[:count]
+      assert_equal 1, qj[:count_working]
+      assert_equal 1, qj[:count_errored]
+      assert_equal 5, qj[:highest_error_count]
+      assert_in_delta qj[:oldest_run_at], old, 3
 
-      bj[:job_class].should == 'BlockJob'
-      bj[:count].should == 1
-      bj[:count_working].should == 0
-      bj[:count_errored].should == 0
-      bj[:highest_error_count].should == 0
-      bj[:oldest_run_at].should be_within(3).of Time.now
+      assert_equal 'BlockJob', bj[:job_class]
+      assert_equal 1, bj[:count]
+      assert_equal 0, bj[:count_working]
+      assert_equal 0, bj[:count_errored]
+      assert_equal 0, bj[:highest_error_count]
+      assert_in_delta bj[:oldest_run_at], Time.now, 3
     ensure
       DB.get{pg_advisory_unlock_all{}}
     end

@@ -4,14 +4,14 @@ require 'spec_helper'
 
 describe Que, '.transaction' do
   it "should use a transaction to rollback changes in the event of an error" do
-    proc do
+    assert_raises PG::Error do
       Que.transaction do
         Que.execute "DROP TABLE que_jobs"
         Que.execute "invalid SQL syntax"
       end
-    end.should raise_error(PG::Error)
+    end
 
-    DB.table_exists?(:que_jobs).should be true
+    assert DB.table_exists?(:que_jobs)
   end
 
   unless RUBY_VERSION.start_with?('1.9')
@@ -30,7 +30,7 @@ describe Que, '.transaction' do
       t.kill
       t.join
 
-      DB.table_exists?(:que_jobs).should be true
+      assert DB.table_exists?(:que_jobs)
     end
   end
 end

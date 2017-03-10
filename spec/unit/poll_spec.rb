@@ -13,7 +13,7 @@ describe "The job polling query" do
     ids = Que.execute("SELECT objid FROM pg_locks WHERE locktype = 'advisory' AND pid = pg_backend_pid()")
     ids.map!{|h| h[:objid].to_i}.sort
 
-    ids.sort.should == returned_job_ids.sort
+    assert_equal ids.sort, returned_job_ids.sort
 
     returned_job_ids
   end
@@ -24,19 +24,19 @@ describe "The job polling query" do
 
   it "should not fail if there aren't enough jobs to return" do
     id = Que::Job.enqueue.attrs[:job_id]
-    poll(5).should == [id]
+    assert_equal [id], poll(5)
   end
 
   it "should return only the requested number of jobs" do
     ids = 5.times.map { Que::Job.enqueue.attrs[:job_id] }
-    poll(4).should == ids[0..3]
+    assert_equal ids[0..3], poll(4)
   end
 
   it "should skip jobs with the given job_ids" do
     one = Que::Job.enqueue.attrs[:job_id]
     two = Que::Job.enqueue.attrs[:job_id]
 
-    poll(2, job_ids: [one]).should == [two]
+    assert_equal [two], poll(2, job_ids: [one])
   end
 
   it "should only work a job whose scheduled time to run has passed" do
@@ -44,14 +44,14 @@ describe "The job polling query" do
     past    = Que::Job.enqueue(run_at: Time.now - 30).attrs[:job_id]
     future2 = Que::Job.enqueue(run_at: Time.now + 30).attrs[:job_id]
 
-    poll(5).should == [past]
+    assert_equal [past], poll(5)
   end
 
   it "should prefer a job with lower priority" do
     # 1 is highest priority.
     [5, 4, 3, 2, 1, 2, 3, 4, 5].map { |p| Que::Job.enqueue priority: p }
 
-    poll(5).sort.should == DB[:que_jobs].where{priority <= 3}.select_order_map(:job_id)
+    assert_equal DB[:que_jobs].where{priority <= 3}.select_order_map(:job_id), poll(5).sort
   end
 
   it "should prefer a job that was scheduled to run longer ago when priorities are equal" do
@@ -59,7 +59,7 @@ describe "The job polling query" do
     id2 = Que::Job.enqueue(run_at: Time.now - 60).attrs[:job_id]
     id3 = Que::Job.enqueue(run_at: Time.now - 30).attrs[:job_id]
 
-    poll(1).should == [id2]
+    assert_equal [id2], poll(1)
   end
 
   it "should prefer a job that was queued earlier when priorities and run_ats are equal" do
@@ -70,7 +70,7 @@ describe "The job polling query" do
 
     first, second, third = DB[:que_jobs].select_order_map(:job_id)
 
-    poll(2).should == [id1, id2]
+    assert_equal [id1, id2], poll(2)
   end
 
   it "should skip jobs that are advisory-locked" do
@@ -81,7 +81,7 @@ describe "The job polling query" do
     begin
       DB.get{pg_advisory_lock(id2)}
 
-      poll(5).should == [id1, id3]
+      assert_equal [id1, id3], poll(5)
     ensure
       DB.get{pg_advisory_unlock(id2)}
     end
@@ -115,12 +115,12 @@ describe "The job polling query" do
     SQL
 
     job_ids = DB[:que_jobs].select_order_map(:job_id)
-    job_ids.count.should == 100
+    assert_equal 100, job_ids.count
 
     4.times { q2.push nil }
     4.times { q3.pop }
 
-    threads.map{|t| t[:jobs]}.flatten.sort.should == job_ids
+    assert_equal job_ids, threads.map{|t| t[:jobs]}.flatten.sort
 
     4.times { q4.push nil }
     threads.each(&:join)

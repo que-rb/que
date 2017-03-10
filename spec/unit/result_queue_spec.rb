@@ -21,8 +21,8 @@ describe Que::ResultQueue do
 
       threads.each &:join
 
-      @rq.clear.sort.should == (1..100).to_a
-      @rq.clear.should == []
+      assert_equal (1..100).to_a, @rq.clear.sort
+      assert_equal [], @rq.clear
     end
   end
 end

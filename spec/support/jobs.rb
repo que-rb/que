@@ -10,10 +10,6 @@ class BlockJob < Que::Job
   end
 end
 
-RSpec.configure do |config|
-  config.before { $q1, $q2 = Queue.new, Queue.new }
-end
-
 
 
 class ErrorJob < Que::Job
@@ -28,8 +24,4 @@ class ArgsJob < Que::Job
   def run(*args)
     $passed_args = args
   end
-end
-
-RSpec.configure do |config|
-  config.before { $passed_args = nil }
 end

@@ -98,8 +98,8 @@ describe "Customizing Que" do
 
       sleep_until { DB[:finished_jobs].count == 1 }
       job = DB[:finished_jobs].first
-      job[:priority].should == 89
-      JSON.load(job[:args]).should == [1, 'arg1']
+      assert_equal 89, job[:priority]
+      assert_equal [1, 'arg1'], JSON.load(job[:args])
 
       locker.stop!
     end
@@ -125,8 +125,8 @@ describe "Customizing Que" do
 
         sleep_until { DB[:finished_jobs].count == 1 }
         job = DB[:finished_jobs].first
-        job[:priority].should == 45
-        JSON.load(job[:args]).should == [2, 'arg2']
+        assert_equal 45, job[:priority]
+        assert_equal [2, 'arg2'], JSON.load(job[:args])
 
         locker.stop!
       ensure
@@ -250,14 +250,14 @@ describe "Customizing Que" do
         sleep_until { DB[:failed_jobs].count > 0 }
         locker.stop!
 
-        $retry_job_args.should == [1, 'arg1', {other_arg: 'blah'}]
+        assert_equal [1, 'arg1', {other_arg: 'blah'}], $retry_job_args
 
-        DB[:que_jobs].count.should == 0
-        DB[:failed_jobs].count.should == 1
+        assert_equal 0, DB[:que_jobs].count
+        assert_equal 1, DB[:failed_jobs].count
 
         job = DB[:failed_jobs].first
-        JSON.parse(job[:args]).should == [1, 'arg1', {'other_arg' => 'blah'}]
-        job[:job_class].should == 'SkipRetryJob'
+        assert_equal [1, 'arg1', {'other_arg' => 'blah'}], JSON.parse(job[:args])
+        assert_equal 'SkipRetryJob', job[:job_class]
       ensure
         $retry_job_args = nil
       end

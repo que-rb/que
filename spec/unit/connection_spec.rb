@@ -5,6 +5,12 @@ require 'spec_helper'
 describe Que do
   it ".pool when no connection has been established should raise an error" do
     Que.connection_proc = nil
-    proc{Que.pool}.should raise_error Que::Error, /Que connection not established!/
+
+    error =
+      assert_raises Que::Error do
+        Que.pool
+      end
+
+    assert_match /Que connection not established!/, error.message
   end
 end

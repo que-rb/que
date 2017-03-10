@@ -4,47 +4,47 @@ require 'spec_helper'
 
 describe Que::Job, '.enqueue' do
   it "should be able to queue a job" do
-    DB[:que_jobs].count.should be 0
+    assert_equal 0, DB[:que_jobs].count
     result = Que::Job.enqueue
-    DB[:que_jobs].count.should be 1
+    assert_equal 1, DB[:que_jobs].count
 
-    result.should be_an_instance_of Que::Job
-    result.attrs[:priority].should == 100
-    result.attrs[:args].should == []
+    assert_instance_of Que::Job, result
+    assert_equal 100, result.attrs[:priority]
+    assert_equal [], result.attrs[:args]
 
     job = DB[:que_jobs].first
-    job[:priority].should be 100
-    job[:run_at].should be_within(3).of Time.now
-    job[:job_class].should == "Que::Job"
-    JSON.load(job[:args]).should == []
+    assert_equal 100, job[:priority]
+    assert_in_delta job[:run_at], Time.now, 3
+    assert_equal 'Que::Job', job[:job_class]
+    assert_equal [], JSON.load(job[:args])
   end
 
   it "should be able to queue a job with arguments" do
-    DB[:que_jobs].count.should be 0
+    assert_equal 0, DB[:que_jobs].count
     Que::Job.enqueue 1, 'two'
-    DB[:que_jobs].count.should be 1
+    assert_equal 1, DB[:que_jobs].count
 
     job = DB[:que_jobs].first
-    job[:priority].should be 100
-    job[:run_at].should be_within(3).of Time.now
-    job[:job_class].should == "Que::Job"
-    JSON.load(job[:args]).should == [1, 'two']
+    assert_equal 100, job[:priority]
+    assert_in_delta job[:run_at], Time.now, 3
+    assert_equal 'Que::Job', job[:job_class]
+    assert_equal [1, 'two'], JSON.load(job[:args])
   end
 
   it "should be able to queue a job with complex arguments" do
-    DB[:que_jobs].count.should be 0
+    assert_equal 0, DB[:que_jobs].count
     Que::Job.enqueue 1, 'two', string: "string",
                                integer: 5,
                                array: [1, "two", {three: 3}],
                                hash: {one: 1, two: 'two', three: [3]}
 
-    DB[:que_jobs].count.should be 1
+    assert_equal 1, DB[:que_jobs].count
 
     job = DB[:que_jobs].first
-    job[:priority].should be 100
-    job[:run_at].should be_within(3).of Time.now
-    job[:job_class].should == "Que::Job"
-    JSON.load(job[:args]).should == [
+    assert_equal 100, job[:priority]
+    assert_in_delta job[:run_at], Time.now, 3
+    assert_equal 'Que::Job', job[:job_class]
+    assert_equal [
       1,
       'two',
       {
@@ -53,53 +53,53 @@ describe Que::Job, '.enqueue' do
         'array' => [1, "two", {"three" => 3}],
         'hash' => {'one' => 1, 'two' => 'two', 'three' => [3]}
       }
-    ]
+    ], JSON.load(job[:args])
   end
 
   it "should be able to queue a job with a specific time to run" do
-    DB[:que_jobs].count.should be 0
+    assert_equal 0, DB[:que_jobs].count
     Que::Job.enqueue 1, run_at: Time.now + 60
-    DB[:que_jobs].count.should be 1
+    assert_equal 1, DB[:que_jobs].count
 
     job = DB[:que_jobs].first
-    job[:priority].should be 100
-    job[:run_at].should be_within(3).of Time.now + 60
-    job[:job_class].should == "Que::Job"
-    JSON.load(job[:args]).should == [1]
+    assert_equal 100, job[:priority]
+    assert_in_delta job[:run_at], Time.now + 60, 3
+    assert_equal 'Que::Job', job[:job_class]
+    assert_equal [1], JSON.load(job[:args])
   end
 
   it "should be able to queue a job with a specific priority" do
-    DB[:que_jobs].count.should be 0
+    assert_equal 0, DB[:que_jobs].count
     Que::Job.enqueue 1, priority: 4
-    DB[:que_jobs].count.should be 1
+    assert_equal 1, DB[:que_jobs].count
 
     job = DB[:que_jobs].first
-    job[:priority].should be 4
-    job[:run_at].should be_within(3).of Time.now
-    job[:job_class].should == "Que::Job"
-    JSON.load(job[:args]).should == [1]
+    assert_equal 4, job[:priority]
+    assert_in_delta job[:run_at], Time.now, 3
+    assert_equal 'Que::Job', job[:job_class]
+    assert_equal [1], JSON.load(job[:args])
   end
 
   it "should be able to queue a job with queueing options in addition to argument options" do
-    DB[:que_jobs].count.should be 0
+    assert_equal 0, DB[:que_jobs].count
     Que::Job.enqueue 1, string: "string", run_at: Time.now + 60, priority: 4
-    DB[:que_jobs].count.should be 1
+    assert_equal 1, DB[:que_jobs].count
 
     job = DB[:que_jobs].first
-    job[:priority].should be 4
-    job[:run_at].should be_within(3).of Time.now + 60
-    job[:job_class].should == "Que::Job"
-    JSON.load(job[:args]).should == [1, {'string' => 'string'}]
+    assert_equal 4, job[:priority]
+    assert_in_delta job[:run_at], Time.now + 60, 3
+    assert_equal 'Que::Job', job[:job_class]
+    assert_equal [1, {'string' => 'string'}], JSON.load(job[:args])
   end
 
   it "should respect a job class defined as a string" do
     Que.enqueue 'argument', other_arg: 'other_arg', job_class: 'MyJobClass'
     Que::Job.enqueue 'argument', other_arg: 'other_arg', job_class: 'MyJobClass'
 
-    DB[:que_jobs].count.should be 2
+    assert_equal 2, DB[:que_jobs].count
     DB[:que_jobs].all.each do |job|
-      job[:job_class].should == 'MyJobClass'
-      JSON.load(job[:args]).should == ['argument', {'other_arg' => 'other_arg'}]
+      assert_equal 'MyJobClass', job[:job_class]
+      assert_equal ['argument', {'other_arg' => 'other_arg'}], JSON.load(job[:args])
     end
   end
 
@@ -108,22 +108,24 @@ describe Que::Job, '.enqueue' do
       @priority = 3
     end
 
-    DB[:que_jobs].count.should be 0
+    assert_equal 0, DB[:que_jobs].count
     DefaultPriorityJob.enqueue 1
     DefaultPriorityJob.enqueue 1, priority: 4
-    DB[:que_jobs].count.should be 2
+    assert_equal 2, DB[:que_jobs].count
 
     first, second = DB[:que_jobs].order(:job_id).all
 
-    first[:priority].should be 3
-    first[:run_at].should be_within(3).of Time.now
-    first[:job_class].should == "DefaultPriorityJob"
-    JSON.load(first[:args]).should == [1]
+    assert_equal 3, first[:priority]
+    assert_in_delta first[:run_at], Time.now, 3
+    assert_equal 'DefaultPriorityJob', first[:job_class]
 
-    second[:priority].should be 4
-    second[:run_at].should be_within(3).of Time.now
-    second[:job_class].should == "DefaultPriorityJob"
-    JSON.load(second[:args]).should == [1]
+    assert_equal [1], JSON.load(first[:args])
+
+    assert_equal 4, second[:priority]
+    assert_in_delta second[:run_at], Time.now, 3
+    assert_equal 'DefaultPriorityJob', second[:job_class]
+
+    assert_equal [1], JSON.load(second[:args])
   end
 
   it "should respect a default (but overridable) run_at for the job class" do
@@ -131,21 +133,22 @@ describe Que::Job, '.enqueue' do
       @run_at = -> { Time.now + 60 }
     end
 
-    DB[:que_jobs].count.should be 0
+    assert_equal 0, DB[:que_jobs].count
     DefaultRunAtJob.enqueue 1
     DefaultRunAtJob.enqueue 1, run_at: Time.now + 30
-    DB[:que_jobs].count.should be 2
+    assert_equal 2, DB[:que_jobs].count
 
     first, second = DB[:que_jobs].order(:job_id).all
 
-    first[:priority].should be 100
-    first[:run_at].should be_within(3).of Time.now + 60
-    first[:job_class].should == "DefaultRunAtJob"
-    JSON.load(first[:args]).should == [1]
+    assert_equal 100, first[:priority]
+    assert_in_delta first[:run_at], Time.now + 60, 3
+    assert_equal 'DefaultRunAtJob', first[:job_class]
+    assert_equal [1], JSON.load(first[:args])
 
-    second[:priority].should be 100
-    second[:run_at].should be_within(3).of Time.now + 30
-    second[:job_class].should == "DefaultRunAtJob"
-    JSON.load(second[:args]).should == [1]
+    assert_equal 100, second[:priority]
+    assert_in_delta second[:run_at], Time.now + 30, 3
+    assert_equal 'DefaultRunAtJob', second[:job_class]
+
+    assert_equal [1], JSON.load(second[:args])
   end
 end

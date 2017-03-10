@@ -14,23 +14,23 @@ describe Que, '.job_states' do
     $q1.pop
 
     states = Que.job_states
-    states.length.should be 1
+    assert_equal 1, states.length
 
     $q2.push nil
     locker.stop!
 
     state = states.first
-    state.keys.should == %i(priority run_at job_id job_class args error_count last_error ruby_hostname ruby_pid)
+    assert_equal %i(priority run_at job_id job_class args error_count last_error ruby_hostname ruby_pid), state.keys
 
-    state[:priority].should == 2
-    state[:run_at].should be_within(3).of Time.now
-    state[:job_id].should == 2**33
-    state[:job_class].should == 'BlockJob'
-    state[:args].should == []
-    state[:error_count].should == 0
-    state[:last_error].should be nil
+    assert_equal 2, state[:priority]
+    assert_in_delta state[:run_at], Time.now, 3
+    assert_equal 2**33, state[:job_id]
+    assert_equal 'BlockJob', state[:job_class]
+    assert_equal [], state[:args]
+    assert_equal 0, state[:error_count]
+    assert_nil state.fetch(:last_error)
 
-    state[:ruby_hostname].should == Socket.gethostname
-    state[:ruby_pid].should == Process.pid
+    assert_equal Socket.gethostname, state[:ruby_hostname]
+    assert_equal Process.pid, state[:ruby_pid]
   end
 end

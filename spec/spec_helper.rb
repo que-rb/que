@@ -8,6 +8,9 @@ require 'json'
 require 'pond'
 require 'pry'
 
+require 'minitest/autorun'
+require 'minitest/pride'
+
 Dir['./spec/support/**/*.rb'].sort.each &method(:require)
 
 
@@ -79,28 +82,33 @@ end
 
 
 
-stdout = Logger.new(STDOUT)
+SPEC_LOGGER = Logger.new(STDOUT)
 
-RSpec.configure do |config|
-  config.expect_with(:rspec) { |c| c.syntax = [:expect, :should] }
+class QueSpec < Minitest::Spec
+  register_spec_type(//, self)
 
-  config.around do |spec|
-    # Figure out which spec is about to run, for logging purposes.
-    data = spec.metadata
-    desc = data[:full_description]
-    line = "rspec #{data[:file_path]}:#{data[:line_number]}"
+  def setup
+    # # Figure out which spec is about to run, for logging purposes.
+    # data = spec.metadata
+    # desc = data[:full_description]
+    # line = "rspec #{data[:file_path]}:#{data[:line_number]}"
 
-    # Optionally log to STDOUT which spec is about to run. This is noisy, but
-    # helpful in identifying hanging specs.
-    stdout.info "Running spec: #{desc} @ #{line}" if ENV['LOG_SPEC']
+    # # Optionally log to STDOUT which spec is about to run. This is noisy, but
+    # # helpful in identifying hanging specs.
+    # SPEC_LOGGER.info "Running spec: #{desc} @ #{line}" if ENV['LOG_SPEC']
 
     Que.pool = QUE_POOL
     # Que.mode = :async
 
     $logger.messages.clear
+    $q1, $q2 = Queue.new, Queue.new
+    $passed_args = nil
 
-    spec.run
+    DB[:que_jobs].delete
+    DB[:que_lockers].delete
+  end
 
+  def teardown
     Que.mode = :off
 
     DB[:que_jobs].delete
@@ -108,7 +116,7 @@ RSpec.configure do |config|
 
     # A bit of lint: make sure that no advisory locks are left open.
     unless DB[:pg_locks].where(locktype: 'advisory').empty?
-      stdout.info "Advisory lock left open: #{desc} @ #{line}"
+      SPEC_LOGGER.info "Advisory lock left open: #{desc} @ #{line}"
     end
   end
 end

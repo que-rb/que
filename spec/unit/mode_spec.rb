@@ -6,8 +6,8 @@ describe Que, "mode=" do
   it "should log the mode change" do
     Que.mode = :sync
     event = logged_messages.find { |m| m['event'] == 'mode_change' }
-    event['value'].should == 'sync'
-    Que.mode.should == :sync
+    assert_equal 'sync', event['value']
+    assert_equal :sync, Que.mode
   end
 
   it "repeatedly should not do anything" do
@@ -15,7 +15,7 @@ describe Que, "mode=" do
     Que.mode = :sync
     Que.mode = :sync
 
-    logged_messages.select{|m| m['event'] == 'mode_change'}.count.should be 1
+    assert_equal 1, logged_messages.select{|m| m['event'] == 'mode_change'}.count
   end
 
   describe ":off" do
@@ -23,7 +23,7 @@ describe Que, "mode=" do
 
     it "should insert jobs into the database" do
       Que::Job.enqueue
-      DB[:que_jobs].select_map(:job_class).should == ['Que::Job']
+      assert_equal ['Que::Job'], DB[:que_jobs].select_map(:job_class)
     end
   end
 
@@ -31,15 +31,15 @@ describe Que, "mode=" do
     before { Que.mode = :sync }
 
     it "should work jobs synchronously" do
-      ArgsJob.enqueue(1, 2, 3).should be_an_instance_of ArgsJob
-      $passed_args.should == [1, 2, 3]
-      Que.mode.should == :sync
+      assert_instance_of ArgsJob, ArgsJob.enqueue(1, 2, 3)
+      assert_equal [1, 2, 3], $passed_args
+      assert_equal :sync, Que.mode
     end
 
     it "should not work jobs synchronously if they are scheduled for a future date" do
-      ArgsJob.enqueue(1, 2, 3, run_at: Time.now + 3).should be_an_instance_of ArgsJob
-      $passed_args.should == nil
-      Que.mode.should == :sync
+      assert_instance_of ArgsJob, ArgsJob.enqueue(1, 2, 3, run_at: Time.now + 3)
+      assert_nil $passed_args
+      assert_equal :sync, Que.mode
     end
   end
 
@@ -57,7 +57,7 @@ describe Que, "mode=" do
     it "then Que.mode = :async a second time should not do anything" do
       Que.mode = :async
       Que.mode = :async
-      Que.mode.should == :async
+      assert_equal :async, Que.mode
     end
 
     it "then Que.mode = :off should gracefully shut down the locker" do
@@ -67,7 +67,7 @@ describe Que, "mode=" do
       $q1.pop
       $q2.push nil
       Que.mode = :off
-      DB[:que_jobs].should be_empty
+      assert_empty DB[:que_jobs]
     end
 
     it "then Que.mode = :sync should gracefully shut down the locker" do
@@ -77,7 +77,7 @@ describe Que, "mode=" do
       $q1.pop
       $q2.push nil
       Que.mode = :sync
-      DB[:que_jobs].should be_empty
+      assert_empty DB[:que_jobs]
     end
   end
 end

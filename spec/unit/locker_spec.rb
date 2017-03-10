@@ -7,15 +7,15 @@ describe Que::Locker do
     Que::Locker.new.stop!
 
     events = logged_messages.select { |m| m['event'] == 'locker_start' }
-    events.count.should == 1
+    assert_equal 1, events.count
     event = events.first
-    event['listen'].should == true
-    event['backend_pid'].should be_an_instance_of Fixnum
-    event['wait_period'].should == 0.01
-    event['poll_interval'].should == nil
-    event['minimum_queue_size'].should == 2
-    event['maximum_queue_size'].should == 8
-    event['worker_priorities'].should == [10, 30, 50, nil, nil, nil]
+    assert_equal true, event['listen']
+    assert_instance_of Fixnum, event['backend_pid']
+    assert_equal 0.01, event['wait_period']
+    assert_nil event['poll_interval']
+    assert_equal 2, event['minimum_queue_size']
+    assert_equal 8, event['maximum_queue_size']
+    assert_equal [10, 30, 50, nil, nil, nil], event['worker_priorities']
   end
 
   it "should allow configuration of various parameters" do
@@ -29,15 +29,15 @@ describe Que::Locker do
     locker.stop!
 
     events = logged_messages.select { |m| m['event'] == 'locker_start' }
-    events.count.should == 1
+    assert_equal 1, events.count
     event = events.first
-    event['listen'].should == false
-    event['backend_pid'].should be_an_instance_of Fixnum
-    event['wait_period'].should == 0.2
-    event['poll_interval'].should == 0.4
-    event['minimum_queue_size'].should == 5
-    event['maximum_queue_size'].should == 45
-    event['worker_priorities'].should == [1, 2, 3, 4, nil, nil, nil, nil]
+    assert_equal false, event['listen']
+    assert_instance_of Fixnum, event['backend_pid']
+    assert_equal 0.2, event['wait_period']
+    assert_equal 0.4, event['poll_interval']
+    assert_equal 5, event['minimum_queue_size']
+    assert_equal 45, event['maximum_queue_size']
+    assert_equal [1, 2, 3, 4, nil, nil, nil, nil], event['worker_priorities']
   end
 
   it "should allow a dedicated PG connection to be specified" do
@@ -53,7 +53,7 @@ describe Que::Locker do
 
   it "should have a high-priority work thread" do
     locker = Que::Locker.new
-    locker.thread.priority.should == 1
+    assert_equal 1, locker.thread.priority
     locker.stop!
   end
 
@@ -64,17 +64,17 @@ describe Que::Locker do
 
     sleep_until { DB[:que_lockers].count == 1 }
 
-    locker.workers.count.should == worker_count
+    assert_equal worker_count, locker.workers.count
 
     record = DB[:que_lockers].first
-    record[:ruby_pid].should      == Process.pid
-    record[:ruby_hostname].should == Socket.gethostname
-    record[:worker_count].should  == worker_count
-    record[:listening].should     == true
+    assert_equal Process.pid,        record[:ruby_pid]
+    assert_equal Socket.gethostname, record[:ruby_hostname]
+    assert_equal worker_count,       record[:worker_count]
+    assert_equal true,               record[:listening]
 
     locker.stop!
 
-    DB[:que_lockers].count.should be 0
+    assert_equal 0, DB[:que_lockers].count
   end
 
   it "should clear invalid lockers from the table when connecting" do
@@ -89,7 +89,7 @@ describe Que::Locker do
                             worker_count:  4,
                             listening:     true
 
-    DB[:que_lockers].count.should be 2
+    assert_equal 2, DB[:que_lockers].count
 
     pid = DB[:que_lockers].exclude(pid: 0).get(:pid)
 
@@ -97,16 +97,16 @@ describe Que::Locker do
     sleep_until { DB[:que_lockers].count == 1 }
 
     record = DB[:que_lockers].first
-    record[:pid].should == pid
-    record[:ruby_pid].should == Process.pid
+    assert_equal pid, record[:pid]
+    assert_equal Process.pid, record[:ruby_pid]
 
     locker.stop!
 
-    DB[:que_lockers].count.should be 0
+    assert_equal 0, DB[:que_lockers].count
   end
 
   it "should do batch polls every poll_interval to catch jobs that fall through the cracks" do
-    DB[:que_jobs].count.should be 0
+    assert_equal 0, DB[:que_jobs].count
     locker = Que::Locker.new poll_interval: 0.01, listen: false
 
     Que::Job.enqueue
@@ -129,7 +129,7 @@ describe Que::Locker do
 
       locker.stop!
 
-      DB[:que_jobs].count.should be 0
+    assert_equal 0, DB[:que_jobs].count
     end
 
     it "should request enough jobs to fill the queue" do
@@ -140,7 +140,7 @@ describe Que::Locker do
       3.times { $q1.pop }
 
       # The default queue size is 8, so it shouldn't lock the 9th job.
-      DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid).should == ids[0..-2]
+      assert_equal ids[0..-2], DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid)
 
       3.times { $q2.push nil }
       locker.stop!
@@ -165,7 +165,7 @@ describe Que::Locker do
       ids = locker.workers.map{|w| [w.object_id, w.thread.object_id]}
       locker.stop!
 
-      a.sort.should == ids.sort
+      assert_equal ids.sort, a.sort
     end
   end
 
@@ -190,7 +190,7 @@ describe Que::Locker do
         $q1.pop
 
         # Without the relock protection, we'd expect the first job to be worked twice.
-        $performed.should == [id1, id2]
+        assert_equal [id1, id2], $performed
 
         $q2.push nil
         $q2.push nil
@@ -215,8 +215,8 @@ describe Que::Locker do
       locker.stop!
 
       event = logged_messages.select{|m| m['event'] == 'locker_polled'}.first
-      event['limit'].should == 8
-      event['locked'].should == 6
+      assert_equal 8, event['limit']
+      assert_equal 6, event['locked']
     end
 
     it "should trigger a new batch poll when the queue drops to the minimum_queue_size threshold" do
@@ -226,7 +226,7 @@ describe Que::Locker do
       3.times { $q1.pop }
 
       # Should have locked first 8 only.
-      DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid).should == ids[0..7]
+      assert_equal ids[0..7], DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid)
 
       # Get the queue size down to 2, and it should lock the final one.
       6.times { $q2.push nil }
@@ -239,7 +239,7 @@ describe Que::Locker do
 
   describe "when receiving a NOTIFY of a new job" do
     it "should immediately lock, work, and unlock them" do
-      DB[:que_jobs].count.should be 0
+      assert_equal 0, DB[:que_jobs].count
       locker = Que::Locker.new
       sleep_until { DB[:que_lockers].count == 1 }
 
@@ -247,8 +247,8 @@ describe Que::Locker do
       $q1.pop
 
       locks = DB[:pg_locks].where(locktype: 'advisory').all
-      locks.count.should be 1
-      locks.first[:objid].should == DB[:que_jobs].get(:job_id)
+      assert_equal 1, locks.count
+      assert_equal DB[:que_jobs].get(:job_id), locks.first[:objid]
 
       $q2.push nil
       sleep_until { DB[:que_jobs].count == 0 }
@@ -257,17 +257,17 @@ describe Que::Locker do
       locker.stop!
 
       events = logged_messages.select { |m| m['event'] == 'job_notified' }
-      events.count.should be 1
+      assert_equal 1, events.count
       event = events.first
       log = event['job']
 
-      log['priority'].should == job.attrs[:priority]
-      Time.parse(log['run_at']).should == job.attrs[:run_at]
-      log['job_id'].should == job.attrs[:job_id]
+      assert_equal job.attrs[:priority], log['priority']
+      assert_equal job.attrs[:run_at], Time.parse(log['run_at'])
+      assert_equal job.attrs[:job_id], log['job_id']
     end
 
     it "should not work jobs that are already locked" do
-      DB[:que_jobs].count.should be 0
+      assert_equal 0, DB[:que_jobs].count
       locker = Que::Locker.new
       sleep_until { DB[:que_lockers].count == 1 }
 
@@ -292,7 +292,7 @@ describe Que::Locker do
       q2.push nil
       t.join
 
-      DB[:que_jobs].select_map(:job_id).should == [id]
+      assert_equal [id], DB[:que_jobs].select_map(:job_id)
     end
 
     it "should not try to lock and work jobs it has already locked" do
@@ -311,7 +311,7 @@ describe Que::Locker do
       DB.notify "que_locker_#{pid}", payload: payload
 
       sleep 0.05 # Hacky
-      locker.job_queue.to_a.should == []
+      assert_equal [], locker.job_queue.to_a
 
       $q2.push nil
       locker.stop!
@@ -331,7 +331,7 @@ describe Que::Locker do
       id = Que::Job.enqueue(priority: 10).attrs[:job_id]
 
       sleep 0.05 # Hacky.
-      locker.job_queue.to_a.map{|h| h[-1]}.should_not include id
+      refute_includes locker.job_queue.to_a.map{|h| h[-1]}, id
 
       $q2.push nil
       locker.stop!
@@ -372,17 +372,17 @@ describe Que::Locker do
       $q2.push nil
 
       locker.wait_for_stop
-      workers.each { |worker| worker.thread.status.should be false }
+      workers.each { |worker| assert_equal false, worker.thread.status }
     end
 
     it "with #stop! should block until its workers are done" do
       locker  = Que::Locker.new
       workers = locker.workers
       locker.stop!
-      workers.each { |worker| worker.thread.status.should be false }
+      workers.each { |worker| assert_equal false, worker.thread.status }
 
       events = logged_messages.select { |m| m['event'] == 'locker_stop' }
-      events.count.should be 1
+      assert_equal 1, events.count
     end
 
     it "should remove and unlock all the jobs in its queue" do
@@ -419,7 +419,7 @@ describe Que::Locker do
       $q2.push :nil
       t.join
 
-      DB[:que_jobs].should be_empty
+      assert_equal 0, DB[:que_jobs].count
     end
   end
 end
