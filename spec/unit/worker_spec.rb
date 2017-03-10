@@ -316,7 +316,7 @@ describe Que::Worker do
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 1
-      job[:last_error].should =~ /uninitialized constant:? NonexistentClass/
+      job[:last_error].should =~ /uninitialized constant:? .*NonexistentClass/
       job[:run_at].should be_within(3).of Time.now + 4
     end
 
