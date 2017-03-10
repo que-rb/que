@@ -54,10 +54,7 @@ before_script:
 
 script:
   # Run the complete test suite:
-  - bundle exec rspec -fd -b -P ./spec/**/*_spec.rb
-  # Run the test suite without adapters/ActiveRecord, to make sure the codebase
-  # doesn't accidentally rely on any ActiveSupport-isms.
-  - bundle exec rspec -fd -b -P ./spec/unit/*_spec.rb
+  - bundle exec rake
 
 notifications:
   email: false
