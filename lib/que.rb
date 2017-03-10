@@ -13,7 +13,6 @@ module Que
   require_relative 'que/job_queue'
   require_relative 'que/locker'
   require_relative 'que/migrations'
-  require_relative 'que/recurring_job'
   require_relative 'que/result_queue'
   require_relative 'que/sql'
   require_relative 'que/version'
