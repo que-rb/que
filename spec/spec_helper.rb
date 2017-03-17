@@ -87,6 +87,51 @@ SPEC_LOGGER = Logger.new(STDOUT)
 class QueSpec < Minitest::Spec
   register_spec_type(//, self)
 
+  let :locker_settings do
+    {
+      poll_interval: nil,
+    }
+  end
+
+  let :locker do
+    Que::Locker.new(locker_settings)
+  end
+
+  def ids_in_local_queue
+    locker.job_queue.to_a.map { |h| h[-1] }
+  end
+
+  # Travis seems to freeze the VM the tests run in sometimes, so bump up the limit
+  # when running in CI.
+  QUE_SLEEP_UNTIL_TIMEOUT = ENV['CI'] ? 10 : 2
+
+  # Helper for testing threaded code.
+  def sleep_until(timeout = QUE_SLEEP_UNTIL_TIMEOUT)
+    deadline = Time.now + timeout
+    loop do
+      break if yield
+      if Time.now > deadline
+        puts "sleep_until timeout reached!"
+        raise "sleep_until timeout reached!"
+      end
+      sleep 0.01
+    end
+  end
+
+  def logged_messages
+    $logger.messages.map { |message| JSON.load(message) }
+  end
+
+  def locked_ids
+    DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid)
+  end
+
+  def backend_pid(connection)
+    connection.
+      async_exec("select pg_backend_pid()").
+      to_a.first['pg_backend_pid'].to_i
+  end
+
   def current_spec_location
     location = self.class.instance_method(name).source_location.join(':')
     root_directory = File.expand_path('../..', __FILE__) << '/'
@@ -119,7 +164,7 @@ class QueSpec < Minitest::Spec
     DB[:que_lockers].delete
 
     # A bit of lint: make sure that no advisory locks are left open.
-    unless DB[:pg_locks].where(locktype: 'advisory').empty?
+    unless locked_ids.empty?
       SPEC_LOGGER.info "Advisory lock left open: #{current_spec_location}"
     end
   end
