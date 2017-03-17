@@ -7,6 +7,8 @@ require 'json'
 module Que
   class Error < StandardError; end
 
+  CURRENT_HOSTNAME = Socket.gethostname.freeze
+
   require_relative 'que/config'
   require_relative 'que/connection_pool'
   require_relative 'que/job'
@@ -49,7 +51,7 @@ module Que
     end
 
     def log(level: :info, **data)
-      data = {lib: :que, hostname: Socket.gethostname, pid: Process.pid, thread: Thread.current.object_id}.merge(data)
+      data = {lib: :que, hostname: CURRENT_HOSTNAME, pid: Process.pid, thread: Thread.current.object_id}.merge(data)
 
       if l = logger
         begin

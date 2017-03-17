@@ -11,11 +11,16 @@ module Que
   class Locker
     attr_reader :thread, :workers, :job_queue
 
-    def initialize(connection: nil, listen: true, wait_period: 0.01, poll_interval: nil, minimum_queue_size: 2, maximum_queue_size: 8, worker_count: 6, worker_priorities: [10, 30, 50], on_worker_start: nil)
+    def initialize(connection: nil, listen: true, wait_period: 0.01,
+        poll_interval: nil, minimum_queue_size: 2, maximum_queue_size: 8,
+        worker_count: 6, worker_priorities: [10, 30, 50], on_worker_start: nil)
+
       @locks = Set.new
 
       # Wrap the given connection in a dummy connection pool.
-      @pool = ConnectionPool.new { |&block| block.call(connection) } if connection
+      if connection
+        @pool = ConnectionPool.new { |&block| block.call(connection) }
+      end
 
       @listen             = listen
       @wait_period        = wait_period
@@ -55,25 +60,34 @@ module Que
 
     def work_loop
       checkout do |conn|
-        backend_pid = execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
+        backend_pid =
+          execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
 
-        Que.log level:              :debug,
-                event:              :locker_start,
-                listen:             @listen,
-                backend_pid:        backend_pid,
-                wait_period:        @wait_period,
-                poll_interval:      @poll_interval,
-                minimum_queue_size: @minimum_queue_size,
-                maximum_queue_size: @job_queue.maximum_size,
-                worker_priorities:  @workers.map(&:priority)
+        Que.log \
+          level:              :debug,
+          event:              :locker_start,
+          listen:             @listen,
+          backend_pid:        backend_pid,
+          wait_period:        @wait_period,
+          poll_interval:      @poll_interval,
+          minimum_queue_size: @minimum_queue_size,
+          maximum_queue_size: @job_queue.maximum_size,
+          worker_priorities:  @workers.map(&:priority)
 
         begin
-          execute "LISTEN que_locker_#{backend_pid}" if @listen
+          if @listen
+            execute "LISTEN que_locker_#{backend_pid}"
+          end
 
           # A previous locker that didn't exit cleanly may have left behind
           # a bad locker record, so clean up before registering.
           execute :clean_lockers
-          execute :register_locker, [@workers.count, Process.pid, Socket.gethostname, @listen.to_s]
+          execute :register_locker, [
+            @workers.count,
+            Process.pid,
+            CURRENT_HOSTNAME, 
+            @listen.to_s
+          ]
 
           poll
 
@@ -85,7 +99,9 @@ module Que
             break if @stop
           end
 
-          Que.log level: :debug, event: :locker_stop
+          Que.log \
+            level: :debug,
+            event: :locker_stop
 
           unlock_jobs(@job_queue.clear)
 
@@ -97,7 +113,8 @@ module Que
           execute "DELETE FROM que_lockers WHERE pid = $1", [backend_pid]
 
           if @listen
-            # Unlisten and drain notifications before returning connection to pool.
+            # Unlisten and drain notifications before releasing connection back
+            # to the pool.
             execute "UNLISTEN *"
             {} while conn.notifies
           end
@@ -115,20 +132,26 @@ module Que
     end
 
     def poll
-      count = @job_queue.space
-      jobs  = execute :poll_jobs, ["{#{@locks.to_a.join(',')}}", count]
+      space = @job_queue.space
+      jobs  = execute :poll_jobs, ["{#{@locks.to_a.join(',')}}", space]
 
       @locks.merge jobs.map { |job| job[:job_id] }
       push_jobs jobs.map { |job| job.values_at(:priority, :run_at, :job_id) }
 
       @last_polled_at      = Time.now
-      @last_poll_satisfied = count == jobs.count
+      @last_poll_satisfied = space == jobs.count
 
-      Que.log level: :debug, event: :locker_polled, limit: count, locked: jobs.count
+      Que.log \
+        level: :debug,
+        event: :locker_polled,
+        limit: space,
+        locked: jobs.count
     end
 
     def wait
       if @listen
+        # TODO: In case we received notifications for many jobs at once, check
+        # and lock and push them all in bulk.
         if pk = wait_for_job(@wait_period)
           push_jobs([pk]) if @job_queue.accept?(pk) && lock_job?(pk[-1])
         end
@@ -146,10 +169,16 @@ module Que
     end
 
     def lock_job?(id)
-      if !@locks.include?(id) && execute("SELECT pg_try_advisory_lock($1)", [id]).first[:pg_try_advisory_lock]
-        @locks.add(id)
-        true
-      end
+      return false if @locks.include?(id)
+      return false unless lock_job(id)
+
+      @locks.add(id)
+      true
+    end
+
+    def lock_job(id)
+      execute("SELECT pg_try_advisory_lock($1)", [id]).
+        first[:pg_try_advisory_lock]
     end
 
     def unlock_finished_jobs
@@ -174,9 +203,13 @@ module Que
     def wait_for_job(timeout = nil)
       checkout do |conn|
         conn.wait_for_notify(timeout) do |_, _, payload|
-          job_json = JSON.parse(payload, symbolize_names: true)
+          job_json =
+            JSON.parse(payload, symbolize_names: true)
 
-          Que.log level: :debug, event: :job_notified, job: job_json
+          Que.log \
+            level: :debug,
+            event: :job_notified,
+            job: job_json
 
           return [
             job_json[:priority],
