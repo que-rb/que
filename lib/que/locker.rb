@@ -11,9 +11,23 @@ module Que
   class Locker
     attr_reader :thread, :workers, :job_queue
 
-    def initialize(connection: nil, listen: true, wait_period: 0.01,
-        poll_interval: nil, minimum_queue_size: 2, maximum_queue_size: 8,
-        worker_count: 6, worker_priorities: [10, 30, 50], on_worker_start: nil)
+    DEFAULT_WAIT_PERIOD        = 0.01
+    DEFAULT_MINIMUM_QUEUE_SIZE = 2
+    DEFAULT_MAXIMUM_QUEUE_SIZE = 8
+    DEFAULT_WORKER_COUNT       = 6
+    DEFAULT_WORKER_PRIORITIES  = [10, 30, 50].freeze
+
+    def initialize(
+      connection:         nil,
+      listen:             true,
+      poll_interval:      nil,
+      wait_period:        DEFAULT_WAIT_PERIOD,
+      minimum_queue_size: DEFAULT_MINIMUM_QUEUE_SIZE,
+      maximum_queue_size: DEFAULT_MAXIMUM_QUEUE_SIZE,
+      worker_count:       DEFAULT_WORKER_COUNT,
+      worker_priorities:  DEFAULT_WORKER_PRIORITIES,
+      on_worker_start:    nil
+    )
 
       @locks = Set.new
 

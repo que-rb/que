@@ -3,106 +3,132 @@
 require 'spec_helper'
 
 describe Que::Locker do
-  it "should log its settings on startup" do
-    Que::Locker.new.stop!
+  describe "when starting up" do
+    it "should log its settings" do
+      Que::Locker.new.stop!
 
-    events = logged_messages.select { |m| m['event'] == 'locker_start' }
-    assert_equal 1, events.count
-    event = events.first
-    assert_equal true, event['listen']
-    assert_instance_of Fixnum, event['backend_pid']
-    assert_equal 0.01, event['wait_period']
-    assert_nil event['poll_interval']
-    assert_equal 2, event['minimum_queue_size']
-    assert_equal 8, event['maximum_queue_size']
-    assert_equal [10, 30, 50, nil, nil, nil], event['worker_priorities']
-  end
+      events = logged_messages.select { |m| m['event'] == 'locker_start' }
+      assert_equal 1, events.count
 
-  it "should allow configuration of various parameters" do
-    locker = Que::Locker.new listen:             false,
-                             minimum_queue_size: 5,
-                             maximum_queue_size: 45,
-                             wait_period:        0.2,
-                             poll_interval:      0.4,
-                             worker_priorities:  [1, 2, 3, 4],
-                             worker_count:       8
-    locker.stop!
+      event = events.first
+      assert_equal true,         event['listen']
+      assert_instance_of Fixnum, event['backend_pid']
+      assert_nil                 event.fetch('poll_interval')
 
-    events = logged_messages.select { |m| m['event'] == 'locker_start' }
-    assert_equal 1, events.count
-    event = events.first
-    assert_equal false, event['listen']
-    assert_instance_of Fixnum, event['backend_pid']
-    assert_equal 0.2, event['wait_period']
-    assert_equal 0.4, event['poll_interval']
-    assert_equal 5, event['minimum_queue_size']
-    assert_equal 45, event['maximum_queue_size']
-    assert_equal [1, 2, 3, 4, nil, nil, nil, nil], event['worker_priorities']
-  end
+      assert_equal Que::Locker::DEFAULT_WAIT_PERIOD,        event['wait_period']
+      assert_equal Que::Locker::DEFAULT_MINIMUM_QUEUE_SIZE, event['minimum_queue_size']
+      assert_equal Que::Locker::DEFAULT_MAXIMUM_QUEUE_SIZE, event['maximum_queue_size']
+      assert_equal Que::Locker::DEFAULT_WORKER_COUNT,       event['worker_priorities'].count
 
-  it "should allow a dedicated PG connection to be specified" do
-    pg = NEW_PG_CONNECTION.call
-    pid = pg.async_exec("select pg_backend_pid()").to_a.first['pg_backend_pid'].to_i
+      # If the worker_count is six and the worker_priorities are [10, 30, 50], the
+      # expected full set of worker priorities is [10, 30, 50, nil, nil, nil].
 
-    locker = Que::Locker.new connection: pg
+      expected_worker_priorities =
+        Que::Locker::DEFAULT_WORKER_PRIORITIES +
+        (
+          Que::Locker::DEFAULT_WORKER_COUNT -
+          Que::Locker::DEFAULT_WORKER_PRIORITIES.length
+        ).times.map { nil }
 
-    sleep_until { DB[:que_lockers].select_map(:pid) == [pid] }
+      assert_equal expected_worker_priorities, event['worker_priorities']
+    end
 
-    locker.stop!
-  end
+    it "should allow configuration of various parameters" do
+      locker =
+        Que::Locker.new \
+          listen:             false,
+          minimum_queue_size: 5,
+          maximum_queue_size: 45,
+          wait_period:        0.2,
+          poll_interval:      0.4,
+          worker_priorities:  [1, 2, 3, 4],
+          worker_count:       8
 
-  it "should have a high-priority work thread" do
-    locker = Que::Locker.new
-    assert_equal 1, locker.thread.priority
-    locker.stop!
-  end
+      locker.stop!
 
-  it "should register its presence or absence in the que_lockers table upon connecting or disconnecting" do
-    worker_count = rand(10) + 1
+      events = logged_messages.select { |m| m['event'] == 'locker_start' }
+      assert_equal 1, events.count
+      event = events.first
+      assert_equal false, event['listen']
+      assert_instance_of Fixnum, event['backend_pid']
+      assert_equal 0.2, event['wait_period']
+      assert_equal 0.4, event['poll_interval']
+      assert_equal 5, event['minimum_queue_size']
+      assert_equal 45, event['maximum_queue_size']
+      assert_equal [1, 2, 3, 4, nil, nil, nil, nil], event['worker_priorities']
+    end
 
-    locker = Que::Locker.new(worker_count: worker_count)
+    it "should allow a dedicated PG connection to be specified" do
+      pg = NEW_PG_CONNECTION.call
+      pid = pg.async_exec("select pg_backend_pid()").to_a.first['pg_backend_pid'].to_i
 
-    sleep_until { DB[:que_lockers].count == 1 }
+      locker = Que::Locker.new connection: pg
+      sleep_until { DB[:que_lockers].select_map(:pid) == [pid] }
+      locker.stop!
+    end
 
-    assert_equal worker_count, locker.workers.count
+    it "should have a high-priority work thread" do
+      locker = Que::Locker.new
+      assert_equal 1, locker.thread.priority
+      locker.stop!
+    end
 
-    record = DB[:que_lockers].first
-    assert_equal Process.pid,        record[:ruby_pid]
-    assert_equal Socket.gethostname, record[:ruby_hostname]
-    assert_equal worker_count,       record[:worker_count]
-    assert_equal true,               record[:listening]
+    it "should register its presence in the que_lockers table" do
+      worker_count = rand(10) + 1
 
-    locker.stop!
+      locker = Que::Locker.new(worker_count: worker_count)
 
-    assert_equal 0, DB[:que_lockers].count
-  end
+      sleep_until { DB[:que_lockers].count == 1 }
 
-  it "should clear invalid lockers from the table when connecting" do
-    # Note that we assume that the connection we use to register the bogus
-    # locker here will be reused by the actual locker below, in order to
-    # spec the cleaning of lockers previously registered by the same
-    # connection.
-    Que.execute :register_locker, [3, 0, 'blah1', 'true']
-    DB[:que_lockers].insert pid:           0,
-                            ruby_pid:      0,
-                            ruby_hostname: 'blah2',
-                            worker_count:  4,
-                            listening:     true
+      assert_equal worker_count, locker.workers.count
 
-    assert_equal 2, DB[:que_lockers].count
+      record = DB[:que_lockers].first
+      assert_equal Process.pid,        record[:ruby_pid]
+      assert_equal Socket.gethostname, record[:ruby_hostname]
+      assert_equal worker_count,       record[:worker_count]
+      assert_equal true,               record[:listening]
 
-    pid = DB[:que_lockers].exclude(pid: 0).get(:pid)
+      locker.stop!
 
-    locker = Que::Locker.new
-    sleep_until { DB[:que_lockers].count == 1 }
+      assert_equal 0, DB[:que_lockers].count
+    end
 
-    record = DB[:que_lockers].first
-    assert_equal pid, record[:pid]
-    assert_equal Process.pid, record[:ruby_pid]
+    it "should clear invalid lockers from the table" do
+      # Bogus locker from a nonexistent connection.
+      DB[:que_lockers].insert(
+        pid:           0,
+        ruby_pid:      0,
+        ruby_hostname: 'blah2',
+        worker_count:  4,
+        listening:     true,
+      )
 
-    locker.stop!
+      # We want to spec that invalid lockers with the current backend's pid are
+      # also cleared out, so:
+      backend_pid =
+        Que.execute("select pg_backend_pid()").first[:pg_backend_pid]
 
-    assert_equal 0, DB[:que_lockers].count
+      DB[:que_lockers].insert(
+        pid:           backend_pid,
+        ruby_pid:      0,
+        ruby_hostname: 'blah1',
+        worker_count:  4,
+        listening:     true,
+      )
+
+      assert_equal 2, DB[:que_lockers].count
+
+      locker = Que::Locker.new
+      sleep_until { DB[:que_lockers].count == 1 }
+
+      record = DB[:que_lockers].first
+      assert_equal backend_pid, record[:pid]
+      assert_equal Process.pid, record[:ruby_pid]
+
+      locker.stop!
+
+      assert_equal 0, DB[:que_lockers].count
+    end
   end
 
   it "should do batch polls every poll_interval to catch jobs that fall through the cracks" do
@@ -129,7 +155,7 @@ describe Que::Locker do
 
       locker.stop!
 
-    assert_equal 0, DB[:que_jobs].count
+      assert_equal 0, DB[:que_jobs].count
     end
 
     it "should request enough jobs to fill the queue" do
@@ -421,5 +447,7 @@ describe Que::Locker do
 
       assert_equal 0, DB[:que_jobs].count
     end
+
+    it "should clear its own record from the que_lockers table"
   end
 end
