@@ -18,6 +18,11 @@ describe Que::Job, '.enqueue' do
     assert_equal 1, DB[:que_jobs].count
 
     assert_kind_of Que::Job, result
+
+    # TODO:
+    # assert_instance_of expected_job_class, result
+    # (unless job_class doesn't exist in this process...)
+
     assert_equal expected_priority, result.attrs[:priority]
     assert_equal expected_args, result.attrs[:args]
 
@@ -125,4 +130,8 @@ describe Que::Job, '.enqueue' do
       expected_run_at: Time.now + 60,
       expected_job_class: DefaultRunAtJob
   end
+
+  it "should support being passed a queue name"
+
+  it "should support a default queue name specified in the job class"
 end

@@ -24,6 +24,7 @@ module Que
         @array.push(*jobs).sort!
 
         # Notify all waiting threads that they can try again to remove a item.
+        # TODO: Consider `jobs.length.times { @cv.signal }`
         @cv.broadcast
 
         # If we passed the maximum queue size, drop the least important items
