@@ -3,11 +3,6 @@
 require 'spec_helper'
 
 describe "An insertion into que_jobs" do
-  it "should not fail if there are no lockers registered" do
-    Que::Job.enqueue
-    assert_equal ['Que::Job'], DB[:que_jobs].select_map(:job_class)
-  end
-
   it "should notify a locker if one is listening" do
     DB.synchronize do |conn|
       begin

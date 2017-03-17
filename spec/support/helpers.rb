@@ -20,10 +20,3 @@ end
 def logged_messages
   $logger.messages.map { |message| JSON.load(message) }
 end
-
-def suppress_warnings
-  original_verbosity, $VERBOSE = $VERBOSE, nil
-  yield
-ensure
-  $VERBOSE = original_verbosity
-end

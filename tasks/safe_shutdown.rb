@@ -27,7 +27,7 @@ task :safe_shutdown do
     DB.drop_table :que_jobs
   end
 
-  Que.connection = DB
+  Que.connection_proc = DB.method(:synchronize)
   Que.create!
 
   $queue = Queue.new

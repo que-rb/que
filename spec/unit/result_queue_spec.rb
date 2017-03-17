@@ -4,7 +4,7 @@ require 'spec_helper'
 
 describe Que::ResultQueue do
   before do
-    @rq = Que::ResultQueue.new
+    @result_queue = Que::ResultQueue.new
   end
 
   describe "#push and #clear" do
@@ -14,15 +14,15 @@ describe Que::ResultQueue do
       threads = ids.each_slice(25).to_a.map do |id_set|
         Thread.new do
           id_set.each do |id|
-            @rq.push(id)
+            @result_queue.push(id)
           end
         end
       end
 
       threads.each &:join
 
-      assert_equal (1..100).to_a, @rq.clear.sort
-      assert_equal [], @rq.clear
+      assert_equal (1..100).to_a, @result_queue.clear.sort
+      assert_equal [],            @result_queue.clear
     end
   end
 end

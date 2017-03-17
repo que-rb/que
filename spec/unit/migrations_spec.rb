@@ -53,7 +53,7 @@ describe Que::Migrations do
     assert_equal Que::Migrations::CURRENT_VERSION, Que::Migrations.db_version
   end
 
-  it "should be able to honor the initial behavior of Que.drop!" do
+  it "should be able to honor the original behavior of Que.drop!" do
     assert DB.table_exists?(:que_jobs)
     Que.drop!
     refute DB.table_exists?(:que_jobs)
@@ -71,7 +71,7 @@ describe Que::Migrations do
     Que.migrate!
   end
 
-  it "should be able to honor the initial behavior of Que.create!" do
+  it "should be able to honor the original behavior of Que.create!" do
     Que.migrate! version: 0
     Que.create!
     assert DB.table_exists?(:que_jobs)

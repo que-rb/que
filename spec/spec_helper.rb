@@ -87,18 +87,22 @@ SPEC_LOGGER = Logger.new(STDOUT)
 class QueSpec < Minitest::Spec
   register_spec_type(//, self)
 
-  def setup
-    # # Figure out which spec is about to run, for logging purposes.
-    # data = spec.metadata
-    # desc = data[:full_description]
-    # line = "rspec #{data[:file_path]}:#{data[:line_number]}"
+  def current_spec_location
+    location = self.class.instance_method(name).source_location.join(':')
+    root_directory = File.expand_path('../..', __FILE__) << '/'
+    spec_line = location.sub(root_directory, '')
+    desc = self.class.to_s << '::' << name
+    "#{desc} @ #{spec_line}"
+  end
 
-    # # Optionally log to STDOUT which spec is about to run. This is noisy, but
-    # # helpful in identifying hanging specs.
-    # SPEC_LOGGER.info "Running spec: #{desc} @ #{line}" if ENV['LOG_SPEC']
+  def setup
+    # Optionally log to STDOUT which spec is about to run. This is noisy, but
+    # helpful in identifying hanging specs.
+    if ENV['LOG_SPEC']
+      SPEC_LOGGER.info "Running spec: #{current_spec_location}"
+    end
 
     Que.pool = QUE_POOL
-    # Que.mode = :async
 
     $logger.messages.clear
     $q1, $q2 = Queue.new, Queue.new
@@ -116,7 +120,7 @@ class QueSpec < Minitest::Spec
 
     # A bit of lint: make sure that no advisory locks are left open.
     unless DB[:pg_locks].where(locktype: 'advisory').empty?
-      SPEC_LOGGER.info "Advisory lock left open: #{desc} @ #{line}"
+      SPEC_LOGGER.info "Advisory lock left open: #{current_spec_location}"
     end
   end
 end

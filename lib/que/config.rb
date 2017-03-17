@@ -49,7 +49,7 @@ module Que
     attr_writer :json_serializer, :json_deserializer
 
     def json_deserializer
-      @json_deserializer ||= proc { |json| JSON.parse(json, symbolize_names: true) }
+      @json_deserializer ||= -> (json) { JSON.parse(json, symbolize_names: true) }
     end
 
     def json_serializer

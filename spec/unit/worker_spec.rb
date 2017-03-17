@@ -15,7 +15,7 @@ describe Que::Worker do
     @result_queue.clear
     jobs = jobs.flatten.map { |job| job.values_at(:priority, :run_at, :job_id) }
     @job_queue.push *jobs
-    sleep_until(3600) { @result_queue.to_a.sort == jobs.sort }
+    sleep_until { @result_queue.to_a.sort == jobs.sort }
   end
 
   it "should repeatedly work jobs that are passed to it via its job_queue, ordered correctly" do
