@@ -14,7 +14,7 @@ module Que
     # jobs:
     #
     #   SELECT (j).*, pg_try_advisory_lock((j).job_id) AS locked
-    #   FROM que_jobs AS j;
+    #   FROM public.que_jobs AS j;
     #
     # The CTE will initially produce an "anchor" from the non-recursive term
     # (i.e. before the `UNION`), and then use it as the contents of the
@@ -54,7 +54,7 @@ module Que
         SELECT (j).*, pg_try_advisory_lock((j).job_id) AS locked
         FROM (
           SELECT j
-          FROM que_jobs AS j
+          FROM public.que_jobs AS j
           WHERE NOT job_id = ANY($1::integer[])
           AND run_at <= now()
           ORDER BY priority, run_at, job_id
@@ -65,7 +65,7 @@ module Que
           FROM (
             SELECT (
               SELECT j
-              FROM que_jobs AS j
+              FROM public.que_jobs AS j
               WHERE NOT job_id = ANY($1::integer[])
               AND run_at <= now()
               AND (priority, run_at, job_id) > (jobs.priority, jobs.run_at, jobs.job_id)
@@ -86,7 +86,7 @@ module Que
 
     get_job: %{
       SELECT *
-      FROM que_jobs
+      FROM public.que_jobs
       WHERE priority = $1::smallint
       AND   run_at   = $2::timestamptz
       AND   job_id   = $3::bigint
@@ -94,12 +94,12 @@ module Que
 
     reenqueue_job: %{
       WITH deleted_job AS (
-        DELETE FROM que_jobs
+        DELETE FROM public.que_jobs
           WHERE priority = $1::smallint
           AND   run_at   = $2::timestamptz
           AND   job_id   = $3::bigint
       )
-      INSERT INTO que_jobs
+      INSERT INTO public.que_jobs
       (priority, job_class, run_at, args)
       VALUES
       ($1::smallint, $4::text, $5::timestamptz, $6::json)
@@ -107,7 +107,7 @@ module Que
     },
 
     set_error: %{
-      UPDATE que_jobs
+      UPDATE public.que_jobs
       SET error_count = error_count + 1,
           run_at      = now() + $1::bigint * '1 second'::interval,
           last_error  = $2::text
@@ -117,7 +117,7 @@ module Que
     },
 
     insert_job: %{
-      INSERT INTO que_jobs
+      INSERT INTO public.que_jobs
       (priority, run_at, job_class, args)
       VALUES
       (coalesce($1, 100)::smallint, coalesce($2, now())::timestamptz, $3::text, coalesce($4, '[]')::json)
@@ -125,20 +125,20 @@ module Que
     },
 
     destroy_job: %{
-      DELETE FROM que_jobs
+      DELETE FROM public.que_jobs
       WHERE priority = $1::smallint
       AND   run_at   = $2::timestamptz
       AND   job_id   = $3::bigint
     },
 
     clean_lockers: %{
-      DELETE FROM que_lockers
+      DELETE FROM public.que_lockers
       WHERE pid = pg_backend_pid()
       OR pid NOT IN (SELECT pid FROM pg_stat_activity)
     },
 
     register_locker: %{
-      INSERT INTO que_lockers
+      INSERT INTO public.que_lockers
       (pid, worker_count, ruby_pid, ruby_hostname, listening)
       VALUES
       (pg_backend_pid(), $1::integer, $2::integer, $3::text, $4::boolean);
@@ -151,7 +151,7 @@ module Que
              sum((error_count > 0)::int) AS count_errored,
              max(error_count)            AS highest_error_count,
              min(run_at)                 AS oldest_run_at
-      FROM que_jobs
+      FROM public.que_jobs
       LEFT JOIN (
         SELECT (classid::bigint << 32) + objid::bigint AS job_id
         FROM pg_locks
@@ -165,7 +165,7 @@ module Que
       SELECT que_jobs.*,
              pg.ruby_hostname,
              pg.ruby_pid
-      FROM que_jobs
+      FROM public.que_jobs
       JOIN (
         SELECT (classid::bigint << 32) + objid::bigint AS job_id, que_lockers.*
         FROM pg_locks
