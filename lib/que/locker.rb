@@ -125,7 +125,7 @@ module Que
 
           unlock_finished_jobs
         ensure
-          execute "DELETE FROM que_lockers WHERE pid = $1", [@backend_pid]
+          execute "DELETE FROM public.que_lockers WHERE pid = $1", [@backend_pid]
 
           if @listen
             # Unlisten and drain notifications before releasing connection back
