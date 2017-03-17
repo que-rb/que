@@ -68,7 +68,8 @@ module Que
               FROM public.que_jobs AS j
               WHERE NOT job_id = ANY($1::integer[])
               AND run_at <= now()
-              AND (priority, run_at, job_id) > (jobs.priority, jobs.run_at, jobs.job_id)
+              AND (priority, run_at, job_id) >
+                (jobs.priority, jobs.run_at, jobs.job_id)
               ORDER BY priority, run_at, job_id
               LIMIT 1
             ) AS j
@@ -120,7 +121,12 @@ module Que
       INSERT INTO public.que_jobs
       (priority, run_at, job_class, args)
       VALUES
-      (coalesce($1, 100)::smallint, coalesce($2, now())::timestamptz, $3::text, coalesce($4, '[]')::json)
+      (
+        coalesce($1, 100)::smallint,
+        coalesce($2, now())::timestamptz,
+        $3::text,
+        coalesce($4, '[]')::json
+      )
       RETURNING *
     },
 

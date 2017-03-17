@@ -49,7 +49,8 @@ module Que
     attr_writer :json_serializer, :json_deserializer
 
     def json_deserializer
-      @json_deserializer ||= -> (json) { JSON.parse(json, symbolize_names: true) }
+      @json_deserializer ||=
+        -> (json) { JSON.parse(json, symbolize_names: true) }
     end
 
     def json_serializer
@@ -93,7 +94,8 @@ module Que
     attr_writer :constantizer
 
     def constantizer
-      @constantizer ||= proc { |string| string.split('::').inject(Object, &:const_get) }
+      @constantizer ||=
+        -> (string) { string.split('::').inject(Object, &:const_get) }
     end
   end
 end

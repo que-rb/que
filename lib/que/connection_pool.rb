@@ -16,7 +16,10 @@ module Que
 
     def execute(command, params = [])
       sql = nil
-      log = {level: :debug, params: params}
+      log = {
+        level: :debug,
+        params: params,
+      }
 
       case command
       when Symbol
@@ -51,7 +54,8 @@ module Que
     def convert_params(params)
       params.map do |param|
         case param
-          # The pg gem unfortunately doesn't convert fractions of time instances, so cast them to a string.
+          # The pg gem unfortunately doesn't convert fractions of time
+          # instances, so cast them to a string.
           when Time then param.strftime('%Y-%m-%d %H:%M:%S.%6N %z')
           when Array, Hash then JSON.dump(param)
           else param
@@ -66,11 +70,17 @@ module Que
 
     # Procs used to convert strings from PG into Ruby types.
     CAST_PROCS = {
-      16   => 't'.method(:==),                                  # Boolean.
-      114  => proc { |json| Que.json_deserializer.call(json) }, # JSON.
-      1184 => Time.method(:parse),                              # Timestamp with time zone.
+      # Boolean
+      16   => 't'.method(:==),
+      # JSON
+      114  => proc { |json| Que.json_deserializer.call(json) },
+      # Timestamp with time zone
+      1184 => Time.method(:parse),
     }
-    CAST_PROCS[23] = CAST_PROCS[20] = CAST_PROCS[21] = proc(&:to_i) # Integer, bigint, smallint.
+
+    # Integer, bigint, smallint
+    CAST_PROCS[23] = CAST_PROCS[20] = CAST_PROCS[21] = proc(&:to_i)
+
     CAST_PROCS.freeze
 
     def convert_result(result)
@@ -81,7 +91,9 @@ module Que
         converter = CAST_PROCS[result.ftype(index)]
 
         output.each do |hash|
-          if (value = hash.delete(field)) && converter
+          value = hash.delete(field)
+
+          if value && converter
             value = converter.call(value)
           end
 

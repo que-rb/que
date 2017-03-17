@@ -22,8 +22,14 @@ module Que
           end
 
           steps.each do |step|
-            sql = File.read("#{File.dirname(__FILE__)}/migrations/#{step}/#{direction}.sql")
-            Que.execute(sql)
+            filename = [
+              File.dirname(__FILE__),
+              'migrations',
+              step,
+              direction,
+            ].join('/') << '.sql'
+
+            Que.execute(File.read(filename))
           end
 
           set_db_version(version)
@@ -42,7 +48,8 @@ module Que
           # No table in the database at all.
           0
         elsif (d = result.first[:description]).nil?
-          # There's a table, it was just created before the migration system existed.
+          # There's a table, it was just created before the migration system
+          # existed.
           1
         else
           d.to_i

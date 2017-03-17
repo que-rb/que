@@ -9,16 +9,19 @@ module Que
     attr_reader :thread
     attr_accessor :priority
 
-    def initialize(job_queue:, result_queue:, priority: nil, start_callback: nil)
+    def initialize(job_queue:, result_queue:, priority: nil,
+        start_callback: nil)
+
       @priority     = priority
       @job_queue    = job_queue
       @result_queue = result_queue
 
-      @thread = Thread.new do
-        Thread.current.abort_on_exception = true
-        start_callback.call(self) if start_callback.respond_to?(:call)
-        work_loop
-      end
+      @thread =
+        Thread.new do
+          Thread.current.abort_on_exception = true
+          start_callback.call(self) if start_callback.respond_to?(:call)
+          work_loop
+        end
     end
 
     def wait_until_stopped
@@ -31,7 +34,7 @@ module Que
       loop do
         # Blocks until a job of the appropriate priority is available. If the
         # queue is shutting down this returns nil, which breaks the loop and
-        # ends the thread.
+        # lets the thread finish.
         break unless pk = @job_queue.shift(*priority)
 
         begin
@@ -41,7 +44,11 @@ module Que
             instance = klass.new(job)
             instance._run
 
-            log_message = {level: :debug, job: job, elapsed: (Time.now - start)}
+            log_message = {
+              level: :debug,
+              job: job,
+              elapsed: (Time.now - start),
+            }
 
             if e = instance._error
               log_message[:event] = :job_errored
@@ -56,24 +63,40 @@ module Que
             # condition that exists because advisory locks don't obey MVCC.
             # Not necessarily a problem, but if it happens a lot it may be
             # meaningful somehow, so log it.
-            Que.log level: :debug, event: :job_race_condition, pk: pk
+            Que.log \
+              level: :debug,
+              event: :job_race_condition,
+              pk: pk
           end
         rescue => error
-          Que.log level: :debug,
-                  event: :job_errored,
-                  pk: pk,
-                  job: job,
-                  error: {
-                    class: error.class.to_s,
-                    message: error.message
-                  }
+          Que.log \
+            level: :debug,
+            event: :job_errored,
+            pk: pk,
+            job: job,
+            error: {
+              class:   error.class.to_s,
+              message: error.message,
+            }
 
           begin
-            count    = job[:error_count] + 1
-            interval = (klass.retry_interval if klass && klass.respond_to?(:retry_interval)) || Job.retry_interval
-            delay    = interval.respond_to?(:call) ? interval.call(count) : interval
-            message  = "#{error.message}\n#{error.backtrace.join("\n")}"
-            Que.execute :set_error, [delay, message] + job.values_at(:priority, :run_at, :job_id)
+            interval =
+              klass &&
+              klass.respond_to?(:retry_interval) &&
+              klass.retry_interval ||
+              Job.retry_interval
+
+            delay =
+              if interval.respond_to?(:call)
+                interval.call(job[:error_count] + 1)
+              else
+                interval
+              end
+
+            message = "#{error.message}\n#{error.backtrace.join("\n")}"
+
+            Que.execute :set_error,
+              [delay, message] + job.values_at(:priority, :run_at, :job_id)
           rescue
             # If we can't reach the database for some reason, too bad, but
             # don't let it crash the work loop.

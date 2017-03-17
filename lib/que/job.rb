@@ -36,19 +36,30 @@ module Que
     end
 
     def handle_error(error)
-      error_count = @attrs[:error_count] += 1
+      error_count    = @attrs[:error_count] += 1
       retry_interval = self.class.retry_interval || Job.retry_interval
-      wait = retry_interval.respond_to?(:call) ? retry_interval.call(error_count) : retry_interval
+
+      wait =
+        if retry_interval.respond_to?(:call)
+          retry_interval.call(error_count)
+        else
+          retry_interval
+        end
+
       retry_in(wait)
     end
 
     def retry_in(period)
-      Que.execute :set_error, [period, @_error.message] + @attrs.values_at(:priority, :run_at, :job_id)
+      Que.execute :set_error,
+        [period, @_error.message] +
+        @attrs.values_at(:priority, :run_at, :job_id)
+
       @retried = true
     end
 
     def destroy
       Que.execute :destroy_job, attrs.values_at(:priority, :run_at, :job_id)
+
       @destroyed = true
     end
 
@@ -59,7 +70,11 @@ module Que
 
       def enqueue(*args, job_class: nil, run_at: nil, priority: nil, **arg_opts)
         args << arg_opts if arg_opts.any?
-        attrs = {job_class: job_class || to_s, args: args}
+
+        attrs = {
+          job_class: job_class || to_s,
+          args: args,
+        }
 
         if t = run_at || @run_at && @run_at.call
           attrs[:run_at] = t
@@ -72,7 +87,12 @@ module Que
         if Que.mode == :sync && !t
           run(*attrs[:args])
         else
-          values = Que.execute(:insert_job, attrs.values_at(:priority, :run_at, :job_class, :args)).first
+          values =
+            Que.execute(
+              :insert_job,
+              attrs.values_at(:priority, :run_at, :job_class, :args),
+            ).first
+
           new(values)
         end
       end
