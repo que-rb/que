@@ -23,7 +23,6 @@ gemfile:
   - spec/gemfiles/Gemfile.oldest
 
 env:
-  - PG_VERSION=9.3
   - PG_VERSION=9.4
   - PG_VERSION=9.5
   - PG_VERSION=9.6
