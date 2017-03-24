@@ -200,8 +200,8 @@ describe Que::Locker do
 
     it "should request enough jobs to fill the queue" do
       # Three BlockJobs will tie up the low-priority workers.
-      ids  = 3.times.map { BlockJob.enqueue(priority: 100).attrs[:job_id] }
-      ids += 6.times.map { Que::Job.enqueue(priority: 101).attrs[:job_id] }
+      ids  = 3.times.map { BlockJob.enqueue(priority: 100).attrs[:id] }
+      ids += 6.times.map { Que::Job.enqueue(priority: 101).attrs[:id] }
 
       locker
       3.times { $q1.pop }
@@ -234,7 +234,7 @@ describe Que::Locker do
 
         class PollRelockJob < BlockJob
           def run
-            $performed << @attrs[:job_id]
+            $performed << @attrs[:id]
             super
           end
         end
@@ -244,10 +244,10 @@ describe Que::Locker do
         locker_settings[:listen] = false
         locker
 
-        id1 = PollRelockJob.enqueue.attrs[:job_id]
+        id1 = PollRelockJob.enqueue.attrs[:id]
         $q1.pop
 
-        id2 = PollRelockJob.enqueue.attrs[:job_id]
+        id2 = PollRelockJob.enqueue.attrs[:id]
         $q1.pop
 
         # Without the relock protection, we'd expect the first job to be worked twice.
@@ -264,8 +264,8 @@ describe Que::Locker do
 
     it "should request as many as necessary to reach the maximum_queue_size" do
       # Three BlockJobs to tie up the low-priority workers.
-      ids  = 3.times.map { BlockJob.enqueue(priority: 100).attrs[:job_id] }
-      ids += 3.times.map { Que::Job.enqueue(priority: 101).attrs[:job_id] }
+      ids  = 3.times.map { BlockJob.enqueue(priority: 100).attrs[:id] }
+      ids += 3.times.map { Que::Job.enqueue(priority: 101).attrs[:id] }
 
       locker_settings.clear
       locker_settings[:poll_interval] = 0.01
@@ -278,7 +278,7 @@ describe Que::Locker do
       ids +=
         Que.transaction do
           6.times.map do
-            Que::Job.enqueue(priority: 101).attrs[:job_id]
+            Que::Job.enqueue(priority: 101).attrs[:id]
           end
         end
 
@@ -306,7 +306,7 @@ describe Que::Locker do
     end
 
     it "should trigger a new batch poll when the queue drops to the minimum_queue_size threshold" do
-      ids = 9.times.map { BlockJob.enqueue(priority: 100).attrs[:job_id] }
+      ids = 9.times.map { BlockJob.enqueue(priority: 100).attrs[:id] }
 
       locker
       3.times { $q1.pop }
@@ -333,7 +333,7 @@ describe Que::Locker do
       job = BlockJob.enqueue
       $q1.pop
 
-      assert_equal [job.attrs[:job_id]], locked_ids
+      assert_equal [job.attrs[:id]], locked_ids
 
       $q2.push nil
       sleep_until { DB[:que_jobs].count == 0 }
@@ -348,7 +348,7 @@ describe Que::Locker do
 
       assert_equal job.attrs[:priority], log['priority']
       assert_equal job.attrs[:run_at],   Time.parse(log['run_at'])
-      assert_equal job.attrs[:job_id],   log['job_id']
+      assert_equal job.attrs[:id],       log['id']
     end
 
     it "should not work jobs that are already locked" do
@@ -367,7 +367,7 @@ describe Que::Locker do
           Que.checkout do
             # NOTIFY won't propagate until transaction commits.
             Que.execute "BEGIN"
-            id = Que::Job.enqueue.attrs[:job_id]
+            id = Que::Job.enqueue.attrs[:id]
             Que.execute "SELECT pg_advisory_lock($1)", [id]
             Que.execute "COMMIT"
             q1.push nil
@@ -381,11 +381,11 @@ describe Que::Locker do
       q2.push nil
       t.join
 
-      assert_equal [id], DB[:que_jobs].select_map(:job_id)
+      assert_equal [id], DB[:que_jobs].select_map(:id)
     end
 
     it "should not try to lock and work jobs it has already locked" do
-      id = BlockJob.enqueue.attrs[:job_id]
+      id = BlockJob.enqueue.attrs[:id]
       locker
       $q1.pop
 
@@ -396,8 +396,8 @@ describe Que::Locker do
 
       payload =
         DB[:que_jobs].
-          where(job_id: id).
-          select(:priority, :run_at, :job_id).
+          where(id: id).
+          select(:priority, :run_at, :id).
           from_self(alias: :t).
           get{row_to_json(:t)}
 
@@ -431,10 +431,10 @@ describe Que::Locker do
 
       BlockJob.enqueue(priority: 5)
       $q1.pop
-      ids = 3.times.map { Que::Job.enqueue(priority: 5).attrs[:job_id] }
+      ids = 3.times.map { Que::Job.enqueue(priority: 5).attrs[:id] }
       sleep_until { ids_in_local_queue == ids }
 
-      id = Que::Job.enqueue(priority: 10).attrs[:job_id]
+      id = Que::Job.enqueue(priority: 10).attrs[:id]
 
       sleep 0.05 # Hacky.
       refute_includes ids_in_local_queue, id
@@ -449,13 +449,13 @@ describe Que::Locker do
 
       sleep_until { DB[:que_lockers].count == 1 }
 
-      block_job_id = BlockJob.enqueue(priority: 5).attrs[:job_id]
+      block_job_id = BlockJob.enqueue(priority: 5).attrs[:id]
       $q1.pop
-      ids = 3.times.map { Que::Job.enqueue(priority: 5).attrs[:job_id] }
+      ids = 3.times.map { Que::Job.enqueue(priority: 5).attrs[:id] }
 
       sleep_until { ids_in_local_queue == ids }
 
-      id = Que::Job.enqueue(priority: 2).attrs[:job_id]
+      id = Que::Job.enqueue(priority: 2).attrs[:id]
 
       sleep_until { ids_in_local_queue == [id] + ids[0..1] }
       sleep_until { locked_ids == (ids_in_local_queue + [block_job_id]).sort }
@@ -494,7 +494,7 @@ describe Que::Locker do
     end
 
     it "should remove and unlock all the jobs in its queue" do
-      job_ids = 6.times.map { BlockJob.enqueue.attrs[:job_id] }
+      job_ids = 6.times.map { BlockJob.enqueue.attrs[:id] }
       locker
 
       sleep_until { locked_ids == job_ids }
@@ -518,7 +518,7 @@ describe Que::Locker do
 
       sleep_until { DB[:que_lockers].count == 1 }
 
-      job_id = BlockJob.enqueue.attrs[:job_id]
+      job_id = BlockJob.enqueue.attrs[:id]
 
       $q1.pop
       t = Thread.new { locker.stop! }

@@ -13,13 +13,13 @@ module Que
     # Consider that the following would have the worker lock *all* unlocked
     # jobs:
     #
-    #   SELECT (j).*, pg_try_advisory_lock((j).job_id) AS locked
+    #   SELECT (j).*, pg_try_advisory_lock((j).id) AS locked
     #   FROM public.que_jobs AS j;
     #
     # The CTE will initially produce an "anchor" from the non-recursive term
     # (i.e. before the `UNION`), and then use it as the contents of the
     # working table as it continues to iterate through `que_jobs` looking for
-    # a lock. The jobs table has a sort on (priority, run_at, job_id) which
+    # a lock. The jobs table has a sort on (priority, run_at, id) which
     # allows it to walk the jobs table in a stable manner. As noted above, the
     # recursion examines one job at a time so that it only ever acquires a
     # single lock.
@@ -51,35 +51,35 @@ module Que
 
     poll_jobs: %{
       WITH RECURSIVE jobs AS (
-        SELECT (j).*, pg_try_advisory_lock((j).job_id) AS locked
+        SELECT (j).*, pg_try_advisory_lock((j).id) AS locked
         FROM (
           SELECT j
           FROM public.que_jobs AS j
-          WHERE NOT job_id = ANY($1::integer[])
+          WHERE NOT id = ANY($1::integer[])
           AND run_at <= now()
-          ORDER BY priority, run_at, job_id
+          ORDER BY priority, run_at, id
           LIMIT 1
         ) AS t1
         UNION ALL (
-          SELECT (j).*, pg_try_advisory_lock((j).job_id) AS locked
+          SELECT (j).*, pg_try_advisory_lock((j).id) AS locked
           FROM (
             SELECT (
               SELECT j
               FROM public.que_jobs AS j
-              WHERE NOT job_id = ANY($1::integer[])
+              WHERE NOT id = ANY($1::integer[])
               AND run_at <= now()
-              AND (priority, run_at, job_id) >
-                (jobs.priority, jobs.run_at, jobs.job_id)
-              ORDER BY priority, run_at, job_id
+              AND (priority, run_at, id) >
+                (jobs.priority, jobs.run_at, jobs.id)
+              ORDER BY priority, run_at, id
               LIMIT 1
             ) AS j
             FROM jobs
-            WHERE jobs.job_id IS NOT NULL
+            WHERE jobs.id IS NOT NULL
             LIMIT 1
           ) AS t1
         )
       )
-      SELECT priority, run_at, job_id
+      SELECT priority, run_at, id
       FROM jobs
       WHERE locked
       LIMIT $2::integer
@@ -90,7 +90,7 @@ module Que
       FROM public.que_jobs
       WHERE priority = $1::smallint
       AND   run_at   = $2::timestamptz
-      AND   job_id   = $3::bigint
+      AND   id       = $3::bigint
     },
 
     reenqueue_job: %{
@@ -98,7 +98,7 @@ module Que
         DELETE FROM public.que_jobs
           WHERE priority = $1::smallint
           AND   run_at   = $2::timestamptz
-          AND   job_id   = $3::bigint
+          AND   id       = $3::bigint
       )
       INSERT INTO public.que_jobs
       (priority, job_class, run_at, args)
@@ -114,7 +114,7 @@ module Que
           last_error  = $2::text
       WHERE priority  = $3::smallint
       AND   run_at    = $4::timestamptz
-      AND   job_id    = $5::bigint
+      AND   id        = $5::bigint
     },
 
     insert_job: %{
@@ -134,7 +134,7 @@ module Que
       DELETE FROM public.que_jobs
       WHERE priority = $1::smallint
       AND   run_at   = $2::timestamptz
-      AND   job_id   = $3::bigint
+      AND   id       = $3::bigint
     },
 
     clean_lockers: %{
@@ -153,16 +153,16 @@ module Que
     job_stats: %{
       SELECT job_class,
              count(*)                    AS count,
-             count(locks.job_id)         AS count_working,
+             count(locks.id)             AS count_working,
              sum((error_count > 0)::int) AS count_errored,
              max(error_count)            AS highest_error_count,
              min(run_at)                 AS oldest_run_at
       FROM public.que_jobs
       LEFT JOIN (
-        SELECT (classid::bigint << 32) + objid::bigint AS job_id
+        SELECT (classid::bigint << 32) + objid::bigint AS id
         FROM pg_locks
         WHERE locktype = 'advisory'
-      ) locks USING (job_id)
+      ) locks USING (id)
       GROUP BY job_class
       ORDER BY count(*) DESC
     },
@@ -173,11 +173,11 @@ module Que
              pg.ruby_pid
       FROM public.que_jobs
       JOIN (
-        SELECT (classid::bigint << 32) + objid::bigint AS job_id, que_lockers.*
+        SELECT (classid::bigint << 32) + objid::bigint AS id, que_lockers.*
         FROM pg_locks
         JOIN que_lockers USING (pid)
         WHERE locktype = 'advisory'
-      ) pg USING (job_id)
+      ) pg USING (id)
     },
   }
 

@@ -96,7 +96,7 @@ module Que
             message = "#{error.message}\n#{error.backtrace.join("\n")}"
 
             Que.execute :set_error,
-              [delay, message] + job.values_at(:priority, :run_at, :job_id)
+              [delay, message] + job.values_at(:priority, :run_at, :id)
           rescue
             # If we can't reach the database for some reason, too bad, but
             # don't let it crash the work loop.

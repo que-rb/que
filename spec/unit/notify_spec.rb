@@ -23,8 +23,8 @@ describe "An insertion into que_jobs" do
           assert_equal notify_pid, pid
 
           json = JSON.load(payload)
-          assert_equal %w(job_id priority run_at), json.keys.sort
-          assert_equal job[:job_id], json['job_id']
+          assert_equal %w(id priority run_at), json.keys.sort
+          assert_equal job[:id], json['id']
           assert_equal 100, json['priority']
           assert_in_delta Time.parse(json['run_at']), Time.now, 3
         end

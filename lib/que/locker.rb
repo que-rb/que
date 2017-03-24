@@ -150,8 +150,8 @@ module Que
       space = @job_queue.space
       jobs  = execute :poll_jobs, ["{#{@locks.to_a.join(',')}}", space]
 
-      @locks.merge jobs.map { |job| job[:job_id] }
-      push_jobs jobs.map { |job| job.values_at(:priority, :run_at, :job_id) }
+      @locks.merge jobs.map { |job| job[:id] }
+      push_jobs jobs.map { |job| job.values_at(:priority, :run_at, :id) }
 
       @last_polled_at      = Time.now
       @last_poll_satisfied = space == jobs.count
@@ -229,7 +229,7 @@ module Que
           return [
             job_json[:priority],
             Time.parse(job_json[:run_at]),
-            job_json[:job_id],
+            job_json[:id],
           ]
         end
       end

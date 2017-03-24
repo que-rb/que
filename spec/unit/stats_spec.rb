@@ -7,10 +7,10 @@ describe Que, '.job_stats' do
     BlockJob.enqueue
     Que::Job.enqueue
 
-    # Have to tweak the job_id to ensure that the portion of the SQL query
-    # that accounts for bigint job_ids functions correctly.
+    # Have to tweak the id to ensure that the portion of the SQL query
+    # that accounts for bigint ids functions correctly.
     old = Time.now - 3600
-    DB[:que_jobs].where(job_class: "Que::Job").update(job_id: 2**33, error_count: 5, run_at: old)
+    DB[:que_jobs].where(job_class: "Que::Job").update(id: 2**33, error_count: 5, run_at: old)
 
     Que::Job.enqueue
 

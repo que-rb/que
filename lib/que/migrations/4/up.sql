@@ -3,6 +3,9 @@ ALTER TABLE que_jobs
   DROP COLUMN queue,
   ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (priority, run_at, job_id);
 
+ALTER TABLE que_jobs
+  RENAME COLUMN job_id TO id;
+
 CREATE UNLOGGED TABLE que_lockers (
   pid           integer NOT NULL CONSTRAINT que_lockers_pkey PRIMARY KEY,
   worker_count  integer NOT NULL,
@@ -41,7 +44,7 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
         ) t1
       ) t2
     ) t3
-    WHERE NEW.job_id % count = row_number;
+    WHERE NEW.id % count = row_number;
 
     IF locker_pid IS NOT NULL THEN
       -- There's a size limit to what can be broadcast via LISTEN/NOTIFY, so
@@ -53,7 +56,7 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
       FROM (
         SELECT NEW.priority AS priority,
                NEW.run_at   AS run_at,
-               NEW.job_id   AS job_id
+               NEW.id       AS id
       ) t;
 
       PERFORM pg_notify('que_locker_' || locker_pid::text, primary_key::text);

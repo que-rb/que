@@ -13,7 +13,7 @@ describe Que::Worker do
 
   def run_jobs(*jobs)
     @result_queue.clear
-    jobs = jobs.flatten.map { |job| job.values_at(:priority, :run_at, :job_id) }
+    jobs = jobs.flatten.map { |job| job.values_at(:priority, :run_at, :id) }
     @job_queue.push *jobs
     sleep_until { @result_queue.to_a.sort == jobs.sort }
   end
@@ -29,7 +29,7 @@ describe Que::Worker do
       end
 
       [1, 2, 3].each { |i| WorkerJob.enqueue i, priority: i }
-      job_ids = DB[:que_jobs].order_by(:priority).select_map(:job_id)
+      job_ids = DB[:que_jobs].order_by(:priority).select_map(:id)
       run_jobs Que.execute("SELECT * FROM que_jobs").shuffle
 
       assert_equal [1, 2, 3], $results
@@ -161,7 +161,7 @@ describe Que::Worker do
     assert_equal 0, DB[:que_jobs].count
     run_jobs priority: 1,
              run_at:   Time.now,
-             job_id:   587648
+             id:       587648
 
     assert_equal [587648], @result_queue.to_a.map{|pk| pk[-1]}
   end
@@ -183,7 +183,7 @@ describe Que::Worker do
       ErrorJob.enqueue priority: 1
       Que::Job.enqueue priority: 2
 
-      job_ids = DB[:que_jobs].order_by(:priority).select_map(:job_id)
+      job_ids = DB[:que_jobs].order_by(:priority).select_map(:id)
       run_jobs Que.execute("SELECT * FROM que_jobs")
       assert_equal job_ids, @result_queue.to_a.map{|pk| pk[-1]}
 
@@ -192,7 +192,7 @@ describe Que::Worker do
 
       event = events.first
       assert_equal 1, event['job']['priority']
-      assert_instance_of Fixnum, event['job']['job_id']
+      assert_instance_of Fixnum, event['job']['id']
       assert_equal "ErrorJob!", event['error']
     end
 

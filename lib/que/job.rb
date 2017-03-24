@@ -52,13 +52,13 @@ module Que
     def retry_in(period)
       Que.execute :set_error,
         [period, @_error.message] +
-        @attrs.values_at(:priority, :run_at, :job_id)
+        @attrs.values_at(:priority, :run_at, :id)
 
       @retried = true
     end
 
     def destroy
-      Que.execute :destroy_job, attrs.values_at(:priority, :run_at, :job_id)
+      Que.execute :destroy_job, attrs.values_at(:priority, :run_at, :id)
 
       @destroyed = true
     end
