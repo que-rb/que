@@ -302,7 +302,7 @@ describe Que::Locker do
           e['limit'] == 5 && e['locked'] == 5
         end
 
-      assert(second_mass_lock)
+      assert(second_mass_lock, "Didn't find a valid log message in: #{locker_polled_events.inspect}")
     end
 
     it "should trigger a new batch poll when the queue drops to the minimum_queue_size threshold" do
