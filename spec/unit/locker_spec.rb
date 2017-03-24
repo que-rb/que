@@ -276,7 +276,7 @@ describe Que::Locker do
       # Use a transaction to make sure that the locker is able to see all of
       # these jobs at the same time.
       ids +=
-        DB.transaction do
+        Que.transaction do
           6.times.map do
             Que::Job.enqueue(priority: 101).attrs[:job_id]
           end
