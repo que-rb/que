@@ -16,6 +16,7 @@ group :test do
   gem 'minitest', '~> 5.10.1'
   gem 'm'
   gem 'pry'
+  gem 'pg_examiner'
 end
 
 platforms :rbx do

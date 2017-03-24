@@ -81,4 +81,25 @@ describe Que::Migrations do
     Que::Migrations.migrate!
     assert DB.table_exists?(:que_jobs)
   end
+
+  it "down migrations should precisely undo what the up migrations did" do
+    Que.migrate! version: 0
+    versions = (1..Que::Migrations::CURRENT_VERSION).to_a
+
+    Que.checkout do |conn|
+      versions.each do |version|
+        original_snapshot = PGExaminer.examine(conn)
+
+        Que.migrate! version: version
+        Que.migrate! version: version - 1
+
+        new_snapshot = PGExaminer.examine(conn)
+        diff = original_snapshot.diff(new_snapshot)
+
+        assert_empty diff, "Migration ##{version} didn't precisely undo itself!"
+
+        Que.migrate! version: version
+      end
+    end
+  end
 end

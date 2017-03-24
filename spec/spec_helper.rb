@@ -7,6 +7,7 @@ require 'logger'
 require 'json'
 require 'pond'
 require 'pry'
+require 'pg_examiner'
 
 require 'minitest/autorun'
 require 'minitest/pride'
