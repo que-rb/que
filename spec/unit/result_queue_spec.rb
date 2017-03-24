@@ -10,6 +10,7 @@ describe Que::ResultQueue do
   describe "#push and #clear" do
     it "should add items and remove all items from the result queue" do
       ids = (1..100).to_a.shuffle
+      result_queue # Initialize before it's accessed by different threads.
 
       threads = ids.each_slice(25).to_a.map do |id_set|
         Thread.new do
