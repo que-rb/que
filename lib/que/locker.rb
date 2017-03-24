@@ -151,7 +151,7 @@ module Que
       jobs  = execute :poll_jobs, ["{#{@locks.to_a.join(',')}}", space]
 
       @locks.merge jobs.map { |job| job[:id] }
-      push_jobs jobs.map { |job| job.values_at(:priority, :run_at, :id) }
+      push_jobs(jobs)
 
       @last_polled_at      = Time.now
       @last_poll_satisfied = space == jobs.count
@@ -167,8 +167,10 @@ module Que
       if @listen
         # TODO: In case we received notifications for many jobs at once, check
         # and lock and push them all in bulk.
-        if pk = wait_for_job(@wait_period)
-          push_jobs([pk]) if @job_queue.accept?(pk) && lock_job?(pk[-1])
+        if identifiers = wait_for_job(@wait_period)
+          if @job_queue.accept?(identifiers) && lock_job?(identifiers[:id])
+            push_jobs([identifiers])
+          end
         end
       else
         sleep(@wait_period)
@@ -200,16 +202,16 @@ module Que
       unlock_jobs(@result_queue.clear)
     end
 
-    def push_jobs(pks)
+    def push_jobs(identifiers)
       # Unlock any low-importance jobs the new ones may displace.
-      if pks = @job_queue.push(*pks)
-        unlock_jobs(pks)
+      if ids = @job_queue.push(*identifiers)
+        unlock_jobs(ids)
       end
     end
 
-    def unlock_jobs(pks)
-      pks.each do |pk|
-        id = pk[-1]
+    def unlock_jobs(ids)
+      # TODO: This could be made more efficient.
+      ids.each do |id|
         execute "SELECT pg_advisory_unlock($1)", [id]
         @locks.delete(id)
       end
@@ -226,11 +228,9 @@ module Que
             event: :job_notified,
             job: job_json
 
-          return [
-            job_json[:priority],
-            Time.parse(job_json[:run_at]),
-            job_json[:id],
-          ]
+          job_json[:run_at] = Time.parse(job_json[:run_at])
+
+          return job_json
         end
       end
     end

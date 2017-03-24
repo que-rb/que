@@ -21,7 +21,7 @@ module Que
       sync do
         # At some point, for large queue sizes and small numbers of items to
         # insert, it may be worth investigating an insertion by binary search.
-        @array.push(*jobs).sort!
+        @array.push(*jobs).sort_by! { |job| job.values_at(:priority, :run_at, :id)}
 
         # Notify all waiting threads that they can try again to remove a item.
         # TODO: Consider `jobs.length.times { @cv.signal }`
@@ -29,7 +29,8 @@ module Que
 
         # If we passed the maximum queue size, drop the least important items
         # and return their values.
-        @array.pop(size - maximum_size) if maximum_size < size
+        overage = size - maximum_size
+        pop_ids(overage) if overage > 0
       end
     end
 
@@ -39,8 +40,8 @@ module Que
         sync do
           if @stop
             return
-          elsif (pk = @array.first) && pk.first <= priority
-            return @array.shift
+          elsif (job = @array.first) && job.fetch(:priority) <= priority
+            return shift_id
           else
             @cv.wait
           end
@@ -48,10 +49,10 @@ module Que
       end
     end
 
-    def accept?(pk)
-      # Accept the pk if there's space available or if it will sort lower than
-      # the lowest pk currently in the queue.
-      sync { space > 0 || (pk <=> @array.last) < 0 }
+    def accept?(job)
+      # Accept the job if there's space available or if it will sort lower than
+      # the lowest job currently in the queue.
+      sync { space > 0 || job.fetch(:priority) < @array.last.fetch(:priority) }
     end
 
     def space
@@ -71,10 +72,18 @@ module Que
     end
 
     def clear
-      sync { @array.pop(size) }
+      sync { pop_ids(size) }
     end
 
     private
+
+    def shift_id
+      @array.shift.fetch(:id)
+    end
+
+    def pop_ids(count)
+      @array.pop(count).map { |job| job.fetch(:id) }
+    end
 
     def sync(&block)
       @monitor.synchronize(&block)

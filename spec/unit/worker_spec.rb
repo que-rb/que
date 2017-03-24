@@ -5,7 +5,7 @@ require 'spec_helper'
 describe Que::Worker do
   before do
     @job_queue    = Que::JobQueue.new maximum_size: 20
-    @result_queue = Que::JobQueue.new
+    @result_queue = Que::ResultQueue.new
 
     @worker = Que::Worker.new job_queue:    @job_queue,
                               result_queue: @result_queue
@@ -13,9 +13,9 @@ describe Que::Worker do
 
   def run_jobs(*jobs)
     @result_queue.clear
-    jobs = jobs.flatten.map { |job| job.values_at(:priority, :run_at, :id) }
+    jobs = jobs.flatten.map { |job| {priority: job[:priority], run_at: job[:run_at], id: job[:id]} }
     @job_queue.push *jobs
-    sleep_until { @result_queue.to_a.sort == jobs.sort }
+    sleep_until { @result_queue.to_a.sort == jobs.map{|j| j[:id]}.sort }
   end
 
   it "should repeatedly work jobs that are passed to it via its job_queue, ordered correctly" do
@@ -33,7 +33,7 @@ describe Que::Worker do
       run_jobs Que.execute("SELECT * FROM que_jobs").shuffle
 
       assert_equal [1, 2, 3], $results
-      assert_equal job_ids, @result_queue.to_a.map{|pk| pk[-1]}
+      assert_equal job_ids, @result_queue.to_a
 
       events = logged_messages.select{|m| m['event'] == 'job_worked'}
       assert_equal 3, events.count
@@ -163,17 +163,17 @@ describe Que::Worker do
              run_at:   Time.now,
              id:       587648
 
-    assert_equal [587648], @result_queue.to_a.map{|pk| pk[-1]}
+    assert_equal [587648], @result_queue.to_a
   end
 
   it "should only take jobs that meet its priority requirement" do
     @worker.priority = 10
 
-    jobs = (1..20).map { |i| [i, Time.now, i] }
+    jobs = (1..20).map { |i| {priority: i, run_at: Time.now, id: i} }
 
     @job_queue.push *jobs
 
-    sleep_until { @result_queue.to_a.map{|pk| pk[-1]} == (1..10).to_a }
+    sleep_until { @result_queue.to_a == (1..10).to_a }
 
     assert_equal jobs[10..19], @job_queue.to_a
   end
@@ -185,7 +185,7 @@ describe Que::Worker do
 
       job_ids = DB[:que_jobs].order_by(:priority).select_map(:id)
       run_jobs Que.execute("SELECT * FROM que_jobs")
-      assert_equal job_ids, @result_queue.to_a.map{|pk| pk[-1]}
+      assert_equal job_ids, @result_queue.to_a
 
       events = logged_messages.select{|m| m['event'] == 'job_errored'}
       assert_equal 1, events.count

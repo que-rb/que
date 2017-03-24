@@ -35,10 +35,10 @@ module Que
         # Blocks until a job of the appropriate priority is available. If the
         # queue is shutting down this returns nil, which breaks the loop and
         # lets the thread finish.
-        break unless pk = @job_queue.shift(*priority)
+        break unless id = @job_queue.shift(*priority)
 
         begin
-          if job = Que.execute(:get_job, pk).first
+          if job = Que.execute(:get_job, [id]).first
             start = Time.now
             klass = Que.constantizer.call(job[:job_class])
             instance = klass.new(job)
@@ -66,13 +66,13 @@ module Que
             Que.log \
               level: :debug,
               event: :job_race_condition,
-              pk: pk
+              id: id
           end
         rescue => error
           Que.log \
             level: :debug,
             event: :job_errored,
-            pk: pk,
+            id: id,
             job: job,
             error: {
               class:   error.class.to_s,
@@ -102,7 +102,7 @@ module Que
             # don't let it crash the work loop.
           end
         ensure
-          @result_queue.push(pk)
+          @result_queue.push(id)
         end
       end
     end

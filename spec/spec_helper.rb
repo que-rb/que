@@ -99,7 +99,7 @@ class QueSpec < Minitest::Spec
   end
 
   def ids_in_local_queue
-    locker.job_queue.to_a.map { |h| h[-1] }
+    locker.job_queue.to_a.map { |h| h[:id] }
   end
 
   # Travis seems to freeze the VM the tests run in sometimes, so bump up the limit

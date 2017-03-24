@@ -88,9 +88,7 @@ module Que
     get_job: %{
       SELECT *
       FROM public.que_jobs
-      WHERE priority = $1::smallint
-      AND   run_at   = $2::timestamptz
-      AND   id       = $3::bigint
+      WHERE id = $1::bigint
     },
 
     reenqueue_job: %{
