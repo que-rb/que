@@ -1,10 +1,12 @@
 ALTER TABLE que_jobs
-  DROP CONSTRAINT que_jobs_pkey,
-  DROP COLUMN queue,
-  ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (priority, run_at, job_id);
+  RENAME COLUMN job_id TO id;
 
 ALTER TABLE que_jobs
-  RENAME COLUMN job_id TO id;
+  DROP CONSTRAINT que_jobs_pkey,
+  DROP COLUMN queue,
+  ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (id);
+
+CREATE UNIQUE INDEX que_jobs_poll_idx ON que_jobs (priority, run_at, id);
 
 CREATE UNLOGGED TABLE que_lockers (
   pid           integer NOT NULL CONSTRAINT que_lockers_pkey PRIMARY KEY,
