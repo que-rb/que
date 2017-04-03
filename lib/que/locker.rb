@@ -30,6 +30,7 @@ module Que
       on_worker_start:    nil
     )
 
+      # Local cache of which advisory locks are held by this connection.
       @locks = Set.new
 
       # Wrap the given connection in a dummy connection pool.
@@ -42,11 +43,17 @@ module Que
       @poll_interval      = poll_interval
       @minimum_queue_size = minimum_queue_size
 
-      # We use one JobQueue to send primary keys of reserved jobs to workers,
-      # and another to retrieve primary keys of finished jobs from workers.
+      # We use a JobQueue to track sorted identifiers (priority, run_at, id) of
+      # locked jobs and pass them to workers, and a ResultQueue to retrieve ids
+      # of finished jobs from workers.
       @job_queue    = JobQueue.new maximum_size: maximum_queue_size
       @result_queue = ResultQueue.new
 
+      # If the worker_count exceeds the array of priorities it'll result in
+      # extra workers that will work jobs of any priority. For example, the
+      # default worker_count of 6 and the default worker priorities of [10, 30,
+      # 50] will result in three workers that only work jobs that meet those
+      # priorities, and three workers that will work any job.
       @workers = worker_count.times.zip(worker_priorities).map do |_, priority|
         Worker.new priority:       priority,
                    job_queue:      @job_queue,
@@ -54,6 +61,7 @@ module Que
                    start_callback: on_worker_start
       end
 
+      # Give the locker thread priority, so it can respond to NOTIFYs from PG.
       @thread = Thread.new { work_loop }
       @thread.priority = 1
     end
@@ -129,7 +137,9 @@ module Que
 
           if @listen
             # Unlisten and drain notifications before releasing connection back
-            # to the pool.
+            # to the pool. TODO: Add an explicit spec that this isn't a race
+            # condition, and that we can't get any more notifications on queries
+            # after the UNLISTEN * returns.
             execute "UNLISTEN *"
             {} while conn.notifies
           end
@@ -147,29 +157,29 @@ module Que
     end
 
     def poll
-      space = @job_queue.space
-      jobs  = execute :poll_jobs, ["{#{@locks.to_a.join(',')}}", space]
+      space     = @job_queue.space
+      sort_keys = execute :poll_jobs, ["{#{@locks.to_a.join(',')}}", space]
 
-      @locks.merge jobs.map { |job| job[:id] }
-      push_jobs(jobs)
+      sort_keys.each { |sort_key| @locks.add(sort_key.fetch(:id)) }
+      push_jobs(sort_keys)
 
       @last_polled_at      = Time.now
-      @last_poll_satisfied = space == jobs.count
+      @last_poll_satisfied = space == sort_keys.count
 
       Que.log \
         level: :debug,
         event: :locker_polled,
         limit: space,
-        locked: jobs.count
+        locked: sort_keys.count
     end
 
     def wait
       if @listen
-        # TODO: In case we received notifications for many jobs at once, check
+        # TODO: In case we receive notifications for many jobs at once, check
         # and lock and push them all in bulk.
-        if identifiers = wait_for_job(@wait_period)
-          if @job_queue.accept?(identifiers) && lock_job?(identifiers[:id])
-            push_jobs([identifiers])
+        if sort_key = wait_for_job(@wait_period)
+          if @job_queue.accept?(sort_key) && lock_job?(sort_key.fetch(:id))
+            push_jobs([sort_key])
           end
         end
       else
@@ -202,35 +212,42 @@ module Que
       unlock_jobs(@result_queue.clear)
     end
 
-    def push_jobs(identifiers)
+    def push_jobs(sort_keys)
       # Unlock any low-importance jobs the new ones may displace.
-      if ids = @job_queue.push(*identifiers)
+      if ids = @job_queue.push(*sort_keys)
         unlock_jobs(ids)
       end
     end
 
     def unlock_jobs(ids)
-      # TODO: This could be made more efficient.
-      ids.each do |id|
-        execute "SELECT pg_advisory_unlock($1)", [id]
-        @locks.delete(id)
-      end
+      return if ids.empty?
+
+      # Unclear how untrusted input would get passed to this method, but since
+      # we need string interpolation here, make sure we only have integers.
+      ids.map!(&:to_i)
+
+      values = ids.join('), (')
+
+      # TODO: Assert that these always return true.
+      execute "SELECT pg_advisory_unlock(v.i) FROM (VALUES (#{values})) v (i)"
+
+      ids.each { |id| @locks.delete(id) }
     end
 
     def wait_for_job(timeout = nil)
       checkout do |conn|
         conn.wait_for_notify(timeout) do |_, _, payload|
-          job_json =
+          sort_key =
             JSON.parse(payload, symbolize_names: true)
 
           Que.log \
             level: :debug,
             event: :job_notified,
-            job: job_json
+            job: sort_key
 
-          job_json[:run_at] = Time.parse(job_json[:run_at])
+          sort_key[:run_at] = Time.parse(sort_key.fetch(:run_at))
 
-          return job_json
+          return sort_key
         end
       end
     end
