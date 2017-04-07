@@ -26,28 +26,11 @@ module Que
         # insert, it may be worth investigating an insertion by binary search.
 
         if USE_BINARY_SEARCH
-          sort_keys.each do |sort_key|
-            priority = sort_key.fetch(:priority)
-            run_at   = sort_key.fetch(:run_at)
-            id       = sort_key.fetch(:id)
-
-            index =
-              @array.bsearch_index do |element|
-                e_priority = element.fetch(:priority)
-                next true  if e_priority > priority
-                next false if e_priority < priority
-
-                e_run_at = element.fetch(:run_at)
-                next true  if e_run_at > run_at
-                next false if e_run_at < run_at
-
-                element.fetch(:id) >= id
-              end
-
-            if index
-              @array.insert(index, sort_key)
+          sort_keys.each do |key|
+            if index = @array.bsearch_index { |k| compare_keys(key, k) }
+              @array.insert(index, key)
             else
-              @array << sort_key
+              @array << key
             end
           end
         else
@@ -83,9 +66,9 @@ module Que
     end
 
     def accept?(sort_key)
-      # Accept the job if there's space available or if it will sort lower than
-      # the lowest job currently in the queue.
-      sync { space > 0 || sort_key.fetch(:priority) < @array.last.fetch(:priority) }
+      # Accept the job if there's space available or if it's more important than
+      # the least important item in the queue.
+      sync { space > 0 || compare_keys(sort_key, @array.last) }
     end
 
     def space
@@ -109,6 +92,21 @@ module Que
     end
 
     private
+
+    SORT_KEYS = [:priority, :run_at, :id].freeze
+
+    def compare_keys(a, b)
+      SORT_KEYS.each do |key|
+        a_value = a.fetch(key)
+        b_value = b.fetch(key)
+
+        return true  if b_value > a_value
+        return false if b_value < a_value
+      end
+
+      # Comparing a job's sort key against itself - this shouldn't happen.
+      raise Que::Error, "Compared a job's sort key to itself!"
+    end
 
     def shift_id
       @array.shift.fetch(:id)

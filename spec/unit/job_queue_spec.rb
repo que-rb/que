@@ -42,17 +42,19 @@ describe Que::JobQueue do
     describe "when the maximum size has been reached" do
       before do
         @job_queue.push(*@job_array)
+
+        @important_values = (1..3).map { |id| {priority: 0, run_at: @old, id: id} }
       end
 
       it "should pop the least important jobs and return their pks" do
-        assert_equal @job_array[7..7].map{|j| j[:id]}, @job_queue.push(@job_array[0])
-        assert_equal @job_array[5..6].map{|j| j[:id]}, @job_queue.push(*@job_array[1..2]).sort
+        assert_equal @job_array[7..7].map{|j| j[:id]}, @job_queue.push(@important_values[0])
+        assert_equal @job_array[5..6].map{|j| j[:id]}, @job_queue.push(*@important_values[1..2]).sort
         assert_equal 8, @job_queue.size
       end
 
       it "should work when passing multiple pks that would pass the maximum" do
         assert_equal @job_array.first[:id], @job_queue.shift
-        assert_equal @job_array[7..7].map{|j| j[:id]}, @job_queue.push(*@job_array[0..1])
+        assert_equal @job_array[7..7].map{|j| j[:id]}, @job_queue.push(*@important_values[0..1])
         assert_equal 8, @job_queue.size
       end
 
@@ -83,7 +85,7 @@ describe Que::JobQueue do
     end
 
     it "should return false if there is insufficient room in the queue, and the job's priority is lower than any in the queue" do
-      assert_equal false, @job_queue.accept?(@job_array.last)
+      assert_equal false, @job_queue.accept?({priority: 100, run_at: Time.now, id: 45})
     end
   end
 
