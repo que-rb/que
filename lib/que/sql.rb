@@ -96,9 +96,7 @@ module Que
       SET error_count = error_count + 1,
           run_at      = now() + $1::bigint * '1 second'::interval,
           last_error  = $2::text
-      WHERE priority  = $3::smallint
-      AND   run_at    = $4::timestamptz
-      AND   id        = $5::bigint
+      WHERE id        = $3::bigint
     },
 
     insert_job: %{
@@ -116,9 +114,7 @@ module Que
 
     destroy_job: %{
       DELETE FROM public.que_jobs
-      WHERE priority = $1::smallint
-      AND   run_at   = $2::timestamptz
-      AND   id       = $3::bigint
+      WHERE id = $1::bigint
     },
 
     clean_lockers: %{
