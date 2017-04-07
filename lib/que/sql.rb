@@ -91,20 +91,6 @@ module Que
       WHERE id = $1::bigint
     },
 
-    reenqueue_job: %{
-      WITH deleted_job AS (
-        DELETE FROM public.que_jobs
-          WHERE priority = $1::smallint
-          AND   run_at   = $2::timestamptz
-          AND   id       = $3::bigint
-      )
-      INSERT INTO public.que_jobs
-      (priority, job_class, run_at, args)
-      VALUES
-      ($1::smallint, $4::text, $5::timestamptz, $6::json)
-      RETURNING *
-    },
-
     set_error: %{
       UPDATE public.que_jobs
       SET error_count = error_count + 1,
