@@ -401,7 +401,7 @@ describe Que::Locker do
           from_self(alias: :t).
           get{row_to_json(:t)}
 
-      pid = locker.backend_pid
+      pid = DB[:que_lockers].get(:pid)
       refute_nil pid
       DB.notify "que_locker_#{pid}", payload: payload
 

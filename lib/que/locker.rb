@@ -9,7 +9,7 @@ require 'set'
 
 module Que
   class Locker
-    attr_reader :thread, :workers, :job_queue, :backend_pid, :locks
+    attr_reader :thread, :workers, :job_queue, :locks
 
     DEFAULT_POLL_INTERVAL      = 1.0
     DEFAULT_WAIT_PERIOD        = 0.01
@@ -83,14 +83,11 @@ module Que
 
     def work_loop
       checkout do |conn|
-        @backend_pid =
-          execute("SELECT pg_backend_pid()").first.fetch(:pg_backend_pid)
-
         Que.log \
           level:              :debug,
           event:              :locker_start,
           listen:             @listen,
-          backend_pid:        @backend_pid,
+          backend_pid:        conn.backend_pid,
           wait_period:        @wait_period,
           poll_interval:      @poll_interval,
           minimum_queue_size: @minimum_queue_size,
@@ -99,7 +96,7 @@ module Que
 
         begin
           if @listen
-            execute "LISTEN que_locker_#{@backend_pid}"
+            execute "LISTEN que_locker_#{conn.backend_pid}"
           end
 
           # A previous locker that didn't exit cleanly may have left behind
@@ -133,7 +130,7 @@ module Que
 
           unlock_finished_jobs
         ensure
-          execute "DELETE FROM public.que_lockers WHERE pid = $1", [@backend_pid]
+          execute :clean_lockers
 
           if @listen
             # Unlisten and drain notifications before releasing connection back
