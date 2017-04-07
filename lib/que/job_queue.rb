@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-# A thread-safe queue that holds job primary keys in sorted order. Supports
-# blocking while waiting for a job to become available, stopping, and only
-# returning jobs over a minimum priority.
+# A sized thread-safe queue that holds ordered job sort keys. Supports blocking
+# while waiting for a job to become available, stopping, and only returning jobs
+# over a minimum priority.
 
 module Que
   class JobQueue
-    # Don't try to use a binary search input if we're on a Ruby before 2.3.0.
+    # We can only use a binary search on Ruby 2.3+.
     USE_BINARY_SEARCH = [].respond_to?(:bsearch_index)
 
     attr_reader :maximum_size
@@ -22,16 +22,10 @@ module Que
 
     def push(*sort_keys)
       sync do
-        # At some point, for large queue sizes and small numbers of items to
-        # insert, it may be worth investigating an insertion by binary search.
-
         if USE_BINARY_SEARCH
           sort_keys.each do |key|
-            if index = @array.bsearch_index { |k| compare_keys(key, k) }
-              @array.insert(index, key)
-            else
-              @array << key
-            end
+            i = @array.bsearch_index{|k| compare_keys(key, k)} || -1
+            @array.insert(i, key)
           end
         else
           @array.push(*sort_keys).sort_by! do |sort_key|
@@ -40,11 +34,16 @@ module Que
         end
 
         # Notify all waiting threads that they can try again to remove a item.
-        # TODO: Consider `sort_keys.length.times { @cv.signal }`?
+        # We could try to only wake up a subset of the waiting threads, to avoid
+        # contention when there are many sleeping threads, but not all
+        # threads/workers will be interested in all jobs (some have a minimum
+        # priority they care about), so how do we notify only the ones with the
+        # an appropriate priority threshold? Seems possible, but it would
+        # require a custom Monitor/ConditionVariable implementation.
         @cv.broadcast
 
         # If we passed the maximum queue size, drop the least important items
-        # and return their values.
+        # and return their values to the thread that gave us new jobs.
         overage = size - maximum_size
         pop_ids(overage) if overage > 0
       end
