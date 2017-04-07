@@ -15,23 +15,21 @@ describe Que, '.transaction' do
     assert DB.table_exists?(:que_jobs)
   end
 
-  unless RUBY_VERSION.start_with?('1.9')
-    it "should rollback correctly in the event of a killed thread" do
-      q = Queue.new
+  it "should rollback correctly in the event of a killed thread" do
+    q = Queue.new
 
-      t = Thread.new do
-        Que.transaction do
-          Que.execute "DROP TABLE que_jobs"
-          q.push :go!
-          sleep
-        end
+    t = Thread.new do
+      Que.transaction do
+        Que.execute "DROP TABLE que_jobs"
+        q.push :go!
+        sleep
       end
-
-      q.pop
-      t.kill
-      t.join
-
-      assert DB.table_exists?(:que_jobs)
     end
+
+    q.pop
+    t.kill
+    t.join
+
+    assert DB.table_exists?(:que_jobs)
   end
 end
