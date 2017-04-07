@@ -1,3 +1,6 @@
+# When adding/changing anything in this file, remember to update the alternate
+# Gemfiles in spec/gemfiles as well!
+
 source 'https://rubygems.org'
 
 group :development, :test do
@@ -14,6 +17,7 @@ end
 
 group :test do
   gem 'minitest', '~> 5.10.1'
+  gem 'minitest-profile', '0.0.2'
   gem 'm'
   gem 'pry'
   gem 'pg_examiner'

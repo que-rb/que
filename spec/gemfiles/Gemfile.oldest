@@ -15,6 +15,7 @@ end
 
 group :test do
   gem 'minitest', '~> 4.2'
+  gem 'minitest-profile', '0.0.2'
   gem 'pry'
   gem 'pg_examiner'
 end

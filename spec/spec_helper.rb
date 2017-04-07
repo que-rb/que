@@ -10,6 +10,7 @@ require 'pry'
 require 'pg_examiner'
 
 require 'minitest/autorun'
+require 'minitest/profile'
 require 'minitest/pride'
 
 Dir['./spec/support/**/*.rb'].sort.each &method(:require)
