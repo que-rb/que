@@ -17,14 +17,16 @@ module Que
       @cv      = Monitor::ConditionVariable.new(@monitor)
     end
 
-    def push(*jobs)
+    def push(*sort_keys)
       sync do
         # At some point, for large queue sizes and small numbers of items to
         # insert, it may be worth investigating an insertion by binary search.
-        @array.push(*jobs).sort_by! { |job| job.values_at(:priority, :run_at, :id)}
+        @array.push(*sort_keys).sort_by! do |sort_key|
+          sort_key.values_at(:priority, :run_at, :id)
+        end
 
         # Notify all waiting threads that they can try again to remove a item.
-        # TODO: Consider `jobs.length.times { @cv.signal }`
+        # TODO: Consider `jobs.length.times { @cv.signal }`?
         @cv.broadcast
 
         # If we passed the maximum queue size, drop the least important items
@@ -40,7 +42,7 @@ module Que
         sync do
           if @stop
             return
-          elsif (job = @array.first) && job.fetch(:priority) <= priority
+          elsif (sort_key = @array.first) && sort_key.fetch(:priority) <= priority
             return shift_id
           else
             @cv.wait
@@ -49,10 +51,10 @@ module Que
       end
     end
 
-    def accept?(job)
+    def accept?(sort_key)
       # Accept the job if there's space available or if it will sort lower than
       # the lowest job currently in the queue.
-      sync { space > 0 || job.fetch(:priority) < @array.last.fetch(:priority) }
+      sync { space > 0 || sort_key.fetch(:priority) < @array.last.fetch(:priority) }
     end
 
     def space
