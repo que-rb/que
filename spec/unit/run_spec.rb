@@ -8,7 +8,7 @@ describe Que::Job, '.run' do
     assert_instance_of ArgsJob, result
     assert_equal [1, 'two', {three: 3}], result.attrs[:args]
 
-    assert_equal 0, DB[:que_jobs].count
+    assert_equal 0, jobs.count
     assert_equal [1, 'two', {three: 3}], $passed_args
   end
 end

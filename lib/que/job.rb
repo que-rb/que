@@ -17,16 +17,16 @@ module Que
 
     def _run
       run(*attrs[:args])
-      destroy unless @destroyed
     rescue => error
       @_error = error
       run_error_notifier = handle_error(error)
-      destroy unless @retried || @destroyed
 
       if run_error_notifier && Que.error_notifier
         # Protect the work loop from a failure of the error notifier.
         Que.error_notifier.call(error, @attrs) rescue nil
       end
+    ensure
+      finish unless @retried || @finished || @destroyed
     end
 
     private
@@ -52,6 +52,11 @@ module Que
     def retry_in(period)
       Que.execute :set_error, [period, @_error.message, attrs.fetch(:id)]
       @retried = true
+    end
+
+    def finish
+      Que.execute :finish_job, [attrs.fetch(:id)]
+      @finished = true
     end
 
     def destroy

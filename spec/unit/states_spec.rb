@@ -8,7 +8,7 @@ describe Que, '.job_states' do
 
     # Ensure that the portion of the SQL query that accounts for bigint
     # job_ids functions correctly.
-    DB[:que_jobs].update(id: 2**33)
+    jobs.update(id: 2**33)
 
     locker = Que::Locker.new
     $q1.pop
@@ -20,7 +20,7 @@ describe Que, '.job_states' do
     locker.stop!
 
     state = states.first
-    assert_equal %i(priority run_at id job_class args error_count last_error ruby_hostname ruby_pid), state.keys
+    assert_equal %i(priority run_at id job_class args error_count last_error is_processed ruby_hostname ruby_pid), state.keys
 
     assert_equal 2, state[:priority]
     assert_in_delta state[:run_at], Time.now, 3
@@ -29,6 +29,7 @@ describe Que, '.job_states' do
     assert_equal [], state[:args]
     assert_equal 0, state[:error_count]
     assert_nil state.fetch(:last_error)
+    assert_equal false, state.fetch(:is_processed)
 
     assert_equal Socket.gethostname, state[:ruby_hostname]
     assert_equal Process.pid, state[:ruby_pid]

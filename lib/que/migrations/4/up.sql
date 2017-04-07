@@ -4,9 +4,10 @@ ALTER TABLE que_jobs
 ALTER TABLE que_jobs
   DROP CONSTRAINT que_jobs_pkey,
   DROP COLUMN queue,
+  ADD COLUMN is_processed BOOLEAN NOT NULL DEFAULT false,
   ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (id);
 
-CREATE UNIQUE INDEX que_jobs_poll_idx ON que_jobs (priority, run_at, id);
+CREATE UNIQUE INDEX que_jobs_poll_idx ON que_jobs (priority, run_at, id) WHERE NOT (is_processed);
 
 CREATE UNLOGGED TABLE que_lockers (
   pid           integer NOT NULL CONSTRAINT que_lockers_pkey PRIMARY KEY,

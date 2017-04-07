@@ -55,7 +55,7 @@ module Que
         FROM (
           SELECT j
           FROM public.que_jobs AS j
-          WHERE NOT id = ANY($1::integer[])
+          WHERE NOT is_processed AND NOT id = ANY($1::integer[])
           AND run_at <= now()
           ORDER BY priority, run_at, id
           LIMIT 1
@@ -66,7 +66,7 @@ module Que
             SELECT (
               SELECT j
               FROM public.que_jobs AS j
-              WHERE NOT id = ANY($1::integer[])
+              WHERE NOT is_processed AND NOT id = ANY($1::integer[])
               AND run_at <= now()
               AND (priority, run_at, id) >
                 (jobs.priority, jobs.run_at, jobs.id)
@@ -110,6 +110,12 @@ module Que
         coalesce($4, '[]')::json
       )
       RETURNING *
+    },
+
+    finish_job: %{
+      UPDATE public.que_jobs
+      SET is_processed = true
+      WHERE id = $1::bigint
     },
 
     destroy_job: %{

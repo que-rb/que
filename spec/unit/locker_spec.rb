@@ -154,32 +154,32 @@ describe Que::Locker do
   end
 
   it "should do batch polls every poll_interval to catch jobs that fall through the cracks" do
-    assert_equal 0, DB[:que_jobs].count
+    assert_equal 0, jobs.count
 
     locker_settings[:poll_interval] = 0.01
     locker_settings[:listen] = false
     locker
 
     Que::Job.enqueue
-    sleep_until { DB[:que_jobs].empty? }
+    sleep_until { unprocessed_jobs.empty? }
 
     Que::Job.enqueue
-    sleep_until { DB[:que_jobs].empty? }
+    sleep_until { unprocessed_jobs.empty? }
 
     locker.stop!
   end
 
   it "when poll_interval is set to nil should still listen for jobs" do
-    assert_equal 0, DB[:que_jobs].count
+    assert_equal 0, jobs.count
 
     locker_settings[:poll_interval] = nil
     sleep_until { locker.thread.status == 'sleep' }
 
     Que::Job.enqueue
-    sleep_until { DB[:que_jobs].empty? }
+    sleep_until { unprocessed_jobs.empty? }
 
     Que::Job.enqueue
-    sleep_until { DB[:que_jobs].empty? }
+    sleep_until { unprocessed_jobs.empty? }
 
     locker.stop!
   end
@@ -195,7 +195,7 @@ describe Que::Locker do
       $q2.push nil; $q2.push nil
 
       locker.stop!
-      assert_equal 0, DB[:que_jobs].count
+      assert_equal 0, unprocessed_jobs.count
     end
 
     it "should request enough jobs to fill the queue" do
@@ -222,7 +222,7 @@ describe Que::Locker do
 
       locker_settings.clear
       locker
-      sleep_until { DB[:que_jobs].empty? }
+      sleep_until { unprocessed_jobs.empty? }
       locker.stop!
     end
   end
@@ -325,7 +325,7 @@ describe Que::Locker do
 
   describe "when receiving a NOTIFY of a new job" do
     it "should immediately lock, work, and unlock them" do
-      assert_equal 0, DB[:que_jobs].count
+      assert_equal 0, jobs.count
 
       locker
       sleep_until { DB[:que_lockers].count == 1 }
@@ -336,7 +336,7 @@ describe Que::Locker do
       assert_equal [job.attrs[:id]], locked_ids
 
       $q2.push nil
-      sleep_until { DB[:que_jobs].count == 0 }
+      sleep_until { unprocessed_jobs.count == 0 }
       sleep_until { locked_ids.empty? }
 
       locker.stop!
@@ -352,7 +352,7 @@ describe Que::Locker do
     end
 
     it "should not work jobs that are already locked" do
-      assert_equal 0, DB[:que_jobs].count
+      assert_equal 0, jobs.count
 
       # Shouldn't make a difference whether it's polling or not.
       locker_settings[:poll_interval] = 0.01
@@ -381,7 +381,7 @@ describe Que::Locker do
       q2.push nil
       t.join
 
-      assert_equal [id], DB[:que_jobs].select_map(:id)
+      assert_equal [id], unprocessed_jobs.select_map(:id)
     end
 
     it "should not try to lock and work jobs it has already locked" do
@@ -395,7 +395,7 @@ describe Que::Locker do
       message_count = logged_messages.count
 
       payload =
-        DB[:que_jobs].
+        jobs.
           where(id: id).
           select(:priority, :run_at, :id).
           from_self(alias: :t).
@@ -525,7 +525,7 @@ describe Que::Locker do
       $q2.push :nil
       t.join
 
-      assert_equal 0, DB[:que_jobs].count
+      assert_equal 0, unprocessed_jobs.count
     end
 
     it "should clear its own record from the que_lockers table"

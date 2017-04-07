@@ -29,7 +29,7 @@ describe Que::Worker do
       end
 
       [1, 2, 3].each { |i| WorkerJob.enqueue i, priority: i }
-      job_ids = DB[:que_jobs].order_by(:priority).select_map(:id)
+      job_ids = jobs.order_by(:priority).select_map(:id)
       run_jobs Que.execute("SELECT * FROM que_jobs").shuffle
 
       assert_equal [1, 2, 3], $results
@@ -43,13 +43,13 @@ describe Que::Worker do
     end
   end
 
-  it "should pass a job's arguments to the run method and delete it from the database" do
+  it "should pass a job's arguments to the run method and mark it as processed" do
     ArgsJob.enqueue 1, 'two', {'three' => 3}
-    assert_equal 1, DB[:que_jobs].count
+    assert_equal 1, jobs.count
 
     run_jobs Que.execute("SELECT * FROM que_jobs").first
 
-    assert_equal 0, DB[:que_jobs].count
+    assert_equal 0, unprocessed_jobs.count
     assert_equal [1, 'two', {three: 3}], $passed_args
   end
 
@@ -63,17 +63,17 @@ describe Que::Worker do
     end
 
     KeywordArgsJob.enqueue(keyword_arg_1: 'passed', keyword_arg_2: 'passed_2')
-    assert_equal 1, DB[:que_jobs].count
-    assert_equal [{"keyword_arg_1" => 'passed', 'keyword_arg_2' => 'passed_2'}], JSON.parse(DB[:que_jobs].first[:args])
-    run_jobs Que.execute("SELECT * FROM que_jobs").first
-    assert_equal 0, DB[:que_jobs].count
+    assert_equal 1, unprocessed_jobs.count
+    assert_equal [{"keyword_arg_1" => 'passed', 'keyword_arg_2' => 'passed_2'}], JSON.parse(unprocessed_jobs.first[:args])
+    run_jobs Que.execute(unprocessed_jobs.sql).first
+    assert_equal 0, unprocessed_jobs.count
     assert_equal ['passed', 'passed_2'], $passed_args
 
     KeywordArgsJob.enqueue(keyword_arg_1: 'passed')
-    assert_equal 1, DB[:que_jobs].count
-    assert_equal [{"keyword_arg_1" => 'passed'}], JSON.parse(DB[:que_jobs].first[:args])
-    run_jobs Que.execute("SELECT * FROM que_jobs").first
-    assert_equal 0, DB[:que_jobs].count
+    assert_equal 1, unprocessed_jobs.count
+    assert_equal [{"keyword_arg_1" => 'passed'}], JSON.parse(unprocessed_jobs.first[:args])
+    run_jobs Que.execute(unprocessed_jobs.sql).first
+    assert_equal 0, unprocessed_jobs.count
     assert_equal ['passed', 'default'], $passed_args
   end
 
@@ -85,10 +85,10 @@ describe Que::Worker do
     end
 
     DestroyJob.enqueue
-    assert_equal 1, DB[:que_jobs].count
+    assert_equal 1, jobs.count
 
     run_jobs Que.execute("SELECT * FROM que_jobs").first
-    assert_equal 0, DB[:que_jobs].count
+    assert_equal 0, jobs.count
   end
 
   it "should handle subclasses of other jobs" do
@@ -112,14 +112,14 @@ describe Que::Worker do
 
       $job_spec_result = []
       SubClassJob.enqueue
-      assert_equal [2], DB[:que_jobs].select_map(:priority)
-      run_jobs Que.execute("SELECT * FROM que_jobs").first
+      assert_equal [2], unprocessed_jobs.select_map(:priority)
+      run_jobs Que.execute(unprocessed_jobs.sql).first
       assert_equal [:sub], $job_spec_result
 
       $job_spec_result = []
       SubSubClassJob.enqueue
-      assert_equal [4], DB[:que_jobs].select_map(:priority)
-      run_jobs Que.execute("SELECT * FROM que_jobs").first
+      assert_equal [4], unprocessed_jobs.select_map(:priority)
+      run_jobs Que.execute(unprocessed_jobs.sql).first
       assert_equal [:sub, :subsub], $job_spec_result
     ensure
       $job_spec_result = nil
@@ -139,7 +139,7 @@ describe Que::Worker do
       end
 
       ModuleJobModule::ModuleJob.enqueue
-      assert_equal "ModuleJobModule::ModuleJob", DB[:que_jobs].get(:job_class)
+      assert_equal "ModuleJobModule::ModuleJob", jobs.get(:job_class)
 
       run_jobs Que.execute("SELECT * FROM que_jobs").first
       assert_equal true, $run
@@ -149,16 +149,16 @@ describe Que::Worker do
   end
 
   it "should make a job's argument hashes indifferently accessible" do
-    assert_equal 0, DB[:que_jobs].count
+    assert_equal 0, jobs.count
     ArgsJob.enqueue 1, 'two', {'array' => [{'number' => 3}]}
-    assert_equal 1, DB[:que_jobs].count
+    assert_equal 1, jobs.count
 
     run_jobs Que.execute("SELECT * FROM que_jobs").first
     assert_equal 3, $passed_args.last[:array].first[:number]
   end
 
   it "should skip a job without incident if passed the pk for a job that doesn't exist" do
-    assert_equal 0, DB[:que_jobs].count
+    assert_equal 0, jobs.count
     run_jobs priority: 1,
              run_at:   Time.now,
              id:       587648
@@ -183,7 +183,7 @@ describe Que::Worker do
       ErrorJob.enqueue priority: 1
       Que::Job.enqueue priority: 2
 
-      job_ids = DB[:que_jobs].order_by(:priority).select_map(:id)
+      job_ids = jobs.order_by(:priority).select_map(:id)
       run_jobs Que.execute("SELECT * FROM que_jobs")
       assert_equal job_ids, @result_queue.to_a
 
@@ -236,19 +236,19 @@ describe Que::Worker do
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 
-      assert_equal 1, DB[:que_jobs].count
-      job = DB[:que_jobs].first
+      assert_equal 1, jobs.count
+      job = jobs.first
       assert_equal 1, job[:error_count]
       assert_equal "ErrorJob!", job[:last_error]
       assert_in_delta job[:run_at], Time.now + 4, 3
 
-      DB[:que_jobs].update error_count: 5,
-                           run_at:      Time.now - 60
+      jobs.update error_count: 5,
+                  run_at:      Time.now - 60
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 
-      assert_equal 1, DB[:que_jobs].count
-      job = DB[:que_jobs].first
+      assert_equal 1, jobs.count
+      job = jobs.first
       assert_equal 6, job[:error_count]
       assert_equal "ErrorJob!", job[:last_error]
       assert_in_delta job[:run_at], Time.now + 1299, 3
@@ -263,20 +263,20 @@ describe Que::Worker do
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 
-      assert_equal 1, DB[:que_jobs].count
-      job = DB[:que_jobs].first
+      assert_equal 1, jobs.count
+      job = jobs.first
 
       assert_equal 1, job[:error_count]
       assert_equal "ErrorJob!", job[:last_error]
       assert_in_delta job[:run_at], Time.now + 5, 3
 
-      DB[:que_jobs].update error_count: 5,
-                           run_at:      Time.now - 60
+      jobs.update error_count: 5,
+                  run_at:      Time.now - 60
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 
-      assert_equal 1, DB[:que_jobs].count
-      job = DB[:que_jobs].first
+      assert_equal 1, jobs.count
+      job = jobs.first
 
       assert_equal 6, job[:error_count]
       assert_equal "ErrorJob!", job[:last_error]
@@ -292,31 +292,31 @@ describe Que::Worker do
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 
-      assert_equal 1, DB[:que_jobs].count
-      job = DB[:que_jobs].first
+      assert_equal 1, jobs.count
+      job = jobs.first
       assert_equal 1, job[:error_count]
       assert_equal "ErrorJob!", job[:last_error]
       assert_in_delta job[:run_at], Time.now + 10, 3
 
-      DB[:que_jobs].update error_count: 5,
-                           run_at:      Time.now - 60
+      jobs.update error_count: 5,
+                  run_at:      Time.now - 60
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 
-      assert_equal 1, DB[:que_jobs].count
-      job = DB[:que_jobs].first
+      assert_equal 1, jobs.count
+      job = jobs.first
       assert_equal 6, job[:error_count]
       assert_equal "ErrorJob!", job[:last_error]
       assert_in_delta job[:run_at], Time.now + 60, 3
     end
 
     it "should throw an error properly if there's no corresponding job class" do
-      DB[:que_jobs].insert job_class: "NonexistentClass"
+      jobs.insert job_class: "NonexistentClass"
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 
-      assert_equal 1, DB[:que_jobs].count
-      job = DB[:que_jobs].first
+      assert_equal 1, jobs.count
+      job = jobs.first
       assert_equal 1, job[:error_count]
       assert_match /uninitialized constant:? .*NonexistentClass/, job[:last_error]
       assert_in_delta job[:run_at], Time.now + 4, 3
@@ -332,8 +332,8 @@ describe Que::Worker do
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
 
-      assert_equal 1, DB[:que_jobs].count
-      job = DB[:que_jobs].first
+      assert_equal 1, jobs.count
+      job = jobs.first
       assert_equal 1, job[:error_count]
       assert_in_delta job[:run_at], Time.now + 4, 3
     end
@@ -360,8 +360,8 @@ describe Que::Worker do
 
           run_jobs Que.execute("SELECT * FROM que_jobs")
 
-          assert_equal 1, DB[:que_jobs].count
-          job = DB[:que_jobs].first
+          assert_equal 1, jobs.count
+          job = jobs.first
           assert_equal 1, job[:error_count]
           assert_match /\ABlah!/, job[:last_error]
           assert_in_delta job[:run_at], Time.now + 42, 3
@@ -389,9 +389,9 @@ describe Que::Worker do
 
           CustomRetryIntervalJob.enqueue
 
-          assert_equal 1, DB[:que_jobs].count
+          assert_equal 1, jobs.count
           run_jobs Que.execute("SELECT * FROM que_jobs")
-          assert_equal 0, DB[:que_jobs].count
+          assert_equal 0, jobs.count
         ensure
           Que.error_notifier = nil
         end
@@ -416,9 +416,9 @@ describe Que::Worker do
 
           CustomRetryIntervalJob.enqueue
 
-          assert_equal 1, DB[:que_jobs].count
+          assert_equal 1, unprocessed_jobs.count
           run_jobs Que.execute("SELECT * FROM que_jobs")
-          assert_equal 0, DB[:que_jobs].count
+          assert_equal 0, unprocessed_jobs.count
 
           assert_nil error
         ensure
@@ -453,8 +453,8 @@ describe Que::Worker do
           run_jobs Que.execute("SELECT * FROM que_jobs")
           assert_nil $error_handler_failed
 
-          assert_equal 1, DB[:que_jobs].count
-          job = DB[:que_jobs].first
+          assert_equal 1, jobs.count
+          job = jobs.first
           assert_equal 1, job[:error_count]
           assert_match /\ABlah!/, job[:last_error]
           assert_in_delta job[:run_at], Time.now + 4, 3

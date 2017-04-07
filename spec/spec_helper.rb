@@ -119,6 +119,14 @@ class QueSpec < Minitest::Spec
     end
   end
 
+  def jobs
+    DB[:que_jobs]
+  end
+
+  def unprocessed_jobs
+    jobs.exclude(:is_processed)
+  end
+
   def logged_messages
     $logger.messages.map { |message| JSON.load(message) }
   end

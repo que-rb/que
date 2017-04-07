@@ -23,7 +23,7 @@ describe Que, "mode=" do
 
     it "should insert jobs into the database" do
       Que::Job.enqueue
-      assert_equal ['Que::Job'], DB[:que_jobs].select_map(:job_class)
+      assert_equal ['Que::Job'], jobs.select_map(:job_class)
     end
   end
 
@@ -47,10 +47,10 @@ describe Que, "mode=" do
     it "should start up a locker" do
       Que::Job.enqueue
       Que.mode = :async
-      sleep_until { DB[:que_jobs].empty? }
+      sleep_until { unprocessed_jobs.empty? }
 
       Que::Job.enqueue
-      sleep_until { DB[:que_jobs].empty? }
+      sleep_until { unprocessed_jobs.empty? }
       Que.mode = :off
     end
 
@@ -67,7 +67,7 @@ describe Que, "mode=" do
       $q1.pop
       $q2.push nil
       Que.mode = :off
-      assert_empty DB[:que_jobs]
+      assert_empty unprocessed_jobs
     end
 
     it "then Que.mode = :sync should gracefully shut down the locker" do
@@ -77,7 +77,7 @@ describe Que, "mode=" do
       $q1.pop
       $q2.push nil
       Que.mode = :sync
-      assert_empty DB[:que_jobs]
+      assert_empty unprocessed_jobs
     end
   end
 end

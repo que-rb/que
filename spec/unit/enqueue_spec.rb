@@ -6,7 +6,7 @@ describe Que::Job, '.enqueue' do
   def assert_enqueue(args, expected_priority: 100, expected_run_at: Time.now,
     expected_job_class: Que::Job, expected_args: [])
 
-    assert_equal 0, DB[:que_jobs].count
+    assert_equal 0, jobs.count
 
     result =
       if args.respond_to?(:call)
@@ -15,7 +15,7 @@ describe Que::Job, '.enqueue' do
         Que.enqueue(*args)
       end
 
-    assert_equal 1, DB[:que_jobs].count
+    assert_equal 1, jobs.count
 
     assert_kind_of Que::Job, result
 
@@ -26,13 +26,13 @@ describe Que::Job, '.enqueue' do
     assert_equal expected_priority, result.attrs[:priority]
     assert_equal expected_args, result.attrs[:args]
 
-    job = DB[:que_jobs].first
+    job = jobs.first
     assert_equal expected_priority, job[:priority]
     assert_in_delta job[:run_at], expected_run_at, 3
     assert_equal expected_job_class.to_s, job[:job_class]
     assert_equal expected_args, JSON.parse(job[:args], symbolize_names: true)
 
-    DB[:que_jobs].delete
+    jobs.delete
   end
 
   it "should be able to queue a job" do

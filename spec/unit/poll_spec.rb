@@ -51,7 +51,7 @@ describe "The job polling query" do
     # 1 is highest priority.
     [5, 4, 3, 2, 1, 2, 3, 4, 5].map { |p| Que::Job.enqueue priority: p }
 
-    assert_equal DB[:que_jobs].where{priority <= 3}.select_order_map(:id), poll(5).sort
+    assert_equal jobs.where{priority <= 3}.select_order_map(:id), poll(5).sort
   end
 
   it "should prefer a job that was scheduled to run longer ago when priorities are equal" do
@@ -68,7 +68,7 @@ describe "The job polling query" do
     id2 = Que::Job.enqueue(run_at: run_at).attrs[:id]
     id3 = Que::Job.enqueue(run_at: run_at).attrs[:id]
 
-    first, second, third = DB[:que_jobs].select_order_map(:id)
+    first, second, third = jobs.select_order_map(:id)
 
     assert_equal [id1, id2], poll(2)
   end
@@ -114,7 +114,7 @@ describe "The job polling query" do
       FROM generate_series(1, 100) AS i;
     SQL
 
-    job_ids = DB[:que_jobs].select_order_map(:id)
+    job_ids = jobs.select_order_map(:id)
     assert_equal 100, job_ids.count
 
     4.times { q2.push nil }
