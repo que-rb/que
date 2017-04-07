@@ -52,8 +52,8 @@ before_script:
   - psql -c 'create database "que-test"' -U postgres
 
 script:
-  # Run the complete test suite:
-  - bundle exec rake
+  # Run the complete test suite, with profiling:
+  - TESTOPTS='--profile' bundle exec rake
 
 notifications:
   email: false
