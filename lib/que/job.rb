@@ -4,10 +4,10 @@
 
 module Que
   class Job
-    attr_reader :attrs, :_error
+    attr_reader :que_attrs, :que_error
 
     def initialize(attrs)
-      @attrs = attrs
+      @que_attrs = attrs
     end
 
     # Subclasses should define their own run methods, but keep an empty one
@@ -16,27 +16,27 @@ module Que
     end
 
     def _run
-      run(*attrs[:args])
+      run(*que_attrs[:args])
     rescue => error
-      @_error = error
+      @que_error = error
       run_error_notifier = handle_error(error)
 
       if run_error_notifier && Que.error_notifier
         # Protect the work loop from a failure of the error notifier.
-        Que.error_notifier.call(error, @attrs) rescue nil
+        Que.error_notifier.call(error, que_attrs) rescue nil
       end
     ensure
-      finish unless @retried || @finished || @destroyed
+      finish unless @que_retried || @que_finished || @que_destroyed
     end
 
     private
 
     def error_count
-      @attrs[:error_count]
+      que_attrs[:error_count]
     end
 
     def handle_error(error)
-      error_count    = @attrs[:error_count] += 1
+      error_count    = que_attrs[:error_count] += 1
       retry_interval = self.class.retry_interval || Job.retry_interval
 
       wait =
@@ -50,17 +50,17 @@ module Que
     end
 
     def retry_in(period)
-      Que.execute :set_error, [period, @_error.message, attrs.fetch(:id)]
+      Que.execute :set_error, [period, que_error.message, que_attrs.fetch(:id)]
       @retried = true
     end
 
     def finish
-      Que.execute :finish_job, [attrs.fetch(:id)]
+      Que.execute :finish_job, [que_attrs.fetch(:id)]
       @finished = true
     end
 
     def destroy
-      Que.execute :destroy_job, [attrs.fetch(:id)]
+      Que.execute :destroy_job, [que_attrs.fetch(:id)]
       @destroyed = true
     end
 

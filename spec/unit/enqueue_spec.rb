@@ -23,8 +23,8 @@ describe Que::Job, '.enqueue' do
     # assert_instance_of expected_job_class, result
     # (unless job_class doesn't exist in this process...)
 
-    assert_equal expected_priority, result.attrs[:priority]
-    assert_equal expected_args, result.attrs[:args]
+    assert_equal expected_priority, result.que_attrs[:priority]
+    assert_equal expected_args, result.que_attrs[:args]
 
     job = jobs.first
     assert_equal expected_priority, job[:priority]

@@ -50,7 +50,7 @@ module Que
               elapsed: (Time.now - start),
             }
 
-            if e = instance._error
+            if e = instance.que_error
               log_message[:event] = :job_errored
               log_message[:error] = e
             else

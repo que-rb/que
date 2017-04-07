@@ -23,26 +23,26 @@ describe "The job polling query" do
   end
 
   it "should not fail if there aren't enough jobs to return" do
-    id = Que::Job.enqueue.attrs[:id]
+    id = Que::Job.enqueue.que_attrs[:id]
     assert_equal [id], poll(5)
   end
 
   it "should return only the requested number of jobs" do
-    ids = 5.times.map { Que::Job.enqueue.attrs[:id] }
+    ids = 5.times.map { Que::Job.enqueue.que_attrs[:id] }
     assert_equal ids[0..3], poll(4)
   end
 
   it "should skip jobs with the given ids" do
-    one = Que::Job.enqueue.attrs[:id]
-    two = Que::Job.enqueue.attrs[:id]
+    one = Que::Job.enqueue.que_attrs[:id]
+    two = Que::Job.enqueue.que_attrs[:id]
 
     assert_equal [two], poll(2, job_ids: [one])
   end
 
   it "should only work a job whose scheduled time to run has passed" do
-    future1 = Que::Job.enqueue(run_at: Time.now + 30).attrs[:id]
-    past    = Que::Job.enqueue(run_at: Time.now - 30).attrs[:id]
-    future2 = Que::Job.enqueue(run_at: Time.now + 30).attrs[:id]
+    future1 = Que::Job.enqueue(run_at: Time.now + 30).que_attrs[:id]
+    past    = Que::Job.enqueue(run_at: Time.now - 30).que_attrs[:id]
+    future2 = Que::Job.enqueue(run_at: Time.now + 30).que_attrs[:id]
 
     assert_equal [past], poll(5)
   end
@@ -55,18 +55,18 @@ describe "The job polling query" do
   end
 
   it "should prefer a job that was scheduled to run longer ago when priorities are equal" do
-    id1 = Que::Job.enqueue(run_at: Time.now - 30).attrs[:id]
-    id2 = Que::Job.enqueue(run_at: Time.now - 60).attrs[:id]
-    id3 = Que::Job.enqueue(run_at: Time.now - 30).attrs[:id]
+    id1 = Que::Job.enqueue(run_at: Time.now - 30).que_attrs[:id]
+    id2 = Que::Job.enqueue(run_at: Time.now - 60).que_attrs[:id]
+    id3 = Que::Job.enqueue(run_at: Time.now - 30).que_attrs[:id]
 
     assert_equal [id2], poll(1)
   end
 
   it "should prefer a job that was queued earlier when priorities and run_ats are equal" do
     run_at = Time.now - 30
-    id1 = Que::Job.enqueue(run_at: run_at).attrs[:id]
-    id2 = Que::Job.enqueue(run_at: run_at).attrs[:id]
-    id3 = Que::Job.enqueue(run_at: run_at).attrs[:id]
+    id1 = Que::Job.enqueue(run_at: run_at).que_attrs[:id]
+    id2 = Que::Job.enqueue(run_at: run_at).que_attrs[:id]
+    id3 = Que::Job.enqueue(run_at: run_at).que_attrs[:id]
 
     first, second, third = jobs.select_order_map(:id)
 
@@ -74,9 +74,9 @@ describe "The job polling query" do
   end
 
   it "should skip jobs that are advisory-locked" do
-    id1 = Que::Job.enqueue.attrs[:id]
-    id2 = Que::Job.enqueue.attrs[:id]
-    id3 = Que::Job.enqueue.attrs[:id]
+    id1 = Que::Job.enqueue.que_attrs[:id]
+    id2 = Que::Job.enqueue.que_attrs[:id]
+    id3 = Que::Job.enqueue.que_attrs[:id]
 
     begin
       DB.get{pg_advisory_lock(id2)}
