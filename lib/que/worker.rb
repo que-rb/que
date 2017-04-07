@@ -40,7 +40,7 @@ module Que
         begin
           if job = Que.execute(:get_job, [id]).first
             start = Time.now
-            klass = Que.constantizer.call(job[:job_class])
+            klass = Que.constantizer.call(job.fetch(:job_class))
             instance = klass.new(job)
             instance._run
 
@@ -88,7 +88,7 @@ module Que
 
             delay =
               if interval.respond_to?(:call)
-                interval.call(job[:error_count] + 1)
+                interval.call(job.fetch(:error_count) + 1)
               else
                 interval
               end

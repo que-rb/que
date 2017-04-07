@@ -16,7 +16,7 @@ module Que
     end
 
     def _run
-      run(*que_attrs[:args])
+      run(*que_attrs.fetch(:args))
     rescue => error
       @que_error = error
       run_error_notifier = handle_error(error)
@@ -32,7 +32,7 @@ module Que
     private
 
     def error_count
-      que_attrs[:error_count]
+      que_attrs.fetch(:error_count)
     end
 
     def handle_error(error)
@@ -86,7 +86,7 @@ module Que
         end
 
         if Que.mode == :sync && !t
-          run(*attrs[:args])
+          run(*attrs.fetch(:args))
         else
           values =
             Que.execute(

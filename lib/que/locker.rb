@@ -84,7 +84,7 @@ module Que
     def work_loop
       checkout do |conn|
         @backend_pid =
-          execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
+          execute("SELECT pg_backend_pid()").first.fetch(:pg_backend_pid)
 
         Que.log \
           level:              :debug,
@@ -205,7 +205,7 @@ module Que
 
     def lock_job(id)
       execute("SELECT pg_try_advisory_lock($1)", [id]).
-        first[:pg_try_advisory_lock]
+        first.fetch(:pg_try_advisory_lock)
     end
 
     def unlock_finished_jobs
