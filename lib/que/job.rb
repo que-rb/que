@@ -26,7 +26,7 @@ module Que
         Que.error_notifier.call(error, que_attrs) rescue nil
       end
     ensure
-      finish unless @que_retried || @que_finished || @que_destroyed
+      finish unless @que_resolved
     end
 
     private
@@ -51,17 +51,17 @@ module Que
 
     def retry_in(period)
       Que.execute :set_error, [period, que_error.message, que_attrs.fetch(:id)]
-      @retried = true
+      @que_resolved = true
     end
 
     def finish
       Que.execute :finish_job, [que_attrs.fetch(:id)]
-      @finished = true
+      @que_resolved = true
     end
 
     def destroy
       Que.execute :destroy_job, [que_attrs.fetch(:id)]
-      @destroyed = true
+      @que_resolved = true
     end
 
     @retry_interval = proc { |count| count ** 4 + 3 }
