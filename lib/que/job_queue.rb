@@ -6,6 +6,9 @@
 
 module Que
   class JobQueue
+    # Don't try to use a binary search input if we're on a Ruby before 2.3.0.
+    USE_BINARY_SEARCH = [].respond_to?(:bsearch_index)
+
     attr_reader :maximum_size
 
     def initialize(maximum_size: Float::INFINITY)
@@ -21,12 +24,40 @@ module Que
       sync do
         # At some point, for large queue sizes and small numbers of items to
         # insert, it may be worth investigating an insertion by binary search.
-        @array.push(*sort_keys).sort_by! do |sort_key|
-          sort_key.values_at(:priority, :run_at, :id)
+
+        if USE_BINARY_SEARCH
+          sort_keys.each do |sort_key|
+            priority = sort_key.fetch(:priority)
+            run_at   = sort_key.fetch(:run_at)
+            id       = sort_key.fetch(:id)
+
+            index =
+              @array.bsearch_index do |element|
+                e_priority = element.fetch(:priority)
+                next true  if e_priority > priority
+                next false if e_priority < priority
+
+                e_run_at = element.fetch(:run_at)
+                next true  if e_run_at > run_at
+                next false if e_run_at < run_at
+
+                element.fetch(:id) >= id
+              end
+
+            if index
+              @array.insert(index, sort_key)
+            else
+              @array << sort_key
+            end
+          end
+        else
+          @array.push(*sort_keys).sort_by! do |sort_key|
+            sort_key.values_at(:priority, :run_at, :id)
+          end
         end
 
         # Notify all waiting threads that they can try again to remove a item.
-        # TODO: Consider `jobs.length.times { @cv.signal }`?
+        # TODO: Consider `sort_keys.length.times { @cv.signal }`?
         @cv.broadcast
 
         # If we passed the maximum queue size, drop the least important items
