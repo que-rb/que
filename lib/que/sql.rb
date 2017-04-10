@@ -101,7 +101,7 @@ module Que
       INSERT INTO que_jobs
       (queue, priority, run_at, job_class, args)
       VALUES
-      (coalesce($1, '')::text, coalesce($2, 100)::smallint, coalesce($3, now())::timestamptz, $4::text, coalesce($5, '[]')::json)
+      (coalesce($1, '')::text, coalesce($2, 100)::smallint, coalesce($3, now())::timestamptz, $4::text, coalesce($5, '[]')::#{Que.supports_jsonb? ? 'jsonb' : 'json'})
       RETURNING *
     }.freeze,
 

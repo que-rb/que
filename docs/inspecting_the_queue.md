@@ -87,6 +87,10 @@ end
 
 Then you can query just as you would with any other model. Since the jobs table has a composite primary key, however, you probably won't be able to update or destroy jobs this way, though.
 
+Additionally, if you're running PG >=9.4 and have Que's DB version migrated to >=4, you can query within the 'args' column easily:
+
+    QueJob.where(job_class: 'SomeJobClass').where('args @> \'[1]\'')
+
 If you're using Sequel, you can use the same technique:
 
 ```ruby
