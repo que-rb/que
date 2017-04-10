@@ -10,8 +10,14 @@ require 'pry'
 require 'pg_examiner'
 
 require 'minitest/autorun'
-require 'minitest/profile'
 require 'minitest/pride'
+
+begin
+  # This won't be available when running the oldest Gemfile, so be safe in
+  # loading it.
+  require 'minitest/profile'
+rescue LoadError
+end
 
 Dir['./spec/support/**/*.rb'].sort.each &method(:require)
 
