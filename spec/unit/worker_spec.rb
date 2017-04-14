@@ -212,25 +212,6 @@ describe Que::Worker do
       end
     end
 
-    it "should not crash the worker if the error notifier is problematic" do
-      skip
-      begin
-        Que.error_notifier = proc { |e| raise "Error notifier error!" }
-
-        ErrorJob.enqueue priority: 1
-        Que::Job.enqueue priority: 2
-
-        run_jobs Que.execute("SELECT * FROM que_jobs")
-
-        message = $logger.messages.map{|m| JSON.load(m)}.find{|m| m['event'] == 'error_notifier_errored'}['error_notifier_error']
-        assert_equal "RuntimeError", message['class']
-        assert_equal "Error notifier error!", message['message']
-        assert_instance_of Array, message['backtrace']
-      ensure
-        Que.error_notifier = nil
-      end
-    end
-
     it "should exponentially back off the job" do
       ErrorJob.enqueue
 
