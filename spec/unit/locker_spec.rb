@@ -102,6 +102,7 @@ describe Que::Locker do
         ruby_pid:      0,
         ruby_hostname: 'blah2',
         worker_count:  4,
+        queue:         '',
         listening:     true,
       )
 
@@ -115,6 +116,7 @@ describe Que::Locker do
         ruby_pid:      0,
         ruby_hostname: 'blah1',
         worker_count:  4,
+        queue:         '',
         listening:     true,
       )
 

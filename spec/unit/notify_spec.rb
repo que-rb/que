@@ -10,6 +10,7 @@ describe "An insertion into que_jobs" do
                                 worker_count:  4,
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
+                                queue:         '',
                                 listening:     true
 
         notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
@@ -23,7 +24,7 @@ describe "An insertion into que_jobs" do
           assert_equal notify_pid, pid
 
           json = JSON.load(payload)
-          assert_equal %w(id priority run_at), json.keys.sort
+          assert_equal %w(id priority queue run_at), json.keys.sort
           assert_equal job[:id], json['id']
           assert_equal 100, json['priority']
           assert_in_delta Time.parse(json['run_at']), Time.now, 3
@@ -43,6 +44,7 @@ describe "An insertion into que_jobs" do
                                 worker_count:  4,
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
+                                queue:         '',
                                 listening:     true
 
         conn.async_exec "LISTEN que_locker_1"
@@ -63,12 +65,14 @@ describe "An insertion into que_jobs" do
                                 worker_count:  1,
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
+                                queue:         '',
                                 listening:     true
 
         DB[:que_lockers].insert pid:           2,
                                 worker_count:  2,
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
+                                queue:         '',
                                 listening:     true
 
         notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
@@ -91,6 +95,7 @@ describe "An insertion into que_jobs" do
                                 worker_count:  4,
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
+                                queue:         '',
                                 listening:     false
 
         notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i

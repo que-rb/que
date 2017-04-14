@@ -10,5 +10,4 @@ ALTER TABLE que_jobs
 ALTER TABLE que_jobs
   DROP CONSTRAINT que_jobs_pkey,
   DROP COLUMN is_processed,
-  ADD COLUMN queue TEXT NOT NULL DEFAULT '',
   ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (queue, priority, run_at, job_id);

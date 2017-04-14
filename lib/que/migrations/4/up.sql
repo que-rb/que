@@ -3,24 +3,24 @@ ALTER TABLE que_jobs
 
 ALTER TABLE que_jobs
   DROP CONSTRAINT que_jobs_pkey,
-  DROP COLUMN queue,
   ADD COLUMN is_processed BOOLEAN NOT NULL DEFAULT false,
   ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (id);
 
-CREATE UNIQUE INDEX que_jobs_poll_idx ON que_jobs (priority, run_at, id) WHERE NOT (is_processed);
+CREATE UNIQUE INDEX que_jobs_poll_idx ON que_jobs (queue, priority, run_at, id) WHERE NOT (is_processed);
 
 CREATE UNLOGGED TABLE que_lockers (
   pid           integer NOT NULL CONSTRAINT que_lockers_pkey PRIMARY KEY,
   worker_count  integer NOT NULL,
   ruby_pid      integer NOT NULL,
   ruby_hostname text    NOT NULL,
+  queue         text    NOT NULL,
   listening     boolean NOT NULL
 );
 
 CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
   DECLARE
-    locker_pid  integer;
-    primary_key json;
+    locker_pid integer;
+    sort_key json;
   BEGIN
     -- Don't do anything if the job is scheduled for a future time.
     IF NEW.run_at IS NOT NULL AND NEW.run_at > now() THEN
@@ -42,7 +42,7 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
         FROM (
           SELECT *
           FROM public.que_lockers ql, generate_series(1, ql.worker_count) AS id
-          WHERE listening
+          WHERE listening AND queue = NEW.queue
           ORDER BY md5(pid::text || id::text)
         ) t1
       ) t2
@@ -55,14 +55,15 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
       -- broadcast the primary key and let the locker query for the record.
       -- The locker will have to hit the DB in order to lock the job anyway.
       SELECT row_to_json(t)
-      INTO primary_key
+      INTO sort_key
       FROM (
-        SELECT NEW.priority AS priority,
+        SELECT NEW.queue    AS queue,
+               NEW.priority AS priority,
                NEW.run_at   AS run_at,
                NEW.id       AS id
       ) t;
 
-      PERFORM pg_notify('que_locker_' || locker_pid::text, primary_key::text);
+      PERFORM pg_notify('que_locker_' || locker_pid::text, sort_key::text);
     END IF;
 
     RETURN null;
