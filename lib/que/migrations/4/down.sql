@@ -10,4 +10,5 @@ ALTER TABLE que_jobs
 ALTER TABLE que_jobs
   DROP CONSTRAINT que_jobs_pkey,
   DROP COLUMN is_processed,
-  ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (queue, priority, run_at, job_id);
+  ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (queue, priority, run_at, job_id),
+  DROP CONSTRAINT queue_length;

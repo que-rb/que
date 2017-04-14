@@ -4,7 +4,8 @@ ALTER TABLE que_jobs
 ALTER TABLE que_jobs
   DROP CONSTRAINT que_jobs_pkey,
   ADD COLUMN is_processed BOOLEAN NOT NULL DEFAULT false,
-  ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (id);
+  ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (id),
+  ADD CONSTRAINT queue_length CHECK (char_length(queue) <= 60);
 
 CREATE UNIQUE INDEX que_jobs_poll_idx ON que_jobs (queue, priority, run_at, id) WHERE NOT (is_processed);
 
