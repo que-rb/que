@@ -143,8 +143,4 @@ describe Que::Job, '.enqueue' do
       expected_run_at: Time.now + 60,
       expected_job_class: DefaultRunAtJob
   end
-
-  it "should support being passed a queue name"
-
-  it "should support a default queue name specified in the job class"
 end

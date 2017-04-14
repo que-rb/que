@@ -539,6 +539,17 @@ describe Que::Locker do
       assert_equal 0, unprocessed_jobs.count
     end
 
-    it "should clear its own record from the que_lockers table"
+    it "should clear its own record from the que_lockers table" do
+      locker
+      BlockJob.enqueue
+      $q1.pop
+
+      assert_equal 1, DB[:que_lockers].count
+
+      $q2.push nil
+      locker.stop!
+
+      assert_equal 0, DB[:que_lockers].count
+    end
   end
 end
