@@ -53,7 +53,7 @@ before_script:
 
 script:
   # Run the complete test suite, with profiling:
-  - bundle exec rake
+  - TESTOPTS='--profile' bundle exec rake
 
 notifications:
   email: false

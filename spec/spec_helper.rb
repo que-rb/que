@@ -17,6 +17,9 @@ begin
   # loading it.
   require 'minitest/profile'
 rescue LoadError
+  # Don't let the unsupported --profile option cause problems in the "oldest"
+  # Travis runs.
+  ENV['TESTOPTS'] = ENV['TESTOPTS'].delete('--profile')
 end
 
 Dir['./spec/support/**/*.rb'].sort.each &method(:require)
