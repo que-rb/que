@@ -105,7 +105,7 @@ describe Que::JobQueue do
     end
 
     it "should block for multiple threads when the queue is empty" do
-      job_queue
+      job_queue # Pre-initialize to avoid race conditions.
 
       threads =
         4.times.map do
@@ -141,6 +141,8 @@ describe Que::JobQueue do
     end
 
     it "when blocking for multiple threads should only return for one of sufficient priority" do
+      job_queue # Pre-initialize to avoid race conditions.
+
       # Randomize order in which threads lock.
       threads = [5, 10, 15, 20].shuffle.map do |priority|
         Thread.new do
@@ -164,6 +166,8 @@ describe Que::JobQueue do
 
   describe "#stop" do
     it "should return nil to waiting workers" do
+      job_queue # Pre-initialize to avoid race conditions.
+
       threads =
         4.times.map do
           Thread.new do
