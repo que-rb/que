@@ -192,7 +192,7 @@ describe Que::Worker do
 
       event = events.first
       assert_equal 1, event['job']['priority']
-      assert_instance_of Fixnum, event['job']['id']
+      assert_instance_of Integer, event['job']['id']
       assert_equal "ErrorJob!", event['error']
     end
 
