@@ -105,6 +105,8 @@ describe Que::JobQueue do
     end
 
     it "should block for multiple threads when the queue is empty" do
+      job_queue
+
       threads =
         4.times.map do
           Thread.new do
