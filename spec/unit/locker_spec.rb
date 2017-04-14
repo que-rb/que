@@ -88,7 +88,7 @@ describe Que::Locker do
     end
 
     it "should allow a dedicated PG connection to be specified" do
-      pg = NEW_PG_CONNECTION.call
+      pg = EXTRA_PG_CONNECTION
       pid = backend_pid(pg)
 
       locker_settings[:connection] = pg
@@ -553,7 +553,7 @@ describe Que::Locker do
     end
 
     it "should not leave the connection with any unhandled notifications" do
-      pg = NEW_PG_CONNECTION.call
+      pg = EXTRA_PG_CONNECTION
 
       stop = false
       t =

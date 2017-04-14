@@ -39,6 +39,8 @@ NEW_PG_CONNECTION = proc do
   pg
 end
 
+EXTRA_PG_CONNECTION = NEW_PG_CONNECTION.call
+
 
 
 QUE_POND = Pond.new(collection: :stack, &NEW_PG_CONNECTION)
