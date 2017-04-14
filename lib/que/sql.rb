@@ -55,8 +55,10 @@ module Que
         FROM (
           SELECT j
           FROM public.que_jobs AS j
-          WHERE NOT is_processed AND NOT id = ANY($1::integer[])
-          AND run_at <= now()
+          WHERE queue = $1::text
+            AND NOT is_processed
+            AND NOT id = ANY($2::integer[])
+            AND run_at <= now()
           ORDER BY priority, run_at, id
           LIMIT 1
         ) AS t1
@@ -66,10 +68,12 @@ module Que
             SELECT (
               SELECT j
               FROM public.que_jobs AS j
-              WHERE NOT is_processed AND NOT id = ANY($1::integer[])
-              AND run_at <= now()
-              AND (priority, run_at, id) >
-                (jobs.priority, jobs.run_at, jobs.id)
+              WHERE queue = $1::text
+                AND NOT is_processed
+                AND NOT id = ANY($2::integer[])
+                AND run_at <= now()
+                AND (priority, run_at, id) >
+                  (jobs.priority, jobs.run_at, jobs.id)
               ORDER BY priority, run_at, id
               LIMIT 1
             ) AS j
@@ -82,7 +86,7 @@ module Que
       SELECT priority, run_at, id
       FROM jobs
       WHERE locked
-      LIMIT $2::integer
+      LIMIT $3::integer
     },
 
     get_job: %{

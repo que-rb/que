@@ -195,8 +195,9 @@ describe Que::Locker do
   end
 
   describe "on startup" do
-    it "should do batch polls for jobs" do
+    it "should do batch polls for jobs in its specified queue" do
       job1, job2 = BlockJob.enqueue, BlockJob.enqueue
+      job3 = Que::Job.enqueue(queue: 'my_special_queue')
 
       locker
 
@@ -205,7 +206,7 @@ describe Que::Locker do
       $q2.push nil; $q2.push nil
 
       locker.stop!
-      assert_equal 0, unprocessed_jobs.count
+      assert_equal [job3.que_attrs[:id]], unprocessed_jobs.select_map(:id)
     end
 
     it "should request enough jobs to fill the queue" do

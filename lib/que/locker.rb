@@ -158,8 +158,10 @@ module Que
     end
 
     def poll
-      space     = @job_queue.space
-      sort_keys = execute :poll_jobs, ["{#{@locks.to_a.join(',')}}", space]
+      space = @job_queue.space
+
+      sort_keys =
+        execute :poll_jobs, [@queue_name, "{#{@locks.to_a.join(',')}}", space]
 
       sort_keys.each { |sort_key| @locks.add(sort_key.fetch(:id)) }
       push_jobs(sort_keys)

@@ -4,9 +4,10 @@ require 'spec_helper'
 
 describe "The job polling query" do
   def poll(count, options = {})
+    queue_name = options[:queue_name] || ''
     job_ids = options[:job_ids] || []
 
-    jobs = Que.execute :poll_jobs, ["{#{job_ids.join(',')}}", count]
+    jobs = Que.execute :poll_jobs, [queue_name, "{#{job_ids.join(',')}}", count]
 
     returned_job_ids = jobs.map { |j| j[:id] }
 
@@ -37,6 +38,13 @@ describe "The job polling query" do
     two = Que::Job.enqueue.que_attrs[:id]
 
     assert_equal [two], poll(2, job_ids: [one])
+  end
+
+  it "should skip jobs in the wrong queue" do
+    one = Que::Job.enqueue(queue: 'one').que_attrs[:id]
+    two = Que::Job.enqueue(queue: 'two').que_attrs[:id]
+
+    assert_equal [one], poll(5, queue_name: 'one')
   end
 
   it "should only work a job whose scheduled time to run has passed" do
