@@ -69,10 +69,19 @@ module Que
     class << self
       attr_reader :retry_interval
 
-      def enqueue(*args, job_class: nil, run_at: nil, priority: nil, **arg_opts)
+      def enqueue(
+        *args,
+        queue: Que.default_queue,
+        job_class: nil,
+        run_at: nil,
+        priority: nil,
+        **arg_opts
+      )
+
         args << arg_opts if arg_opts.any?
 
         attrs = {
+          queue: queue,
           job_class: job_class || to_s,
           args: args,
         }
@@ -91,7 +100,7 @@ module Que
           values =
             Que.execute(
               :insert_job,
-              attrs.values_at(:priority, :run_at, :job_class, :args),
+              attrs.values_at(:queue, :priority, :run_at, :job_class, :args),
             ).first
 
           new(values)

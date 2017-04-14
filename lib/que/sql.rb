@@ -101,13 +101,14 @@ module Que
 
     insert_job: %{
       INSERT INTO public.que_jobs
-      (priority, run_at, job_class, args)
+      (queue, priority, run_at, job_class, args)
       VALUES
       (
-        coalesce($1, 100)::smallint,
-        coalesce($2, now())::timestamptz,
-        $3::text,
-        coalesce($4, '[]')::json
+        coalesce($1, '')::text,
+        coalesce($2, 100)::smallint,
+        coalesce($3, now())::timestamptz,
+        $4::text,
+        coalesce($5, '[]')::json
       )
       RETURNING *
     },

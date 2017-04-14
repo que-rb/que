@@ -3,8 +3,14 @@
 require 'spec_helper'
 
 describe Que::Job, '.enqueue' do
-  def assert_enqueue(args, expected_priority: 100, expected_run_at: Time.now,
-    expected_job_class: Que::Job, expected_args: [])
+  def assert_enqueue(
+    args,
+    expected_queue: '',
+    expected_priority: 100,
+    expected_run_at: Time.now,
+    expected_job_class: Que::Job,
+    expected_args: []
+  )
 
     assert_equal 0, jobs.count
 
@@ -27,6 +33,7 @@ describe Que::Job, '.enqueue' do
     assert_equal expected_args, result.que_attrs[:args]
 
     job = jobs.first
+    assert_equal expected_queue, job[:queue]
     assert_equal expected_priority, job[:priority]
     assert_in_delta job[:run_at], expected_run_at, 3
     assert_equal expected_job_class.to_s, job[:job_class]
@@ -65,6 +72,12 @@ describe Que::Job, '.enqueue' do
         hash: {one: 1, two: 'two', three: [3]},
       },
     ]
+  end
+
+  it "should be able to queue a job with a specific queue name" do
+    assert_enqueue [1, {queue: 'special_queue_name'}],
+      expected_args: [1],
+      expected_queue: 'special_queue_name'
   end
 
   it "should be able to queue a job with a specific time to run" do
