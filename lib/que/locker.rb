@@ -19,7 +19,7 @@ module Que
     DEFAULT_WORKER_PRIORITIES  = [10, 30, 50].freeze
 
     def initialize(
-      queue_name:         '',
+      queue:              Que.default_queue,
       connection:         nil,
       listen:             true,
       poll_interval:      DEFAULT_POLL_INTERVAL,
@@ -39,7 +39,7 @@ module Que
         @pool = ConnectionPool.new { |&block| block.call(connection) }
       end
 
-      @queue_name         = queue_name
+      @queue_name         = queue
       @listen             = listen
       @wait_period        = wait_period
       @poll_interval      = poll_interval
@@ -89,6 +89,7 @@ module Que
           level:              :debug,
           event:              :locker_start,
           listen:             @listen,
+          queue:              @queue_name,
           backend_pid:        conn.backend_pid,
           wait_period:        @wait_period,
           poll_interval:      @poll_interval,

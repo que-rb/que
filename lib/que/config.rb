@@ -59,6 +59,16 @@ module Que
 
 
 
+    ### Default ###
+
+    attr_writer :default_queue
+
+    def default_queue
+      @default_queue || DEFAULT_QUEUE
+    end
+
+
+
     ### Mode/Locker ###
 
     # To be removed...?

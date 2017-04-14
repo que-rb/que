@@ -15,6 +15,7 @@ describe Que::Locker do
       assert_equal true,         event['listen']
       assert_instance_of Fixnum, event['backend_pid']
 
+      assert_equal Que::DEFAULT_QUEUE,                      event['queue']
       assert_equal Que::Locker::DEFAULT_POLL_INTERVAL,      event['poll_interval']
       assert_equal Que::Locker::DEFAULT_WAIT_PERIOD,        event['wait_period']
       assert_equal Que::Locker::DEFAULT_MINIMUM_QUEUE_SIZE, event['minimum_queue_size']
@@ -36,6 +37,7 @@ describe Que::Locker do
 
     it "should allow configuration of various parameters" do
       locker_settings.merge!(
+        queue:              'my_queue',
         listen:             false,
         minimum_queue_size: 5,
         maximum_queue_size: 45,
@@ -50,6 +52,7 @@ describe Que::Locker do
       events = logged_messages.select { |m| m['event'] == 'locker_start' }
       assert_equal 1, events.count
       event = events.first
+      assert_equal 'my_queue', event['queue']
       assert_equal false, event['listen']
       assert_instance_of Fixnum, event['backend_pid']
       assert_equal 0.2, event['wait_period']
@@ -85,6 +88,7 @@ describe Que::Locker do
       assert_equal worker_count, locker.workers.count
 
       record = DB[:que_lockers].first
+      assert_equal Que::DEFAULT_QUEUE, record[:queue]
       assert_equal Process.pid,        record[:ruby_pid]
       assert_equal Socket.gethostname, record[:ruby_hostname]
       assert_equal worker_count,       record[:worker_count]
