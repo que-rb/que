@@ -137,10 +137,7 @@ module Que
           execute :clean_lockers
 
           if @listen
-            # Unlisten and drain notifications before releasing connection back
-            # to the pool. TODO: Add an explicit spec that this isn't a race
-            # condition, and that we can't get any more notifications on queries
-            # after the UNLISTEN * returns.
+            # Unlisten and drain notifications before releasing the connection.
             execute "UNLISTEN *"
             {} while conn.notifies
           end

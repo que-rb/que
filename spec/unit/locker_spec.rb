@@ -551,5 +551,31 @@ describe Que::Locker do
 
       assert_equal 0, DB[:que_lockers].count
     end
+
+    it "should not leave the connection with any unhandled notifications" do
+      pg = NEW_PG_CONNECTION.call
+
+      stop = false
+      t =
+        Thread.new do
+          loop do
+            break if stop
+            Que::Job.enqueue
+            sleep 0.001
+          end
+        end
+
+      pid = backend_pid(pg)
+      locker_settings[:connection] = pg
+      locker
+      sleep_until { DB[:que_lockers].select_map(:pid) == [pid] }
+      locker.stop!
+
+      sleep 0.005
+      assert_nil pg.notifies
+
+      stop = true
+      t.join
+    end
   end
 end
