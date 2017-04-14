@@ -4,35 +4,50 @@ require 'spec_helper'
 
 describe Que::Locker do
   describe "when starting up" do
-    it "should log its settings" do
-      locker_settings.clear
+    def assert_startup(
+      listen: true,
+      queue: Que::DEFAULT_QUEUE,
+      poll_interval: Que::Locker::DEFAULT_POLL_INTERVAL,
+      wait_period: Que::Locker::DEFAULT_WAIT_PERIOD,
+      minimum_queue_size: Que::Locker::DEFAULT_MINIMUM_QUEUE_SIZE,
+      maximum_queue_size: Que::Locker::DEFAULT_MAXIMUM_QUEUE_SIZE,
+      worker_priorities: [10, 30, 50, nil, nil, nil]
+    )
+
+      assert_equal 0, DB[:que_lockers].count
+      locker
+      sleep_until { DB[:que_lockers].count == 1 }
+
+      record = DB[:que_lockers].first
+      assert_equal queue,                    record[:queue]
+      assert_equal Process.pid,              record[:ruby_pid]
+      assert_equal Socket.gethostname,       record[:ruby_hostname]
+      assert_equal worker_priorities.length, record[:worker_count]
+      assert_equal listen,                   record[:listening]
+
+      assert_equal worker_priorities, locker.workers.map(&:priority)
+
       locker.stop!
+
+      assert_equal 0, DB[:que_lockers].count
 
       events = logged_messages.select { |m| m['event'] == 'locker_start' }
       assert_equal 1, events.count
 
       event = events.first
-      assert_equal true,         event['listen']
-      assert_instance_of Fixnum, event['backend_pid']
+      assert_equal listen,             event['listen']
+      assert_instance_of Fixnum,       event['backend_pid']
+      assert_equal queue,              event['queue']
+      assert_equal poll_interval,      event['poll_interval']
+      assert_equal wait_period,        event['wait_period']
+      assert_equal minimum_queue_size, event['minimum_queue_size']
+      assert_equal maximum_queue_size, event['maximum_queue_size']
+      assert_equal worker_priorities,  event['worker_priorities']
+    end
 
-      assert_equal Que::DEFAULT_QUEUE,                      event['queue']
-      assert_equal Que::Locker::DEFAULT_POLL_INTERVAL,      event['poll_interval']
-      assert_equal Que::Locker::DEFAULT_WAIT_PERIOD,        event['wait_period']
-      assert_equal Que::Locker::DEFAULT_MINIMUM_QUEUE_SIZE, event['minimum_queue_size']
-      assert_equal Que::Locker::DEFAULT_MAXIMUM_QUEUE_SIZE, event['maximum_queue_size']
-      assert_equal Que::Locker::DEFAULT_WORKER_COUNT,       event['worker_priorities'].count
-
-      # If the worker_count is six and the worker_priorities are [10, 30, 50], the
-      # expected full set of worker priorities is [10, 30, 50, nil, nil, nil].
-
-      expected_worker_priorities =
-        Que::Locker::DEFAULT_WORKER_PRIORITIES +
-        (
-          Que::Locker::DEFAULT_WORKER_COUNT -
-          Que::Locker::DEFAULT_WORKER_PRIORITIES.length
-        ).times.map { nil }
-
-      assert_equal expected_worker_priorities, event['worker_priorities']
+    it "should have reasonable defaults" do
+      locker_settings.clear
+      assert_startup
     end
 
     it "should allow configuration of various parameters" do
@@ -47,19 +62,29 @@ describe Que::Locker do
         worker_count:       8,
       )
 
-      locker.stop!
+      assert_startup(
+        queue: 'my_queue',
+        listen: false,
+        minimum_queue_size: 5,
+        maximum_queue_size: 45,
+        wait_period:        0.2,
+        poll_interval:      0.4,
+        worker_priorities:  [1, 2, 3, 4, nil, nil, nil, nil],
+      )
+    end
 
-      events = logged_messages.select { |m| m['event'] == 'locker_start' }
-      assert_equal 1, events.count
-      event = events.first
-      assert_equal 'my_queue', event['queue']
-      assert_equal false, event['listen']
-      assert_instance_of Fixnum, event['backend_pid']
-      assert_equal 0.2, event['wait_period']
-      assert_equal 0.4, event['poll_interval']
-      assert_equal 5, event['minimum_queue_size']
-      assert_equal 45, event['maximum_queue_size']
-      assert_equal [1, 2, 3, 4, nil, nil, nil, nil], event['worker_priorities']
+    it "should respect the Que.default_queue configuration option" do
+      begin
+        Que.default_queue = 'a_new_default_queue'
+        locker_settings.clear
+
+        assert_startup(
+          queue: 'a_new_default_queue',
+        )
+      ensure
+        Que.default_queue = nil
+        assert_equal '', Que.default_queue
+      end
     end
 
     it "should allow a dedicated PG connection to be specified" do
@@ -76,27 +101,6 @@ describe Que::Locker do
     it "should have a high-priority work thread" do
       assert_equal 1, locker.thread.priority
       locker.stop!
-    end
-
-    it "should register its presence in the que_lockers table" do
-      worker_count = rand(10) + 1
-      locker_settings[:worker_count] = worker_count
-
-      locker
-      sleep_until { DB[:que_lockers].count == 1 }
-
-      assert_equal worker_count, locker.workers.count
-
-      record = DB[:que_lockers].first
-      assert_equal Que::DEFAULT_QUEUE, record[:queue]
-      assert_equal Process.pid,        record[:ruby_pid]
-      assert_equal Socket.gethostname, record[:ruby_hostname]
-      assert_equal worker_count,       record[:worker_count]
-      assert_equal true,               record[:listening]
-
-      locker.stop!
-
-      assert_equal 0, DB[:que_lockers].count
     end
 
     it "should clear invalid lockers from the table" do
