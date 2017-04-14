@@ -52,13 +52,13 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
     IF locker_pid IS NOT NULL THEN
       -- There's a size limit to what can be broadcast via LISTEN/NOTIFY, so
       -- rather than throw errors when someone enqueues a big job, just
-      -- broadcast the primary key and let the locker query for the record.
-      -- The locker will have to hit the DB in order to lock the job anyway.
+      -- broadcast the sort key, and let the locker query for the record. The
+      -- worker will have to hit the DB in order to make sure the job is still
+      -- visible anyway.
       SELECT row_to_json(t)
       INTO sort_key
       FROM (
-        SELECT NEW.queue    AS queue,
-               NEW.priority AS priority,
+        SELECT NEW.priority AS priority,
                NEW.run_at   AS run_at,
                NEW.id       AS id
       ) t;
