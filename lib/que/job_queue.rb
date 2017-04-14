@@ -24,8 +24,8 @@ module Que
       sync do
         if USE_BINARY_SEARCH
           sort_keys.each do |key|
-            i = @array.bsearch_index{|k| compare_keys(key, k)} || -1
-            @array.insert(i, key)
+            i = @array.bsearch_index { |k| compare_keys(key, k) }
+            @array.insert(i || -1, key)
           end
         else
           @array.push(*sort_keys).sort_by! do |sort_key|
@@ -104,7 +104,7 @@ module Que
       end
 
       # Comparing a job's sort key against itself - this shouldn't happen.
-      raise Que::Error, "Compared a job's sort key to itself!"
+      raise Error, "Compared a job's sort key to itself!"
     end
 
     def shift_id
