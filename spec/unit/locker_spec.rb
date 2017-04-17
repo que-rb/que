@@ -36,7 +36,7 @@ describe Que::Locker do
 
       event = events.first
       assert_equal listen,             event['listen']
-      assert_instance_of Integer,      event['backend_pid']
+      assert_kind_of Integer,          event['backend_pid']
       assert_equal queue,              event['queue']
       assert_equal poll_interval,      event['poll_interval']
       assert_equal wait_period,        event['wait_period']
