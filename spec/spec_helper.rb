@@ -177,8 +177,6 @@ class QueSpec < Minitest::Spec
   end
 
   def teardown
-    Que.mode = :off
-
     DB[:que_jobs].delete
     DB[:que_lockers].delete
 

@@ -70,33 +70,6 @@ module Que
 
 
 
-    ### Mode/Locker ###
-
-    # To be removed...?
-    attr_reader :mode
-    attr_reader :locker
-
-    def mode=(mode)
-      if @mode != mode
-        case mode
-        when :async
-          @locker = Locker.new
-        when :sync, :off
-          if @locker
-            @locker.stop!
-            @locker = nil
-          end
-        else
-          raise Error, "Unknown Que mode: #{mode.inspect}"
-        end
-
-        log level: :debug, event: :mode_change, value: mode
-        @mode = mode
-      end
-    end
-
-
-
     ### Constantizing ###
 
     # This is something that has needed configuration in Rails in the past, so
