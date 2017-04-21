@@ -52,6 +52,7 @@ QUE_POOL = Que.pool
 # We use Sequel to examine the database in specs.
 require 'sequel'
 DB = Sequel.connect(QUE_URL)
+DB.extension :pg_array
 
 
 

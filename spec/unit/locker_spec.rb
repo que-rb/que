@@ -5,13 +5,13 @@ require 'spec_helper'
 describe Que::Locker do
   describe "when starting up" do
     def assert_startup(
-      listen: true,
-      queue: Que::DEFAULT_QUEUE,
-      poll_interval: Que::Locker::DEFAULT_POLL_INTERVAL,
-      wait_period: Que::Locker::DEFAULT_WAIT_PERIOD,
+      listen:             true,
+      queues:             [Que::DEFAULT_QUEUE],
+      poll_interval:      Que::Locker::DEFAULT_POLL_INTERVAL,
+      wait_period:        Que::Locker::DEFAULT_WAIT_PERIOD,
       minimum_queue_size: Que::Locker::DEFAULT_MINIMUM_QUEUE_SIZE,
       maximum_queue_size: Que::Locker::DEFAULT_MAXIMUM_QUEUE_SIZE,
-      worker_priorities: [10, 30, 50, nil, nil, nil]
+      worker_priorities:  [10, 30, 50, nil, nil, nil]
     )
 
       assert_equal 0, DB[:que_lockers].count
@@ -19,7 +19,7 @@ describe Que::Locker do
       sleep_until { DB[:que_lockers].count == 1 }
 
       record = DB[:que_lockers].first
-      assert_equal queue,                    record[:queue]
+      assert_equal queues,                   record[:queues]
       assert_equal Process.pid,              record[:ruby_pid]
       assert_equal Socket.gethostname,       record[:ruby_hostname]
       assert_equal worker_priorities.length, record[:worker_count]
@@ -37,7 +37,7 @@ describe Que::Locker do
       event = events.first
       assert_equal listen,             event['listen']
       assert_kind_of Integer,          event['backend_pid']
-      assert_equal queue,              event['queue']
+      assert_equal queues,             event['queues']
       assert_equal poll_interval,      event['poll_interval']
       assert_equal wait_period,        event['wait_period']
       assert_equal minimum_queue_size, event['minimum_queue_size']
@@ -52,7 +52,7 @@ describe Que::Locker do
 
     it "should allow configuration of various parameters" do
       locker_settings.merge!(
-        queue:              'my_queue',
+        queues:             ['my_queue'],
         listen:             false,
         minimum_queue_size: 5,
         maximum_queue_size: 45,
@@ -63,8 +63,8 @@ describe Que::Locker do
       )
 
       assert_startup(
-        queue: 'my_queue',
-        listen: false,
+        queues:             ['my_queue'],
+        listen:             false,
         minimum_queue_size: 5,
         maximum_queue_size: 45,
         wait_period:        0.2,
@@ -79,7 +79,7 @@ describe Que::Locker do
         locker_settings.clear
 
         assert_startup(
-          queue: 'a_new_default_queue',
+          queues: ['a_new_default_queue'],
         )
       ensure
         Que.default_queue = nil
@@ -110,7 +110,7 @@ describe Que::Locker do
         ruby_pid:      0,
         ruby_hostname: 'blah2',
         worker_count:  4,
-        queue:         '',
+        queues:        Sequel.pg_array(['']),
         listening:     true,
       )
 
@@ -124,7 +124,7 @@ describe Que::Locker do
         ruby_pid:      0,
         ruby_hostname: 'blah1',
         worker_count:  4,
-        queue:         '',
+        queues:        Sequel.pg_array(['']),
         listening:     true,
       )
 
@@ -360,6 +360,26 @@ describe Que::Locker do
       assert_equal job.que_attrs[:priority], log['priority']
       assert_equal job.que_attrs[:run_at],   Time.parse(log['run_at'])
       assert_equal job.que_attrs[:id],       log['id']
+    end
+
+    it "should be able to receive NOTIFYs for any of the queues it LISTENs for" do
+      locker_settings[:queues] = ['queue_1', 'queue_2']
+      locker
+
+      sleep_until { DB[:que_lockers].count == 1 }
+      assert_equal ['queue_1', 'queue_2'], DB[:que_lockers].get(:queues)
+
+      BlockJob.enqueue queue: 'queue_1'
+      BlockJob.enqueue queue: 'queue_2'
+
+      $q1.pop; $q1.pop
+
+      assert_equal ['queue_1', 'queue_2'], jobs.select_order_map(:queue)
+
+      $q2.push(nil); $q2.push(nil)
+
+      sleep_until { unprocessed_jobs.count == 0 }
+      locker.stop!
     end
 
     it "should not work jobs that are already locked" do

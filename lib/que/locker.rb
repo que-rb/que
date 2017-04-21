@@ -9,7 +9,7 @@ require 'set'
 
 module Que
   class Locker
-    attr_reader :thread, :workers, :job_queue, :locks
+    attr_reader :thread, :workers, :job_queue, :locks, :pollers
 
     DEFAULT_POLL_INTERVAL      = 1.0
     DEFAULT_WAIT_PERIOD        = 0.01
@@ -19,7 +19,7 @@ module Que
     DEFAULT_WORKER_PRIORITIES  = [10, 30, 50].freeze
 
     def initialize(
-      queue:              Que.default_queue,
+      queues:             [Que.default_queue],
       connection:         nil,
       listen:             true,
       poll_interval:      DEFAULT_POLL_INTERVAL,
@@ -39,7 +39,7 @@ module Que
         @pool = ConnectionPool.new { |&block| block.call(connection) }
       end
 
-      @queue_name         = queue
+      @queue_names        = queues
       @listen             = listen
       @wait_period        = wait_period
       @poll_interval      = poll_interval
@@ -89,7 +89,7 @@ module Que
           level:              :debug,
           event:              :locker_start,
           listen:             @listen,
-          queue:              @queue_name,
+          queues:             @queue_names,
           backend_pid:        conn.backend_pid,
           wait_period:        @wait_period,
           poll_interval:      @poll_interval,
@@ -110,7 +110,7 @@ module Que
             Process.pid,
             CURRENT_HOSTNAME, 
             @listen.to_s,
-            @queue_name,
+            "{\"#{@queue_names.join('","')}\"}",
           ]
 
           poll
@@ -158,7 +158,7 @@ module Que
       space = @job_queue.space
 
       sort_keys =
-        execute :poll_jobs, [@queue_name, "{#{@locks.to_a.join(',')}}", space]
+        execute :poll_jobs, [@queue_names.first, "{#{@locks.to_a.join(',')}}", space]
 
       sort_keys.each { |sort_key| @locks.add(sort_key.fetch(:id)) }
       push_jobs(sort_keys)

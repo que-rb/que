@@ -10,7 +10,7 @@ describe "An insertion into que_jobs" do
                                 worker_count:  4,
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
-                                queue:         '',
+                                queues:        Sequel.pg_array(['']),
                                 listening:     true
 
         notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
@@ -44,7 +44,7 @@ describe "An insertion into que_jobs" do
                                 worker_count:  4,
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
-                                queue:         '',
+                                queues:        Sequel.pg_array(['']),
                                 listening:     true
 
         conn.async_exec "LISTEN que_locker_1"
@@ -65,14 +65,14 @@ describe "An insertion into que_jobs" do
                                 worker_count:  1,
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
-                                queue:         '',
+                                queues:        Sequel.pg_array(['']),
                                 listening:     true
 
         DB[:que_lockers].insert pid:           2,
                                 worker_count:  2,
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
-                                queue:         '',
+                                queues:        Sequel.pg_array(['']),
                                 listening:     true
 
         notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
@@ -95,7 +95,7 @@ describe "An insertion into que_jobs" do
                                 worker_count:  4,
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
-                                queue:         '',
+                                queues:        Sequel.pg_array(['']),
                                 listening:     false
 
         notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
