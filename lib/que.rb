@@ -26,7 +26,7 @@ module Que
 
     # Copy some commonly-used methods here, for convenience.
     def_delegators :pool, :execute, :checkout, :in_transaction?
-    def_delegators Job, :enqueue
+    def_delegators Job, :enqueue, :run_synchronously, :run_synchronously=
     def_delegators Migrations, :db_version, :migrate!
 
     def clear!

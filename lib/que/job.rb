@@ -67,6 +67,7 @@ module Que
     @retry_interval = proc { |count| count ** 4 + 3 }
 
     class << self
+      attr_accessor :run_synchronously
       attr_reader :retry_interval
 
       def enqueue(
@@ -88,7 +89,7 @@ module Que
           args:      args,
         }
 
-        if Que.mode == :sync && !attrs[:run_at]
+        if attrs[:run_at].nil? && resolve_setting(:run_synchronously)
           run(*attrs.fetch(:args))
         else
           values =
