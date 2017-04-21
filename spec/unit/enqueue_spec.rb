@@ -100,47 +100,128 @@ describe Que::Job, '.enqueue' do
   end
 
   it "should respect a job class defined as a string" do
-    class MyJobClass < Que::Job
-    end
+    class MyJobClass < Que::Job; end
 
     assert_enqueue ['argument', {other_arg: "other_arg", job_class: 'MyJobClass'}],
       expected_args: ['argument', {other_arg: "other_arg"}],
       expected_job_class: MyJobClass
   end
 
-  it "should respect a default (but overridable) priority for the job class" do
-    class DefaultPriorityJob < Que::Job
+  describe "when there's a hierarchy of job classes" do
+    class PriorityDefaultJob < Que::Job
       @priority = 3
     end
 
-    assert_enqueue \
-      -> { DefaultPriorityJob.enqueue 1 },
-      expected_args: [1],
-      expected_priority: 3,
-      expected_job_class: DefaultPriorityJob
+    class PrioritySubclassJob < PriorityDefaultJob
+    end
 
-    assert_enqueue \
-      -> { DefaultPriorityJob.enqueue 1, priority: 4 },
-      expected_args: [1],
-      expected_priority: 4,
-      expected_job_class: DefaultPriorityJob
-  end
-
-  it "should respect a default (but overridable) run_at for the job class" do
-    class DefaultRunAtJob < Que::Job
+    class RunAtDefaultJob < Que::Job
       @run_at = -> { Time.now + 30 }
     end
 
-    assert_enqueue \
-      -> { DefaultRunAtJob.enqueue 1 },
-      expected_args: [1],
-      expected_run_at: Time.now + 30,
-      expected_job_class: DefaultRunAtJob
+    class RunAtSubclassJob < RunAtDefaultJob
+    end
 
-    assert_enqueue \
-      -> { DefaultRunAtJob.enqueue 1, run_at: Time.now + 60 },
-      expected_args: [1],
-      expected_run_at: Time.now + 60,
-      expected_job_class: DefaultRunAtJob
+    describe "priority" do
+      it "should respect a default (but overridable) priority in a job class" do
+        assert_enqueue \
+          -> { PriorityDefaultJob.enqueue 1 },
+          expected_args: [1],
+          expected_priority: 3,
+          expected_job_class: PriorityDefaultJob
+
+        assert_enqueue \
+          -> { PriorityDefaultJob.enqueue 1, priority: 4 },
+          expected_args: [1],
+          expected_priority: 4,
+          expected_job_class: PriorityDefaultJob
+      end
+
+      it "should respect an inherited (but overridable) priority in a job class" do
+        assert_enqueue \
+          -> { PrioritySubclassJob.enqueue 1 },
+          expected_args: [1],
+          expected_priority: 3,
+          expected_job_class: PrioritySubclassJob
+
+        assert_enqueue \
+          -> { PrioritySubclassJob.enqueue 1, priority: 4 },
+          expected_args: [1],
+          expected_priority: 4,
+          expected_job_class: PrioritySubclassJob
+      end
+
+      it "should respect an overridden (but overridable) priority in a job class" do
+        begin
+          original_value = PrioritySubclassJob.instance_variable_get(:@priority)
+          PrioritySubclassJob.instance_variable_set(:@priority, 60)
+
+          assert_enqueue \
+            -> { PrioritySubclassJob.enqueue 1 },
+            expected_args: [1],
+            expected_priority: 60,
+            expected_job_class: PrioritySubclassJob
+
+          assert_enqueue \
+            -> { PrioritySubclassJob.enqueue 1, priority: 4 },
+            expected_args: [1],
+            expected_priority: 4,
+            expected_job_class: PrioritySubclassJob
+        ensure
+          PrioritySubclassJob.instance_variable_set(:@priority, original_value)
+        end
+      end
+    end
+
+    describe "run_at" do
+      it "should respect a default (but overridable) run_at in a job class" do
+        assert_enqueue \
+          -> { RunAtDefaultJob.enqueue 1 },
+          expected_args: [1],
+          expected_run_at: Time.now + 30,
+          expected_job_class: RunAtDefaultJob
+
+        assert_enqueue \
+          -> { RunAtDefaultJob.enqueue 1, run_at: Time.now + 60 },
+          expected_args: [1],
+          expected_run_at: Time.now + 60,
+          expected_job_class: RunAtDefaultJob
+      end
+
+      it "should respect an inherited (but overridable) run_at in a job class" do
+        assert_enqueue \
+          -> { RunAtSubclassJob.enqueue 1 },
+          expected_args: [1],
+          expected_run_at: Time.now + 30,
+          expected_job_class: RunAtSubclassJob
+
+        assert_enqueue \
+          -> { RunAtSubclassJob.enqueue 1, run_at: Time.now + 60 },
+          expected_args: [1],
+          expected_run_at: Time.now + 60,
+          expected_job_class: RunAtSubclassJob
+      end
+
+      it "should respect an overridden (but overridable) run_at in a job class" do
+        begin
+          original_value = RunAtSubclassJob.instance_variable_get(:@run_at)
+          RunAtSubclassJob.instance_variable_set(:@run_at, -> {Time.now + 90})
+
+          assert_enqueue \
+            -> { RunAtSubclassJob.enqueue 1 },
+            expected_args: [1],
+            expected_run_at: Time.now + 90,
+            expected_job_class: RunAtSubclassJob
+
+          assert_enqueue \
+            -> { RunAtSubclassJob.enqueue 1, run_at: Time.now + 60 },
+            expected_args: [1],
+            expected_run_at: Time.now + 60,
+            expected_job_class: RunAtSubclassJob
+        ensure
+          RunAtSubclassJob.instance_variable_set(:@run_at, original_value)
+        end
+      end
+    end
   end
 end

@@ -111,6 +111,18 @@ module Que
         # Should not fail if there's no DB connection.
         new(args: args).tap { |job| job.run(*args) }
       end
+
+      INHERITED_INSTANCE_VARIABLES = [:@priority, :@run_at].freeze
+
+      def inherited(subclass)
+        super
+
+        INHERITED_INSTANCE_VARIABLES.each do |ivar|
+          if value = instance_variable_get(ivar)
+            subclass.instance_variable_set(ivar, value)
+          end
+        end
+      end
     end
   end
 end
