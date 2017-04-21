@@ -71,7 +71,7 @@ module Que
 
       def enqueue(
         *args,
-        queue: Que.default_queue,
+        queue: nil,
         job_class: nil,
         run_at: nil,
         priority: nil,
@@ -81,7 +81,7 @@ module Que
         args << arg_opts if arg_opts.any?
 
         attrs = {
-          queue: queue,
+          queue: queue || @queue || Que.default_queue,
           job_class: job_class || to_s,
           args: args,
         }
@@ -112,7 +112,11 @@ module Que
         new(args: args).tap { |job| job.run(*args) }
       end
 
-      INHERITED_INSTANCE_VARIABLES = [:@priority, :@run_at].freeze
+      INHERITED_INSTANCE_VARIABLES = [
+        :@priority,
+        :@run_at,
+        :@queue,
+      ].freeze
 
       def inherited(subclass)
         super

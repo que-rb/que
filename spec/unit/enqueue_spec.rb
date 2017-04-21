@@ -122,6 +122,13 @@ describe Que::Job, '.enqueue' do
     class RunAtSubclassJob < RunAtDefaultJob
     end
 
+    class QueueDefaultJob < Que::Job
+      @queue = :queue_1
+    end
+
+    class QueueSubclassJob < QueueDefaultJob
+    end
+
     describe "priority" do
       it "should respect a default (but overridable) priority in a job class" do
         assert_enqueue \
@@ -220,6 +227,57 @@ describe Que::Job, '.enqueue' do
             expected_job_class: RunAtSubclassJob
         ensure
           RunAtSubclassJob.instance_variable_set(:@run_at, original_value)
+        end
+      end
+    end
+
+    describe "queue" do
+      it "should respect a default (but overridable) queue in a job class" do
+        assert_enqueue \
+          -> { QueueDefaultJob.enqueue 1 },
+          expected_args: [1],
+          expected_queue: 'queue_1',
+          expected_job_class: QueueDefaultJob
+
+        assert_enqueue \
+          -> { QueueDefaultJob.enqueue 1, queue: 'queue_3' },
+          expected_args: [1],
+          expected_queue: 'queue_3',
+          expected_job_class: QueueDefaultJob
+      end
+
+      it "should respect an inherited (but overridable) queue in a job class" do
+        assert_enqueue \
+          -> { QueueSubclassJob.enqueue 1 },
+          expected_args: [1],
+          expected_queue: 'queue_1',
+          expected_job_class: QueueSubclassJob
+
+        assert_enqueue \
+          -> { QueueSubclassJob.enqueue 1, queue: 'queue_3' },
+          expected_args: [1],
+          expected_queue: 'queue_3',
+          expected_job_class: QueueSubclassJob
+      end
+
+      it "should respect an overridden (but overridable) queue in a job class" do
+        begin
+          original_value = QueueSubclassJob.instance_variable_get(:@queue)
+          QueueSubclassJob.instance_variable_set(:@queue, :queue_2)
+
+          assert_enqueue \
+            -> { QueueSubclassJob.enqueue 1 },
+            expected_args: [1],
+            expected_queue: 'queue_2',
+            expected_job_class: QueueSubclassJob
+
+          assert_enqueue \
+            -> { QueueSubclassJob.enqueue 1, queue: 'queue_3' },
+            expected_args: [1],
+            expected_queue: 'queue_3',
+            expected_job_class: QueueSubclassJob
+        ensure
+          QueueSubclassJob.instance_variable_set(:@queue, original_value)
         end
       end
     end
