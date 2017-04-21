@@ -7,7 +7,9 @@ ALTER TABLE que_jobs
   ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (id),
   ADD CONSTRAINT queue_length CHECK (char_length(queue) <= 60);
 
-CREATE UNIQUE INDEX que_jobs_poll_idx ON que_jobs (queue, priority, run_at, id) WHERE NOT (is_processed);
+CREATE UNIQUE INDEX que_jobs_poll_idx
+  ON que_jobs (queue, priority, run_at, id)
+  WHERE NOT (is_processed);
 
 CREATE UNLOGGED TABLE que_lockers (
   pid           integer NOT NULL CONSTRAINT que_lockers_pkey PRIMARY KEY,
@@ -16,7 +18,10 @@ CREATE UNLOGGED TABLE que_lockers (
   ruby_hostname text    NOT NULL,
   queues        text[]  NOT NULL,
   listening     boolean NOT NULL,
-  CONSTRAINT valid_queues CHECK ((array_ndims(queues) = 1) AND (array_length(queues, 1) >= 1))
+
+  CONSTRAINT valid_queues CHECK (
+    (array_ndims(queues) = 1) AND (array_length(queues, 1) >= 1)
+  )
 );
 
 CREATE FUNCTION que_job_notify() RETURNS trigger AS $$

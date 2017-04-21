@@ -17,7 +17,8 @@ module Que
       @pool || raise(Error, "Que connection not established!")
     end
 
-    # Set the current pool. Helpful for specs, but probably shouldn't be used generally.
+    # Set the current pool. Helpful for specs, but probably shouldn't be used
+    # generally.
     attr_writer :pool
 
 

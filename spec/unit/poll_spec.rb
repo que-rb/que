@@ -11,7 +11,14 @@ describe "The job polling query" do
 
     returned_job_ids = jobs.map { |j| j[:id] }
 
-    ids = Que.execute("SELECT objid FROM pg_locks WHERE locktype = 'advisory' AND pid = pg_backend_pid()")
+    ids =
+      Que.execute <<-SQL
+        SELECT objid
+        FROM pg_locks
+        WHERE locktype = 'advisory'
+        AND pid = pg_backend_pid()
+      SQL
+
     ids.map!{|h| h[:objid].to_i}.sort
 
     assert_equal ids.sort, returned_job_ids.sort
@@ -62,7 +69,7 @@ describe "The job polling query" do
     assert_equal jobs.where{priority <= 3}.select_order_map(:id), poll(5).sort
   end
 
-  it "should prefer a job that was scheduled to run longer ago when priorities are equal" do
+  it "should prefer a job that was scheduled to run longer ago" do
     id1 = Que::Job.enqueue(run_at: Time.now - 30).que_attrs[:id]
     id2 = Que::Job.enqueue(run_at: Time.now - 60).que_attrs[:id]
     id3 = Que::Job.enqueue(run_at: Time.now - 30).que_attrs[:id]
@@ -70,7 +77,7 @@ describe "The job polling query" do
     assert_equal [id2], poll(1)
   end
 
-  it "should prefer a job that was queued earlier when priorities and run_ats are equal" do
+  it "should prefer a job that was queued earlier" do
     run_at = Time.now - 30
     id1 = Que::Job.enqueue(run_at: run_at).que_attrs[:id]
     id2 = Que::Job.enqueue(run_at: run_at).que_attrs[:id]
@@ -95,7 +102,7 @@ describe "The job polling query" do
     end
   end
 
-  it "should behave itself when being run concurrently by several connections" do
+  it "should behave when being run concurrently by several connections" do
     q1, q2, q3, q4 = Queue.new, Queue.new, Queue.new, Queue.new
 
     threads = 4.times.map do

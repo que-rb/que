@@ -51,14 +51,26 @@ describe Que::JobQueue do
       end
 
       it "should pop the least important jobs and return their pks" do
-        assert_equal job_array[7..7].map{|j| j[:id]}, job_queue.push(important_values[0])
-        assert_equal job_array[5..6].map{|j| j[:id]}, job_queue.push(*important_values[1..2]).sort
+        assert_equal \
+          job_array[7..7].map{|j| j[:id]},
+          job_queue.push(important_values[0])
+
+        assert_equal \
+          job_array[5..6].map{|j| j[:id]},
+          job_queue.push(*important_values[1..2]).sort
+
         assert_equal 8, job_queue.size
       end
 
       it "should work when passing multiple pks that would pass the maximum" do
-        assert_equal job_array.first[:id], job_queue.shift
-        assert_equal job_array[7..7].map{|j| j[:id]}, job_queue.push(*important_values[0..1])
+        assert_equal \
+          job_array.first[:id],
+          job_queue.shift
+
+        assert_equal \
+          job_array[7..7].map{|j| j[:id]},
+          job_queue.push(*important_values[0..1])
+
         assert_equal 8, job_queue.size
       end
 
@@ -81,15 +93,15 @@ describe Que::JobQueue do
     it "should return true if there is sufficient room in the queue" do
       assert_equal job_array.first[:id], job_queue.shift
       assert_equal 7, job_queue.size
-      assert_equal true, job_queue.accept?(job_array.last)
+      assert job_queue.accept?(job_array.last)
     end
 
-    it "should return true if there is insufficient room in the queue, but the job can knock out a lower-priority job" do
-      assert_equal true, job_queue.accept?(job_array.first)
+    it "should return true if the job can knock out a lower-priority job" do
+      assert job_queue.accept?(job_array.first)
     end
 
-    it "should return false if there is insufficient room in the queue, and the job's priority is lower than any in the queue" do
-      assert_equal false, job_queue.accept?({priority: 100, run_at: Time.now, id: 45})
+    it "should return false if the job's priority is lower than any queued" do
+      refute job_queue.accept?({priority: 100, run_at: Time.now, id: 45})
     end
   end
 
@@ -118,11 +130,14 @@ describe Que::JobQueue do
       job_queue.push *job_array
       sleep_until { threads.all? { |t| t.status == false } }
 
-      assert_equal job_array[0..3].map{|j| j[:id]}, threads.map{|t| t[:job]}.sort
+      assert_equal \
+        job_array[0..3].map{|j| j[:id]},
+        threads.map{|t| t[:job]}.sort
+
       assert_equal job_array[4..7], job_queue.to_a
     end
 
-    it "should accept a priority value and only accept jobs of equal or better priority" do
+    it "should respect a minimum priority argument" do
       a = {priority: 10, run_at: Time.now, id: 1}
       b = {priority: 10, run_at: Time.now, id: 2}
       c = {priority:  5, run_at: Time.now, id: 3}
@@ -140,7 +155,7 @@ describe Que::JobQueue do
       assert_equal 3, t[:job]
     end
 
-    it "when blocking for multiple threads should only return for one of sufficient priority" do
+    it "when blocked should only return for a request of sufficient priority" do
       job_queue # Pre-initialize to avoid race conditions.
 
       # Randomize order in which threads lock.
@@ -199,8 +214,9 @@ describe Que::JobQueue do
     end
   end
 
-  it "should still be pushable and clearable if it has an infinite maximum_size" do
-    # Result queues only need these two operations, and shouldn't have a size limit.
+  it "should be pushable and clearable if it has an infinite maximum_size" do
+    # Result queues only need these two operations, and shouldn't have a size
+    # limit.
     job_queue = Que::JobQueue.new
     value = {priority: 100, run_at: Time.now, id: 45}
     job_queue.push value

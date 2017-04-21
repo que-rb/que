@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 describe Que, '.job_states' do
-  it "should return a list of the jobs currently being run, and which Ruby processes are working them" do
+  it "should return a list of the jobs currently being run" do
     BlockJob.enqueue priority: 2
 
     # Ensure that the portion of the SQL query that accounts for bigint
@@ -20,7 +20,10 @@ describe Que, '.job_states' do
     locker.stop!
 
     state = states.first
-    assert_equal %i(priority run_at id job_class args error_count last_error queue is_processed ruby_hostname ruby_pid), state.keys
+    assert_equal \
+      %i(priority run_at id job_class args error_count last_error queue
+        is_processed ruby_hostname ruby_pid),
+      state.keys
 
     assert_equal 2, state[:priority]
     assert_in_delta state[:run_at], Time.now, 3

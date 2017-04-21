@@ -23,7 +23,9 @@ task :safe_shutdown do
   DB = Sequel.connect(url)
 
   if DB.table_exists?(:que_jobs)
-    puts "Uh-oh! Previous shutdown wasn't clean!" if DB[:que_jobs].where(id: 0).count > 0
+    if DB[:que_jobs].where(id: 0).count > 0
+      puts "Uh-oh! Previous shutdown wasn't clean!"
+    end
     DB.drop_table :que_jobs
   end
 

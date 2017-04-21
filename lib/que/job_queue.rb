@@ -55,7 +55,7 @@ module Que
         sync do
           if @stop
             return
-          elsif (sort_key = @array.first) && sort_key.fetch(:priority) <= priority
+          elsif (key = @array.first) && key.fetch(:priority) <= priority
             return shift_id
           else
             @cv.wait

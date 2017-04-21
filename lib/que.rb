@@ -66,7 +66,11 @@ module Que
             l.send level, output
           end
         rescue => e
-          l.error "Error raised from Que.log_formatter proc: #{e.class}: #{e.message}\n#{e.backtrace}"
+          msg =
+            "Error raised from Que.log_formatter proc:" +
+            " #{e.class}: #{e.message}\n#{e.backtrace}"
+
+          l.error(msg)
         end
       end
     end

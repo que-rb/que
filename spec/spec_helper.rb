@@ -112,8 +112,8 @@ class QueSpec < Minitest::Spec
     locker.job_queue.to_a.map { |h| h.fetch(:id) }
   end
 
-  # Travis seems to freeze the VM the tests run in sometimes, so bump up the limit
-  # when running in CI.
+  # Travis seems to freeze the VM the tests run in sometimes, so bump up the
+  # limit when running in CI.
   QUE_SLEEP_UNTIL_TIMEOUT = ENV['CI'] ? 10 : 2
 
   # Helper for testing threaded code.

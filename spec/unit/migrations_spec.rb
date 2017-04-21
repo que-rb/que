@@ -38,7 +38,7 @@ describe Que::Migrations do
     assert_equal Que::Migrations::CURRENT_VERSION, Que::Migrations.db_version
   end
 
-  it "should be able to cycle the jobs table all the way between nonexistent and current without error" do
+  it "should be able to cycle the jobs table through all migrations" do
     assert_equal Que::Migrations::CURRENT_VERSION, Que::Migrations.db_version
     Que::Migrations.migrate! version: 0
     assert_equal 0, Que::Migrations.db_version
@@ -63,7 +63,7 @@ describe Que::Migrations do
     assert DB.table_exists?(:que_jobs)
   end
 
-  it "should be able to recognize a que_jobs table created before the versioning system" do
+  it "should be able to recognize a que_jobs table at version 0" do
     Que.migrate! version: 0
     DB.create_table(:que_jobs){serial :id} # Dummy Table.
     assert_equal 1, Que::Migrations.db_version

@@ -13,7 +13,9 @@ describe "An insertion into que_jobs" do
                                 queues:        Sequel.pg_array(['']),
                                 listening:     true
 
-        notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
+        notify_pid =
+          Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
+
         conn.async_exec "LISTEN que_locker_1"
 
         Que::Job.enqueue
@@ -75,11 +77,15 @@ describe "An insertion into que_jobs" do
                                 queues:        Sequel.pg_array(['']),
                                 listening:     true
 
-        notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
+        notify_pid =
+          Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
+
         conn.async_exec "LISTEN que_locker_1; LISTEN que_locker_2"
 
         channels = 6.times.map { Que::Job.enqueue; conn.wait_for_notify }
-        assert_equal (['que_locker_1'] * 2 + ['que_locker_2'] * 4), channels.sort
+        assert_equal \
+          (['que_locker_1'] * 2 + ['que_locker_2'] * 4),
+          channels.sort
 
         assert_nil conn.wait_for_notify(0.01)
       ensure
@@ -98,7 +104,9 @@ describe "An insertion into que_jobs" do
                                 queues:        Sequel.pg_array(['']),
                                 listening:     false
 
-        notify_pid = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
+        notify_pid =
+          Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
+
         conn.async_exec "LISTEN que_locker_1"
 
         Que::Job.enqueue

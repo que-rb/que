@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 describe "Logging" do
-  it "by default should record the library and hostname and thread id in JSON" do
+  it "should record the library and hostname and thread id in JSON" do
     Que.log event: "blah", source: 4
     assert_equal 1, $logger.messages.count
 
@@ -68,7 +68,7 @@ describe "Logging" do
     end
   end
 
-  it "should use a :level option to set the log level if one exists, or default to info" do
+  it "should use a :level option to set the log level if one exists" do
     begin
       Que.logger = o = Object.new
 
@@ -98,7 +98,9 @@ describe "Logging" do
       assert_equal 1, $logger.messages.count
 
       message = $logger.messages.first
-      assert message.start_with? "Error raised from Que.log_formatter proc: RuntimeError: Blah!"
+      assert message.start_with?(
+        "Error raised from Que.log_formatter proc: RuntimeError: Blah!"
+      )
     ensure
       Que.log_formatter = nil
     end

@@ -33,7 +33,8 @@ before_install:
   - sudo /etc/init.d/postgresql stop
   # Install whatever version we're using.
   - sudo apt-get install postgresql-$PG_VERSION
-  # If we just installed Postgres 9.6 it won't have a proper pg_hba set up, so...
+  # If we just installed Postgres 9.6 it won't have a proper pg_hba set up,
+  # so...
   - sudo mkdir -p /etc/postgresql/9.6/main
   - sudo cp -v /etc/postgresql/9.{5,6}/main/pg_hba.conf
   # Hook up the Postgres version we care about to the right port.

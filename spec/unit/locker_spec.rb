@@ -163,7 +163,7 @@ describe Que::Locker do
     end
   end
 
-  it "should do batch polls every poll_interval to catch jobs that fall through the cracks" do
+  it "should do batch polls every poll_interval" do
     assert_equal 0, jobs.count
 
     locker_settings[:poll_interval] = 0.01
@@ -224,7 +224,7 @@ describe Que::Locker do
       locker.stop!
     end
 
-    it "should repeat batch polls until the supply of available jobs is exhausted" do
+    it "should repeat batch polls until there are no more available jobs" do
       Que.execute <<-SQL
         INSERT INTO que_jobs (job_class, priority)
         SELECT 'Que::Job', 1
@@ -261,7 +261,8 @@ describe Que::Locker do
         id2 = PollRelockJob.enqueue.que_attrs[:id]
         $q1.pop
 
-        # Without the relock protection, we'd expect the first job to be worked twice.
+        # Without the relock protection, we'd expect the first job to be worked
+        # twice.
         assert_equal [id1, id2], $performed
 
         $q2.push nil
@@ -313,10 +314,13 @@ describe Que::Locker do
           e['limit'] == 5 && e['locked'] == 5
         end
 
-      assert(second_mass_lock, "Didn't find a valid log message in: #{locker_polled_events.inspect}")
+      assert(
+        second_mass_lock,
+        "Didn't find a valid log message in: #{locker_polled_events.inspect}"
+      )
     end
 
-    it "should trigger a new batch poll when the queue drops to the minimum_queue_size threshold" do
+    it "should trigger a new poll when the queue drops to the minimum size" do
       ids = 9.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
 
       locker
@@ -362,7 +366,7 @@ describe Que::Locker do
       assert_equal job.que_attrs[:id],       log['id']
     end
 
-    it "should be able to receive NOTIFYs for any of the queues it LISTENs for" do
+    it "should receive NOTIFYs for any of the queues it LISTENs for" do
       locker_settings[:queues] = ['queue_1', 'queue_2']
       locker
 
@@ -454,7 +458,7 @@ describe Que::Locker do
       locker.stop!
     end
 
-    it "of low importance should not lock them or add them to the JobQueue if it is full" do
+    it "of low importance should not lock them if the local queue is full" do
       locker_settings.replace(worker_count: 1, maximum_queue_size: 3)
       locker
 
@@ -474,7 +478,7 @@ describe Que::Locker do
       locker.stop!
     end
 
-    it "of significant importance should lock and add it to the JobQueue and dequeue/unlock the least important one to make room" do
+    it "of significant importance should lock and add it to the local queue" do
       locker_settings.replace(worker_count: 1, maximum_queue_size: 3)
       locker
 
@@ -544,7 +548,7 @@ describe Que::Locker do
       t.join
     end
 
-    it "should wait for its currently running jobs to finish before returning" do
+    it "should wait for its currently running jobs to finish" do
       locker
 
       sleep_until { DB[:que_lockers].count == 1 }

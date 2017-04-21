@@ -13,12 +13,21 @@ describe Que::Worker do
 
   def run_jobs(*jobs)
     @result_queue.clear
-    jobs = jobs.flatten.map { |job| {priority: job[:priority], run_at: job[:run_at], id: job[:id]} }
+
+    jobs =
+      jobs.flatten.map { |job|
+        {
+          priority: job[:priority],
+          run_at: job[:run_at],
+          id: job[:id]
+        }
+      }
+
     @job_queue.push *jobs
     sleep_until { @result_queue.to_a.sort == jobs.map{|j| j[:id]}.sort }
   end
 
-  it "should repeatedly work jobs that are passed to it via its job_queue, ordered correctly" do
+  it "should repeatedly work jobs that are passed to it via its job_queue" do
     begin
       $results = []
 
@@ -43,7 +52,7 @@ describe Que::Worker do
     end
   end
 
-  it "should pass a job's arguments to the run method and mark it as processed" do
+  it "should run a job and mark it as processed" do
     ArgsJob.enqueue 1, 'two', {'three' => 3}
     assert_equal 1, jobs.count
 
@@ -64,20 +73,24 @@ describe Que::Worker do
 
     KeywordArgsJob.enqueue(keyword_arg_1: 'passed', keyword_arg_2: 'passed_2')
     assert_equal 1, unprocessed_jobs.count
-    assert_equal [{"keyword_arg_1" => 'passed', 'keyword_arg_2' => 'passed_2'}], JSON.parse(unprocessed_jobs.first[:args])
+    assert_equal [{"keyword_arg_1" => 'passed', 'keyword_arg_2' => 'passed_2'}],
+      JSON.parse(unprocessed_jobs.first[:args])
+
     run_jobs Que.execute(unprocessed_jobs.sql).first
     assert_equal 0, unprocessed_jobs.count
     assert_equal ['passed', 'passed_2'], $passed_args
 
     KeywordArgsJob.enqueue(keyword_arg_1: 'passed')
     assert_equal 1, unprocessed_jobs.count
-    assert_equal [{"keyword_arg_1" => 'passed'}], JSON.parse(unprocessed_jobs.first[:args])
+    assert_equal [{"keyword_arg_1" => 'passed'}],
+      JSON.parse(unprocessed_jobs.first[:args])
+
     run_jobs Que.execute(unprocessed_jobs.sql).first
     assert_equal 0, unprocessed_jobs.count
     assert_equal ['passed', 'default'], $passed_args
   end
 
-  it "should make it easy to destroy the job within the same transaction as other changes" do
+  it "should make it easy to destroy the job" do
     class DestroyJob < Que::Job
       def run
         destroy
@@ -157,7 +170,7 @@ describe Que::Worker do
     assert_equal 3, $passed_args.last[:array].first[:number]
   end
 
-  it "should skip a job without incident if passed the pk for a job that doesn't exist" do
+  it "should skip a job if passed the pk for a job that doesn't exist" do
     assert_equal 0, jobs.count
     run_jobs priority: 1,
              run_at:   Time.now,
@@ -299,11 +312,12 @@ describe Que::Worker do
       assert_equal 1, jobs.count
       job = jobs.first
       assert_equal 1, job[:error_count]
-      assert_match /uninitialized constant:? .*NonexistentClass/, job[:last_error]
+      assert_match /uninitialized constant:? .*NonexistentClass/,
+        job[:last_error]
       assert_in_delta job[:run_at], Time.now + 4, 3
     end
 
-    it "should throw an error properly if the corresponding job class doesn't descend from Que::Job" do
+    it "should throw an error if the job class doesn't descend from Que::Job" do
       class J
         def run(*args)
         end

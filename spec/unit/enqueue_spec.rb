@@ -92,8 +92,9 @@ describe Que::Job, '.enqueue' do
       expected_priority: 4
   end
 
-  it "should be able to queue a job with queueing options in addition to argument options" do
-    assert_enqueue [1, {string: "string", run_at: Time.now + 60, priority: 4}],
+  it "should be able to queue a job with options in addition to args" do
+    assert_enqueue \
+      [1, {string: "string", run_at: Time.now + 60, priority: 4}],
       expected_args: [1, {string: "string"}],
       expected_run_at: Time.now + 60,
       expected_priority: 4
@@ -102,7 +103,8 @@ describe Que::Job, '.enqueue' do
   it "should respect a job class defined as a string" do
     class MyJobClass < Que::Job; end
 
-    assert_enqueue ['argument', {other_arg: "other_arg", job_class: 'MyJobClass'}],
+    assert_enqueue \
+      ['argument', {other_arg: "other_arg", job_class: 'MyJobClass'}],
       expected_args: ['argument', {other_arg: "other_arg"}],
       expected_job_class: MyJobClass
   end
@@ -130,7 +132,7 @@ describe Que::Job, '.enqueue' do
     end
 
     describe "priority" do
-      it "should respect a default (but overridable) priority in a job class" do
+      it "should respect a default priority in a job class" do
         assert_enqueue \
           -> { PriorityDefaultJob.enqueue 1 },
           expected_args: [1],
@@ -144,7 +146,7 @@ describe Que::Job, '.enqueue' do
           expected_job_class: PriorityDefaultJob
       end
 
-      it "should respect an inherited (but overridable) priority in a job class" do
+      it "should respect an inherited priority in a job class" do
         assert_enqueue \
           -> { PrioritySubclassJob.enqueue 1 },
           expected_args: [1],
@@ -158,7 +160,7 @@ describe Que::Job, '.enqueue' do
           expected_job_class: PrioritySubclassJob
       end
 
-      it "should respect an overridden (but overridable) priority in a job class" do
+      it "should respect an overridden priority in a job class" do
         begin
           original_value = PrioritySubclassJob.instance_variable_get(:@priority)
           PrioritySubclassJob.instance_variable_set(:@priority, 60)
@@ -181,7 +183,7 @@ describe Que::Job, '.enqueue' do
     end
 
     describe "run_at" do
-      it "should respect a default (but overridable) run_at in a job class" do
+      it "should respect a default run_at in a job class" do
         assert_enqueue \
           -> { RunAtDefaultJob.enqueue 1 },
           expected_args: [1],
@@ -195,7 +197,7 @@ describe Que::Job, '.enqueue' do
           expected_job_class: RunAtDefaultJob
       end
 
-      it "should respect an inherited (but overridable) run_at in a job class" do
+      it "should respect an inherited run_at in a job class" do
         assert_enqueue \
           -> { RunAtSubclassJob.enqueue 1 },
           expected_args: [1],
@@ -209,7 +211,7 @@ describe Que::Job, '.enqueue' do
           expected_job_class: RunAtSubclassJob
       end
 
-      it "should respect an overridden (but overridable) run_at in a job class" do
+      it "should respect an overridden run_at in a job class" do
         begin
           original_value = RunAtSubclassJob.instance_variable_get(:@run_at)
           RunAtSubclassJob.instance_variable_set(:@run_at, -> {Time.now + 90})
@@ -232,7 +234,7 @@ describe Que::Job, '.enqueue' do
     end
 
     describe "queue" do
-      it "should respect a default (but overridable) queue in a job class" do
+      it "should respect a default queue in a job class" do
         assert_enqueue \
           -> { QueueDefaultJob.enqueue 1 },
           expected_args: [1],
@@ -246,7 +248,7 @@ describe Que::Job, '.enqueue' do
           expected_job_class: QueueDefaultJob
       end
 
-      it "should respect an inherited (but overridable) queue in a job class" do
+      it "should respect an inherited queue in a job class" do
         assert_enqueue \
           -> { QueueSubclassJob.enqueue 1 },
           expected_args: [1],
@@ -260,7 +262,7 @@ describe Que::Job, '.enqueue' do
           expected_job_class: QueueSubclassJob
       end
 
-      it "should respect an overridden (but overridable) queue in a job class" do
+      it "should respect an overridden queue in a job class" do
         begin
           original_value = QueueSubclassJob.instance_variable_get(:@queue)
           QueueSubclassJob.instance_variable_set(:@queue, :queue_2)

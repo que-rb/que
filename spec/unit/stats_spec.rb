@@ -3,14 +3,15 @@
 require 'spec_helper'
 
 describe Que, '.job_stats' do
-  it "should return a list of the job types in the queue, their counts and the number of each currently running" do
+  it "should return a list of the job types in the queue" do
     BlockJob.enqueue
     Que::Job.enqueue
 
     # Have to tweak the id to ensure that the portion of the SQL query
     # that accounts for bigint ids functions correctly.
     old = Time.now - 3600
-    jobs.where(job_class: "Que::Job").update(id: 2**33, error_count: 5, run_at: old)
+    jobs.where(job_class: "Que::Job").
+      update(id: 2**33, error_count: 5, run_at: old)
 
     Que::Job.enqueue
 
@@ -22,7 +23,10 @@ describe Que, '.job_stats' do
 
       qj, bj = stats
 
-      assert_equal %i(job_class count count_working count_errored highest_error_count oldest_run_at), qj.keys
+      assert_equal \
+        %i(job_class count count_working count_errored
+          highest_error_count oldest_run_at),
+        qj.keys
 
       assert_equal 'Que::Job', qj[:job_class]
       assert_equal 2, qj[:count]
