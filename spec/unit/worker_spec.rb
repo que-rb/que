@@ -52,93 +52,6 @@ describe Que::Worker do
     end
   end
 
-  it "should run a job and mark it as processed" do
-    ArgsJob.enqueue 1, 'two', {'three' => 3}
-    assert_equal 1, jobs.count
-
-    run_jobs Que.execute("SELECT * FROM que_jobs").first
-
-    assert_equal 0, unprocessed_jobs.count
-    assert_equal [1, 'two', {three: 3}], $passed_args
-  end
-
-  it "should work well with keyword arguments" do
-    assert_nil $passed_args
-
-    class KeywordArgsJob < Que::Job
-      def run(keyword_arg_1:, keyword_arg_2: 'default')
-        $passed_args = [keyword_arg_1, keyword_arg_2]
-      end
-    end
-
-    KeywordArgsJob.enqueue(keyword_arg_1: 'passed', keyword_arg_2: 'passed_2')
-    assert_equal 1, unprocessed_jobs.count
-    assert_equal [{"keyword_arg_1" => 'passed', 'keyword_arg_2' => 'passed_2'}],
-      JSON.parse(unprocessed_jobs.first[:args])
-
-    run_jobs Que.execute(unprocessed_jobs.sql).first
-    assert_equal 0, unprocessed_jobs.count
-    assert_equal ['passed', 'passed_2'], $passed_args
-
-    KeywordArgsJob.enqueue(keyword_arg_1: 'passed')
-    assert_equal 1, unprocessed_jobs.count
-    assert_equal [{"keyword_arg_1" => 'passed'}],
-      JSON.parse(unprocessed_jobs.first[:args])
-
-    run_jobs Que.execute(unprocessed_jobs.sql).first
-    assert_equal 0, unprocessed_jobs.count
-    assert_equal ['passed', 'default'], $passed_args
-  end
-
-  it "should make it easy to destroy the job" do
-    class DestroyJob < Que::Job
-      def run
-        destroy
-      end
-    end
-
-    DestroyJob.enqueue
-    assert_equal 1, jobs.count
-
-    run_jobs Que.execute("SELECT * FROM que_jobs").first
-    assert_equal 0, jobs.count
-  end
-
-  it "should handle subclasses of other jobs" do
-    begin
-      class SubClassJob < Que::Job
-        @priority = 2
-
-        def run
-          $job_spec_result << :sub
-        end
-      end
-
-      class SubSubClassJob < SubClassJob
-        @priority = 4
-
-        def run
-          super
-          $job_spec_result << :subsub
-        end
-      end
-
-      $job_spec_result = []
-      SubClassJob.enqueue
-      assert_equal [2], unprocessed_jobs.select_map(:priority)
-      run_jobs Que.execute(unprocessed_jobs.sql).first
-      assert_equal [:sub], $job_spec_result
-
-      $job_spec_result = []
-      SubSubClassJob.enqueue
-      assert_equal [4], unprocessed_jobs.select_map(:priority)
-      run_jobs Que.execute(unprocessed_jobs.sql).first
-      assert_equal [:sub, :subsub], $job_spec_result
-    ensure
-      $job_spec_result = nil
-    end
-  end
-
   it "should handle namespaced subclasses" do
     begin
       $run = false
@@ -159,15 +72,6 @@ describe Que::Worker do
     ensure
       $run = nil
     end
-  end
-
-  it "should make a job's argument hashes indifferently accessible" do
-    assert_equal 0, jobs.count
-    ArgsJob.enqueue 1, 'two', {'array' => [{'number' => 3}]}
-    assert_equal 1, jobs.count
-
-    run_jobs Que.execute("SELECT * FROM que_jobs").first
-    assert_equal 3, $passed_args.last[:array].first[:number]
   end
 
   it "should skip a job if passed the pk for a job that doesn't exist" do

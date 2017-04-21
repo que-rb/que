@@ -60,7 +60,9 @@ module Que
     end
 
     def destroy
-      Que.execute :destroy_job, [que_attrs.fetch(:id)]
+      if id = que_attrs[:id]
+        Que.execute :destroy_job, [id]
+      end
       @que_resolved = true
     end
 
@@ -103,6 +105,10 @@ module Que
       end
 
       def run(*args)
+        # Make sure things behave the same as they would have with a round-trip
+        # to the DB.
+        args = Que.json_deserializer.call(Que.json_serializer.call(args))
+
         # Should not fail if there's no DB connection.
         new(args: args).tap { |job| job.run(*args) }
       end
