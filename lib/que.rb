@@ -52,7 +52,13 @@ module Que
     end
 
     def log(level: :info, **data)
-      data = {lib: :que, hostname: CURRENT_HOSTNAME, pid: Process.pid, thread: Thread.current.object_id}.merge(data)
+      data =
+        {
+          lib:      :que,
+          hostname: CURRENT_HOSTNAME,
+          pid:      Process.pid,
+          thread:   Thread.current.object_id
+        }.merge(data)
 
       if l = logger
         begin
