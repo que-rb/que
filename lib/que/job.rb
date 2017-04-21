@@ -71,30 +71,24 @@ module Que
 
       def enqueue(
         *args,
-        queue: nil,
+        queue:     nil,
+        priority:  nil,
+        run_at:    nil,
         job_class: nil,
-        run_at: nil,
-        priority: nil,
         **arg_opts
       )
 
         args << arg_opts if arg_opts.any?
 
         attrs = {
-          queue: queue || @queue || Que.default_queue,
+          queue:     queue     || resolve_setting(:queue) || Que.default_queue,
+          priority:  priority  || resolve_setting(:priority),
+          run_at:    run_at    || resolve_setting(:run_at),
           job_class: job_class || to_s,
-          args: args,
+          args:      args,
         }
 
-        if t = run_at || @run_at && @run_at.call
-          attrs[:run_at] = t
-        end
-
-        if p = priority || @priority
-          attrs[:priority] = p
-        end
-
-        if Que.mode == :sync && !t
+        if Que.mode == :sync && !attrs[:run_at]
           run(*attrs.fetch(:args))
         else
           values =
@@ -112,19 +106,16 @@ module Que
         new(args: args).tap { |job| job.run(*args) }
       end
 
-      INHERITED_INSTANCE_VARIABLES = [
-        :@priority,
-        :@run_at,
-        :@queue,
-      ].freeze
+      def resolve_setting(setting)
+        v = instance_variable_get(:"@#{setting}")
 
-      def inherited(subclass)
-        super
-
-        INHERITED_INSTANCE_VARIABLES.each do |ivar|
-          if value = instance_variable_get(ivar)
-            subclass.instance_variable_set(ivar, value)
-          end
+        if v.nil?
+          c = superclass
+          c.resolve_setting(setting) if c.respond_to?(:resolve_setting)
+        elsif v.respond_to?(:call)
+          v.call
+        else
+          v
         end
       end
     end
