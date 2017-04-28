@@ -117,4 +117,38 @@ describe "An insertion into que_jobs" do
       end
     end
   end
+
+  it "should ignore lockers that aren't listening to that queue" do
+    DB.synchronize do |conn|
+      begin
+        DB[:que_lockers].insert pid:           1,
+                                worker_count:  1,
+                                ruby_pid:      Process.pid,
+                                ruby_hostname: Socket.gethostname,
+                                queues:        Sequel.pg_array(['']),
+                                listening:     true
+
+        DB[:que_lockers].insert pid:           2,
+                                worker_count:  2,
+                                ruby_pid:      Process.pid,
+                                ruby_hostname: Socket.gethostname,
+                                queues:        Sequel.pg_array(['other_queue']),
+                                listening:     true
+
+        notify_pid =
+          Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
+
+        conn.async_exec "LISTEN que_locker_1; LISTEN que_locker_2"
+
+        channels = 6.times.map { Que::Job.enqueue; conn.wait_for_notify }
+        assert_equal \
+          (['que_locker_1'] * 6),
+          channels
+
+        assert_nil conn.wait_for_notify(0.01)
+      ensure
+        conn.async_exec "UNLISTEN *"
+      end
+    end
+  end
 end
