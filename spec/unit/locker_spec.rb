@@ -100,6 +100,11 @@ describe Que::Locker do
 
     it "should have a high-priority work thread" do
       assert_equal 1, locker.thread.priority
+
+      locker.workers.each do |worker|
+        assert locker.thread.priority > worker.thread.priority
+      end
+
       locker.stop!
     end
 
