@@ -214,7 +214,7 @@ describe Que::Locker do
       assert_equal [job3.que_attrs[:id]], unprocessed_jobs.select_map(:id)
     end
 
-    it "should request enough jobs to fill the queue" do
+    it "should request only enough jobs to fill the queue" do
       # Three BlockJobs will tie up the low-priority workers.
       ids  = 3.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
       ids += 6.times.map { Que::Job.enqueue(priority: 101).que_attrs[:id] }
