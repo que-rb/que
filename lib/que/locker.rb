@@ -249,7 +249,7 @@ module Que
 
     def mark_id_as_locked(id)
       Que.assert(@locks.add?(id)) do
-        "Job erroneously locked a second time: #{id}"
+        "Tried to lock a job that was already locked: #{id}"
       end
     end
 
