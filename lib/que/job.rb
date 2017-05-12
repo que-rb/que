@@ -114,15 +114,14 @@ module Que
       end
 
       def resolve_setting(setting)
-        v = instance_variable_get(:"@#{setting}")
+        iv_name = :"@#{setting}"
 
-        if v.nil?
+        if instance_variable_defined?(iv_name)
+          value = instance_variable_get(iv_name)
+          value.respond_to?(:call) ? value.call : value
+        else
           c = superclass
           c.resolve_setting(setting) if c.respond_to?(:resolve_setting)
-        elsif v.respond_to?(:call)
-          v.call
-        else
-          v
         end
       end
     end

@@ -162,7 +162,6 @@ describe Que::Job, '.enqueue' do
 
       it "should respect an overridden priority in a job class" do
         begin
-          original_value = PrioritySubclassJob.instance_variable_get(:@priority)
           PrioritySubclassJob.instance_variable_set(:@priority, 60)
 
           assert_enqueue \
@@ -177,7 +176,27 @@ describe Que::Job, '.enqueue' do
             expected_priority: 4,
             expected_job_class: PrioritySubclassJob
         ensure
-          PrioritySubclassJob.instance_variable_set(:@priority, original_value)
+          PrioritySubclassJob.remove_instance_variable(:@priority)
+        end
+      end
+
+      it "should respect a nullified priority in a subclass" do
+        begin
+          PrioritySubclassJob.instance_variable_set(:@priority, nil)
+
+          assert_enqueue \
+            -> { PrioritySubclassJob.enqueue 1 },
+            expected_args: [1],
+            expected_priority: 100,
+            expected_job_class: PrioritySubclassJob
+
+          assert_enqueue \
+            -> { PrioritySubclassJob.enqueue 1, priority: 4 },
+            expected_args: [1],
+            expected_priority: 4,
+            expected_job_class: PrioritySubclassJob
+        ensure
+          PrioritySubclassJob.remove_instance_variable(:@priority)
         end
       end
     end
@@ -213,7 +232,6 @@ describe Que::Job, '.enqueue' do
 
       it "should respect an overridden run_at in a job class" do
         begin
-          original_value = RunAtSubclassJob.instance_variable_get(:@run_at)
           RunAtSubclassJob.instance_variable_set(:@run_at, -> {Time.now + 90})
 
           assert_enqueue \
@@ -228,7 +246,7 @@ describe Que::Job, '.enqueue' do
             expected_run_at: Time.now + 60,
             expected_job_class: RunAtSubclassJob
         ensure
-          RunAtSubclassJob.instance_variable_set(:@run_at, original_value)
+          RunAtSubclassJob.remove_instance_variable(:@run_at)
         end
       end
     end
@@ -264,7 +282,6 @@ describe Que::Job, '.enqueue' do
 
       it "should respect an overridden queue in a job class" do
         begin
-          original_value = QueueSubclassJob.instance_variable_get(:@queue)
           QueueSubclassJob.instance_variable_set(:@queue, :queue_2)
 
           assert_enqueue \
@@ -279,7 +296,7 @@ describe Que::Job, '.enqueue' do
             expected_queue: 'queue_3',
             expected_job_class: QueueSubclassJob
         ensure
-          QueueSubclassJob.instance_variable_set(:@queue, original_value)
+          QueueSubclassJob.remove_instance_variable(:@queue)
         end
       end
     end
