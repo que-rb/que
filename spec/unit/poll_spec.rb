@@ -103,7 +103,7 @@ describe "The job polling query" do
   end
 
   it "should behave when being run concurrently by several connections" do
-    q1, q2, q3, q4 = Queue.new, Queue.new, Queue.new, Queue.new
+    q1, q2, q3, q4 = 4.times.map { Queue.new }
 
     threads = 4.times.map do
       Thread.new do
