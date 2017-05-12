@@ -190,7 +190,7 @@ module Que
       if @listen
         # TODO: In case we receive notifications for many jobs at once, check
         # and lock and push them all in bulk.
-        if sort_key = wait_for_job(@wait_period)
+        if sort_key = wait_for_job
           if @job_queue.accept?(sort_key) && lock_job?(sort_key.fetch(:id))
             push_jobs([sort_key])
           end
@@ -263,9 +263,9 @@ module Que
       end
     end
 
-    def wait_for_job(timeout = nil)
+    def wait_for_job
       checkout do |conn|
-        conn.wait_for_notify(timeout) do |_, _, payload|
+        conn.wait_for_notify(@wait_period) do |_, _, payload|
           sort_key =
             JSON.parse(payload, symbolize_names: true)
 
