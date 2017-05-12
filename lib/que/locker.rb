@@ -210,13 +210,13 @@ module Que
 
     def lock_job?(id)
       return false if @locks.include?(id)
-      return false unless lock_job(id)
+      return false unless try_advisory_lock(id)
 
       mark_id_as_locked(id)
       true
     end
 
-    def lock_job(id)
+    def try_advisory_lock(id)
       execute("SELECT pg_try_advisory_lock($1)", [id]).
         first.fetch(:pg_try_advisory_lock)
     end
