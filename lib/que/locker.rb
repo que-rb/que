@@ -170,8 +170,7 @@ module Que
         )
 
       sort_keys.each do |sort_key|
-        # TODO: Add a proper assertion helper.
-        raise unless @locks.add?(sort_key.fetch(:id))
+        mark_id_as_locked(sort_key.fetch(:id))
       end
 
       push_jobs(sort_keys)
@@ -213,7 +212,7 @@ module Que
       return false if @locks.include?(id)
       return false unless lock_job(id)
 
-      @locks.add(id)
+      mark_id_as_locked(id)
       true
     end
 
@@ -246,6 +245,12 @@ module Que
       execute "SELECT pg_advisory_unlock(v.i) FROM (VALUES (#{values})) v (i)"
 
       ids.each { |id| @locks.delete(id) }
+    end
+
+    def mark_id_as_locked(id)
+      Que.assert(@locks.add?(id)) do
+        "Job erroneously locked a second time: #{id}"
+      end
     end
 
     def wait_for_job(timeout = nil)
