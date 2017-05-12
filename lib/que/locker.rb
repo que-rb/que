@@ -241,8 +241,18 @@ module Que
 
       values = ids.join('), (')
 
-      # TODO: Assert that these always return true.
-      execute "SELECT pg_advisory_unlock(v.i) FROM (VALUES (#{values})) v (i)"
+      results =
+        execute "SELECT pg_advisory_unlock(v.i) FROM (VALUES (#{values})) v (i)"
+
+      results.each do |result|
+        Que.assert(result.fetch(:pg_advisory_unlock)) do
+          [
+            "Tried to unlock a job we hadn't locked!",
+            results.inspect,
+            ids.inspect,
+          ].join(' ')
+        end
+      end
 
       ids.each { |id| @locks.delete(id) }
     end
