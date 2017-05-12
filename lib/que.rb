@@ -5,11 +5,10 @@ require 'socket' # For Socket.gethostname
 require 'json'
 
 module Que
-  class Error < StandardError; end
-
   CURRENT_HOSTNAME = Socket.gethostname.freeze
   DEFAULT_QUEUE    = ''.freeze
 
+  require_relative 'que/assertions'
   require_relative 'que/config'
   require_relative 'que/connection_pool'
   require_relative 'que/job'
