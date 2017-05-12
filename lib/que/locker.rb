@@ -57,20 +57,22 @@ module Que
       # 50] will result in three workers that only work jobs that meet those
       # priorities, and three workers that will work any job.
       @workers = worker_count.times.zip(worker_priorities).map do |_, priority|
-        Worker.new priority:       priority,
-                   job_queue:      @job_queue,
-                   result_queue:   @result_queue,
-                   start_callback: on_worker_start
+        Worker.new(
+          priority:       priority,
+          job_queue:      @job_queue,
+          result_queue:   @result_queue,
+          start_callback: on_worker_start,
+        )
       end
 
-      # Give the locker thread priority, so it can respond to NOTIFYs from PG.
       @thread = Thread.new { work_loop }
+
+      # Give the locker thread priority, so it can promptly respond to NOTIFYs.
       @thread.priority = 1
     end
 
     def stop!
-      stop
-      wait_for_stop
+      stop; wait_for_stop
     end
 
     def stop
@@ -85,7 +87,7 @@ module Que
 
     def work_loop
       checkout do |conn|
-        Que.log \
+        Que.log(
           level:              :debug,
           event:              :locker_start,
           listen:             @listen,
@@ -95,12 +97,11 @@ module Que
           poll_interval:      @poll_interval,
           minimum_queue_size: @minimum_queue_size,
           maximum_queue_size: @job_queue.maximum_size,
-          worker_priorities:  @workers.map(&:priority)
+          worker_priorities:  @workers.map(&:priority),
+        )
 
         begin
-          if @listen
-            execute "LISTEN que_locker_#{conn.backend_pid}"
-          end
+          execute "LISTEN que_locker_#{conn.backend_pid}" if @listen
 
           # A previous locker that didn't exit cleanly may have left behind
           # a bad locker record, so clean up before registering.
@@ -109,7 +110,7 @@ module Que
             @workers.count,
             Process.pid,
             CURRENT_HOSTNAME, 
-            @listen.to_s,
+            @listen,
             "{\"#{@queue_names.join('","')}\"}",
           ]
 
@@ -123,9 +124,10 @@ module Que
             break if @stop
           end
 
-          Que.log \
+          Que.log(
             level: :debug,
-            event: :locker_stop
+            event: :locker_stop,
+          )
 
           unlock_jobs(@job_queue.clear)
 
@@ -158,24 +160,31 @@ module Que
       space = @job_queue.space
 
       sort_keys =
-        execute :poll_jobs,
-        [
-          @queue_names.first,
-          "{#{@locks.to_a.join(',')}}",
-          space
-        ]
+        execute(
+          :poll_jobs,
+          [
+            @queue_names.first,
+            "{#{@locks.to_a.join(',')}}",
+            space
+          ]
+        )
 
-      sort_keys.each { |sort_key| @locks.add(sort_key.fetch(:id)) }
+      sort_keys.each do |sort_key|
+        # TODO: Add a proper assertion helper.
+        raise unless @locks.add?(sort_key.fetch(:id))
+      end
+
       push_jobs(sort_keys)
 
       @last_polled_at      = Time.now
       @last_poll_satisfied = space == sort_keys.count
 
-      Que.log \
+      Que.log(
         level: :debug,
         event: :locker_polled,
         limit: space,
-        locked: sort_keys.count
+        locked: sort_keys.count,
+      )
     end
 
     def wait
@@ -245,10 +254,11 @@ module Que
           sort_key =
             JSON.parse(payload, symbolize_names: true)
 
-          Que.log \
+          Que.log(
             level: :debug,
             event: :job_notified,
-            job: sort_key
+            job:   sort_key,
+          )
 
           sort_key[:run_at] = Time.parse(sort_key.fetch(:run_at))
 

@@ -14,27 +14,27 @@ module Que
       @connection_proc.call(&block)
     end
 
-    def execute(command, params = [])
+    def execute(command, params = nil)
       sql = nil
-      log = {
-        level: :debug,
-        params: params,
-      }
+      log = {level: :debug}
 
       case command
       when Symbol
         sql = SQL[command] || raise(Error, "Bad command! #{command.inspect}")
-        log[:event] = :execute
+        log[:event]   = :execute
         log[:command] = command
       when String
         sql = command
         log[:event] = :execute_sql
-        log[:sql] = sql
+        log[:sql]   = sql
       else
         raise Error, "Bad command! #{command.inspect}"
       end
 
-      p = convert_params(params)
+      if params
+        log[:params] = params
+        p = convert_params(params)
+      end
 
       t = Time.now
       result = execute_sql(sql, p)
@@ -64,8 +64,14 @@ module Que
     end
 
     def execute_sql(sql, params)
-      args = params.empty? ? [sql] : [sql, params]
-      checkout { |conn| conn.async_exec(*args) }
+      checkout do |conn|
+        # Some PG versions dislike being passed an empty or nil params argument.
+        if params && !params.empty?
+          conn.async_exec(sql, params)
+        else
+          conn.async_exec(sql)
+        end
+      end
     end
 
     # Procs used to convert strings from PG into Ruby types.
@@ -73,7 +79,7 @@ module Que
       # Boolean
       16   => 't'.method(:==),
       # JSON
-      114  => proc { |json| Que.json_deserializer.call(json) },
+      114  => -> (json) { Que.json_deserializer.call(json) },
       # Timestamp with time zone
       1184 => Time.method(:parse),
     }
@@ -87,7 +93,7 @@ module Que
       output = result.to_a
 
       result.fields.each_with_index do |field, index|
-        symbol = field.to_sym
+        symbol    = field.to_sym
         converter = CAST_PROCS[result.ftype(index)]
 
         output.each do |hash|

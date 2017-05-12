@@ -42,8 +42,8 @@ module Que
         # require a custom Monitor/ConditionVariable implementation.
         @cv.broadcast
 
-        # If we passed the maximum queue size, drop the least important items
-        # and return their values to the thread that gave us new jobs.
+        # If we passed the maximum queue size, drop the lowest sort keys and
+        # return their ids to be unlocked.
         overage = size - maximum_size
         pop_ids(overage) if overage > 0
       end
@@ -112,7 +112,7 @@ module Que
     end
 
     def pop_ids(count)
-      @array.pop(count).map { |job| job.fetch(:id) }
+      @array.pop(count).map! { |job| job.fetch(:id) }
     end
 
     def sync(&block)

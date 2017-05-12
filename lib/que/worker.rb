@@ -9,8 +9,12 @@ module Que
     attr_reader :thread
     attr_accessor :priority
 
-    def initialize(job_queue:, result_queue:, priority: nil,
-        start_callback: nil)
+    def initialize(
+      job_queue:,
+      result_queue:,
+      priority: nil,
+      start_callback: nil
+    )
 
       @priority     = priority
       @job_queue    = job_queue
@@ -18,6 +22,8 @@ module Que
 
       @thread =
         Thread.new do
+          # An error causing this thread to exit is a bug in Que, which we want
+          # to know about ASAP, so abort the process if it happens.
           Thread.current.abort_on_exception = true
           start_callback.call(self) if start_callback.respond_to?(:call)
           work_loop
@@ -31,16 +37,14 @@ module Que
     private
 
     def work_loop
-      loop do
-        # Blocks until a job of the appropriate priority is available. If the
-        # queue is shutting down this returns nil, which breaks the loop and
-        # lets the thread finish.
-        break unless id = @job_queue.shift(*priority)
-
+      # Blocks until a job of the appropriate priority is available. If the
+      # queue is shutting down this will return nil, which breaks the loop and
+      # lets the thread finish.
+      while id = @job_queue.shift(*priority)
         begin
           if job = Que.execute(:get_job, [id]).first
-            start = Time.now
-            klass = Que.constantizer.call(job.fetch(:job_class))
+            start    = Time.now
+            klass    = Que.constantizer.call(job.fetch(:job_class))
             instance = klass.new(job)
             instance._run
 
@@ -52,6 +56,7 @@ module Que
 
             if e = instance.que_error
               log_message[:event] = :job_errored
+              # TODO: Convert this to a string manually?
               log_message[:error] = e
             else
               log_message[:event] = :job_worked
@@ -59,17 +64,18 @@ module Que
 
             Que.log(log_message)
           else
-            # The job was locked but doesn't exist anymore, due to the race
-            # condition that exists because advisory locks don't obey MVCC.
-            # Not necessarily a problem, but if it happens a lot it may be
+            # The job was locked but doesn't exist anymore, due to a race
+            # condition that exists because advisory locks don't obey MVCC. Not
+            # necessarily a problem, but if it happens a lot it may be
             # meaningful somehow, so log it.
-            Que.log \
+            Que.log(
               level: :debug,
               event: :job_race_condition,
-              id: id
+              id:    id,
+            )
           end
         rescue => error
-          Que.log \
+          Que.log(
             level: :debug,
             event: :job_errored,
             id: id,
@@ -77,9 +83,11 @@ module Que
             error: {
               class:   error.class.to_s,
               message: error.message,
-            }
+            },
+          )
 
           begin
+            # TODO: Use resolve_setting here.
             interval =
               klass &&
               klass.respond_to?(:retry_interval) &&

@@ -8,7 +8,7 @@ module Que
   class Error < StandardError; end
 
   CURRENT_HOSTNAME = Socket.gethostname.freeze
-  DEFAULT_QUEUE = ''.freeze
+  DEFAULT_QUEUE    = ''.freeze
 
   require_relative 'que/config'
   require_relative 'que/connection_pool'
