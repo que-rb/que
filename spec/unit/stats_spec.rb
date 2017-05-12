@@ -42,7 +42,7 @@ describe Que, '.job_stats' do
       assert_equal 0, bj[:highest_error_count]
       assert_in_delta bj[:oldest_run_at], Time.now, 3
     ensure
-      DB.get{pg_advisory_unlock_all{}}
+      DB.get{pg_advisory_unlock_all.function}
     end
   end
 end
