@@ -38,7 +38,6 @@ describe Que::Locker do
       assert_equal listen,             event['listen']
       assert_kind_of Integer,          event['backend_pid']
       assert_equal queues,             event['queues']
-      assert_equal poll_interval,      event['poll_interval']
       assert_equal wait_period,        event['wait_period']
       assert_equal minimum_queue_size, event['minimum_queue_size']
       assert_equal maximum_queue_size, event['maximum_queue_size']

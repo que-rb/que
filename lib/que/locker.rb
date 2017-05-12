@@ -9,7 +9,7 @@ require 'set'
 
 module Que
   class Locker
-    attr_reader :thread, :workers, :job_queue, :locks, :pollers
+    attr_reader :thread, :workers, :job_queue, :locks, :pollers, :pool
 
     DEFAULT_POLL_INTERVAL      = 1.0
     DEFAULT_WAIT_PERIOD        = 0.01
@@ -34,15 +34,17 @@ module Que
       # Local cache of which advisory locks are held by this connection.
       @locks = Set.new
 
-      # Wrap the given connection in a dummy connection pool.
-      if connection
-        @pool = ConnectionPool.new { |&block| block.call(connection) }
-      end
+      @pool =
+        if connection
+          # Wrap the given connection in a dummy connection pool.
+          ConnectionPool.new { |&block| block.call(connection) }
+        else
+          Que.pool
+        end
 
       @queue_names        = queues
       @listen             = listen
       @wait_period        = wait_period
-      @poll_interval      = poll_interval
       @minimum_queue_size = minimum_queue_size
 
       # We use a JobQueue to track sorted identifiers (priority, run_at, id) of
@@ -50,6 +52,15 @@ module Que
       # of finished jobs from workers.
       @job_queue    = JobQueue.new maximum_size: maximum_queue_size
       @result_queue = ResultQueue.new
+
+      @pollers =
+        queues.map do |queue|
+          Poller.new(
+            queue:         queue,
+            locker:        self,
+            poll_interval: poll_interval,
+          )
+        end
 
       # If the worker_count exceeds the array of priorities it'll result in
       # extra workers that will work jobs of any priority. For example, the
@@ -94,7 +105,6 @@ module Que
           queues:             @queue_names,
           backend_pid:        conn.backend_pid,
           wait_period:        @wait_period,
-          poll_interval:      @poll_interval,
           minimum_queue_size: @minimum_queue_size,
           maximum_queue_size: @job_queue.maximum_size,
           worker_priorities:  @workers.map(&:priority),
@@ -120,7 +130,7 @@ module Que
             wait
             unlock_finished_jobs
 
-            poll if queue_refill_needed? || poll_interval_elapsed?
+            poll
             break if @stop
           end
 
@@ -150,40 +160,25 @@ module Que
     private
 
     extend Forwardable
-    def_delegators :pool, :execute, :checkout
-
-    def pool
-      @pool || Que.pool
-    end
+    def_delegators :@pool, :execute, :checkout
 
     def poll
+      return unless pollers
+
       space = @job_queue.space
 
-      sort_keys =
-        execute(
-          :poll_jobs,
-          [
-            @queue_names.first,
-            "{#{@locks.to_a.join(',')}}",
-            space
-          ]
-        )
+      pollers.each do |poller|
+        break if space <= 0
 
-      sort_keys.each do |sort_key|
-        mark_id_as_locked(sort_key.fetch(:id))
+        if sort_keys = poller.poll(space)
+          sort_keys.each do |sort_key|
+            mark_id_as_locked(sort_key.fetch(:id))
+          end
+
+          push_jobs(sort_keys)
+          space -= sort_keys.length
+        end
       end
-
-      push_jobs(sort_keys)
-
-      @last_polled_at      = Time.now
-      @last_poll_satisfied = space == sort_keys.count
-
-      Que.log(
-        level: :debug,
-        event: :locker_polled,
-        limit: space,
-        locked: sort_keys.count,
-      )
     end
 
     def wait
@@ -198,14 +193,6 @@ module Que
       else
         sleep(@wait_period)
       end
-    end
-
-    def queue_refill_needed?
-      @last_poll_satisfied && @job_queue.size <= @minimum_queue_size
-    end
-
-    def poll_interval_elapsed?
-      @poll_interval && (Time.now - @last_polled_at) > @poll_interval
     end
 
     def lock_job?(id)
