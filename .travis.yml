@@ -53,7 +53,7 @@ before_script:
   - psql -c 'create database "que-test"' -U postgres
 
 script:
-  - bundle exec rake
+  - TEST_OPTS="--verbose --profile" bundle exec rake
 
 notifications:
   email: false
