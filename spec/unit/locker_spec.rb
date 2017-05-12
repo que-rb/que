@@ -213,6 +213,22 @@ describe Que::Locker do
       assert_equal [job3.que_attrs[:id]], unprocessed_jobs.select_map(:id)
     end
 
+    it "should do batch polls for jobs in its specified queues" do
+      job1 = BlockJob.enqueue(queue: 'queue1')
+      job2 = BlockJob.enqueue(queue: 'queue2')
+      job3 = Que::Job.enqueue(queue: 'my_special_queue')
+
+      locker_settings[:queues] = ['queue1', 'queue2']
+      locker
+
+      # Two jobs worked simultaneously:
+      $q1.pop;      $q1.pop
+      $q2.push nil; $q2.push nil
+
+      locker.stop!
+      assert_equal [job3.que_attrs[:id]], unprocessed_jobs.select_map(:id)
+    end
+
     it "should request only enough jobs to fill the queue" do
       # Three BlockJobs will tie up the low-priority workers.
       ids  = 3.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }

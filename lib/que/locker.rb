@@ -94,6 +94,10 @@ module Que
       @thread.join
     end
 
+    def queue_refill_needed?
+      @job_queue.size <= @minimum_queue_size
+    end
+
     private
 
     def work_loop
@@ -156,8 +160,6 @@ module Que
         end
       end
     end
-
-    private
 
     extend Forwardable
     def_delegators :@pool, :execute, :checkout

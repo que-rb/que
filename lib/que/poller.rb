@@ -48,6 +48,7 @@ module Que
     end
 
     def should_poll?
+      locker.queue_refill_needed? &&
       # Never polled before?
       last_poll_satisfied.nil? ||
       # Plenty of jobs were available last time?
