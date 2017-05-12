@@ -5,7 +5,7 @@ gem 'que', path: '../..'
 group :development, :test do
   gem 'rake', '< 11.0'
 
-  gem 'activerecord',    '~> 4.0.0', require: nil
+  gem 'activerecord',    '~> 4.1.0', require: nil
   gem 'sequel',          require: nil
   gem 'connection_pool', require: nil
   gem 'pond',            require: nil
@@ -14,8 +14,8 @@ group :development, :test do
 end
 
 group :test do
-  gem 'minitest', '~> 4.2'
-  # gem 'minitest-profile', '0.0.2' # Minitest version is too old.
+  gem 'minitest', '~> 5.10.1'
+  gem 'minitest-profile', '0.0.2'
   gem 'pry'
   gem 'pg_examiner'
 end
