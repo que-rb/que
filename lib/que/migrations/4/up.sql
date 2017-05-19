@@ -17,7 +17,12 @@ ALTER TABLE que_jobs
   ALTER COLUMN is_processed SET NOT NULL,
   ALTER COLUMN data SET DEFAULT '{"args":[]}',
   ALTER COLUMN data SET NOT NULL,
-  DROP COLUMN args;
+  DROP COLUMN args,
+  ADD CONSTRAINT data_format CHECK (
+    (data->'args' IS NOT NULL)
+    AND
+    (jsonb_typeof(data->'args') = 'array')
+  );
 
 CREATE UNIQUE INDEX que_jobs_poll_idx
   ON que_jobs (queue, priority, run_at, id)
