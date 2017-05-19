@@ -108,13 +108,13 @@ describe Que::Migrations do
       DB[:que_jobs].insert(
         id: 1,
         job_class: 'Que::Job',
-        data: JSON.dump(args: [{arg1: true, arg2: 'a'}]),
+        data: JSON.dump(args: [78, {arg1: true, arg2: 'a'}]),
       )
 
       DB[:que_jobs].insert(
         id: 2,
         job_class: 'Que::Job',
-        data: JSON.dump(args: [{arg1: true, arg2: 'b'}]),
+        data: JSON.dump(args: [89, {arg1: true, arg2: 'b'}]),
       )
 
       Que::Migrations.migrate! version: 3
@@ -123,17 +123,35 @@ describe Que::Migrations do
         [
           {
             job_id: 1,
-            args: [{arg1: true, arg2: 'a'}]
+            args: [78, {arg1: true, arg2: 'a'}]
           },
           {
             job_id: 2,
-            args: [{arg1: true, arg2: 'b'}]
+            args: [89, {arg1: true, arg2: 'b'}]
           },
         ],
         DB[:que_jobs].
           order(:job_id).
           select(:job_id, :args).
           all{|a| a[:args] = JSON.parse(a[:args], symbolize_names: true)}
+      )
+
+      # Add a few rows where args is not an array, to make sure the migration
+      # handles those. This behavior was never supported, so it shouldn't
+      # happen, but better safe than sorry.
+
+      # The table primary key is different at this migration, so provide a
+      # returning clause so that Sequel doesn't get confused.
+      DB[:que_jobs].returning(:job_id).insert(
+        job_id: 3,
+        job_class: 'Que::Job',
+        args: JSON.dump({arg1: true, arg2: 'a'}),
+      )
+
+      DB[:que_jobs].returning(:job_id).insert(
+        job_id: 4,
+        job_class: 'Que::Job',
+        args: '5',
       )
 
       Que::Migrations.migrate! version: 4
@@ -143,12 +161,22 @@ describe Que::Migrations do
           {
             id: 1,
             is_processed: false,
-            data: {args: [{arg1: true, arg2: 'a'}]}
+            data: {args: [78, {arg1: true, arg2: 'a'}]}
           },
           {
             id: 2,
             is_processed: false,
-            data: {args: [{arg1: true, arg2: 'b'}]}
+            data: {args: [89, {arg1: true, arg2: 'b'}]}
+          },
+          {
+            id: 3,
+            is_processed: false,
+            data: {args: [{arg1: true, arg2: 'a'}]}
+          },
+          {
+            id: 4,
+            is_processed: false,
+            data: {args: [5]}
           },
         ],
         DB[:que_jobs].

@@ -10,7 +10,13 @@ ALTER TABLE que_jobs
 
 UPDATE que_jobs
 SET is_processed = false,
-    data = json_build_object('args', args::jsonb);
+    data = json_build_object(
+      'args',
+      CASE json_typeof(args)
+      WHEN 'array' THEN args::jsonb
+      ELSE jsonb_build_array(args::jsonb)
+      END
+    );
 
 ALTER TABLE que_jobs
   ALTER COLUMN is_processed SET DEFAULT false,
