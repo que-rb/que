@@ -104,34 +104,39 @@ describe Que::Migrations do
   end
 
   describe "migration #4" do
-    it "should correctly migrate job args" do
-      Que::Migrations.migrate! version: 3
-
-      # Specify a returning clause so that the dataset doesn't try to determine
-      # the primary key, which it will resolve to job_id since we're on an old
-      # version :/
-      insert_ds = DB[:que_jobs].returning(:job_id)
-
-      insert_ds.insert(
-        job_id: 1,
+    it "should correctly migrate data down and up" do
+      DB[:que_jobs].insert(
+        id: 1,
         job_class: 'Que::Job',
-        args: JSON.dump([{arg1: true, arg2: 'a'}]),
+        data: JSON.dump(args: [{arg1: true, arg2: 'a'}]),
       )
 
-      insert_ds.insert(
-        job_id: 2,
+      DB[:que_jobs].insert(
+        id: 2,
         job_class: 'Que::Job',
-        args: JSON.dump([{arg1: true, arg2: 'b'}]),
-        error_count: 2,
+        data: JSON.dump(args: [{arg1: true, arg2: 'b'}]),
+      )
+
+      Que::Migrations.migrate! version: 3
+
+      assert_equal(
+        [
+          {
+            job_id: 1,
+            args: [{arg1: true, arg2: 'a'}]
+          },
+          {
+            job_id: 2,
+            args: [{arg1: true, arg2: 'b'}]
+          },
+        ],
+        DB[:que_jobs].
+          order(:job_id).
+          select(:job_id, :args).
+          all{|a| a[:args] = JSON.parse(a[:args], symbolize_names: true)}
       )
 
       Que::Migrations.migrate! version: 4
-
-      actual =
-        DB[:que_jobs].
-          order(:id).
-          select(:id, :is_processed, :data).
-          all{|a| a[:data] = JSON.parse(a[:data], symbolize_names: true)}
 
       assert_equal(
         [
@@ -146,7 +151,10 @@ describe Que::Migrations do
             data: {args: [{arg1: true, arg2: 'b'}]}
           },
         ],
-        actual
+        DB[:que_jobs].
+          order(:id).
+          select(:id, :is_processed, :data).
+          all{|a| a[:data] = JSON.parse(a[:data], symbolize_names: true)}
       )
     end
   end

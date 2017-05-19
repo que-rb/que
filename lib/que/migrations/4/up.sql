@@ -15,8 +15,9 @@ SET is_processed = false,
 ALTER TABLE que_jobs
   ALTER COLUMN is_processed SET DEFAULT false,
   ALTER COLUMN is_processed SET NOT NULL,
-  ALTER COLUMN data SET DEFAULT '{}',
-  ALTER COLUMN data SET NOT NULL;
+  ALTER COLUMN data SET DEFAULT '{"args":[]}',
+  ALTER COLUMN data SET NOT NULL,
+  DROP COLUMN args;
 
 CREATE UNIQUE INDEX que_jobs_poll_idx
   ON que_jobs (queue, priority, run_at, id)

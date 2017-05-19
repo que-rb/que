@@ -8,8 +8,16 @@ ALTER TABLE que_jobs
   RENAME COLUMN id TO job_id;
 
 ALTER TABLE que_jobs
+  ADD COLUMN args JSON;
+
+UPDATE que_jobs
+  SET args = data->'args';
+
+ALTER TABLE que_jobs
   DROP CONSTRAINT que_jobs_pkey,
   DROP COLUMN is_processed,
   DROP COLUMN data,
+  ALTER COLUMN args SET NOT NULL,
+  ALTER COLUMN args SET DEFAULT '[]',
   ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (queue, priority, run_at, job_id),
   DROP CONSTRAINT queue_length;

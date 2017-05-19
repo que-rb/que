@@ -21,7 +21,7 @@ describe Que, '.job_states' do
 
     state = states.first
     assert_equal \
-      %i(priority run_at id job_class args error_count last_error queue
+      %i(priority run_at id job_class error_count last_error queue
         is_processed data ruby_hostname ruby_pid),
       state.keys
 
@@ -29,7 +29,7 @@ describe Que, '.job_states' do
     assert_in_delta state[:run_at], Time.now, 3
     assert_equal 2**33, state[:id]
     assert_equal 'BlockJob', state[:job_class]
-    assert_equal [], state[:args]
+    assert_equal({args: []}, state[:data])
     assert_equal 0, state[:error_count]
     assert_nil state.fetch(:last_error)
     assert_equal false, state.fetch(:is_processed)

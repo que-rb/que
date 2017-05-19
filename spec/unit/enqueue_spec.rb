@@ -30,14 +30,14 @@ describe Que::Job, '.enqueue' do
     # (unless job_class doesn't exist in this process...)
 
     assert_equal expected_priority, result.que_attrs[:priority]
-    assert_equal expected_args, result.que_attrs[:args]
+    assert_equal expected_args, result.que_attrs[:data][:args]
 
     job = jobs.first
     assert_equal expected_queue, job[:queue]
     assert_equal expected_priority, job[:priority]
     assert_in_delta job[:run_at], expected_run_at, 3
     assert_equal expected_job_class.to_s, job[:job_class]
-    assert_equal expected_args, JSON.parse(job[:args], symbolize_names: true)
+    assert_equal expected_args, JSON.parse(job[:data], symbolize_names: true)[:args]
 
     jobs.delete
   end

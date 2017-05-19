@@ -16,7 +16,7 @@ module Que
     end
 
     def _run
-      run(*que_attrs.fetch(:args))
+      run(*que_attrs.fetch(:data).fetch(:args))
     rescue => error
       @que_error = error
       run_error_notifier = handle_error(error)
@@ -88,16 +88,16 @@ module Que
           priority:  priority  || resolve_setting(:priority),
           run_at:    run_at    || resolve_setting(:run_at),
           job_class: job_class || to_s,
-          args:      args,
+          data:      {args: args},
         }
 
         if attrs[:run_at].nil? && resolve_setting(:run_synchronously)
-          run(*attrs.fetch(:args))
+          run(*args)
         else
           values =
             Que.execute(
               :insert_job,
-              attrs.values_at(:queue, :priority, :run_at, :job_class, :args),
+              attrs.values_at(:queue, :priority, :run_at, :job_class, :data),
             ).first
 
           new(values)
@@ -110,7 +110,7 @@ module Que
         args = Que.json_deserializer.call(Que.json_serializer.call(args))
 
         # Should not fail if there's no DB connection.
-        new(args: args).tap { |job| job.run(*args) }
+        new(data: {args: args}).tap { |job| job.run(*args) }
       end
 
       def resolve_setting(setting)

@@ -78,11 +78,13 @@ module Que
     CAST_PROCS = {
       # Boolean
       16   => 't'.method(:==),
-      # JSON
-      114  => -> (json) { Que.json_deserializer.call(json) },
       # Timestamp with time zone
       1184 => Time.method(:parse),
     }
+
+    # JSON, JSONB
+    CAST_PROCS[114] = CAST_PROCS[3802] =
+      -> (json) { Que.json_deserializer.call(json) }
 
     # Integer, bigint, smallint
     CAST_PROCS[23] = CAST_PROCS[20] = CAST_PROCS[21] = proc(&:to_i)
