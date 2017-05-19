@@ -17,6 +17,21 @@ describe Que do
 
       assert_constraint_error 'data_format' do
         DB[:que_jobs].
+          insert(job_class: 'Que::Job', data: JSON.dump([]))
+      end
+
+      assert_constraint_error 'data_format' do
+        DB[:que_jobs].
+          insert(job_class: 'Que::Job', data: JSON.dump([{args: []}]))
+      end
+
+      assert_constraint_error 'data_format' do
+        DB[:que_jobs].
+          insert(job_class: 'Que::Job', data: '4')
+      end
+
+      assert_constraint_error 'data_format' do
+        DB[:que_jobs].
           insert(job_class: 'Que::Job', data: JSON.dump({args: 4}))
       end
     end
