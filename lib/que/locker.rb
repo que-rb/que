@@ -56,8 +56,8 @@ module Que
       @pollers =
         queues.map do |queue|
           Poller.new(
+            pool:          @pool,
             queue:         queue,
-            locker:        self,
             poll_interval: poll_interval,
           )
         end
@@ -67,14 +67,15 @@ module Que
       # default worker_count of 6 and the default worker priorities of [10, 30,
       # 50] will result in three workers that only work jobs that meet those
       # priorities, and three workers that will work any job.
-      @workers = worker_count.times.zip(worker_priorities).map do |_, priority|
-        Worker.new(
-          priority:       priority,
-          job_queue:      @job_queue,
-          result_queue:   @result_queue,
-          start_callback: on_worker_start,
-        )
-      end
+      @workers =
+        worker_count.times.zip(worker_priorities).map do |_, priority|
+          Worker.new(
+            priority:       priority,
+            job_queue:      @job_queue,
+            result_queue:   @result_queue,
+            start_callback: on_worker_start,
+          )
+        end
 
       @thread = Thread.new { work_loop }
 
@@ -92,10 +93,6 @@ module Que
 
     def wait_for_stop
       @thread.join
-    end
-
-    def queue_refill_needed?
-      @job_queue.size <= @minimum_queue_size
     end
 
     private
@@ -166,13 +163,14 @@ module Que
 
     def poll
       return unless pollers
+      return unless @job_queue.size < @minimum_queue_size
 
       space = @job_queue.space
 
       pollers.each do |poller|
         break if space <= 0
 
-        if sort_keys = poller.poll(space)
+        if sort_keys = poller.poll(space, held_locks: @locks)
           sort_keys.each do |sort_key|
             mark_id_as_locked(sort_key.fetch(:id))
           end

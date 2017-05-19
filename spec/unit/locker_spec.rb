@@ -297,19 +297,21 @@ describe Que::Locker do
     it "should request as many as necessary to reach the maximum_queue_size" do
       # Three BlockJobs to tie up the low-priority workers.
       ids  = 3.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
-      ids += 3.times.map { Que::Job.enqueue(priority: 101).que_attrs[:id] }
+      ids += [Que::Job.enqueue(priority: 101).que_attrs[:id]]
 
       locker_settings.clear
       locker_settings[:poll_interval] = 0.01
       locker_settings[:listen] = false
       locker
+
       3.times { $q1.pop }
+      assert_equal ids, locked_ids
 
       # Use a transaction to make sure that the locker is able to see all of
       # these jobs at the same time.
       ids +=
         Que.transaction do
-          6.times.map do
+          8.times.map do
             Que::Job.enqueue(priority: 101).que_attrs[:id]
           end
         end
@@ -326,12 +328,12 @@ describe Que::Locker do
       # there.
       event = locker_polled_events.shift
       assert_equal 8, event['limit']
-      assert_equal 6, event['locked']
+      assert_equal 4, event['locked']
 
       # Second big batch lock, filled the queue.
       second_mass_lock =
         locker_polled_events.find do |e|
-          e['limit'] == 5 && e['locked'] == 5
+          e['limit'] == 7 && e['locked'] == 7
         end
 
       assert(
@@ -349,7 +351,7 @@ describe Que::Locker do
       # Should have locked first 8 only.
       assert_equal ids[0..7], locked_ids
 
-      # Get the queue size down to 2, and it should lock the final one.
+      # Get the queue size down to 1, and it should lock the final one.
       6.times { $q2.push nil }
       sleep_until { locked_ids.include?(ids[-1]) }
       3.times { $q2.push nil }
