@@ -3,10 +3,20 @@ ALTER TABLE que_jobs
 
 ALTER TABLE que_jobs
   DROP CONSTRAINT que_jobs_pkey,
-  ADD COLUMN is_processed BOOLEAN NOT NULL DEFAULT false,
-  ADD COLUMN data JSONB NOT NULL DEFAULT '{}',
+  ADD COLUMN is_processed BOOLEAN,
+  ADD COLUMN data JSONB,
   ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (id),
   ADD CONSTRAINT queue_length CHECK (char_length(queue) <= 60);
+
+UPDATE que_jobs
+SET is_processed = false,
+    data = json_build_object('args', args::jsonb);
+
+ALTER TABLE que_jobs
+  ALTER COLUMN is_processed SET DEFAULT false,
+  ALTER COLUMN is_processed SET NOT NULL,
+  ALTER COLUMN data SET DEFAULT '{}',
+  ALTER COLUMN data SET NOT NULL;
 
 CREATE UNIQUE INDEX que_jobs_poll_idx
   ON que_jobs (queue, priority, run_at, id)
