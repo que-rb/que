@@ -3,33 +3,33 @@
 module Que
   class Poller
     attr_reader \
+      :pool,
       :queue,
-      :locker,
       :poll_interval,
       :last_polled_at,
       :last_poll_satisfied
 
     def initialize(
+      pool:,
       queue:,
-      locker:,
       poll_interval:
     )
+      @pool                = pool
       @queue               = queue
-      @locker              = locker
       @poll_interval       = poll_interval
       @last_polled_at      = nil
       @last_poll_satisfied = nil
     end
 
-    def poll(limit)
+    def poll(limit, held_locks:)
       return unless should_poll?
 
       jobs =
-        locker.pool.execute(
+        pool.execute(
           :poll_jobs,
           [
             @queue,
-            "{#{locker.locks.to_a.join(',')}}",
+            "{#{held_locks.to_a.join(',')}}",
             limit,
           ]
         )
@@ -48,7 +48,6 @@ module Que
     end
 
     def should_poll?
-      locker.queue_refill_needed? &&
       # Never polled before?
       last_poll_satisfied.nil? ||
       # Plenty of jobs were available last time?
