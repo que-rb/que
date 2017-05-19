@@ -12,6 +12,8 @@ CREATE UNIQUE INDEX que_jobs_poll_idx
   ON que_jobs (queue, priority, run_at, id)
   WHERE NOT (is_processed);
 
+CREATE INDEX que_jobs_data_gin_idx ON que_jobs USING gin (data jsonb_path_ops);
+
 CREATE UNLOGGED TABLE que_lockers (
   pid           integer NOT NULL CONSTRAINT que_lockers_pkey PRIMARY KEY,
   worker_count  integer NOT NULL,
