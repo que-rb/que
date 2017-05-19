@@ -12,10 +12,12 @@ UPDATE que_jobs
 SET is_processed = false,
     data = json_build_object(
       'args',
-      CASE json_typeof(args)
-      WHEN 'array' THEN args
-      ELSE json_build_array(args)
-      END
+      (
+        CASE json_typeof(args)
+        WHEN 'array' THEN args
+        ELSE json_build_array(args)
+        END
+      )
     )::jsonb;
 
 ALTER TABLE que_jobs
@@ -25,7 +27,7 @@ ALTER TABLE que_jobs
   ALTER COLUMN data SET NOT NULL,
   DROP COLUMN args,
   ADD CONSTRAINT data_format CHECK (
-    (data->'args' IS NOT NULL)
+    ((data->'args') IS NOT NULL)
     AND
     (jsonb_typeof(data->'args') = 'array')
   );
