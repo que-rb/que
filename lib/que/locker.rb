@@ -243,7 +243,11 @@ module Que
         end
       end
 
-      ids.each { |id| @locks.delete(id) }
+      ids.each do |id|
+        Que.assert(@locks.delete?(id)) do
+          "Tried to remove a local lock that didn't exist!: #{id}"
+        end
+      end
     end
 
     def mark_id_as_locked(id)
