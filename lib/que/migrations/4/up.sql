@@ -39,7 +39,9 @@ CREATE UNLOGGED TABLE que_lockers (
   listening     boolean NOT NULL,
 
   CONSTRAINT valid_queues CHECK (
-    (array_ndims(queues) = 1) AND (array_length(queues, 1) >= 1)
+    (array_ndims(queues) = 1)
+    AND
+    (array_length(queues, 1) IS NOT NULL) -- Doesn't do zero, apparently.
   )
 );
 
