@@ -166,6 +166,7 @@ module Que
 
     def poll
       return unless pollers
+      return unless queue_refill_needed?
 
       space = @job_queue.space
 
