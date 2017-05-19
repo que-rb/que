@@ -102,4 +102,34 @@ describe Que::Migrations do
       end
     end
   end
+
+  describe "migration #4" do
+    it "should correctly migrate job args" do
+      Que::Migrations.migrate! version: 3
+
+      DB.transaction(savepoint: true, rollback: :always) do
+        DB[:que_jobs].insert(
+          job_id: 1,
+          job_class: 'Que::Job',
+          args: JSON.dump([{arg1: true, arg2: 'a'}]),
+        )
+
+        DB[:que_jobs].insert(
+          job_id: 2,
+          job_class: 'Que::Job',
+          args: JSON.dump([{arg1: true, arg2: 'a'}]),
+          error_count: 2,
+        )
+      end
+
+      Que::Migrations.migrate! version: 4
+
+      actual =
+        DB[:que_jobs].
+          order(:id).
+          select_map([:id, :is_processed, :data])
+
+      skip "add assertion"
+    end
+  end
 end
