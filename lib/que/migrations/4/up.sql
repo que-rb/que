@@ -5,7 +5,6 @@ ALTER TABLE que_jobs
   DROP CONSTRAINT que_jobs_pkey,
   ADD COLUMN is_processed BOOLEAN,
   ADD COLUMN data JSONB,
-  ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (id),
   ADD CONSTRAINT queue_length CHECK (char_length(queue) <= 60);
 
 UPDATE que_jobs
@@ -21,6 +20,7 @@ SET is_processed = false,
     )::jsonb;
 
 ALTER TABLE que_jobs
+  ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (id),
   ALTER COLUMN is_processed SET DEFAULT false,
   ALTER COLUMN is_processed SET NOT NULL,
   ALTER COLUMN data SET DEFAULT '{"args":[]}',
