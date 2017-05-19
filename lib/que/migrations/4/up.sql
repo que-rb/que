@@ -4,6 +4,7 @@ ALTER TABLE que_jobs
 ALTER TABLE que_jobs
   DROP CONSTRAINT que_jobs_pkey,
   ADD COLUMN is_processed BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN data JSONB NOT NULL DEFAULT '{}',
   ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (id),
   ADD CONSTRAINT queue_length CHECK (char_length(queue) <= 60);
 

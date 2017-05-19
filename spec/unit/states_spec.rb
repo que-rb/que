@@ -22,7 +22,7 @@ describe Que, '.job_states' do
     state = states.first
     assert_equal \
       %i(priority run_at id job_class args error_count last_error queue
-        is_processed ruby_hostname ruby_pid),
+        is_processed data ruby_hostname ruby_pid),
       state.keys
 
     assert_equal 2, state[:priority]
