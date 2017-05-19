@@ -15,7 +15,7 @@ ALTER TABLE que_jobs
 DELETE FROM que_jobs WHERE is_processed;
 
 UPDATE que_jobs
-  SET args = data->'args';
+  SET args = (data->'args')::json;
 
 ALTER TABLE que_jobs
   DROP COLUMN is_processed,

@@ -112,7 +112,7 @@ module Que
         coalesce($2, 100)::smallint,
         coalesce($3, now())::timestamptz,
         $4::text,
-        coalesce($5, '{"args":[]}')::json
+        coalesce($5, '{"args":[]}')::jsonb
       )
       RETURNING *
     },
