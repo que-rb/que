@@ -242,7 +242,6 @@ describe Que::Worker do
       assert_equal 1, job[:error_count]
       assert_match /uninitialized constant:? .*NonexistentClass/,
         job[:last_error_message]
-      assert_match(/const_get/, job[:last_error_backtrace].split("\n").first)
       assert_in_delta job[:run_at], Time.now + 4, 3
     end
 
