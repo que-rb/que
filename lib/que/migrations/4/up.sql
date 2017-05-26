@@ -6,15 +6,15 @@ ALTER TABLE que_jobs
 
 ALTER TABLE que_jobs
   DROP CONSTRAINT que_jobs_pkey,
-  ADD COLUMN last_error_backtrace text[],
+  ADD COLUMN last_error_backtrace text,
   ADD COLUMN is_processed BOOLEAN,
   ADD COLUMN data JSONB,
   ADD CONSTRAINT queue_length CHECK (char_length(queue) <= 60);
 
 UPDATE que_jobs
 SET is_processed = false,
-    last_error_backtrace = (regexp_split_to_array(last_error_message, E'\n'))[2:1001],
-    last_error_message   = (regexp_split_to_array(last_error_message, E'\n'))[1],
+    last_error_backtrace = regexp_replace(last_error_message, '^[^\n]+\n', ''),
+    last_error_message   = substring(last_error_message from '^[^\n]+'),
     data = json_build_object(
       'args',
       (

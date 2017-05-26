@@ -53,7 +53,7 @@ module Que
       Que.execute :set_error, [
         period,
         que_error.message,
-        "{\"#{que_error.backtrace.join('","')}\"}",
+        que_error.backtrace.join("\n"),
         que_attrs.fetch(:id),
       ]
       @que_resolved = true

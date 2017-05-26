@@ -104,7 +104,7 @@ module Que
             Que.execute :set_error, [
               delay,
               error.message,
-              "{\"#{error.backtrace.join('","')}\"}",
+              error.backtrace.join("\n"),
               id,
             ]
           rescue

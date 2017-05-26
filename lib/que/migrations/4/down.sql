@@ -19,7 +19,7 @@ DELETE FROM que_jobs WHERE is_processed;
 
 UPDATE que_jobs
   SET args = (data->'args')::json,
-  last_error = last_error || E'\n' || array_to_string(last_error_backtrace, E'\n');
+  last_error = last_error || E'\n' || last_error_backtrace;
 
 ALTER TABLE que_jobs
   DROP COLUMN last_error_backtrace,

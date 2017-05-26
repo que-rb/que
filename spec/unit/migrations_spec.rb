@@ -116,8 +116,7 @@ describe Que::Migrations do
         job_class: 'Que::Job',
         data: JSON.dump(args: [89, {arg1: true, arg2: 'b'}]),
         last_error_message: "Error: an error message",
-        last_error_backtrace: \
-          Sequel.pg_array(["line 1", "line 2", "line 3"], :text),
+        last_error_backtrace: "line 1\nline 2\nline 3",
       )
 
       Que::Migrations.migrate! version: 3
@@ -175,7 +174,7 @@ describe Que::Migrations do
             is_processed: false,
             data: {args: [89, {arg1: true, arg2: 'b'}]},
             last_error_message: "Error: an error message",
-            last_error_backtrace: ["line 1", "line 2", "line 3"],
+            last_error_backtrace: "line 1\nline 2\nline 3",
           },
           {
             id: 3,
