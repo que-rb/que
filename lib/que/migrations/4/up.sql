@@ -2,13 +2,19 @@ ALTER TABLE que_jobs
   RENAME COLUMN job_id TO id;
 
 ALTER TABLE que_jobs
+  RENAME COLUMN last_error TO last_error_message;
+
+ALTER TABLE que_jobs
   DROP CONSTRAINT que_jobs_pkey,
+  ADD COLUMN last_error_backtrace text[],
   ADD COLUMN is_processed BOOLEAN,
   ADD COLUMN data JSONB,
   ADD CONSTRAINT queue_length CHECK (char_length(queue) <= 60);
 
 UPDATE que_jobs
 SET is_processed = false,
+    last_error_backtrace = (regexp_split_to_array(last_error_message, E'\n'))[2:51],
+    last_error_message   = (regexp_split_to_array(last_error_message, E'\n'))[1],
     data = json_build_object(
       'args',
       (

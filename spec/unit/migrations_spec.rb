@@ -115,6 +115,9 @@ describe Que::Migrations do
         id: 2,
         job_class: 'Que::Job',
         data: JSON.dump(args: [89, {arg1: true, arg2: 'b'}]),
+        last_error_message: "Error: an error message",
+        last_error_backtrace: \
+          Sequel.pg_array(["line 1", "line 2", "line 3"], :text),
       )
 
       Que::Migrations.migrate! version: 3
@@ -123,16 +126,18 @@ describe Que::Migrations do
         [
           {
             job_id: 1,
-            args: [78, {arg1: true, arg2: 'a'}]
+            args: [78, {arg1: true, arg2: 'a'}],
+            last_error: nil,
           },
           {
             job_id: 2,
-            args: [89, {arg1: true, arg2: 'b'}]
+            args: [89, {arg1: true, arg2: 'b'}],
+            last_error: "Error: an error message\nline 1\nline 2\nline 3",
           },
         ],
         DB[:que_jobs].
           order(:job_id).
-          select(:job_id, :args).
+          select(:job_id, :args, :last_error).
           all{|a| a[:args] = JSON.parse(a[:args], symbolize_names: true)}
       )
 
@@ -161,27 +166,38 @@ describe Que::Migrations do
           {
             id: 1,
             is_processed: false,
-            data: {args: [78, {arg1: true, arg2: 'a'}]}
+            data: {args: [78, {arg1: true, arg2: 'a'}]},
+            last_error_message: nil,
+            last_error_backtrace: nil,
           },
           {
             id: 2,
             is_processed: false,
-            data: {args: [89, {arg1: true, arg2: 'b'}]}
+            data: {args: [89, {arg1: true, arg2: 'b'}]},
+            last_error_message: "Error: an error message",
+            last_error_backtrace: ["line 1", "line 2", "line 3"],
           },
           {
             id: 3,
             is_processed: false,
-            data: {args: [{arg1: true, arg2: 'a'}]}
+            data: {args: [{arg1: true, arg2: 'a'}]},
+            last_error_message: nil,
+            last_error_backtrace: nil,
           },
           {
             id: 4,
             is_processed: false,
-            data: {args: [5]}
+            data: {args: [5]},
+            last_error_message: nil,
+            last_error_backtrace: nil,
           },
         ],
         DB[:que_jobs].
           order(:id).
-          select(:id, :is_processed, :data).
+          select(
+            :id, :is_processed, :data,
+            :last_error_message, :last_error_backtrace,
+          ).
           all{|a| a[:data] = JSON.parse(a[:data], symbolize_names: true)}
       )
     end

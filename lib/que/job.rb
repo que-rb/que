@@ -50,7 +50,12 @@ module Que
     end
 
     def retry_in(period)
-      Que.execute :set_error, [period, que_error.message, que_attrs.fetch(:id)]
+      Que.execute :set_error, [
+        period,
+        que_error.message,
+        "{\"#{que_error.backtrace.join('","')}\"}",
+        que_attrs.fetch(:id),
+      ]
       @que_resolved = true
     end
 

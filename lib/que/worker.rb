@@ -101,9 +101,12 @@ module Que
                 interval
               end
 
-            message = "#{error.message}\n#{error.backtrace.join("\n")}"
-
-            Que.execute :set_error, [delay, message, id]
+            Que.execute :set_error, [
+              delay,
+              error.message,
+              "{\"#{error.backtrace.join('","')}\"}",
+              id,
+            ]
           rescue
             # If we can't reach the database for some reason, too bad, but
             # don't let it crash the work loop.

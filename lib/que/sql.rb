@@ -97,10 +97,11 @@ module Que
 
     set_error: %{
       UPDATE public.que_jobs
-      SET error_count = error_count + 1,
-          run_at      = now() + $1::bigint * '1 second'::interval,
-          last_error  = $2::text
-      WHERE id        = $3::bigint
+      SET error_count          = error_count + 1,
+          run_at               = now() + $1::bigint * '1 second'::interval,
+          last_error_message   = $2::text,
+          last_error_backtrace = $3::text[]
+      WHERE id = $4::bigint
     },
 
     insert_job: %{

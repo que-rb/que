@@ -137,7 +137,8 @@ describe Que::Worker do
       assert_equal 1, jobs.count
       job = jobs.first
       assert_equal 1, job[:error_count]
-      assert_equal "ErrorJob!", job[:last_error]
+      assert_equal "ErrorJob!", job[:last_error_message]
+      assert_match(/support\/jobs\/error_job/, job[:last_error_backtrace].first)
       assert_in_delta job[:run_at], Time.now + 4, 3
 
       jobs.update error_count: 5,
@@ -148,7 +149,8 @@ describe Que::Worker do
       assert_equal 1, jobs.count
       job = jobs.first
       assert_equal 6, job[:error_count]
-      assert_equal "ErrorJob!", job[:last_error]
+      assert_equal "ErrorJob!", job[:last_error_message]
+      assert_match(/support\/jobs\/error_job/, job[:last_error_backtrace].first)
       assert_in_delta job[:run_at], Time.now + 1299, 3
     end
 
@@ -165,7 +167,8 @@ describe Que::Worker do
       job = jobs.first
 
       assert_equal 1, job[:error_count]
-      assert_equal "ErrorJob!", job[:last_error]
+      assert_equal "ErrorJob!", job[:last_error_message]
+      assert_match(/support\/jobs\/error_job/, job[:last_error_backtrace].first)
       assert_in_delta job[:run_at], Time.now + 5, 3
 
       jobs.update error_count: 5,
@@ -177,7 +180,8 @@ describe Que::Worker do
       job = jobs.first
 
       assert_equal 6, job[:error_count]
-      assert_equal "ErrorJob!", job[:last_error]
+      assert_equal "ErrorJob!", job[:last_error_message]
+      assert_match(/support\/jobs\/error_job/, job[:last_error_backtrace].first)
       assert_in_delta job[:run_at], Time.now + 5, 3
     end
 
@@ -193,7 +197,8 @@ describe Que::Worker do
       assert_equal 1, jobs.count
       job = jobs.first
       assert_equal 1, job[:error_count]
-      assert_equal "ErrorJob!", job[:last_error]
+      assert_equal "ErrorJob!", job[:last_error_message]
+      assert_match(/support\/jobs\/error_job/, job[:last_error_backtrace].first)
       assert_in_delta job[:run_at], Time.now + 10, 3
 
       jobs.update error_count: 5,
@@ -204,7 +209,8 @@ describe Que::Worker do
       assert_equal 1, jobs.count
       job = jobs.first
       assert_equal 6, job[:error_count]
-      assert_equal "ErrorJob!", job[:last_error]
+      assert_equal "ErrorJob!", job[:last_error_message]
+      assert_match(/support\/jobs\/error_job/, job[:last_error_backtrace].first)
       assert_in_delta job[:run_at], Time.now + 60, 3
     end
 
@@ -217,7 +223,8 @@ describe Que::Worker do
       job = jobs.first
       assert_equal 1, job[:error_count]
       assert_match /uninitialized constant:? .*NonexistentClass/,
-        job[:last_error]
+        job[:last_error_message]
+      assert_match(/const_get/, job[:last_error_backtrace].first)
       assert_in_delta job[:run_at], Time.now + 4, 3
     end
 
@@ -262,7 +269,8 @@ describe Que::Worker do
           assert_equal 1, jobs.count
           job = jobs.first
           assert_equal 1, job[:error_count]
-          assert_match /\ABlah!/, job[:last_error]
+          assert_match /\ABlah!/, job[:last_error_message]
+          assert_match(/worker_spec.rb/, job[:last_error_backtrace].first)
           assert_in_delta job[:run_at], Time.now + 42, 3
         ensure
           Que.error_notifier = nil
@@ -355,7 +363,8 @@ describe Que::Worker do
           assert_equal 1, jobs.count
           job = jobs.first
           assert_equal 1, job[:error_count]
-          assert_match /\ABlah!/, job[:last_error]
+          assert_match /\ABlah!/, job[:last_error_message]
+          assert_match(/worker_spec.rb/, job[:last_error_backtrace].first)
           assert_in_delta job[:run_at], Time.now + 4, 3
         ensure
           Que.error_notifier = nil
