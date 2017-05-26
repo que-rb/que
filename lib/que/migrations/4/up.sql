@@ -33,6 +33,8 @@ ALTER TABLE que_jobs
   ALTER COLUMN data SET NOT NULL,
   DROP COLUMN args,
   ADD CONSTRAINT data_format CHECK (
+    (jsonb_typeof(data) = 'object')
+    AND
     ((data->'args') IS NOT NULL)
     AND
     (jsonb_typeof(data->'args') = 'array')
