@@ -83,7 +83,7 @@ describe Que::Locker do
         )
       ensure
         Que.default_queue = nil
-        assert_equal '', Que.default_queue
+        assert_equal 'default', Que.default_queue
       end
     end
 

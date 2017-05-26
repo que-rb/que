@@ -6,7 +6,7 @@ require 'json'
 
 module Que
   CURRENT_HOSTNAME = Socket.gethostname.freeze
-  DEFAULT_QUEUE    = ''.freeze
+  DEFAULT_QUEUE    = 'default'.freeze
 
   require_relative 'que/assertions'
   require_relative 'que/config'

@@ -5,7 +5,7 @@ require 'spec_helper'
 describe Que::Job, '.enqueue' do
   def assert_enqueue(
     args,
-    expected_queue: '',
+    expected_queue: 'default',
     expected_priority: 100,
     expected_run_at: Time.now,
     expected_job_class: Que::Job,

@@ -11,7 +11,7 @@ describe "An insertion into que_jobs" do
                                 worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
-                                queues:        Sequel.pg_array(['']),
+                                queues:        Sequel.pg_array(['default']),
                                 listening:     true
 
         notify_pid =
@@ -48,7 +48,7 @@ describe "An insertion into que_jobs" do
                                 worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
-                                queues:        Sequel.pg_array(['']),
+                                queues:        Sequel.pg_array(['default']),
                                 listening:     true
 
         conn.async_exec "LISTEN que_locker_1"
@@ -70,7 +70,7 @@ describe "An insertion into que_jobs" do
                                 worker_priorities: Sequel.pg_array([1], :integer),
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
-                                queues:        Sequel.pg_array(['']),
+                                queues:        Sequel.pg_array(['default']),
                                 listening:     true
 
         DB[:que_lockers].insert pid:           2,
@@ -78,7 +78,7 @@ describe "An insertion into que_jobs" do
                                 worker_priorities: Sequel.pg_array([1, 2], :integer),
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
-                                queues:        Sequel.pg_array(['']),
+                                queues:        Sequel.pg_array(['default']),
                                 listening:     true
 
         notify_pid =
@@ -106,7 +106,7 @@ describe "An insertion into que_jobs" do
                                 worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
-                                queues:        Sequel.pg_array(['']),
+                                queues:        Sequel.pg_array(['default']),
                                 listening:     false
 
         notify_pid =
@@ -131,7 +131,7 @@ describe "An insertion into que_jobs" do
                                 worker_priorities: Sequel.pg_array([1], :integer),
                                 ruby_pid:      Process.pid,
                                 ruby_hostname: Socket.gethostname,
-                                queues:        Sequel.pg_array(['']),
+                                queues:        Sequel.pg_array(['default']),
                                 listening:     true
 
         DB[:que_lockers].insert pid:           2,

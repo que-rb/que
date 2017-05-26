@@ -4,7 +4,7 @@ require 'spec_helper'
 
 describe "The job polling query" do
   def poll(count, options = {})
-    queue_name = options[:queue_name] || ''
+    queue_name = options[:queue_name] || 'default'
     job_ids = options[:job_ids] || []
 
     jobs = Que.execute :poll_jobs, [queue_name, "{#{job_ids.join(',')}}", count]

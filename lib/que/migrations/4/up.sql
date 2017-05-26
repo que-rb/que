@@ -13,6 +13,7 @@ ALTER TABLE que_jobs
 
 UPDATE que_jobs
 SET is_processed = false,
+    queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
     last_error_backtrace = regexp_replace(last_error_message, '^[^\n]+\n', ''),
     last_error_message   = substring(last_error_message from '^[^\n]+'),
     data = json_build_object(
@@ -27,6 +28,7 @@ SET is_processed = false,
 
 ALTER TABLE que_jobs
   ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (id),
+  ALTER COLUMN queue SET DEFAULT 'default',
   ALTER COLUMN is_processed SET DEFAULT false,
   ALTER COLUMN is_processed SET NOT NULL,
   ALTER COLUMN data SET DEFAULT '{"args":[]}',
