@@ -2,12 +2,19 @@
 
 require 'spec_helper'
 
-describe "The job polling query" do
+describe Que::Poller do
   def poll(count, options = {})
     queue_name = options[:queue_name] || 'default'
-    job_ids = options[:job_ids] || []
+    job_ids = (options[:job_ids] || []).to_set
 
-    jobs = Que.execute :poll_jobs, [queue_name, "{#{job_ids.join(',')}}", count]
+    poller =
+      Que::Poller.new(
+        pool: Que.pool,
+        queue: queue_name,
+        poll_interval: 5,
+      )
+
+    jobs = poller.poll(count, held_locks: job_ids)
 
     returned_job_ids = jobs.map { |j| j[:id] }
 
