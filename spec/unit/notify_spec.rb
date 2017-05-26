@@ -6,13 +6,15 @@ describe "An insertion into que_jobs" do
   it "should notify a locker if one is listening" do
     DB.synchronize do |conn|
       begin
-        DB[:que_lockers].insert pid:           1,
-                                worker_count:  4,
-                                worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
-                                ruby_pid:      Process.pid,
-                                ruby_hostname: Socket.gethostname,
-                                queues:        Sequel.pg_array(['default']),
-                                listening:     true
+        DB[:que_lockers].insert(
+          pid:           1,
+          worker_count:  4,
+          worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
+          ruby_pid:      Process.pid,
+          ruby_hostname: Socket.gethostname,
+          queues:        Sequel.pg_array(['default']),
+          listening:     true,
+        )
 
         notify_pid =
           Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
@@ -43,13 +45,15 @@ describe "An insertion into que_jobs" do
   it "should not notify a locker if run_at is in the future" do
     DB.synchronize do |conn|
       begin
-        DB[:que_lockers].insert pid:           1,
-                                worker_count:  4,
-                                worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
-                                ruby_pid:      Process.pid,
-                                ruby_hostname: Socket.gethostname,
-                                queues:        Sequel.pg_array(['default']),
-                                listening:     true
+        DB[:que_lockers].insert(
+          pid:           1,
+          worker_count:  4,
+          worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
+          ruby_pid:      Process.pid,
+          ruby_hostname: Socket.gethostname,
+          queues:        Sequel.pg_array(['default']),
+          listening:     true,
+        )
 
         conn.async_exec "LISTEN que_locker_1"
 
@@ -65,21 +69,25 @@ describe "An insertion into que_jobs" do
   it "should cycle between different lockers weighted by their worker_counts" do
     DB.synchronize do |conn|
       begin
-        DB[:que_lockers].insert pid:           1,
-                                worker_count:  1,
-                                worker_priorities: Sequel.pg_array([1], :integer),
-                                ruby_pid:      Process.pid,
-                                ruby_hostname: Socket.gethostname,
-                                queues:        Sequel.pg_array(['default']),
-                                listening:     true
+        DB[:que_lockers].insert(
+          pid:           1,
+          worker_count:  1,
+          worker_priorities: Sequel.pg_array([1], :integer),
+          ruby_pid:      Process.pid,
+          ruby_hostname: Socket.gethostname,
+          queues:        Sequel.pg_array(['default']),
+          listening:     true,
+        )
 
-        DB[:que_lockers].insert pid:           2,
-                                worker_count:  2,
-                                worker_priorities: Sequel.pg_array([1, 2], :integer),
-                                ruby_pid:      Process.pid,
-                                ruby_hostname: Socket.gethostname,
-                                queues:        Sequel.pg_array(['default']),
-                                listening:     true
+        DB[:que_lockers].insert(
+          pid:           2,
+          worker_count:  2,
+          worker_priorities: Sequel.pg_array([1, 2], :integer),
+          ruby_pid:      Process.pid,
+          ruby_hostname: Socket.gethostname,
+          queues:        Sequel.pg_array(['default']),
+          listening:     true,
+        )
 
         notify_pid =
           Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
@@ -101,13 +109,15 @@ describe "An insertion into que_jobs" do
   it "should ignore lockers that are marked as not listening" do
     DB.synchronize do |conn|
       begin
-        DB[:que_lockers].insert pid:           1,
-                                worker_count:  4,
-                                worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
-                                ruby_pid:      Process.pid,
-                                ruby_hostname: Socket.gethostname,
-                                queues:        Sequel.pg_array(['default']),
-                                listening:     false
+        DB[:que_lockers].insert(
+          pid:           1,
+          worker_count:  4,
+          worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
+          ruby_pid:      Process.pid,
+          ruby_hostname: Socket.gethostname,
+          queues:        Sequel.pg_array(['default']),
+          listening:     false,
+        )
 
         notify_pid =
           Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
@@ -126,21 +136,25 @@ describe "An insertion into que_jobs" do
   it "should ignore lockers that aren't listening to that queue" do
     DB.synchronize do |conn|
       begin
-        DB[:que_lockers].insert pid:           1,
-                                worker_count:  1,
-                                worker_priorities: Sequel.pg_array([1], :integer),
-                                ruby_pid:      Process.pid,
-                                ruby_hostname: Socket.gethostname,
-                                queues:        Sequel.pg_array(['default']),
-                                listening:     true
+        DB[:que_lockers].insert(
+          pid:           1,
+          worker_count:  1,
+          worker_priorities: Sequel.pg_array([1], :integer),
+          ruby_pid:      Process.pid,
+          ruby_hostname: Socket.gethostname,
+          queues:        Sequel.pg_array(['default']),
+          listening:     true,
+        )
 
-        DB[:que_lockers].insert pid:           2,
-                                worker_count:  2,
-                                worker_priorities: Sequel.pg_array([1, 2], :integer),
-                                ruby_pid:      Process.pid,
-                                ruby_hostname: Socket.gethostname,
-                                queues:        Sequel.pg_array(['other_queue']),
-                                listening:     true
+        DB[:que_lockers].insert(
+          pid:           2,
+          worker_count:  2,
+          worker_priorities: Sequel.pg_array([1, 2], :integer),
+          ruby_pid:      Process.pid,
+          ruby_hostname: Socket.gethostname,
+          queues:        Sequel.pg_array(['other_queue']),
+          listening:     true,
+        )
 
         notify_pid =
           Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i

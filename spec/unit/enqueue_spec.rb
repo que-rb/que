@@ -37,7 +37,8 @@ describe Que::Job, '.enqueue' do
     assert_equal expected_priority, job[:priority]
     assert_in_delta job[:run_at], expected_run_at, 3
     assert_equal expected_job_class.to_s, job[:job_class]
-    assert_equal expected_args, JSON.parse(job[:data], symbolize_names: true)[:args]
+    assert_equal expected_args,
+      JSON.parse(job[:data], symbolize_names: true)[:args]
 
     jobs.delete
   end
