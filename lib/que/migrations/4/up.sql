@@ -47,12 +47,13 @@ CREATE UNIQUE INDEX que_jobs_poll_idx
 CREATE INDEX que_jobs_data_gin_idx ON que_jobs USING gin (data jsonb_path_ops);
 
 CREATE UNLOGGED TABLE que_lockers (
-  pid           integer NOT NULL CONSTRAINT que_lockers_pkey PRIMARY KEY,
-  worker_count  integer NOT NULL,
-  ruby_pid      integer NOT NULL,
-  ruby_hostname text    NOT NULL,
-  queues        text[]  NOT NULL,
-  listening     boolean NOT NULL,
+  pid               integer NOT NULL CONSTRAINT que_lockers_pkey PRIMARY KEY,
+  worker_count      integer NOT NULL,
+  worker_priorities integer[] NOT NULL,
+  ruby_pid          integer NOT NULL,
+  ruby_hostname     text    NOT NULL,
+  queues            text[]  NOT NULL,
+  listening         boolean NOT NULL,
 
   CONSTRAINT valid_queues CHECK (
     (array_ndims(queues) = 1)

@@ -54,7 +54,8 @@ describe Que do
             ruby_pid: 4,
             ruby_hostname: 'blah',
             listening: true,
-            queues: Sequel.lit("'{}'::text[]"), #Sequel.pg_array([], :text),
+            queues: Sequel.lit("'{}'::text[]"),
+            worker_priorities: Sequel.pg_array([1, 2], :integer),
           )
       end
     end
@@ -72,6 +73,7 @@ describe Que do
               Sequel.pg_array(['a']),
               Sequel.pg_array(['b']),
             ]),
+            worker_priorities: Sequel.pg_array([1, 2], :integer),
           )
       end
     end

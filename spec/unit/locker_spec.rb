@@ -24,6 +24,7 @@ describe Que::Locker do
       assert_equal Socket.gethostname,       record[:ruby_hostname]
       assert_equal worker_priorities.length, record[:worker_count]
       assert_equal listen,                   record[:listening]
+      assert_equal worker_priorities,        record[:worker_priorities]
 
       assert_equal worker_priorities, locker.workers.map(&:priority)
 
@@ -110,12 +111,13 @@ describe Que::Locker do
     it "should clear invalid lockers from the table" do
       # Bogus locker from a nonexistent connection.
       DB[:que_lockers].insert(
-        pid:           0,
-        ruby_pid:      0,
-        ruby_hostname: 'blah2',
-        worker_count:  4,
-        queues:        Sequel.pg_array(['']),
-        listening:     true,
+        pid:               0,
+        ruby_pid:          0,
+        ruby_hostname:     'blah2',
+        worker_count:      4,
+        worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
+        queues:            Sequel.pg_array(['']),
+        listening:         true,
       )
 
       # We want to spec that invalid lockers with the current backend's pid are
@@ -124,12 +126,13 @@ describe Que::Locker do
         Que.execute("select pg_backend_pid()").first[:pg_backend_pid]
 
       DB[:que_lockers].insert(
-        pid:           backend_pid,
-        ruby_pid:      0,
-        ruby_hostname: 'blah1',
-        worker_count:  4,
-        queues:        Sequel.pg_array(['']),
-        listening:     true,
+        pid:               backend_pid,
+        ruby_pid:          0,
+        ruby_hostname:     'blah1',
+        worker_count:      4,
+        worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
+        queues:            Sequel.pg_array(['']),
+        listening:         true,
       )
 
       assert_equal 2, DB[:que_lockers].count

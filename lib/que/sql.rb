@@ -137,15 +137,24 @@ module Que
 
     register_locker: %{
       INSERT INTO public.que_lockers
-      (pid, worker_count, ruby_pid, ruby_hostname, listening, queues)
+      (
+        pid,
+        worker_count,
+        worker_priorities,
+        ruby_pid,
+        ruby_hostname,
+        listening,
+        queues
+      )
       VALUES
       (
         pg_backend_pid(),
         $1::integer,
-        $2::integer,
-        $3::text,
-        $4::boolean,
-        $5::text[]
+        $2::integer[],
+        $3::integer,
+        $4::text,
+        $5::boolean,
+        $6::text[]
       );
     },
 

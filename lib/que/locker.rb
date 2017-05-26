@@ -119,6 +119,7 @@ module Que
           execute :clean_lockers
           execute :register_locker, [
             @workers.count,
+            "{#{@workers.map(&:priority).map{|p| p || 'NULL'}.join(',')}}",
             Process.pid,
             CURRENT_HOSTNAME, 
             @listen,
