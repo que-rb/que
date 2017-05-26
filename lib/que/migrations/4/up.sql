@@ -13,7 +13,7 @@ ALTER TABLE que_jobs
 
 UPDATE que_jobs
 SET is_processed = false,
-    last_error_backtrace = (regexp_split_to_array(last_error_message, E'\n'))[2:51],
+    last_error_backtrace = (regexp_split_to_array(last_error_message, E'\n'))[2:1001],
     last_error_message   = (regexp_split_to_array(last_error_message, E'\n'))[1],
     data = json_build_object(
       'args',
