@@ -102,7 +102,7 @@ module Que
       CAST_PROCS[1184] = Time.method(:parse)
 
       # JSON.
-      CAST_PROCS[114] = JSON_MODULE.method(:load)
+      CAST_PROCS[114] = -> (value) { JSON_MODULE.parse(value, create_additions: false) }
 
       # Boolean:
       CAST_PROCS[16] = 't'.method(:==)
