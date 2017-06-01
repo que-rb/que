@@ -18,6 +18,8 @@ module Que
     JSON_MODULE = JSON
   end
 
+  DEFAULT_QUEUE = 'default'
+
   HASH_DEFAULT_PROC = proc { |hash, key| hash[key.to_s] if Symbol === key }
 
   INDIFFERENTIATOR = proc do |object|
