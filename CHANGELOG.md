@@ -1,4 +1,4 @@
-### Unreleased
+### 0.12.3 (2017-06-01)
 
 *   Fix incompatibility with MultiJson introduced by the previous release.
 
