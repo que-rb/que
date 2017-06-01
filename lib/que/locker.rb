@@ -259,7 +259,7 @@ module Que
       checkout do |conn|
         conn.wait_for_notify(@wait_period) do |_, _, payload|
           sort_key =
-            JSON.parse(payload, symbolize_names: true)
+            DEFAULT_JSON_DESERIALIZER.call(payload)
 
           Que.log(
             level: :debug,
