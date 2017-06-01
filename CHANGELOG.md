@@ -1,3 +1,7 @@
+### Unreleased
+
+*   Fix incompatibility with MultiJson introduced by the previous release.
+
 ### 0.12.2 (2017-06-01)
 
 *   Fix security vulnerability in parsing JSON from the DB (by specifying create_additions: false). This shouldn't be a concern unless you were passing untrusted user input in your job arguments. (hmac)
