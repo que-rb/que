@@ -46,9 +46,13 @@
 
     *   There is now a `Que.constantizer=` option, which you can set to a proc to customize how job classes are converted from strings to classes. If you're on Rails and experiencing problems with autoloading, you may want to set `Que.constantizer = proc(&:constantize)`.
 
+### 0.12.2 (2017-06-01)
+
+*   Fix security vulnerability in parsing JSON from the DB (by specifying create_additions: false). This shouldn't be a concern unless you were passing untrusted user input in your job arguments. (hmac)
+
 ### 0.12.1 (2017-01-22)
 
-* Fix incompatibility with Rails 5.0. (#166) (nbibler, thedarkone)
+*   Fix incompatibility with Rails 5.0. (#166) (nbibler, thedarkone)
 
 ### 0.12.0 (2016-09-09)
 
