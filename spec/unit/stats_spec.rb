@@ -40,7 +40,7 @@ describe Que, '.job_stats' do
       bj[:highest_error_count].should == 0
       bj[:oldest_run_at].should be_within(3).of Time.now
     ensure
-      DB.get{pg_advisory_unlock_all{}}
+      DB.get{pg_advisory_unlock_all.function}
     end
   end
 end
