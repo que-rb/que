@@ -40,7 +40,7 @@ module Que
           case param
             # The pg gem unfortunately doesn't convert fractions of time instances, so cast them to a string.
             when Time then param.strftime("%Y-%m-%d %H:%M:%S.%6N %z")
-            when Array, Hash then JSON_MODULE.dump(param)
+            when Array, Hash then JSON.dump(param)
             else param
           end
         end
@@ -102,7 +102,7 @@ module Que
       CAST_PROCS[1184] = Time.method(:parse)
 
       # JSON.
-      CAST_PROCS[114] = -> (value) { JSON_MODULE.load(value, create_additions: false) }
+      CAST_PROCS[114] = -> (value) { JSON.parse(value, create_additions: false) }
 
       # Boolean:
       CAST_PROCS[16] = 't'.method(:==)

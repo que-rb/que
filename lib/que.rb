@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'socket' # For hostname
+require 'json'
 
 module Que
   autoload :Adapters,   'que/adapters/base'
@@ -9,14 +10,6 @@ module Que
   autoload :SQL,        'que/sql'
   autoload :Version,    'que/version'
   autoload :Worker,     'que/worker'
-
-  begin
-    require 'multi_json'
-    JSON_MODULE = MultiJson
-  rescue LoadError
-    require 'json'
-    JSON_MODULE = JSON
-  end
 
   HASH_DEFAULT_PROC = proc { |hash, key| hash[key.to_s] if Symbol === key }
 
@@ -130,7 +123,7 @@ module Que
     end
 
     def log_formatter
-      @log_formatter ||= JSON_MODULE.method(:dump)
+      @log_formatter ||= JSON.method(:dump)
     end
 
     def disable_prepared_statements
