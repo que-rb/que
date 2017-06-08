@@ -3,10 +3,6 @@
 # Que's global configuration lives here.
 
 module Que
-  DEFAULT_JSON_DESERIALIZER = -> (json) do
-    JSON.parse(json, symbolize_names: true, create_additions: false)
-  end
-
   class << self
     ### Connection Setup ###
 
@@ -45,20 +41,6 @@ module Que
 
     def log_formatter
       @log_formatter ||= JSON.method(:dump)
-    end
-
-
-
-    ### JSON Conversion ###
-
-    attr_writer :json_serializer, :json_deserializer
-
-    def json_deserializer
-      @json_deserializer ||= DEFAULT_JSON_DESERIALIZER
-    end
-
-    def json_serializer
-      @json_serializer ||= JSON.method(:dump)
     end
 
 

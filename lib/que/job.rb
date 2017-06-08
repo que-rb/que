@@ -93,7 +93,7 @@ module Que
           priority:  priority  || resolve_setting(:priority),
           run_at:    run_at    || resolve_setting(:run_at),
           job_class: job_class || to_s,
-          data:      {args: args},
+          data:      Que.serialize_json(args: args),
         }
 
         if attrs[:run_at].nil? && resolve_setting(:run_synchronously)
@@ -112,7 +112,7 @@ module Que
       def run(*args)
         # Make sure things behave the same as they would have with a round-trip
         # to the DB.
-        args = Que.json_deserializer.call(Que.json_serializer.call(args))
+        args = Que.deserialize_json(Que.serialize_json(args))
 
         # Should not fail if there's no DB connection.
         new(data: {args: args}).tap { |job| job.run(*args) }

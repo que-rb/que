@@ -84,7 +84,7 @@ module Que
 
     # JSON, JSONB
     CAST_PROCS[114] = CAST_PROCS[3802] =
-      -> (json) { Que.json_deserializer.call(json) }
+      -> (json) { Que.deserialize_json(json) }
 
     # Integer, bigint, smallint
     CAST_PROCS[23] = CAST_PROCS[20] = CAST_PROCS[21] = proc(&:to_i)

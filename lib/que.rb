@@ -41,6 +41,14 @@ module Que
       execute :job_states
     end
 
+    def serialize_json(object)
+      JSON.dump(object)
+    end
+
+    def deserialize_json(json)
+      JSON.parse(json, symbolize_names: true, create_additions: false)
+    end
+
     # Have to support create! and drop! for old migrations. They just created
     # and dropped the bare table.
     def create!
