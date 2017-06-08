@@ -1,6 +1,6 @@
-### Unreleased
+### 0.13.0 (2017-06-08)
 
-*   Fix recurring JSON issues by dropping MultiJson support.
+*   Fix recurring JSON issues by dropping MultiJson support. Previously MultiJson was detected and used automatically, and now it's just ignored and stdlib JSON used instead, so this shouldn't require any code changes.
 
 ### 0.12.3 (2017-06-01)
 
