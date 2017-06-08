@@ -28,11 +28,14 @@ QUE_URL = ENV['DATABASE_URL'] || 'postgres://postgres:@localhost/que-test'
 
 NEW_PG_CONNECTION = proc do
   uri = URI.parse(QUE_URL)
-  pg = PG::Connection.open host:     uri.host,
-                           user:     uri.user,
-                           password: uri.password,
-                           port:     uri.port || 5432,
-                           dbname:   uri.path[1..-1]
+  pg =
+    PG::Connection.open(
+      host:     uri.host,
+      user:     uri.user,
+      password: uri.password,
+      port:     uri.port || 5432,
+      dbname:   uri.path[1..-1],
+    )
 
   # Avoid annoying NOTICE messages in specs.
   pg.async_exec "SET client_min_messages TO 'warning'"
