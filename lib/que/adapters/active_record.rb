@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'active_record/base'
+
 module Que
   module Adapters
     class ActiveRecord < Base
