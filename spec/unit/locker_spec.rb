@@ -486,6 +486,20 @@ describe Que::Locker do
       locker.stop!
     end
 
+    it "shouldn't crash if it receives a poorly-formatted NOTIFY" do
+      BlockJob.enqueue
+      locker
+
+      # Wait until we're sure the locker is listening.
+      $q1.pop; $q2.push nil
+
+      pid = DB[:que_lockers].get(:pid)
+      refute_nil pid
+      DB.notify "que_locker_#{pid}", payload: 'blah!' # Not valid JSON
+
+      locker.stop!
+    end
+
     it "of low importance should not lock them if the local queue is full" do
       locker_settings.replace(worker_count: 1, maximum_queue_size: 3)
       locker

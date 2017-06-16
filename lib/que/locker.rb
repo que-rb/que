@@ -258,21 +258,25 @@ module Que
     def wait_for_job
       checkout do |conn|
         conn.wait_for_notify(@wait_period) do |_, _, payload|
-          sort_key =
-            Que.deserialize_json(payload)
+          message =
+            begin
+              Que.deserialize_json(payload)
+            rescue JSON::ParserError
+              nil
+            end
 
-          message_type = sort_key.delete(:message_type)
+          message_type = message && message.delete(:message_type)
           return unless message_type == 'new_job'
 
           Que.log(
             level: :debug,
             event: :job_notified,
-            job:   sort_key,
+            job:   message,
           )
 
-          sort_key[:run_at] = Time.parse(sort_key.fetch(:run_at))
+          message[:run_at] = Time.parse(message.fetch(:run_at))
 
-          return sort_key
+          return message
         end
       end
     end
