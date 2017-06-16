@@ -35,7 +35,7 @@ module Que
 
           message[:run_at] = Time.parse(message.fetch(:run_at))
 
-          return [message]
+          return {new_job: [message]}
         end
       end
     end

@@ -180,7 +180,8 @@ module Que
 
     def wait
       if @listener
-        if sort_keys = @listener.wait_for_messages(@wait_period)
+        messages = @listener.wait_for_messages(@wait_period)
+        if messages && sort_keys = messages[:new_job]
           # TODO: Optimize checking, locking and pushing these jobs.
           sort_keys.each do |sort_key|
             if @job_queue.accept?(sort_key) && lock_job?(sort_key.fetch(:id))
