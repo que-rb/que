@@ -607,6 +607,8 @@ describe Que::Locker do
 
     it "should clear its own record from the que_lockers table" do
       locker
+      sleep_until { DB[:que_lockers].count == 1 }
+
       BlockJob.enqueue
       $q1.pop
 
