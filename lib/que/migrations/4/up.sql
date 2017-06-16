@@ -1,3 +1,5 @@
+ALTER TABLE que_jobs SET (fillfactor = 90);
+
 ALTER TABLE que_jobs
   RENAME COLUMN job_id TO id;
 
