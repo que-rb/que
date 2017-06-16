@@ -6,6 +6,32 @@ module Que
       @pool = pool
     end
 
+    def wait_for_job(timeout)
+      @pool.checkout do |conn|
+        conn.wait_for_notify(timeout) do |_, _, payload|
+          message =
+            begin
+              Que.deserialize_json(payload)
+            rescue JSON::ParserError
+              nil
+            end
+
+          message_type = message && message.delete(:message_type)
+          return unless message_type == 'new_job'
+
+          Que.log(
+            level: :debug,
+            event: :job_notified,
+            job:   message,
+          )
+
+          message[:run_at] = Time.parse(message.fetch(:run_at))
+
+          return message
+        end
+      end
+    end
+
     def unlisten
       @pool.checkout do |conn|
         # Unlisten and drain notifications before releasing the connection.
