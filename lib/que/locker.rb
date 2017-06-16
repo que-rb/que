@@ -186,10 +186,13 @@ module Que
       messages_by_type.each do |message_type, messages|
         case message_type
         when :new_job
-          # TODO: Optimize checking, locking and pushing these jobs.
           messages.each do |message|
             message[:run_at] = Time.parse(message.fetch(:run_at))
+          end
 
+          # TODO: Check for acceptance in bulk, attempt locking in bulk, push
+          # jobs in bulk.
+          messages.each do |message|
             if @job_queue.accept?(message) && lock_job?(message.fetch(:id))
               push_jobs([message])
             end
