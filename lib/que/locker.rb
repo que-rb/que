@@ -188,12 +188,6 @@ module Que
         when :new_job
           # TODO: Optimize checking, locking and pushing these jobs.
           messages.each do |message|
-            Que.log(
-              level: :debug,
-              event: :job_notified,
-              job:   message,
-            )
-
             message[:run_at] = Time.parse(message.fetch(:run_at))
 
             if @job_queue.accept?(message) && lock_job?(message.fetch(:id))

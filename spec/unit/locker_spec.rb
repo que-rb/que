@@ -380,15 +380,6 @@ describe Que::Locker do
       sleep_until { locked_ids.empty? }
 
       locker.stop!
-
-      events = logged_messages.select { |m| m['event'] == 'job_notified' }
-      assert_equal 1, events.count
-      event = events.first
-      log = event['job']
-
-      assert_equal job.que_attrs[:priority], log['priority']
-      assert_equal job.que_attrs[:run_at],   Time.parse(log['run_at'])
-      assert_equal job.que_attrs[:id],       log['id']
     end
 
     it "should receive NOTIFYs for any of the queues it LISTENs for" do
@@ -466,21 +457,8 @@ describe Que::Locker do
       DB.notify "que_listener_#{pid}", payload: payload
 
       # A bit hacky. Nothing should happen in response to this payload, so wait
-      # a bit and then assert that nothing happened.
+      # a bit.
       sleep 0.05
-
-      messages = logged_messages
-      messages.shift(message_count)
-
-      # Use messages to check that the NOTIFY was received, but no action was
-      # taken.
-      assert_equal 1, messages.length
-      message = messages.first
-      assert_equal 'job_notified', message['event']
-
-      assert_equal \
-        JSON.load(payload).tap{|h| h.delete('message_type')},
-        message['job']
 
       $q2.push nil
       locker.stop!
