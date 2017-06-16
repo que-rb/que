@@ -463,7 +463,7 @@ describe Que::Locker do
 
       pid = DB[:que_lockers].get(:pid)
       refute_nil pid
-      DB.notify "que_locker_#{pid}", payload: payload
+      DB.notify "que_listener_#{pid}", payload: payload
 
       # A bit hacky. Nothing should happen in response to this payload, so wait
       # a bit and then assert that nothing happened.
@@ -492,7 +492,7 @@ describe Que::Locker do
 
       pid = DB[:que_lockers].get(:pid)
       refute_nil pid
-      DB.notify "que_locker_#{pid}", payload: 'blah!' # Not valid JSON
+      DB.notify "que_listener_#{pid}", payload: 'blah!' # Not valid JSON
 
       locker.stop!
     end

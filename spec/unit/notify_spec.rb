@@ -19,13 +19,13 @@ describe "An insertion into que_jobs" do
         notify_pid =
           Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
 
-        conn.async_exec "LISTEN que_locker_1"
+        conn.async_exec "LISTEN que_listener_1"
 
         Que::Job.enqueue
         job = jobs.first
 
         conn.wait_for_notify do |channel, pid, payload|
-          assert_equal 'que_locker_1', channel
+          assert_equal 'que_listener_1', channel
           assert_equal notify_pid, pid
 
           json = JSON.load(payload)
@@ -56,7 +56,7 @@ describe "An insertion into que_jobs" do
           listening:     true,
         )
 
-        conn.async_exec "LISTEN que_locker_1"
+        conn.async_exec "LISTEN que_listener_1"
 
         Que::Job.enqueue run_at: Time.now + 60
 
@@ -93,11 +93,11 @@ describe "An insertion into que_jobs" do
         notify_pid =
           Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
 
-        conn.async_exec "LISTEN que_locker_1; LISTEN que_locker_2"
+        conn.async_exec "LISTEN que_listener_1; LISTEN que_listener_2"
 
         channels = 6.times.map { Que::Job.enqueue; conn.wait_for_notify }
         assert_equal \
-          (['que_locker_1'] * 2 + ['que_locker_2'] * 4),
+          (['que_listener_1'] * 2 + ['que_listener_2'] * 4),
           channels.sort
 
         assert_nil conn.wait_for_notify(0.01)
@@ -123,7 +123,7 @@ describe "An insertion into que_jobs" do
         notify_pid =
           Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
 
-        conn.async_exec "LISTEN que_locker_1"
+        conn.async_exec "LISTEN que_listener_1"
 
         Que::Job.enqueue
         job = jobs.first
@@ -160,11 +160,11 @@ describe "An insertion into que_jobs" do
         notify_pid =
           Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
 
-        conn.async_exec "LISTEN que_locker_1; LISTEN que_locker_2"
+        conn.async_exec "LISTEN que_listener_1; LISTEN que_listener_2"
 
         channels = 6.times.map { Que::Job.enqueue; conn.wait_for_notify }
         assert_equal \
-          (['que_locker_1'] * 6),
+          (['que_listener_1'] * 6),
           channels
 
         assert_nil conn.wait_for_notify(0.01)

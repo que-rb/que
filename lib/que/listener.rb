@@ -8,7 +8,7 @@ module Que
 
     def listen
       @pool.checkout do |conn|
-        @pool.execute "LISTEN que_locker_#{conn.backend_pid}"
+        @pool.execute "LISTEN que_listener_#{conn.backend_pid}"
       end
     end
 

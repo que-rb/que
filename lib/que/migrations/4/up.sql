@@ -116,7 +116,7 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
           NEW.id       AS id
       ) t;
 
-      PERFORM pg_notify('que_locker_' || locker_pid::text, sort_key::text);
+      PERFORM pg_notify('que_listener_' || locker_pid::text, sort_key::text);
     END IF;
 
     RETURN null;
