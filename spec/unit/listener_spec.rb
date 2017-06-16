@@ -84,4 +84,10 @@ describe Que::Listener do
       assert_nil connection.notifies
     end
   end
+
+  describe "message processing" do
+    describe "for new_job messages" do
+      it "should convert run_at values to Times"
+    end
+  end
 end
