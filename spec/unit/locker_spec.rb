@@ -457,7 +457,7 @@ describe Que::Locker do
       payload =
         jobs.
           where(id: id).
-          select(:priority, :run_at, :id).
+          select(Sequel.as('new_job', :message_type), :priority, :run_at, :id).
           from_self(alias: :t).
           get{row_to_json(:t)}
 
@@ -477,7 +477,10 @@ describe Que::Locker do
       assert_equal 1, messages.length
       message = messages.first
       assert_equal 'job_notified', message['event']
-      assert_equal payload, JSON.dump(message['job'])
+
+      assert_equal \
+        JSON.load(payload).tap{|h| h.delete('message_type')},
+        message['job']
 
       $q2.push nil
       locker.stop!

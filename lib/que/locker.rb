@@ -261,6 +261,9 @@ module Que
           sort_key =
             Que.deserialize_json(payload)
 
+          message_type = sort_key.delete(:message_type)
+          return unless message_type == 'new_job'
+
           Que.log(
             level: :debug,
             event: :job_notified,
