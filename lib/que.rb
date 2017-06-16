@@ -13,6 +13,7 @@ module Que
   require_relative 'que/connection_pool'
   require_relative 'que/job'
   require_relative 'que/job_queue'
+  require_relative 'que/listener'
   require_relative 'que/locker'
   require_relative 'que/migrations'
   require_relative 'que/poller'

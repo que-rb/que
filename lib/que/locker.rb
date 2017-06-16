@@ -43,7 +43,7 @@ module Que
         end
 
       @queue_names        = queues
-      @listen             = listen
+      @listener           = Listener.new(pool: @pool) if listen
       @wait_period        = wait_period
       @minimum_queue_size = minimum_queue_size
 
@@ -102,7 +102,7 @@ module Que
         Que.log(
           level:              :debug,
           event:              :locker_start,
-          listen:             @listen,
+          listen:             !!@listener,
           queues:             @queue_names,
           backend_pid:        conn.backend_pid,
           wait_period:        @wait_period,
@@ -112,7 +112,7 @@ module Que
         )
 
         begin
-          execute "LISTEN que_locker_#{conn.backend_pid}" if @listen
+          execute "LISTEN que_locker_#{conn.backend_pid}" if @listener
 
           # A previous locker that didn't exit cleanly may have left behind
           # a bad locker record, so clean up before registering.
@@ -122,7 +122,7 @@ module Que
             "{#{@workers.map(&:priority).map{|p| p || 'NULL'}.join(',')}}",
             Process.pid,
             CURRENT_HOSTNAME, 
-            @listen,
+            !!@listener,
             "{\"#{@queue_names.join('","')}\"}",
           ]
 
@@ -150,11 +150,7 @@ module Que
         ensure
           execute :clean_lockers
 
-          if @listen
-            # Unlisten and drain notifications before releasing the connection.
-            execute "UNLISTEN *"
-            {} while conn.notifies
-          end
+          @listener.unlisten if @listener
         end
       end
     end
@@ -183,7 +179,7 @@ module Que
     end
 
     def wait
-      if @listen
+      if @listener
         # TODO: In case we receive notifications for many jobs at once, check
         # and lock and push them all in bulk.
         if sort_key = wait_for_job
