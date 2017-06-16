@@ -11,6 +11,7 @@ require 'pg_examiner'
 
 require 'minitest/autorun'
 require 'minitest/pride'
+require 'minitest/hooks'
 
 begin
   # This won't be available when running the oldest Gemfile, so be safe in
@@ -99,6 +100,8 @@ end
 SPEC_LOGGER = Logger.new(STDOUT)
 
 class QueSpec < Minitest::Spec
+  include Minitest::Hooks
+
   register_spec_type(//, self)
 
   let :locker_settings do

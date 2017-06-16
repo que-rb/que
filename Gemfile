@@ -16,9 +16,12 @@ group :development, :test do
 end
 
 group :test do
-  gem 'minitest', '~> 5.10.1'
+  gem 'minitest',         '~> 5.10.1'
   gem 'minitest-profile', '0.0.2'
+  gem 'minitest-hooks',   '1.4.0'
+
   gem 'm'
+
   gem 'pry'
   gem 'pg_examiner'
 end
