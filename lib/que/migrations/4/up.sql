@@ -3,6 +3,8 @@ ALTER TABLE que_jobs SET (fillfactor = 90);
 ALTER TABLE que_jobs
   RENAME COLUMN job_id TO id;
 
+ALTER SEQUENCE que_jobs_job_id_seq RENAME TO que_jobs_id_seq;
+
 ALTER TABLE que_jobs
   RENAME COLUMN last_error TO last_error_message;
 

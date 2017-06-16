@@ -9,6 +9,8 @@ DROP INDEX que_jobs_poll_idx;
 ALTER TABLE que_jobs
   RENAME COLUMN id TO job_id;
 
+ALTER SEQUENCE que_jobs_id_seq RENAME TO que_jobs_job_id_seq;
+
 ALTER TABLE que_jobs
   RENAME COLUMN last_error_message TO last_error;
 
