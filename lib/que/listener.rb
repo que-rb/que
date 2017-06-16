@@ -6,8 +6,14 @@ module Que
       @pool = pool
     end
 
-    def wait_for_jobs(timeout)
-      # TODO: Return jobs in bulk.
+    def listen
+      @pool.checkout do |conn|
+        @pool.execute "LISTEN que_locker_#{conn.backend_pid}"
+      end
+    end
+
+    def wait_for_messages(timeout)
+      # TODO: Return messages in bulk.
 
       @pool.checkout do |conn|
         conn.wait_for_notify(timeout) do |_, _, payload|

@@ -112,7 +112,7 @@ module Que
         )
 
         begin
-          execute "LISTEN que_locker_#{conn.backend_pid}" if @listener
+          @listener.listen if @listener
 
           # A previous locker that didn't exit cleanly may have left behind
           # a bad locker record, so clean up before registering.
@@ -180,7 +180,7 @@ module Que
 
     def wait
       if @listener
-        if sort_keys = @listener.wait_for_jobs(@wait_period)
+        if sort_keys = @listener.wait_for_messages(@wait_period)
           # TODO: Optimize checking, locking and pushing these jobs.
           sort_keys.each do |sort_key|
             if @job_queue.accept?(sort_key) && lock_job?(sort_key.fetch(:id))
