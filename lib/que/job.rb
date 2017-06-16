@@ -36,17 +36,9 @@ module Que
     end
 
     def handle_error(error)
-      error_count    = que_attrs[:error_count] += 1
-      retry_interval = self.class.retry_interval || Job.retry_interval
-
-      wait =
-        if retry_interval.respond_to?(:call)
-          retry_interval.call(error_count)
-        else
-          retry_interval
-        end
-
-      retry_in(wait)
+      error_count = que_attrs[:error_count] += 1
+      delay       = self.class.resolve_setting(:retry_interval, error_count)
+      retry_in(delay)
     end
 
     def retry_in(period)
@@ -75,7 +67,6 @@ module Que
 
     class << self
       attr_accessor :run_synchronously
-      attr_reader :retry_interval
 
       def enqueue(
         *args,
@@ -118,15 +109,15 @@ module Que
         new(data: {args: args}).tap { |job| job.run(*args) }
       end
 
-      def resolve_setting(setting)
+      def resolve_setting(setting, *args)
         iv_name = :"@#{setting}"
 
         if instance_variable_defined?(iv_name)
           value = instance_variable_get(iv_name)
-          value.respond_to?(:call) ? value.call : value
+          value.respond_to?(:call) ? value.call(*args) : value
         else
           c = superclass
-          c.resolve_setting(setting) if c.respond_to?(:resolve_setting)
+          c.resolve_setting(setting, *args) if c.respond_to?(:resolve_setting)
         end
       end
     end

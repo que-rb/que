@@ -87,19 +87,21 @@ module Que
           )
 
           begin
-            # TODO: Use resolve_setting here.
-            interval =
-              klass &&
-              klass.respond_to?(:retry_interval) &&
-              klass.retry_interval ||
-              Job.retry_interval
+            # If the Job class couldn't be determined, use the default retry
+            # backoff logic in Que::Job.
+            job_class =
+              if klass && klass <= Job
+                klass
+              else
+                Job
+              end
 
             delay =
-              if interval.respond_to?(:call)
-                interval.call(job.fetch(:error_count) + 1)
-              else
-                interval
-              end
+              job_class.
+              resolve_setting(
+                :retry_interval,
+                job.fetch(:error_count) + 1,
+              )
 
             Que.execute :set_error, [
               delay,
