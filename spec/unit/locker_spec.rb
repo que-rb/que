@@ -487,11 +487,8 @@ describe Que::Locker do
     end
 
     it "shouldn't crash if it receives a poorly-formatted NOTIFY" do
-      BlockJob.enqueue
       locker
-
-      # Wait until we're sure the locker is listening.
-      $q1.pop; $q2.push nil
+      sleep_until { DB[:que_lockers].count == 1 }
 
       pid = DB[:que_lockers].get(:pid)
       refute_nil pid
