@@ -180,11 +180,12 @@ module Que
 
     def wait
       if @listener
-        # TODO: In case we receive notifications for many jobs at once, check
-        # and lock and push them all in bulk.
-        if sort_key = @listener.wait_for_job(@wait_period)
-          if @job_queue.accept?(sort_key) && lock_job?(sort_key.fetch(:id))
-            push_jobs([sort_key])
+        if sort_keys = @listener.wait_for_jobs(@wait_period)
+          # TODO: Optimize checking, locking and pushing these jobs.
+          sort_keys.each do |sort_key|
+            if @job_queue.accept?(sort_key) && lock_job?(sort_key.fetch(:id))
+              push_jobs([sort_key])
+            end
           end
         end
       else

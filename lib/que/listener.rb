@@ -6,7 +6,9 @@ module Que
       @pool = pool
     end
 
-    def wait_for_job(timeout)
+    def wait_for_jobs(timeout)
+      # TODO: Return jobs in bulk.
+
       @pool.checkout do |conn|
         conn.wait_for_notify(timeout) do |_, _, payload|
           message =
@@ -27,7 +29,7 @@ module Que
 
           message[:run_at] = Time.parse(message.fetch(:run_at))
 
-          return message
+          return [message]
         end
       end
     end
