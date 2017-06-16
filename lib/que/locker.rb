@@ -179,18 +179,30 @@ module Que
     end
 
     def wait
-      if @listener
-        messages = @listener.wait_for_messages(@wait_period)
-        if messages && sort_keys = messages[:new_job]
+      sleep(@wait_period) && return if @listener.nil?
+
+      messages_by_type = @listener.wait_for_messages(@wait_period)
+
+      messages_by_type.each do |message_type, messages|
+        case message_type
+        when :new_job
           # TODO: Optimize checking, locking and pushing these jobs.
-          sort_keys.each do |sort_key|
-            if @job_queue.accept?(sort_key) && lock_job?(sort_key.fetch(:id))
-              push_jobs([sort_key])
+          messages.each do |message|
+            Que.log(
+              level: :debug,
+              event: :job_notified,
+              job:   message,
+            )
+
+            message[:run_at] = Time.parse(message.fetch(:run_at))
+
+            if @job_queue.accept?(message) && lock_job?(message.fetch(:id))
+              push_jobs([message])
             end
           end
+        else
+          # TODO: Unexpected message_type - log something? Ignore it?
         end
-      else
-        sleep(@wait_period)
       end
     end
 

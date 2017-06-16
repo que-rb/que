@@ -39,19 +39,7 @@ module Que
               message_type = message && message.delete(:message_type)
               next unless message_type.is_a?(String)
 
-              messages = output[message_type.to_sym] ||= []
-
-              if message_type == 'new_job'
-                Que.log(
-                  level: :debug,
-                  event: :job_notified,
-                  job:   message,
-                )
-
-                message[:run_at] = Time.parse(message.fetch(:run_at))
-              end
-
-              messages << message
+              (output[message_type.to_sym] ||= []) << message
             end
 
           break unless notification_received
