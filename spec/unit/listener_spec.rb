@@ -33,14 +33,33 @@ describe Que::Listener do
     DB.notify("que_listener_#{pid}", payload: payload)
   end
 
-  it "should return messages to the locker in bulk by type"
+  describe "wait_for_messages" do
+    it "should return empty if there were no messages by the timeout" do
+      assert_equal({}, listener.wait_for_messages(0.0001))
+    end
 
-  it "should pre-process new_job messages"
+    it "should return messages to the locker in bulk by type" do
+      5.times do |i|
+        notify(message_type: 'test_type_1', value: i)
+        notify(message_type: 'test_type_2', value: i)
+      end
 
-  it "should be resilient to messages that aren't valid JSON" do
-    notify 'blah'
+      assert_equal(
+        {
+          test_type_1: 5.times.map{|i| {value: i}},
+          test_type_2: 5.times.map{|i| {value: i}},
+        },
+        listener.wait_for_messages(0.0001),
+      )
+    end
 
-    assert_nil listener.wait_for_messages(0.0001)
+    it "should pre-process new_job messages"
+
+    it "should be resilient to messages that aren't valid JSON" do
+      notify 'blah'
+
+      assert_equal({}, listener.wait_for_messages(0.0001))
+    end
   end
 
   describe "unlisten" do

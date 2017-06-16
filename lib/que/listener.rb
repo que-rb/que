@@ -13,31 +13,52 @@ module Que
     end
 
     def wait_for_messages(timeout)
-      # TODO: Return messages in bulk.
+      # Make sure we never pass nil to this method, so we don't hang the thread.
+      Que.assert(Numeric, timeout)
+
+      output = {}
 
       @pool.checkout do |conn|
-        conn.wait_for_notify(timeout) do |_, _, payload|
-          message =
-            begin
-              Que.deserialize_json(payload)
-            rescue JSON::ParserError
-              nil
+        loop do
+          notification_received =
+            conn.wait_for_notify(timeout) do |_, _, payload|
+              # We've received at least one notification, so zero out the
+              # timeout before we loop again to retrieve the next message. This
+              # ensures that we don't wait an additional `timeout` seconds after
+              # processing the final message before this method returns.
+              timeout = 0
+
+              # Be very defensive about the message we receive - it may not be
+              # valid JSON, and may not have a message_type key.
+              message =
+                begin
+                  Que.deserialize_json(payload)
+                rescue JSON::ParserError
+                end
+
+              message_type = message && message.delete(:message_type)
+              next unless message_type.is_a?(String)
+
+              messages = output[message_type.to_sym] ||= []
+
+              if message_type == 'new_job'
+                Que.log(
+                  level: :debug,
+                  event: :job_notified,
+                  job:   message,
+                )
+
+                message[:run_at] = Time.parse(message.fetch(:run_at))
+              end
+
+              messages << message
             end
 
-          message_type = message && message.delete(:message_type)
-          return unless message_type == 'new_job'
-
-          Que.log(
-            level: :debug,
-            event: :job_notified,
-            job:   message,
-          )
-
-          message[:run_at] = Time.parse(message.fetch(:run_at))
-
-          return {new_job: [message]}
+          break unless notification_received
         end
       end
+
+      output
     end
 
     def unlisten
