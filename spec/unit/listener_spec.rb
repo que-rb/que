@@ -53,8 +53,6 @@ describe Que::Listener do
       )
     end
 
-    it "should pre-process new_job messages"
-
     it "should be resilient to messages that aren't valid JSON" do
       notify 'blah'
 
