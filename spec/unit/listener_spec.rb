@@ -30,7 +30,7 @@ describe Que::Listener do
 
   def notify(payload)
     payload = JSON.dump(payload) unless payload.is_a?(String)
-    DB.notify "que_listener_#{pid}", payload: payload
+    DB.notify("que_listener_#{pid}", payload: payload)
   end
 
   it "should return messages to the locker in bulk by type"
