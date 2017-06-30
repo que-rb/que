@@ -7,7 +7,20 @@ describe Que::ConnectionPool do
     QUE_POOL
   end
 
+  describe ".checkout" do
+    it "should yield a connection"
+
+    # This will matter when we iterate over these specs for different adapters.
+    it "should be reentrant"
+  end
+
+  describe ".in_transaction?" do
+    it "should know when it is in a transaction"
+  end
+
   describe ".execute" do
+    it "should cast JSON params correctly"
+
     it "should cast timestamp params correctly" do
       [
         Time.now.localtime,
@@ -51,5 +64,7 @@ describe Que::ConnectionPool do
         result.first,
       )
     end
+
+    it "should reuse the same connection when inside a checkout block"
   end
 end
