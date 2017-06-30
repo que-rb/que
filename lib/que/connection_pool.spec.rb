@@ -8,6 +8,21 @@ describe Que::ConnectionPool do
   end
 
   describe ".execute" do
+    it "should cast timestamp params correctly" do
+      [
+        Time.now.localtime,
+        Time.now.utc,
+      ].each do |t|
+        # Round to the nearest microsecond, because Postgres doesn't get any
+        # more accurate than that anyway. We could use Time.at(t.to_i, t.usec),
+        # but that would lose timezone data :/
+
+        time = Time.iso8601(t.iso8601(6))
+        r = pool.execute("SELECT $1::timestamptz AS time", [time])
+        assert_equal({time: time}, r.first)
+      end
+    end
+
     it "should typecast the results of the SQL statement" do
       result =
         pool.execute <<-SQL
