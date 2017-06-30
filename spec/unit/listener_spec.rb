@@ -105,7 +105,53 @@ describe Que::Listener do
     end
 
     describe "when the message is malformed" do
-      it "should be resistant to failure" do
+      it "should ignore it" do
+        notify(
+          message_type: 'new_job',
+          priority: 90,
+          run_at: "2017-06-30T18:33:33.402669Z",
+          id: 44,
+        )
+
+        notify(
+          message_type: 'new_job',
+          priority: '90',
+          run_at: "2017-06-30T18:33:34.419874Z",
+          id: 45,
+        )
+
+        notify(
+          message_type: 'new_job',
+          priority: 90,
+          run_at: "2017-06-30T18:33:35.425307Z",
+          id: 46,
+        )
+
+        e = nil
+        Que.error_notifier = proc { |error| e = error }
+
+        assert_equal(
+          {
+            new_job: [
+              {
+                priority: 90,
+                run_at: Time.parse("2017-06-30T18:33:33.402669Z"),
+                id: 44,
+              },
+              {
+                priority: 90,
+                run_at: Time.parse("2017-06-30T18:33:35.425307Z"),
+                id: 46,
+              },
+            ]
+          },
+          listener.wait_for_messages(0.00001),
+        )
+
+        assert_nil e
+      end
+
+      it "should report errors as necessary" do
         notify(
           message_type: 'new_job',
           priority: 90,

@@ -6,7 +6,15 @@ module Que
       new_job: -> (message) {
         message[:run_at] = Time.parse(message.fetch(:run_at))
       },
-    }
+    }.freeze
+
+    MESSAGE_FORMATS = {
+      new_job: {
+        id:       Integer,
+        run_at:   Time,
+        priority: Integer,
+      },
+    }.each_value(&:freeze).freeze
 
     def initialize(pool:)
       @pool = pool
@@ -53,18 +61,23 @@ module Que
       end
 
       output.each do |type, messages|
-        if callback = MESSAGE_CALLBACKS[type]
-          messages.select! do |message|
-            begin
-              callback.call(message)
+        callback = MESSAGE_CALLBACKS[type]
+        format   = MESSAGE_FORMATS[type]
+        next if callback.nil? && format.nil?
+
+        messages.select! do |message|
+          begin
+            callback.call(message) if callback
+            if format
+              message_matches_format?(message, format)
+            else
               true
-            rescue => e
-              # TODO: Report error.
-              if notifier = Que.error_notifier
-                notifier.call(e)
-              end
-              false
             end
+          rescue => e
+            if notifier = Que.error_notifier
+              notifier.call(e)
+            end
+            false
           end
         end
       end
@@ -77,6 +90,15 @@ module Que
         # Unlisten and drain notifications before releasing the connection.
         @pool.execute "UNLISTEN *"
         {} while conn.notifies
+      end
+    end
+
+    def message_matches_format?(message, format)
+      return false unless message.length == format.length
+
+      format.all? do |key, type|
+        value = message.fetch(key) { return false }
+        Que.assert?(type, value)
       end
     end
   end
