@@ -2,6 +2,12 @@
 
 module Que
   class Listener
+    MESSAGE_TYPE_CALLBACKS = {
+      new_job: -> (message) {
+        message[:run_at] = Time.parse(message.fetch(:run_at))
+      },
+    }
+
     def initialize(pool:)
       @pool = pool
     end
@@ -43,6 +49,12 @@ module Que
             end
 
           break unless notification_received
+        end
+      end
+
+      output.each do |type, messages|
+        if callback = MESSAGE_TYPE_CALLBACKS[type]
+          messages.each { |m| callback.call(m) }
         end
       end
 

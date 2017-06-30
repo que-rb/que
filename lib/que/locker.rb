@@ -187,10 +187,6 @@ module Que
       @listener.wait_for_messages(@wait_period).each do |type, messages|
         case type
         when :new_job
-          messages.each do |message|
-            message[:run_at] = Time.parse(message.fetch(:run_at))
-          end
-
           # TODO: Check for acceptance in bulk, attempt locking in bulk, push
           # jobs in bulk.
           messages.each do |message|

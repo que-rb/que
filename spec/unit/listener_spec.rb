@@ -49,7 +49,7 @@ describe Que::Listener do
           test_type_1: 5.times.map{|i| {value: i}},
           test_type_2: 5.times.map{|i| {value: i}},
         },
-        listener.wait_for_messages(0.0001),
+        listener.wait_for_messages(5),
       )
     end
 
@@ -87,7 +87,25 @@ describe Que::Listener do
 
   describe "message processing" do
     describe "for new_job messages" do
-      it "should convert run_at values to Times"
+      it "should convert run_at values to Times" do
+        timestamp = Time.now.iso8601(6)
+
+        notify(
+          message_type: 'new_job',
+          priority: 90,
+          run_at: timestamp,
+          id: 45,
+        )
+
+        assert_equal(
+          {new_job: [{priority: 90, run_at: Time.parse(timestamp), id: 45}]},
+          listener.wait_for_messages(5),
+        )
+      end
+    end
+
+    describe "when the message is malformed" do
+      it "should be resistant to failure"
     end
   end
 end
