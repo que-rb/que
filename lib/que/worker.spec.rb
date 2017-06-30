@@ -288,7 +288,7 @@ describe Que::Worker do
           assert_equal 1, job[:error_count]
           assert_match /\ABlah!/, job[:last_error_message]
           assert_match(
-            /worker_spec.rb/,
+            /worker\.spec\.rb/,
             job[:last_error_backtrace].split("\n").first,
           )
           assert_in_delta job[:run_at], Time.now + 42, 3
@@ -385,7 +385,7 @@ describe Que::Worker do
           assert_equal 1, job[:error_count]
           assert_match /\ABlah!/, job[:last_error_message]
           assert_match(
-            /worker_spec.rb/,
+            /worker\.spec\.rb/,
             job[:last_error_backtrace].split("\n").first,
           )
           assert_in_delta job[:run_at], Time.now + 4, 3
