@@ -7,20 +7,15 @@ module Que
   class AssertionFailed < Error; end
 
   class << self
-    # Want to support:
-    #   assert(x)                       # Truthiness.
-    #   assert(thing, other)            # Trip-equals.
-    #   assert([thing1, thing2], other) # Multiple Trip-equals.
-
     def assert(*args, &block)
-      comparison, truth, pass = check_assertion_args(*args)
-      return truth if pass
+      comparison, object, pass = _check_assertion_args(*args)
+      return object if pass
 
       message =
         if block_given?
           yield.to_s
         elsif comparison
-          "Expected #{comparison.inspect}, got #{truth.inspect}!"
+          "Expected #{comparison.inspect}, got #{object.inspect}!"
         else
           "Assertion failed!"
         end
@@ -30,31 +25,35 @@ module Que
     end
 
     def assert?(*args)
-      comparison, truth, pass = check_assertion_args(*args)
+      _, _, pass = _check_assertion_args(*args)
       !!pass
     end
 
     private
 
-    def check_assertion_args(first, second = (second_omitted = true; nil))
+    # Want to support:
+    #   assert(x)                       # Truthiness.
+    #   assert(thing, other)            # Trip-equals.
+    #   assert([thing1, thing2], other) # Multiple Trip-equals.
+    def _check_assertion_args(first, second = (second_omitted = true; nil))
       if second_omitted
         comparison = nil
-        truth      = first
+        object     = first
       else
         comparison = first
-        truth      = second
+        object     = second
       end
 
       pass =
         if second_omitted
-          truth
+          object
         elsif comparison.is_a?(Array)
-          comparison.any? { |k| k === truth }
+          comparison.any? { |k| k === object }
         else
-          comparison === truth
+          comparison === object
         end
 
-      [comparison, truth, pass]
+      [comparison, object, pass]
     end
   end
 end
