@@ -69,26 +69,25 @@ module Que
       end
 
       output.each do |type, messages|
-        callback = MESSAGE_CALLBACKS[type]
-        format   = MESSAGE_FORMATS[type]
-        next if callback.nil? && format.nil?
-
-        messages.select! do |message|
-          begin
-            callback.call(message) if callback
-
-            if format
-              message_matches_format?(message, format)
-            else
+        if callback = MESSAGE_CALLBACKS[type]
+          messages.select! do |message|
+            begin
+              callback.call(message)
               true
+            rescue => e
+              if notifier = Que.error_notifier
+                notifier.call(e)
+              end
+              false
             end
-          rescue => e
-            if notifier = Que.error_notifier
-              notifier.call(e)
-            end
-            false
           end
         end
+
+        if format = MESSAGE_FORMATS[type]
+          messages.select!{|m| message_matches_format?(m, format)}
+        end
+
+        messages.each(&:freeze)
       end
 
       output

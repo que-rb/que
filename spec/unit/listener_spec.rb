@@ -34,6 +34,14 @@ describe Que::Listener do
       assert_equal({}, listener.wait_for_messages(0.0001))
     end
 
+    it "should return frozen messages" do
+      notify(message_type: 'test_type_1', arg: 'blah')
+
+      result = listener.wait_for_messages(0.0001)[:test_type_1].first
+      assert_equal({arg: 'blah'}, result)
+      assert result.frozen?
+    end
+
     it "should return messages to the locker in bulk by type" do
       5.times do |i|
         notify(message_type: 'test_type_1', value: i)
