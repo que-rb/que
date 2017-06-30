@@ -3,81 +3,72 @@
 require 'spec_helper'
 
 describe Que do
-  describe ".assert" do
-    it "should handle failures without a block" do
-      error =
-        assert_raises Que::AssertionFailed do
-          Que.assert(false)
-        end
+  def assert_assertion_passes(*args, &block)
+    assert_equal true, Que.assert?(*args, &block)
 
-      assert_equal "Assertion failed!", error.message
-      assert_match /spec\/unit\/assertions_spec.rb:10/, error.backtrace.first
+    v = args.last
+    if v.nil?
+      assert_nil Que.assert(*args, &block)
+    else
+      assert_equal args.last, Que.assert(*args, &block)
     end
+  end
 
-    it "should handle failures with a block" do
-      error =
-        assert_raises Que::AssertionFailed do
-          Que.assert(false) { "custom message!" }
-        end
+  def assert_assertion_fails(*args, &block)
+    assert_equal false, Que.assert?(*args, &block)
 
-      assert_equal "custom message!", error.message
-      assert_match /spec\/unit\/assertions_spec.rb:20/, error.backtrace.first
+    assert_raises Que::AssertionFailed do
+      Que.assert(*args, &block)
     end
+  end
 
-    it "should return the argument if it is truthy" do
-      called = false
+  it "should handle failures without a block" do
+    error = assert_assertion_fails(false)
 
-      assert_equal 5, Que.assert(5)
-      assert_equal 5, Que.assert(5) { called = true; "Expected 5" }
+    assert_equal "Assertion failed!", error.message
+    assert_match /spec\/unit\/assertions_spec.rb:21/, error.backtrace.first
+  end
 
-      assert_equal 'F', Que.assert('F')
-      assert_equal 'F', Que.assert('F') { called = true; "Expected F" }
+  it "should handle failures with a block" do
+    error = assert_assertion_fails(false) { "custom message!" }
 
-      assert_equal false, called
-    end
+    assert_equal "custom message!", error.message
+    assert_match /spec\/unit\/assertions_spec.rb:21/, error.backtrace.first
+  end
 
-    it "should return the second arg if first arg === second arg" do
-      called = false
+  it "should return the argument if it is truthy" do
+    called = false
 
-      assert_equal 5, Que.assert(Integer, 5)
-      assert_equal 5, Que.assert(Integer, 5) { called = true; "Custom!" }
+    assert_assertion_passes(5)   { called = true; "Expected 5" }
+    assert_assertion_passes('F') { called = true; "Expected F" }
 
-      assert_equal 'F', Que.assert(String, 'F')
-      assert_equal 'F', Que.assert(String, 'F') { called = true; "Custom!" }
+    assert_equal false, called
+  end
 
-      assert_nil Que.assert(NilClass, nil)
-      assert_nil Que.assert(NilClass, nil) { called = true; "Custom!" }
+  it "should return the second arg if first arg === second arg" do
+    called = false
 
-      assert_equal false, called
-    end
+    assert_assertion_passes(Integer, 5)    { called = true; "Custom!" }
+    assert_assertion_passes(String, 'F')   { called = true; "Custom!" }
+    assert_assertion_passes(NilClass, nil) { called = true; "Custom!" }
 
-    it "should support an array as a first argument" do
-      assert_equal true,     Que.assert([TrueClass, FalseClass], true)
-      assert_equal false,    Que.assert([TrueClass, FalseClass], false)
-      assert_equal 'ferret', Que.assert([/erre/], 'ferret')
+    assert_equal false, called
+  end
 
-      error =
-        assert_raises Que::AssertionFailed do
-          Que.assert([/ERRE/, /ErRe/], 'ferret')
-        end
+  it "should support an array as a first argument" do
+    assert_assertion_passes([TrueClass, FalseClass], true)
+    assert_assertion_passes([TrueClass, FalseClass], false)
+    assert_assertion_passes([/abc/, /erre/], 'ferret')
 
-      assert_equal "Expected [/ERRE/, /ErRe/], got \"ferret\"!", error.message
-    end
+    error = assert_assertion_fails([/ERRE/, /ErRe/], 'ferret')
+    assert_equal "Expected [/ERRE/, /ErRe/], got \"ferret\"!", error.message
+  end
 
-    it "should raise an error unless first arg === second arg" do
-      error =
-        assert_raises Que::AssertionFailed do
-          Que.assert(Integer, 'string')
-        end
+  it "should raise an error unless first arg === second arg" do
+    error = assert_assertion_fails(Integer, 'string')
+    assert_equal "Expected Integer, got \"string\"!", error.message
 
-      assert_equal "Expected Integer, got \"string\"!", error.message
-
-      error =
-        assert_raises Que::AssertionFailed do
-          Que.assert(String, 5)
-        end
-
-      assert_equal "Expected String, got 5!", error.message
-    end
+    error = assert_assertion_fails(String, 5)
+    assert_equal "Expected String, got 5!", error.message
   end
 end
