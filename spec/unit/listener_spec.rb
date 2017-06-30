@@ -162,21 +162,23 @@ describe Que::Listener do
       end
 
       def assert_message_ignored
-        all_messages.each { |m|
-          run_at =
-            if m[:run_at].is_a?(Time)
-              m[:run_at].iso8601(6)
-            else
-              m[:run_at]
-            end
+        DB.transaction do
+          all_messages.each { |m|
+            run_at =
+              if m[:run_at].is_a?(Time)
+                m[:run_at].iso8601(6)
+              else
+                m[:run_at]
+              end
 
-          notify(
-            m.merge(
-              message_type: 'new_job',
-              run_at: run_at,
+            notify(
+              m.merge(
+                message_type: 'new_job',
+                run_at: run_at,
+              )
             )
-          )
-        }
+          }
+        end
 
         assert_equal(
           {
