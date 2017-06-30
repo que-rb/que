@@ -54,7 +54,18 @@ module Que
 
       output.each do |type, messages|
         if callback = MESSAGE_TYPE_CALLBACKS[type]
-          messages.each { |m| callback.call(m) }
+          messages.select! do |message|
+            begin
+              callback.call(message)
+              true
+            rescue => e
+              # TODO: Report error.
+              if notifier = Que.error_notifier
+                notifier.call(e)
+              end
+              false
+            end
+          end
         end
       end
 
