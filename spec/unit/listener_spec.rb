@@ -31,13 +31,13 @@ describe Que::Listener do
 
   describe "wait_for_messages" do
     it "should return empty if there were no messages before the timeout" do
-      assert_equal({}, listener.wait_for_messages(0.0001))
+      assert_equal({}, listener.wait_for_messages(0.001))
     end
 
     it "should return frozen messages" do
       notify(message_type: 'test_type_1', arg: 'blah')
 
-      result = listener.wait_for_messages(0.0001)[:test_type_1].first
+      result = listener.wait_for_messages(10)[:test_type_1].first
       assert_equal({arg: 'blah'}, result)
       assert result.frozen?
     end
@@ -53,7 +53,7 @@ describe Que::Listener do
           test_type_1: 5.times.map{|i| {value: i}},
           test_type_2: 5.times.map{|i| {value: i}},
         },
-        listener.wait_for_messages(5),
+        listener.wait_for_messages(10),
       )
     end
 
@@ -68,14 +68,14 @@ describe Que::Listener do
           test_type_1: (1..10).map{|i| {value: i}},
           test_type_2: (1..10).map{|i| {value: i}},
         },
-        listener.wait_for_messages(5),
+        listener.wait_for_messages(10),
       )
     end
 
     describe "when the messages aren't valid JSON of the format we expect" do
       def assert_ignored_notification(payload)
         notify payload
-        assert_equal({}, listener.wait_for_messages(0.0001))
+        assert_equal({}, listener.wait_for_messages(10))
       end
 
       it "should be resilient to messages that aren't valid JSON" do
@@ -131,7 +131,7 @@ describe Que::Listener do
 
         assert_equal(
           {new_job: [{priority: 90, run_at: Time.parse(timestamp), id: 45}]},
-          listener.wait_for_messages(5),
+          listener.wait_for_messages(10),
         )
       end
     end
@@ -187,7 +187,7 @@ describe Que::Listener do
               all_messages[2],
             ]
           },
-          listener.wait_for_messages(1),
+          listener.wait_for_messages(10),
         )
       end
 
