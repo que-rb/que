@@ -22,6 +22,8 @@ module Que
 
     def push(*sort_keys)
       sync do
+        # TODO: There's probably a number of sort_keys at which the second
+        # method always makes more sense.
         if USE_BINARY_SEARCH
           sort_keys.each do |key|
             i = @array.bsearch_index { |k| compare_keys(key, k) }
