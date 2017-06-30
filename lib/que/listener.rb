@@ -101,6 +101,8 @@ module Que
       end
     end
 
+    private
+
     def message_matches_format?(message, format)
       return false unless message.length == format.length
 
