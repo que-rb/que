@@ -4,7 +4,6 @@
 # quality.
 
 module Que
-  class Error < StandardError; end
   class AssertionFailed < Error; end
 
   class << self
