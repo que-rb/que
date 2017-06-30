@@ -44,16 +44,24 @@ module Que
 
               # Be very defensive about the message we receive - it may not be
               # valid JSON, and may not have a message_type key.
-              message =
+              messages =
                 begin
                   Que.deserialize_json(payload)
                 rescue JSON::ParserError
                 end
 
-              message_type = message && message.delete(:message_type)
-              next unless message_type.is_a?(String)
+              next unless messages
 
-              (output[message_type.to_sym] ||= []) << message
+              unless messages.is_a?(Array)
+                messages = [messages]
+              end
+
+              messages.each do |message|
+                message_type = message && message.delete(:message_type)
+                next unless message_type.is_a?(String)
+
+                (output[message_type.to_sym] ||= []) << message
+              end
             end
 
           break unless notification_received

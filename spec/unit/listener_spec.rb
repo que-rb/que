@@ -30,7 +30,7 @@ describe Que::Listener do
   end
 
   describe "wait_for_messages" do
-    it "should return empty if there were no messages by the timeout" do
+    it "should return empty if there were no messages before the timeout" do
       assert_equal({}, listener.wait_for_messages(0.0001))
     end
 
@@ -49,10 +49,38 @@ describe Que::Listener do
       )
     end
 
-    it "should be resilient to messages that aren't valid JSON" do
-      notify 'blah'
+    it "should accept arrays of messages" do
+      [0, 5].each do |i|
+        notify((1..5).map{|j| {message_type: 'test_type_1', value: i + j}})
+        notify((1..5).map{|j| {message_type: 'test_type_2', value: i + j}})
+      end
 
-      assert_equal({}, listener.wait_for_messages(0.0001))
+      assert_equal(
+        {
+          test_type_1: (1..10).map{|i| {value: i}},
+          test_type_2: (1..10).map{|i| {value: i}},
+        },
+        listener.wait_for_messages(5),
+      )
+    end
+
+    describe "when the messages aren't valid JSON of the format we expect" do
+      def assert_ignored_notification(payload)
+        notify payload
+        assert_equal({}, listener.wait_for_messages(0.0001))
+      end
+
+      it "should be resilient to messages that aren't valid JSON" do
+        assert_ignored_notification "nil"
+        assert_ignored_notification 'blah'
+        assert_ignored_notification '{"blah:"}'
+      end
+
+      it "should be resilient to JSON messages with unexpected structures" do
+        assert_ignored_notification message_type: 6
+        assert_ignored_notification arg: 'blah'
+        assert_ignored_notification [nil]
+      end
     end
   end
 
