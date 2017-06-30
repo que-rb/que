@@ -179,12 +179,13 @@ module Que
     end
 
     def wait
-      sleep(@wait_period) && return if @listener.nil?
+      if @listener.nil?
+        sleep(@wait_period)
+        return
+      end
 
-      messages_by_type = @listener.wait_for_messages(@wait_period)
-
-      messages_by_type.each do |message_type, messages|
-        case message_type
+      @listener.wait_for_messages(@wait_period).each do |type, messages|
+        case type
         when :new_job
           messages.each do |message|
             message[:run_at] = Time.parse(message.fetch(:run_at))
@@ -198,7 +199,7 @@ module Que
             end
           end
         else
-          # TODO: Unexpected message_type - log something? Ignore it?
+          # TODO: Unexpected type - log something? Ignore it?
         end
       end
     end
