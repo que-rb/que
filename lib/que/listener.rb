@@ -68,6 +68,7 @@ module Que
         messages.select! do |message|
           begin
             callback.call(message) if callback
+
             if format
               message_matches_format?(message, format)
             else

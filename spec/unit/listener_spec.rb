@@ -11,10 +11,6 @@ describe Que::Listener do
     @connection
   end
 
-  let :pid do
-    connection.backend_pid
-  end
-
   around do |&block|
     QUE_POOL.checkout do |conn|
       begin
@@ -30,7 +26,7 @@ describe Que::Listener do
 
   def notify(payload)
     payload = JSON.dump(payload) unless payload.is_a?(String)
-    DB.notify("que_listener_#{pid}", payload: payload)
+    DB.notify("que_listener_#{connection.backend_pid}", payload: payload)
   end
 
   describe "wait_for_messages" do
@@ -105,94 +101,80 @@ describe Que::Listener do
     end
 
     describe "when the message is malformed" do
-      it "should ignore it" do
-        notify(
-          message_type: 'new_job',
+      let :message_to_malform do
+        {
           priority: 90,
-          run_at: "2017-06-30T18:33:33.402669Z",
-          id: 44,
-        )
-
-        notify(
-          message_type: 'new_job',
-          priority: '90',
-          run_at: "2017-06-30T18:33:34.419874Z",
+          run_at: Time.parse("2017-06-30T18:33:35.425307Z"),
           id: 45,
-        )
+        }
+      end
 
-        notify(
-          message_type: 'new_job',
-          priority: 90,
-          run_at: "2017-06-30T18:33:35.425307Z",
-          id: 46,
-        )
+      let :all_messages do
+        [
+          {
+            priority: 90,
+            run_at: Time.parse("2017-06-30T18:33:33.402669Z"),
+            id: 44,
+          },
+          message_to_malform,
+          {
+            priority: 90,
+            run_at: Time.parse("2017-06-30T18:33:35.425307Z"),
+            id: 46,
+          },
+        ]
+      end
 
-        e = nil
-        Que.error_notifier = proc { |error| e = error }
+      def assert_message_ignored
+        all_messages.each { |m|
+          run_at =
+            if m[:run_at].is_a?(Time)
+              m[:run_at].iso8601(6)
+            else
+              m[:run_at]
+            end
+
+          notify(
+            m.merge(
+              message_type: 'new_job',
+              run_at: run_at,
+            )
+          )
+        }
 
         assert_equal(
           {
             new_job: [
-              {
-                priority: 90,
-                run_at: Time.parse("2017-06-30T18:33:33.402669Z"),
-                id: 44,
-              },
-              {
-                priority: 90,
-                run_at: Time.parse("2017-06-30T18:33:35.425307Z"),
-                id: 46,
-              },
+              all_messages[0],
+              all_messages[2],
             ]
           },
-          listener.wait_for_messages(0.00001),
+          listener.wait_for_messages(1),
         )
+      end
 
-        assert_nil e
+      it "should ignore it if a field is the wrong type" do
+        message_to_malform[:id] = message_to_malform[:id].to_s
+        assert_message_ignored
+      end
+
+      it "should ignore it if a field is missing" do
+        message_to_malform.delete(:id)
+        assert_message_ignored
+      end
+
+      it "should ignore it if an extra field is present" do
+        message_to_malform[:extra] = 'blah'
+        assert_message_ignored
       end
 
       it "should report errors as necessary" do
-        notify(
-          message_type: 'new_job',
-          priority: 90,
-          run_at: "2017-06-30T18:33:33.402669Z",
-          id: 44,
-        )
-
-        notify(
-          message_type: 'new_job',
-          priority: 90,
-          run_at: "blah",
-          id: 45,
-        )
-
-        notify(
-          message_type: 'new_job',
-          priority: 90,
-          run_at: "2017-06-30T18:33:35.425307Z",
-          id: 46,
-        )
+        message_to_malform[:run_at] = 'blah'
 
         e = nil
         Que.error_notifier = proc { |error| e = error }
 
-        assert_equal(
-          {
-            new_job: [
-              {
-                priority: 90,
-                run_at: Time.parse("2017-06-30T18:33:33.402669Z"),
-                id: 44,
-              },
-              {
-                priority: 90,
-                run_at: Time.parse("2017-06-30T18:33:35.425307Z"),
-                id: 46,
-              },
-            ]
-          },
-          listener.wait_for_messages(0.00001),
-        )
+        assert_message_ignored
 
         assert_instance_of ArgumentError, e
       end
