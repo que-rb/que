@@ -2,7 +2,7 @@
 
 module Que
   class Listener
-    MESSAGE_TYPE_CALLBACKS = {
+    MESSAGE_CALLBACKS = {
       new_job: -> (message) {
         message[:run_at] = Time.parse(message.fetch(:run_at))
       },
@@ -53,7 +53,7 @@ module Que
       end
 
       output.each do |type, messages|
-        if callback = MESSAGE_TYPE_CALLBACKS[type]
+        if callback = MESSAGE_CALLBACKS[type]
           messages.select! do |message|
             begin
               callback.call(message)
