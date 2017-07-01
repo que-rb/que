@@ -43,9 +43,11 @@ describe Que::Listener do
     end
 
     it "should return messages to the locker in bulk by type" do
-      5.times do |i|
-        notify(message_type: 'test_type_1', value: i)
-        notify(message_type: 'test_type_2', value: i)
+      DB.transaction do
+        5.times do |i|
+          notify(message_type: 'test_type_1', value: i)
+          notify(message_type: 'test_type_2', value: i)
+        end
       end
 
       assert_equal(
@@ -58,9 +60,11 @@ describe Que::Listener do
     end
 
     it "should accept arrays of messages" do
-      [0, 5].each do |i|
-        notify((1..5).map{|j| {message_type: 'test_type_1', value: i + j}})
-        notify((1..5).map{|j| {message_type: 'test_type_2', value: i + j}})
+      DB.transaction do
+        [0, 5].each do |i|
+          notify((1..5).map{|j| {message_type: 'test_type_1', value: i + j}})
+          notify((1..5).map{|j| {message_type: 'test_type_2', value: i + j}})
+        end
       end
 
       assert_equal(
