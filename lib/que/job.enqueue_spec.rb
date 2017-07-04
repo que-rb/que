@@ -75,6 +75,23 @@ describe Que::Job, '.enqueue' do
     ]
   end
 
+  it "should be able to handle a namespaced job class" do
+    assert_enqueue \
+      -> { NamespacedJobNamespace::NamespacedJob.enqueue 1 },
+      expected_args: [1],
+      expected_job_class: NamespacedJobNamespace::NamespacedJob
+  end
+
+  it "should error appropriately on an anonymous job subclass" do
+    klass = Class.new(Que::Job)
+
+    error = assert_raises(Que::Error) { klass.enqueue 1 }
+
+    assert_equal \
+      "Can't enqueue an anonymous subclass of Que::Job",
+      error.message
+  end
+
   it "should be able to queue a job with a specific queue name" do
     assert_enqueue [1, {queue: 'special_queue_name'}],
       expected_args: [1],

@@ -77,11 +77,13 @@ module Que
         args << arg_opts if arg_opts.any?
 
         attrs = {
-          queue:     queue     || resolve_setting(:queue) || Que.default_queue,
-          priority:  priority  || resolve_setting(:priority),
-          run_at:    run_at    || resolve_setting(:run_at),
-          job_class: job_class || to_s,
-          data:      Que.serialize_json(args: args),
+          queue:    queue     || resolve_setting(:queue) || Que.default_queue,
+          priority: priority  || resolve_setting(:priority),
+          run_at:   run_at    || resolve_setting(:run_at),
+          data:     Que.serialize_json(args: args),
+          job_class: \
+            job_class || name ||
+            raise(Error, "Can't enqueue an anonymous subclass of Que::Job"),
         }
 
         if attrs[:run_at].nil? && resolve_setting(:run_synchronously)
