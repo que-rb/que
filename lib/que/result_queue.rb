@@ -11,15 +11,25 @@ module Que
     end
 
     def push(item)
-      @mutex.synchronize { @array.push(item) }
+      sync { @array.push(item) }
     end
 
     def clear
-      @mutex.synchronize { @array.pop(@array.size) }
+      sync { @array.pop(@array.size) }
     end
 
     def to_a
-      @mutex.synchronize { @array.dup }
+      sync { @array.dup }
+    end
+
+    def length
+      sync { @array.length }
+    end
+
+    private
+
+    def sync(&block)
+      @mutex.synchronize(&block)
     end
   end
 end

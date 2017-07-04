@@ -7,8 +7,8 @@ describe Que::ResultQueue do
     Que::ResultQueue.new
   end
 
-  describe "#push and #clear" do
-    it "should add items and remove all items from the result queue" do
+  describe "push" do
+    it "should add items to the result queue in a thread-safe manner" do
       ids = (1..100).to_a.shuffle
       result_queue # Initialize before it's accessed by different threads.
 
@@ -22,8 +22,33 @@ describe Que::ResultQueue do
 
       threads.each &:join
 
-      assert_equal (1..100).to_a, result_queue.clear.sort
-      assert_equal [],            result_queue.clear
+      assert_equal (1..100).to_a, result_queue.to_a.sort
+    end
+  end
+
+  describe "clear" do
+    it "should remove and return everything from the result queue" do
+      (1..5).each { |i| result_queue.push(i) }
+
+      assert_equal (1..5).to_a, result_queue.clear
+      assert_equal [],          result_queue.clear
+    end
+  end
+
+  describe "to_a" do
+    it "should return a copy of the result queue" do
+      (1..5).each { |i| result_queue.push(i) }
+
+      assert_equal (1..5).to_a, result_queue.to_a
+      assert_equal (1..5).to_a, result_queue.to_a
+    end
+  end
+
+  describe "length" do
+    it "should return the length of the result queue" do
+      (1..5).each { |i| result_queue.push(i) }
+
+      assert_equal 5, result_queue.length
     end
   end
 end
