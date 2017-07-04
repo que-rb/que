@@ -49,7 +49,7 @@ module Que
       # We use a JobQueue to track sorted identifiers (priority, run_at, id) of
       # locked jobs and pass them to workers, and a ResultQueue to retrieve ids
       # of finished jobs from workers.
-      @job_queue    = JobQueue.new maximum_size: maximum_queue_size
+      @job_queue    = JobQueue.new(maximum_size: maximum_queue_size)
       @result_queue = ResultQueue.new
 
       @pollers =

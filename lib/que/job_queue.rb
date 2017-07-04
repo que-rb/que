@@ -11,7 +11,7 @@ module Que
 
     attr_reader :maximum_size
 
-    def initialize(maximum_size: Float::INFINITY)
+    def initialize(maximum_size:)
       @stop         = false
       @array        = []
       @maximum_size = maximum_size

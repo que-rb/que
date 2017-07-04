@@ -213,15 +213,4 @@ describe Que::JobQueue do
       assert_equal [], job_queue.clear
     end
   end
-
-  it "should be pushable and clearable if it has an infinite maximum_size" do
-    # Result queues only need these two operations, and shouldn't have a size
-    # limit.
-    job_queue = Que::JobQueue.new
-    value = {priority: 100, run_at: Time.now, id: 45}
-    job_queue.push value
-    assert_equal [value], job_queue.to_a
-    assert_equal [45],    job_queue.clear
-    assert_equal [],      job_queue.to_a
-  end
 end
