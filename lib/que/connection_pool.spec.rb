@@ -44,7 +44,10 @@ describe Que::ConnectionPool do
   end
 
   describe ".execute" do
-    it "should cast JSON params correctly"
+    it "should cast JSON params correctly" do
+      result = pool.execute("SELECT $1::jsonb::text AS j", [{blah: 3}])
+      assert_equal [{j: "{\"blah\": 3}"}], result
+    end
 
     it "should cast timestamp params correctly" do
       [

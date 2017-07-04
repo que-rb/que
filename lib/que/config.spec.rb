@@ -4,7 +4,9 @@ require 'spec_helper'
 
 describe Que do
   describe ".pool" do
-    it "should provide access to the connection pool"
+    it "should provide access to the connection pool" do
+      assert_equal QUE_POOL, Que.pool
+    end
 
     it "when no connection has been established should raise an error" do
       Que.connection_proc = nil
