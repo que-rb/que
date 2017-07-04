@@ -215,17 +215,33 @@ describe Que::Listener do
         assert_message_ignored
       end
 
-      it "should asynchronously report messages that don't match the format"
+      it "should asynchronously report messages that don't match the format" do
+        message_to_malform.delete(:id)
+        error = nil
+        Que.error_notifier = proc { |e| error = e }
+        assert_message_ignored
+        sleep_until { !error.nil? }
+
+        assert_instance_of Que::Error, error
+
+        expected_message = [
+          "Message of type 'new_job' doesn't match format!",
+          "Message: {:priority=>90, :run_at=>2017-06-30 18:33:35 UTC}",
+          "Format: {:id=>Integer, :run_at=>Time, :priority=>Integer}",
+        ].join("\n")
+
+        assert_equal expected_message, error.message
+      end
 
       it "should report callback errors as necessary" do
         message_to_malform[:run_at] = 'blah'
 
-        e = nil
-        Que.error_notifier = proc { |error| e = error }
+        error = nil
+        Que.error_notifier = proc { |e| error = e }
 
         assert_message_ignored
-        sleep_until { !e.nil? }
-        assert_instance_of ArgumentError, e
+        sleep_until { !error.nil? }
+        assert_instance_of ArgumentError, error
       end
     end
   end

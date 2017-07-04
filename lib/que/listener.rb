@@ -82,7 +82,21 @@ module Que
         end
 
         if format = MESSAGE_FORMATS[type]
-          messages.select!{|m| message_matches_format?(m, format)}
+          messages.select! do |m|
+            if message_matches_format?(m, format)
+              true
+            else
+              message = [
+                "Message of type '#{type}' doesn't match format!",
+                "Message: #{m.inspect}",
+                "Format: #{format.inspect}",
+              ].join("\n")
+
+              Que.notify_error_async(Error.new(message))
+
+              false
+            end
+          end
         end
 
         messages.each(&:freeze)
