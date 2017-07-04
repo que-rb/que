@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-describe Que do
+describe Que::Migrations, "current schema" do
   def assert_constraint_error(name, &block)
     e = assert_raises(Sequel::CheckConstraintViolation, &block)
     assert_includes e.message, "violates check constraint \"#{name}\""

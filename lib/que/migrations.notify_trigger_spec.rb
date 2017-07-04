@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-describe "An insertion into que_jobs" do
+describe Que::Migrations, "notification trigger" do
   it "should notify a locker if one is listening" do
     DB.synchronize do |conn|
       begin
