@@ -38,19 +38,5 @@ module Que
     def default_queue
       @default_queue || DEFAULT_QUEUE
     end
-
-
-
-    ### Constantizing ###
-
-    # This is something that has needed configuration in Rails in the past, so
-    # here we go.
-
-    attr_writer :constantizer
-
-    def constantizer
-      @constantizer ||=
-        -> (string) { string.split('::').inject(Object, &:const_get) }
-    end
   end
 end

@@ -21,14 +21,4 @@ describe Que do
   describe "error_notifier=" do
     it "should raise an error unless passed nil or a callable"
   end
-
-  describe "constantizer" do
-    it "should constantize strings passed to it"
-  end
-
-  describe "constantizer=" do
-    it "should accept a proc to set the constantization logic"
-
-    it "should accept nil to use the default behavior"
-  end
 end
