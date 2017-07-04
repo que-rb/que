@@ -9,7 +9,9 @@ module Que
         if string.respond_to?(:constantize)
           string.constantize
         else
-          string.split('::').inject(Object, &:const_get)
+          names = string.split('::')
+          names.reject!(&:empty?)
+          names.inject(Object, &:const_get)
         end
       end
     end
