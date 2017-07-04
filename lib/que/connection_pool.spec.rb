@@ -8,14 +8,39 @@ describe Que::ConnectionPool do
   end
 
   describe ".checkout" do
-    it "should yield a connection"
+    it "should yield a connection" do
+      pool.checkout do |conn|
+        assert_instance_of PG::Connection, conn
+      end
+    end
 
     # This will matter when we iterate over these specs for different adapters.
-    it "should be reentrant"
+    it "should be reentrant" do
+      id1 = id2 = nil
+
+      pool.checkout do |c1|
+        pool.checkout do |c2|
+          id1 = c1.object_id
+          id2 = c2.object_id
+        end
+      end
+
+      refute_nil id1
+      refute_nil id2
+      assert_equal id1, id2
+    end
   end
 
   describe ".in_transaction?" do
-    it "should know when it is in a transaction"
+    it "should know when it is in a transaction" do
+      pool.checkout do |c|
+        refute pool.in_transaction?
+        c.async_exec "BEGIN"
+        assert pool.in_transaction?
+        c.async_exec "COMMIT"
+        refute pool.in_transaction?
+      end
+    end
   end
 
   describe ".execute" do
@@ -67,6 +92,13 @@ describe Que::ConnectionPool do
 
     it "should typecast timestamps regardless of the output format"
 
-    it "should reuse the same connection when inside a checkout block"
+    it "should reuse the same connection when inside a checkout block" do
+      pool.checkout do
+        assert_equal(
+          pool.execute("SELECT pg_backend_pid()"),
+          pool.execute("SELECT pg_backend_pid()"),
+        )
+      end
+    end
   end
 end

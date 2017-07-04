@@ -180,15 +180,29 @@ describe Que::JobQueue do
   end
 
   describe "space" do
-    it "should return how much space is available in the queue"
+    it "should return how much space is available in the queue" do
+      job_queue.push(*job_array.sample(3))
+      assert_equal 5, job_queue.space
+    end
   end
 
   describe "size" do
-    it "should return the current number of items in the queue"
+    it "should return the current number of items in the queue" do
+      job_queue.push(*job_array.sample(3))
+      assert_equal 3, job_queue.size
+    end
   end
 
   describe "to_a" do
-    it "should return a copy of the current items in the queue"
+    it "should return a copy of the current items in the queue" do
+      jobs = job_array.sample(3)
+      job_queue.push(*jobs)
+
+      assert_equal(
+        jobs.sort_by{|j| j.values_at(:priority, :run_at, :id)},
+        job_queue.to_a,
+      )
+    end
   end
 
   describe "stop" do
