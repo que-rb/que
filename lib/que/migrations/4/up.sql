@@ -13,7 +13,8 @@ ALTER TABLE que_jobs
   ADD COLUMN last_error_backtrace text,
   ADD COLUMN is_processed BOOLEAN,
   ADD COLUMN data JSONB,
-  ADD CONSTRAINT queue_length CHECK (char_length(queue) <= 60);
+  ADD CONSTRAINT queue_length CHECK (char_length(queue) <= 60),
+  ADD CONSTRAINT run_at_valid CHECK (isfinite(run_at));
 
 UPDATE que_jobs
 SET is_processed = false,

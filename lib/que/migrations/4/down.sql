@@ -16,6 +16,7 @@ ALTER TABLE que_jobs
 
 ALTER TABLE que_jobs
   DROP CONSTRAINT queue_length,
+  DROP CONSTRAINT run_at_valid,
   DROP CONSTRAINT que_jobs_pkey,
   ADD COLUMN args JSON;
 

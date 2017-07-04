@@ -42,6 +42,18 @@ describe Que::Migrations, "current schema" do
           insert(job_class: 'Que::Job', queue: 'a' * 61)
       end
     end
+
+    it "should make sure that a job has a finite run_at" do
+      assert_constraint_error 'run_at_valid' do
+        DB[:que_jobs].
+          insert(job_class: 'Que::Job', run_at: 'infinity')
+      end
+
+      assert_constraint_error 'run_at_valid' do
+        DB[:que_jobs].
+          insert(job_class: 'Que::Job', run_at: '-infinity')
+      end
+    end
   end
 
   describe "que_lockers table constraints" do
