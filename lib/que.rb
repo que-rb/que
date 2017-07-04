@@ -26,8 +26,10 @@ module Que
   require_relative 'que/worker'
 
   class << self
-    extend Forwardable
+    include Assertions
     include Helpers
+
+    extend Forwardable
 
     # Copy some commonly-used methods here, for convenience.
     def_delegators :pool, :execute, :checkout, :in_transaction?

@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-describe Que do
+describe Que::Assertions do
   def assert_assertion_passes(*args, &block)
     assert_equal true, Que.assert?(*args, &block)
 
@@ -16,7 +16,7 @@ describe Que do
   def assert_assertion_fails(*args, &block)
     assert_equal false, Que.assert?(*args, &block)
 
-    assert_raises Que::AssertionFailed do
+    assert_raises Que::Assertions::AssertionFailed do
       Que.assert(*args, &block)
     end
   end

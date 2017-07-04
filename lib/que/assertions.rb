@@ -4,9 +4,9 @@
 # quality.
 
 module Que
-  class AssertionFailed < Error; end
+  module Assertions
+    class AssertionFailed < Error; end
 
-  class << self
     def assert(*args, &block)
       comparison, object, pass = _check_assertion_args(*args)
       return object if pass
