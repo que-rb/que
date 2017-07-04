@@ -24,7 +24,7 @@ describe Que::Utils::Logging do
 
         Que::Job.enqueue
         locker = Que::Locker.new
-        sleep_until { unprocessed_jobs.empty? }
+        sleep_until { unprocessed_jobs_dataset.empty? }
         locker.stop!
 
         assert $logger.messages.count > 0
@@ -40,7 +40,7 @@ describe Que::Utils::Logging do
 
         Que::Job.enqueue
         locker = Que::Locker.new
-        sleep_until { unprocessed_jobs.empty? }
+        sleep_until { unprocessed_jobs_dataset.empty? }
         locker.stop!
       ensure
         Que.logger = $logger

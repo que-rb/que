@@ -92,7 +92,7 @@ describe Que::Job do
           end
 
           execute
-          assert_empty jobs
+          assert_empty jobs_dataset
         end
       end
     end

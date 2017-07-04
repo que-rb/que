@@ -12,7 +12,7 @@ describe Que::Job, '.enqueue' do
     expected_args: []
   )
 
-    assert_equal 0, jobs.count
+    assert_equal 0, jobs_dataset.count
 
     result =
       if args.respond_to?(:call)
@@ -21,7 +21,7 @@ describe Que::Job, '.enqueue' do
         Que.enqueue(*args)
       end
 
-    assert_equal 1, jobs.count
+    assert_equal 1, jobs_dataset.count
 
     assert_kind_of Que::Job, result
 
@@ -32,7 +32,7 @@ describe Que::Job, '.enqueue' do
     assert_equal expected_priority, result.que_attrs[:priority]
     assert_equal expected_args, result.que_attrs[:data][:args]
 
-    job = jobs.first
+    job = jobs_dataset.first
     assert_equal expected_queue, job[:queue]
     assert_equal expected_priority, job[:priority]
     assert_in_delta job[:run_at], expected_run_at, 3
@@ -40,7 +40,7 @@ describe Que::Job, '.enqueue' do
     assert_equal expected_args,
       JSON.parse(job[:data], symbolize_names: true)[:args]
 
-    jobs.delete
+    jobs_dataset.delete
   end
 
   it "should be able to queue a job" do

@@ -11,7 +11,7 @@ describe Que::Utils::Introspection do
       # Have to tweak the id to ensure that the portion of the SQL query
       # that accounts for bigint ids functions correctly.
       old = Time.now - 3600
-      jobs.where(job_class: "Que::Job").
+      jobs_dataset.where(job_class: "Que::Job").
         update(id: 2**33, error_count: 5, run_at: old)
 
       Que::Job.enqueue
@@ -54,7 +54,7 @@ describe Que::Utils::Introspection do
 
       # Ensure that the portion of the SQL query that accounts for bigint
       # job_ids functions correctly.
-      jobs.update(id: 2**33)
+      jobs_dataset.update(id: 2**33)
 
       locker = Que::Locker.new
       $q1.pop

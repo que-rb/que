@@ -31,7 +31,7 @@ describe Que::Worker do
         passed_jobs.flatten!
         passed_jobs
       else
-        jobs.all
+        jobs_dataset.all
       end
 
     result_queue.clear
@@ -65,7 +65,7 @@ describe Que::Worker do
       end
 
       [1, 2, 3].each { |i| WorkerJob.enqueue i, priority: i }
-      job_ids = jobs.order_by(:priority).select_map(:id)
+      job_ids = jobs_dataset.order_by(:priority).select_map(:id)
       run_jobs
 
       assert_equal [1, 2, 3], $results
@@ -93,7 +93,7 @@ describe Que::Worker do
       end
 
       ModuleJobModule::ModuleJob.enqueue
-      assert_equal "ModuleJobModule::ModuleJob", jobs.get(:job_class)
+      assert_equal "ModuleJobModule::ModuleJob", jobs_dataset.get(:job_class)
 
       run_jobs
       assert_equal true, $run
@@ -103,7 +103,7 @@ describe Que::Worker do
   end
 
   it "should skip a job if passed a nonexistent sort key" do
-    assert_equal 0, jobs.count
+    assert_equal 0, jobs_dataset.count
     run_jobs priority: 1,
              run_at:   Time.now,
              id:       587648
@@ -132,7 +132,7 @@ describe Que::Worker do
       ErrorJob.enqueue priority: 1
       Que::Job.enqueue priority: 2
 
-      job_ids = jobs.order_by(:priority).select_map(:id)
+      job_ids = jobs_dataset.order_by(:priority).select_map(:id)
       run_jobs
       assert_equal job_ids, result_queue.to_a
 
@@ -166,8 +166,8 @@ describe Que::Worker do
 
       run_jobs
 
-      assert_equal 1, jobs.count
-      job = jobs.first
+      assert_equal 1, jobs_dataset.count
+      job = jobs_dataset.first
       assert_equal 1, job[:error_count]
       assert_equal "ErrorJob!", job[:last_error_message]
       assert_match(
@@ -176,13 +176,13 @@ describe Que::Worker do
       )
       assert_in_delta job[:run_at], Time.now + 4, 3
 
-      jobs.update error_count: 5,
-                  run_at:      Time.now - 60
+      jobs_dataset.update error_count: 5,
+                          run_at:      Time.now - 60
 
       run_jobs
 
-      assert_equal 1, jobs.count
-      job = jobs.first
+      assert_equal 1, jobs_dataset.count
+      job = jobs_dataset.first
       assert_equal 6, job[:error_count]
       assert_equal "ErrorJob!", job[:last_error_message]
       assert_match(
@@ -201,8 +201,8 @@ describe Que::Worker do
 
       run_jobs
 
-      assert_equal 1, jobs.count
-      job = jobs.first
+      assert_equal 1, jobs_dataset.count
+      job = jobs_dataset.first
 
       assert_equal 1, job[:error_count]
       assert_equal "ErrorJob!", job[:last_error_message]
@@ -212,13 +212,13 @@ describe Que::Worker do
       )
       assert_in_delta job[:run_at], Time.now + 5, 3
 
-      jobs.update error_count: 5,
-                  run_at:      Time.now - 60
+      jobs_dataset.update error_count: 5,
+                          run_at:      Time.now - 60
 
       run_jobs
 
-      assert_equal 1, jobs.count
-      job = jobs.first
+      assert_equal 1, jobs_dataset.count
+      job = jobs_dataset.first
 
       assert_equal 6, job[:error_count]
       assert_equal "ErrorJob!", job[:last_error_message]
@@ -238,8 +238,8 @@ describe Que::Worker do
 
       run_jobs
 
-      assert_equal 1, jobs.count
-      job = jobs.first
+      assert_equal 1, jobs_dataset.count
+      job = jobs_dataset.first
       assert_equal 1, job[:error_count]
       assert_equal "ErrorJob!", job[:last_error_message]
       assert_match(
@@ -248,13 +248,13 @@ describe Que::Worker do
       )
       assert_in_delta job[:run_at], Time.now + 10, 3
 
-      jobs.update error_count: 5,
-                  run_at:      Time.now - 60
+      jobs_dataset.update error_count: 5,
+                          run_at:      Time.now - 60
 
       run_jobs
 
-      assert_equal 1, jobs.count
-      job = jobs.first
+      assert_equal 1, jobs_dataset.count
+      job = jobs_dataset.first
       assert_equal 6, job[:error_count]
       assert_equal "ErrorJob!", job[:last_error_message]
       assert_match(
@@ -268,12 +268,12 @@ describe Que::Worker do
       error = nil
       Que.error_notifier = proc { |e| error = e }
 
-      jobs.insert job_class: "NonexistentClass"
+      jobs_dataset.insert job_class: "NonexistentClass"
 
       run_jobs
 
-      assert_equal 1, jobs.count
-      job = jobs.first
+      assert_equal 1, jobs_dataset.count
+      job = jobs_dataset.first
       assert_equal 1, job[:error_count]
       assert_match /uninitialized constant:? .*NonexistentClass/,
         job[:last_error_message]
@@ -292,8 +292,8 @@ describe Que::Worker do
 
       run_jobs
 
-      assert_equal 1, jobs.count
-      job = jobs.first
+      assert_equal 1, jobs_dataset.count
+      job = jobs_dataset.first
       assert_equal 1, job[:error_count]
       assert_in_delta job[:run_at], Time.now + 4, 3
     end
@@ -320,8 +320,8 @@ describe Que::Worker do
 
           run_jobs
 
-          assert_equal 1, jobs.count
-          job = jobs.first
+          assert_equal 1, jobs_dataset.count
+          job = jobs_dataset.first
           assert_equal 1, job[:error_count]
           assert_match /\ABlah!/, job[:last_error_message]
           assert_match(
@@ -353,9 +353,9 @@ describe Que::Worker do
 
           CustomRetryIntervalJob.enqueue
 
-          assert_equal 1, jobs.count
+          assert_equal 1, jobs_dataset.count
           run_jobs
-          assert_equal 0, jobs.count
+          assert_equal 0, jobs_dataset.count
         ensure
           Que.error_notifier = nil
         end
@@ -380,9 +380,9 @@ describe Que::Worker do
 
           CustomRetryIntervalJob.enqueue
 
-          assert_equal 1, unprocessed_jobs.count
+          assert_equal 1, unprocessed_jobs_dataset.count
           run_jobs
-          assert_equal 0, unprocessed_jobs.count
+          assert_equal 0, unprocessed_jobs_dataset.count
 
           assert_nil error
         ensure
@@ -417,8 +417,8 @@ describe Que::Worker do
           run_jobs
           assert_nil $error_handler_failed
 
-          assert_equal 1, jobs.count
-          job = jobs.first
+          assert_equal 1, jobs_dataset.count
+          job = jobs_dataset.first
           assert_equal 1, job[:error_count]
           assert_match /\ABlah!/, job[:last_error_message]
           assert_match(

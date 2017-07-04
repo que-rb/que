@@ -27,7 +27,7 @@ describe Que::Job, "run_synchronously=" do
       assert_equal [1, 2, 3], $passed_args
 
       job = BlockJob.enqueue(1, 2, 3)
-      assert_equal [job.que_attrs[:id]], jobs.select_map(:id)
+      assert_equal [job.que_attrs[:id]], jobs_dataset.select_map(:id)
     end
 
     it "should ignore jobs that are scheduled for a future date" do

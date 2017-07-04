@@ -22,7 +22,7 @@ describe Que::Migrations, "notification trigger" do
         conn.async_exec "LISTEN que_listener_1"
 
         Que::Job.enqueue
-        job = jobs.first
+        job = jobs_dataset.first
 
         conn.wait_for_notify do |channel, pid, payload|
           assert_equal 'que_listener_1', channel
@@ -126,7 +126,7 @@ describe Que::Migrations, "notification trigger" do
         conn.async_exec "LISTEN que_listener_1"
 
         Que::Job.enqueue
-        job = jobs.first
+        job = jobs_dataset.first
         assert_nil conn.wait_for_notify(0.01)
       ensure
         conn.async_exec "UNLISTEN *"

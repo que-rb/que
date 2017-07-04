@@ -135,12 +135,12 @@ class QueSpec < Minitest::Spec
     end
   end
 
-  def jobs
+  def jobs_dataset
     DB[:que_jobs]
   end
 
-  def unprocessed_jobs
-    jobs.exclude(:is_processed)
+  def unprocessed_jobs_dataset
+    jobs_dataset.exclude(:is_processed)
   end
 
   def logged_messages
