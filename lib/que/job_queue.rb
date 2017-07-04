@@ -14,7 +14,8 @@ module Que
     def initialize(maximum_size:)
       @stop         = false
       @array        = []
-      @maximum_size = maximum_size
+      @maximum_size = Que.assert(Integer, maximum_size)
+      Que.assert(maximum_size > 0)
 
       @monitor = Monitor.new
       @cv      = Monitor::ConditionVariable.new(@monitor)
