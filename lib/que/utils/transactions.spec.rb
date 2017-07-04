@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-describe Que, '.transaction' do
+describe Que::Utils::Transactions do
   it "should use a transaction to rollback changes in the event of an error" do
     begin
       Que.transaction do

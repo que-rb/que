@@ -11,7 +11,11 @@ module Que
   class Error < StandardError; end
 
   require_relative 'que/utils/assertions'
-  require_relative 'que/utils/helpers'
+  require_relative 'que/utils/introspection'
+  require_relative 'que/utils/json_serialization'
+  require_relative 'que/utils/logging'
+  require_relative 'que/utils/queue_management'
+  require_relative 'que/utils/transactions'
 
   require_relative 'que/config'
   require_relative 'que/connection_pool'
@@ -28,7 +32,11 @@ module Que
 
   class << self
     include Utils::Assertions
-    include Utils::Helpers
+    include Utils::Introspection
+    include Utils::JSONSerialization
+    include Utils::Logging
+    include Utils::QueueManagement
+    include Utils::Transactions
 
     extend Forwardable
 
