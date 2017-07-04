@@ -3,11 +3,14 @@
 module Que
   module Utils
     module Constantization
-      attr_writer :constantizer
+      def constantize(string)
+        assert String, string
 
-      def constantizer
-        @constantizer ||=
-          -> (string) { string.split('::').inject(Object, &:const_get) }
+        if string.respond_to?(:constantize)
+          string.constantize
+        else
+          string.split('::').inject(Object, &:const_get)
+        end
       end
     end
   end

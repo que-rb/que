@@ -44,7 +44,7 @@ module Que
         begin
           if job = Que.execute(:get_job, [id]).first
             start    = Time.now
-            klass    = Que.constantizer.call(job.fetch(:job_class))
+            klass    = Que.constantize(job.fetch(:job_class))
             instance = klass.new(job)
             instance._run
 

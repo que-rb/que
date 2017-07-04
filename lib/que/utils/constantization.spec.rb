@@ -8,10 +8,4 @@ describe Que::Utils::Constantization do
 
     it "should fallback to custom constant lookup if necessary"
   end
-
-  describe "constantizer=" do
-    it "should accept a proc to set the constantization logic"
-
-    it "should accept nil to use the default behavior"
-  end
 end
