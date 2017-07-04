@@ -79,6 +79,9 @@ CREATE UNLOGGED TABLE que_lockers (
   )
 );
 
+CREATE INDEX que_lockers_listening_queues_idx
+  ON que_lockers USING gin(queues) WHERE (listening);
+
 CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
   DECLARE
     locker_pid integer;
@@ -89,12 +92,10 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
       RETURN null;
     END IF;
 
-    -- Pick a locker to notify of the job's insertion, weighted by their
-    -- number of workers. Should bounce semi-randomly between lockers on each
+    -- Pick a locker to notify of the job's insertion, weighted by their number
+    -- of workers. Should bounce pseudorandomly between lockers on each
     -- invocation, hence the md5-ordering, but still touch each one equally,
-    -- hence the modulo using the job_id. This could probably be written a lot
-    -- more efficiently, but it runs plenty fast for now, and is easily
-    -- changeable later.
+    -- hence the modulo using the job_id.
     SELECT pid
     INTO locker_pid
     FROM (
