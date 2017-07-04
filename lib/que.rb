@@ -10,10 +10,11 @@ module Que
 
   class Error < StandardError; end
 
-  require_relative 'que/assertions'
+  require_relative 'que/utils/assertions'
+  require_relative 'que/utils/helpers'
+
   require_relative 'que/config'
   require_relative 'que/connection_pool'
-  require_relative 'que/helpers'
   require_relative 'que/job'
   require_relative 'que/job_queue'
   require_relative 'que/listener'
@@ -26,8 +27,8 @@ module Que
   require_relative 'que/worker'
 
   class << self
-    include Assertions
-    include Helpers
+    include Utils::Assertions
+    include Utils::Helpers
 
     extend Forwardable
 
