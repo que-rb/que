@@ -73,9 +73,22 @@ describe Que::Migrations, "current schema" do
       DB[:que_lockers].insert(locker_attrs)
     end
 
-    it "should make sure that a locker has at least one worker priority"
+    it "should make sure that a locker has at least one worker priority" do
+      assert_constraint_error 'valid_worker_priorities' do
+        locker_attrs[:worker_priorities] = Sequel.lit("'{}'::integer[]")
+        DB[:que_lockers].insert(locker_attrs)
+      end
+    end
 
-    it "should make sure that a locker doesn't nest worker priorities"
+    it "should make sure that a locker doesn't nest worker priorities" do
+      assert_constraint_error 'valid_worker_priorities' do
+        locker_attrs[:worker_priorities] = Sequel.pg_array([
+          Sequel.pg_array([1, 2]),
+          Sequel.pg_array([1, 2]),
+        ])
+        DB[:que_lockers].insert(locker_attrs)
+      end
+    end
 
     it "should make sure that a locker has at least one queue name" do
       assert_constraint_error 'valid_queues' do
