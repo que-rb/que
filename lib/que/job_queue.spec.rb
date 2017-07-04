@@ -23,7 +23,7 @@ describe Que::JobQueue do
     ]
   end
 
-  describe "#push" do
+  describe "push" do
     it "should add an item and retain the sort order" do
       ids = []
 
@@ -85,27 +85,7 @@ describe Que::JobQueue do
     end
   end
 
-  describe "#accept?" do
-    before do
-      job_queue.push *job_array
-    end
-
-    it "should return true if there is sufficient room in the queue" do
-      assert_equal job_array.first[:id], job_queue.shift
-      assert_equal 7, job_queue.size
-      assert job_queue.accept?(job_array.last)
-    end
-
-    it "should return true if the job can knock out a lower-priority job" do
-      assert job_queue.accept?(job_array.first)
-    end
-
-    it "should return false if the job's priority is lower than any queued" do
-      refute job_queue.accept?({priority: 100, run_at: Time.now, id: 45})
-    end
-  end
-
-  describe "#shift" do
+  describe "shift" do
     it "should return the lowest item's id by sort order" do
       job_queue.push *job_array
 
@@ -179,7 +159,39 @@ describe Que::JobQueue do
     end
   end
 
-  describe "#stop" do
+  describe "accept?" do
+    before do
+      job_queue.push *job_array
+    end
+
+    it "should return true if there is sufficient room in the queue" do
+      assert_equal job_array.first[:id], job_queue.shift
+      assert_equal 7, job_queue.size
+      assert job_queue.accept?(job_array.last)
+    end
+
+    it "should return true if the job can knock out a lower-priority job" do
+      assert job_queue.accept?(job_array.first)
+    end
+
+    it "should return false if the job's priority is lower than any queued" do
+      refute job_queue.accept?({priority: 100, run_at: Time.now, id: 45})
+    end
+  end
+
+  describe "space" do
+    it "should return how much space is available in the queue"
+  end
+
+  describe "size" do
+    it "should return the current number of items in the queue"
+  end
+
+  describe "to_a" do
+    it "should return a copy of the current items in the queue"
+  end
+
+  describe "stop" do
     it "should return nil to waiting workers" do
       job_queue # Pre-initialize to avoid race conditions.
 
@@ -199,7 +211,7 @@ describe Que::JobQueue do
     end
   end
 
-  describe "#clear" do
+  describe "clear" do
     it "should remove and return all items" do
       job_queue.push *job_array
       assert_equal job_array.map{|job| job[:id]}, job_queue.clear.sort

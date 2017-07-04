@@ -57,36 +57,40 @@ describe Que::Migrations, "current schema" do
   end
 
   describe "que_lockers table constraints" do
+    let :locker_attrs do
+      {
+        pid: 0,
+        worker_count: 2,
+        ruby_pid: 4,
+        ruby_hostname: 'blah',
+        listening: true,
+        queues: Sequel.lit("'{queue_name}'::text[]"),
+        worker_priorities: Sequel.pg_array([1, 2], :integer),
+      }
+    end
+
+    it "should allow a valid record" do
+      DB[:que_lockers].insert(locker_attrs)
+    end
+
+    it "should make sure that a locker has at least one worker priority"
+
+    it "should make sure that a locker doesn't nest worker priorities"
+
     it "should make sure that a locker has at least one queue name" do
       assert_constraint_error 'valid_queues' do
-        DB[:que_lockers].
-          insert(
-            pid: 0,
-            worker_count: 2,
-            ruby_pid: 4,
-            ruby_hostname: 'blah',
-            listening: true,
-            queues: Sequel.lit("'{}'::text[]"),
-            worker_priorities: Sequel.pg_array([1, 2], :integer),
-          )
+        locker_attrs[:queues] = Sequel.lit("'{}'::text[]")
+        DB[:que_lockers].insert(locker_attrs)
       end
     end
 
     it "should make sure that a locker doesn't contain nested queue names" do
       assert_constraint_error 'valid_queues' do
-        DB[:que_lockers].
-          insert(
-            pid: 0,
-            worker_count: 2,
-            ruby_pid: 4,
-            ruby_hostname: 'blah',
-            listening: true,
-            queues: Sequel.pg_array([
-              Sequel.pg_array(['a']),
-              Sequel.pg_array(['b']),
-            ]),
-            worker_priorities: Sequel.pg_array([1, 2], :integer),
-          )
+        locker_attrs[:queues] = Sequel.pg_array([
+          Sequel.pg_array(['a']),
+          Sequel.pg_array(['b']),
+        ])
+        DB[:que_lockers].insert(locker_attrs)
       end
     end
   end

@@ -83,6 +83,19 @@ describe Que::Job do
           assert_equal [1, 2, 3], $args
         end
 
+        it "should expose the job's error_count" do
+          skip "Needs run() support"
+
+          TestJobClass.class_eval do
+            def run
+              $error_count = error_count
+            end
+          end
+
+          execute
+          assert_equal 0, $error_count
+        end
+
         it "should make it easy to destroy the job" do
           TestJobClass.class_eval do
             def run
@@ -103,7 +116,7 @@ describe Que::Job do
     include ActsLikeAJob
 
     let :job_queue do
-      Que::JobQueue.new maximum_size: 20
+      Que::JobQueue.new(maximum_size: 20)
     end
 
     let :result_queue do
@@ -139,6 +152,6 @@ describe Que::Job do
       TestJobClass.run(*args)
     end
 
-    it "should raise an error if it kills the job"
+    it "should propagate errors raised during the job"
   end
 end

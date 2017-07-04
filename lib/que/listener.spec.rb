@@ -3,12 +3,10 @@
 require 'spec_helper'
 
 describe Que::Listener do
+  attr_reader :connection
+
   let :listener do
     Que::Listener.new(pool: QUE_POOL)
-  end
-
-  let :connection do
-    @connection
   end
 
   around do |&block|
@@ -29,48 +27,59 @@ describe Que::Listener do
     DB.notify("que_listener_#{connection.backend_pid}", payload: payload)
   end
 
+  def notify_multiple(notifications)
+    # Avoid race conditions by making sure that all notifications are visible at
+    # the same time:
+    DB.transaction { notifications.each { |n| notify(n) } }
+  end
+
   describe "wait_for_messages" do
     it "should return empty if there were no messages before the timeout" do
+      # Use a short timeout, since we'll always hit it in this spec.
       assert_equal({}, listener.wait_for_messages(0.001))
     end
 
     it "should return frozen messages" do
-      notify(message_type: 'test_type_1', arg: 'blah')
+      notify(message_type: 'type_1', arg: 'blah')
 
-      result = listener.wait_for_messages(10)[:test_type_1].first
+      result = listener.wait_for_messages(10)[:type_1].first
       assert_equal({arg: 'blah'}, result)
       assert result.frozen?
     end
 
     it "should return messages to the locker in bulk by type" do
-      DB.transaction do
-        5.times do |i|
-          notify(message_type: 'test_type_1', value: i)
-          notify(message_type: 'test_type_2', value: i)
-        end
+      notifications = []
+
+      5.times do |i|
+        notifications.push(message_type: 'type_1', value: i)
+        notifications.push(message_type: 'type_2', value: i)
       end
+
+      notify_multiple(notifications)
 
       assert_equal(
         {
-          test_type_1: 5.times.map{|i| {value: i}},
-          test_type_2: 5.times.map{|i| {value: i}},
+          type_1: 5.times.map{|i| {value: i}},
+          type_2: 5.times.map{|i| {value: i}},
         },
         listener.wait_for_messages(10),
       )
     end
 
     it "should accept arrays of messages" do
-      DB.transaction do
-        [0, 5].each do |i|
-          notify((1..5).map{|j| {message_type: 'test_type_1', value: i + j}})
-          notify((1..5).map{|j| {message_type: 'test_type_2', value: i + j}})
-        end
+      notifications = []
+
+      [0, 5].each do |i|
+        notifications << (1..5).map{|j| {message_type: 'type_1', value: i + j}}
+        notifications << (1..5).map{|j| {message_type: 'type_2', value: i + j}}
       end
+
+      notify_multiple(notifications)
 
       assert_equal(
         {
-          test_type_1: (1..10).map{|i| {value: i}},
-          test_type_2: (1..10).map{|i| {value: i}},
+          type_1: (1..10).map{|i| {value: i}},
+          type_2: (1..10).map{|i| {value: i}},
         },
         listener.wait_for_messages(10),
       )
@@ -134,7 +143,7 @@ describe Que::Listener do
         )
 
         assert_equal(
-          {new_job: [{priority: 90, run_at: Time.parse(timestamp), id: 45}]},
+          {new_job: [{priority: 90, run_at: Time.iso8601(timestamp), id: 45}]},
           listener.wait_for_messages(10),
         )
       end
@@ -144,7 +153,7 @@ describe Que::Listener do
       let :message_to_malform do
         {
           priority: 90,
-          run_at: Time.parse("2017-06-30T18:33:35.425307Z"),
+          run_at: Time.iso8601("2017-06-30T18:33:35.425307Z"),
           id: 45,
         }
       end
@@ -153,13 +162,13 @@ describe Que::Listener do
         [
           {
             priority: 90,
-            run_at: Time.parse("2017-06-30T18:33:33.402669Z"),
+            run_at: Time.iso8601("2017-06-30T18:33:33.402669Z"),
             id: 44,
           },
           message_to_malform,
           {
             priority: 90,
-            run_at: Time.parse("2017-06-30T18:33:35.425307Z"),
+            run_at: Time.iso8601("2017-06-30T18:33:35.425307Z"),
             id: 46,
           },
         ]
@@ -168,12 +177,8 @@ describe Que::Listener do
       def assert_message_ignored
         DB.transaction do
           all_messages.each { |m|
-            run_at =
-              if m[:run_at].is_a?(Time)
-                m[:run_at].iso8601(6)
-              else
-                m[:run_at]
-              end
+            run_at = m[:run_at]
+            run_at = run_at.iso8601(6) if run_at.is_a?(Time)
 
             notify(
               m.merge(
@@ -210,14 +215,15 @@ describe Que::Listener do
         assert_message_ignored
       end
 
-      it "should report errors as necessary" do
+      it "should asynchronously report messages that don't match the format"
+
+      it "should report callback errors as necessary" do
         message_to_malform[:run_at] = 'blah'
 
         e = nil
         Que.error_notifier = proc { |error| e = error }
 
         assert_message_ignored
-
         assert_instance_of ArgumentError, e
       end
     end

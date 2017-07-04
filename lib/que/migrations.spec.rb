@@ -104,6 +104,8 @@ describe Que::Migrations do
   end
 
   describe "migration #4" do
+    it "should handle last_errors without a backtrace"
+
     it "should correctly migrate data down and up" do
       DB[:que_jobs].insert(
         id: 1,

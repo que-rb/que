@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# The class that most jobs inherit from.
+# The class that jobs should inherit from.
 
 module Que
   class Job

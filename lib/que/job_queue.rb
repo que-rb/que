@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-# A sized thread-safe queue that holds ordered job sort keys. Supports blocking
-# while waiting for a job to become available, stopping, and only returning jobs
-# over a minimum priority.
+# A sized thread-safe queue that holds ordered job sort_keys. Supports blocking
+# while waiting for a job to become available, only returning jobs over a
+# minimum priority, and stopping gracefully.
 
 module Que
   class JobQueue
@@ -68,9 +68,12 @@ module Que
     end
 
     def accept?(sort_key)
-      # Accept the job if there's space available or if it's more important than
-      # the least important item in the queue.
-      sync { space > 0 || compare_keys(sort_key, @array.last) }
+      sync do
+        # Accept the job if there's space available...
+        space > 0 ||
+        # ...or if it's more important than the lowest item in the queue.
+        compare_keys(sort_key, @array.last)
+      end
     end
 
     def space
@@ -97,13 +100,15 @@ module Que
 
     SORT_KEYS = [:priority, :run_at, :id].freeze
 
+    # Given two sort keys a and b, returns true if a < b and false if a > b.
+    # Throws an error if they're the same - that shouldn't happen.
     def compare_keys(a, b)
       SORT_KEYS.each do |key|
         a_value = a.fetch(key)
         b_value = b.fetch(key)
 
-        return true  if b_value > a_value
-        return false if b_value < a_value
+        return true  if a_value < b_value
+        return false if a_value > b_value
       end
 
       # Comparing a job's sort key against itself - this shouldn't happen.
