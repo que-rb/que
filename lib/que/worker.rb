@@ -6,8 +6,7 @@
 
 module Que
   class Worker
-    attr_reader :thread
-    attr_accessor :priority
+    attr_reader :thread, :priority
 
     def initialize(
       job_queue:,
@@ -16,9 +15,9 @@ module Que
       start_callback: nil
     )
 
-      @priority     = priority
-      @job_queue    = job_queue
-      @result_queue = result_queue
+      @priority     = Que.assert([NilClass, Integer], priority)
+      @job_queue    = Que.assert(JobQueue, job_queue)
+      @result_queue = Que.assert(ResultQueue, result_queue)
 
       @thread =
         Thread.new do

@@ -3,28 +3,55 @@
 require 'spec_helper'
 
 describe Que::Worker do
-  before do
-    @job_queue    = Que::JobQueue.new maximum_size: 20
-    @result_queue = Que::ResultQueue.new
-
-    @worker = Que::Worker.new job_queue:    @job_queue,
-                              result_queue: @result_queue
+  let :priority do
+    nil
   end
 
-  def run_jobs(*jobs)
-    @result_queue.clear
+  let :job_queue do
+    Que::JobQueue.new(maximum_size: 20)
+  end
 
-    jobs =
-      jobs.flatten.map { |job|
-        {
-          priority: job[:priority],
-          run_at: job[:run_at],
-          id: job[:id]
-        }
+  let :result_queue do
+    Que::ResultQueue.new
+  end
+
+  let :worker do
+    Que::Worker.new(
+      priority:     priority,
+      job_queue:    job_queue,
+      result_queue: result_queue,
+    )
+  end
+
+  before { worker }
+
+  def run_jobs(*passed_jobs)
+    jobs_to_run =
+      if passed_jobs.any?
+        passed_jobs.flatten!
+        passed_jobs
+      else
+        jobs.all
+      end
+
+    result_queue.clear
+
+    jobs_to_run.map! { |job|
+      {
+        priority: job[:priority],
+        run_at: job[:run_at],
+        id: job[:id]
       }
+    }
 
-    @job_queue.push *jobs
-    sleep_until { @result_queue.to_a.sort == jobs.map{|j| j[:id]}.sort }
+    job_ids = jobs_to_run.map{|j| j[:id]}.sort
+
+    job_queue.push *jobs_to_run
+
+    sleep_until do
+      result_queue.length == job_ids.length &&
+      result_queue.to_a.sort == job_ids
+    end
   end
 
   it "should repeatedly work jobs that are passed to it via its job_queue" do
@@ -39,10 +66,10 @@ describe Que::Worker do
 
       [1, 2, 3].each { |i| WorkerJob.enqueue i, priority: i }
       job_ids = jobs.order_by(:priority).select_map(:id)
-      run_jobs Que.execute("SELECT * FROM que_jobs").shuffle
+      run_jobs
 
       assert_equal [1, 2, 3], $results
-      assert_equal job_ids, @result_queue.to_a
+      assert_equal job_ids, result_queue.to_a
 
       events = logged_messages.select{|m| m['event'] == 'job_worked'}
       assert_equal 3, events.count
@@ -56,6 +83,7 @@ describe Que::Worker do
     begin
       $run = false
 
+      # TODO: Use the namespaced job in the support folder for this?
       module ModuleJobModule
         class ModuleJob < Que::Job
           def run
@@ -67,33 +95,37 @@ describe Que::Worker do
       ModuleJobModule::ModuleJob.enqueue
       assert_equal "ModuleJobModule::ModuleJob", jobs.get(:job_class)
 
-      run_jobs Que.execute("SELECT * FROM que_jobs").first
+      run_jobs
       assert_equal true, $run
     ensure
       $run = nil
     end
   end
 
-  it "should skip a job if passed the pk for a job that doesn't exist" do
+  it "should skip a job if passed a nonexistent sort key" do
     assert_equal 0, jobs.count
     run_jobs priority: 1,
              run_at:   Time.now,
              id:       587648
 
-    assert_equal [587648], @result_queue.to_a
+    assert_equal [587648], result_queue.to_a
   end
 
-  it "should only take jobs that meet its priority requirement" do
-    @worker.priority = 10
+  describe "when given a priority requirement" do
+    let(:priority) { 10 }
 
-    jobs = (1..20).map { |i| {priority: i, run_at: Time.now, id: i} }
+    it "should only take jobs that meet it priority requirement" do
+      jobs = (1..20).map { |i| {priority: i, run_at: Time.now, id: i} }
 
-    @job_queue.push *jobs
+      job_queue.push *jobs
 
-    sleep_until { @result_queue.to_a == (1..10).to_a }
+      sleep_until { result_queue.to_a == (1..10).to_a }
 
-    assert_equal jobs[10..19], @job_queue.to_a
+      assert_equal jobs[10..19], job_queue.to_a
+    end
   end
+
+  it "should run the start_callback if passed one"
 
   describe "when an error is raised" do
     it "should not crash the worker" do
@@ -101,8 +133,8 @@ describe Que::Worker do
       Que::Job.enqueue priority: 2
 
       job_ids = jobs.order_by(:priority).select_map(:id)
-      run_jobs Que.execute("SELECT * FROM que_jobs")
-      assert_equal job_ids, @result_queue.to_a
+      run_jobs
+      assert_equal job_ids, result_queue.to_a
 
       events = logged_messages.select{|m| m['event'] == 'job_errored'}
       assert_equal 1, events.count
@@ -120,7 +152,7 @@ describe Que::Worker do
 
         ErrorJob.enqueue priority: 1
 
-        run_jobs Que.execute("SELECT * FROM que_jobs")
+        run_jobs
 
         assert_instance_of RuntimeError, error
         assert_equal "ErrorJob!", error.message
@@ -132,7 +164,7 @@ describe Que::Worker do
     it "should exponentially back off the job" do
       ErrorJob.enqueue
 
-      run_jobs Que.execute("SELECT * FROM que_jobs")
+      run_jobs
 
       assert_equal 1, jobs.count
       job = jobs.first
@@ -147,7 +179,7 @@ describe Que::Worker do
       jobs.update error_count: 5,
                   run_at:      Time.now - 60
 
-      run_jobs Que.execute("SELECT * FROM que_jobs")
+      run_jobs
 
       assert_equal 1, jobs.count
       job = jobs.first
@@ -167,7 +199,7 @@ describe Que::Worker do
 
       RetryIntervalJob.enqueue
 
-      run_jobs Que.execute("SELECT * FROM que_jobs")
+      run_jobs
 
       assert_equal 1, jobs.count
       job = jobs.first
@@ -183,7 +215,7 @@ describe Que::Worker do
       jobs.update error_count: 5,
                   run_at:      Time.now - 60
 
-      run_jobs Que.execute("SELECT * FROM que_jobs")
+      run_jobs
 
       assert_equal 1, jobs.count
       job = jobs.first
@@ -204,7 +236,7 @@ describe Que::Worker do
 
       RetryIntervalFormulaJob.enqueue
 
-      run_jobs Que.execute("SELECT * FROM que_jobs")
+      run_jobs
 
       assert_equal 1, jobs.count
       job = jobs.first
@@ -219,7 +251,7 @@ describe Que::Worker do
       jobs.update error_count: 5,
                   run_at:      Time.now - 60
 
-      run_jobs Que.execute("SELECT * FROM que_jobs")
+      run_jobs
 
       assert_equal 1, jobs.count
       job = jobs.first
@@ -238,7 +270,7 @@ describe Que::Worker do
 
       jobs.insert job_class: "NonexistentClass"
 
-      run_jobs Que.execute("SELECT * FROM que_jobs")
+      run_jobs
 
       assert_equal 1, jobs.count
       job = jobs.first
@@ -258,7 +290,7 @@ describe Que::Worker do
 
       Que.enqueue job_class: "J"
 
-      run_jobs Que.execute("SELECT * FROM que_jobs")
+      run_jobs
 
       assert_equal 1, jobs.count
       job = jobs.first
@@ -286,7 +318,7 @@ describe Que::Worker do
 
           CustomRetryIntervalJob.enqueue
 
-          run_jobs Que.execute("SELECT * FROM que_jobs")
+          run_jobs
 
           assert_equal 1, jobs.count
           job = jobs.first
@@ -322,7 +354,7 @@ describe Que::Worker do
           CustomRetryIntervalJob.enqueue
 
           assert_equal 1, jobs.count
-          run_jobs Que.execute("SELECT * FROM que_jobs")
+          run_jobs
           assert_equal 0, jobs.count
         ensure
           Que.error_notifier = nil
@@ -349,7 +381,7 @@ describe Que::Worker do
           CustomRetryIntervalJob.enqueue
 
           assert_equal 1, unprocessed_jobs.count
-          run_jobs Que.execute("SELECT * FROM que_jobs")
+          run_jobs
           assert_equal 0, unprocessed_jobs.count
 
           assert_nil error
@@ -382,7 +414,7 @@ describe Que::Worker do
           end
 
           CustomRetryIntervalJob.enqueue
-          run_jobs Que.execute("SELECT * FROM que_jobs")
+          run_jobs
           assert_nil $error_handler_failed
 
           assert_equal 1, jobs.count
