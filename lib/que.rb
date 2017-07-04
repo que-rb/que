@@ -47,5 +47,11 @@ module Que
     def_delegators :pool, :execute, :checkout, :in_transaction?
     def_delegators Job, :enqueue, :run_synchronously, :run_synchronously=
     def_delegators Migrations, :db_version, :migrate!
+
+    attr_writer :default_queue
+
+    def default_queue
+      @default_queue || DEFAULT_QUEUE
+    end
   end
 end

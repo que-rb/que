@@ -83,7 +83,6 @@ describe Que::Job do
           assert_equal [1, 2, 3], $args
         end
 
-
         it "should make it easy to destroy the job" do
           TestJobClass.class_eval do
             def run
@@ -94,6 +93,8 @@ describe Que::Job do
           execute
           assert_empty jobs_dataset
         end
+
+        it "should make it easy to finish the job"
       end
     end
   end
@@ -137,5 +138,7 @@ describe Que::Job do
     def execute(*args)
       TestJobClass.run(*args)
     end
+
+    it "should raise an error if it kills the job"
   end
 end

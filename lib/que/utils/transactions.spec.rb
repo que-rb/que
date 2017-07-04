@@ -3,6 +3,18 @@
 require 'spec_helper'
 
 describe Que::Utils::Transactions do
+  it "should be able to commit the transaction successfully" do
+    refute Que.in_transaction?
+    Que.transaction do
+      assert Que.in_transaction?
+      Que.execute "INSERT INTO que_jobs (job_class) VALUES ('MyJobClass');"
+      assert Que.in_transaction?
+    end
+    refute Que.in_transaction?
+
+    assert_equal ['MyJobClass'], jobs_dataset.select_map(:job_class)
+  end
+
   it "should use a transaction to rollback changes in the event of an error" do
     begin
       Que.transaction do
