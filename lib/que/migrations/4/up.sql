@@ -19,7 +19,17 @@ ALTER TABLE que_jobs
 UPDATE que_jobs
 SET is_processed = false,
     queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
-    last_error_backtrace = regexp_replace(last_error_message, '^[^\n]+\n', ''),
+    -- Some old error fields are missing the backtrace, so try to provide a
+    -- reasonable default.
+    last_error_backtrace =
+      CASE
+      WHEN last_error_message IS NULL
+        THEN NULL
+      WHEN last_error_message ~ '\n'
+        THEN regexp_replace(last_error_message, '^[^\n]+\n', '')
+      ELSE
+        ''
+      END,
     last_error_message   = substring(last_error_message from '^[^\n]+'),
     data = json_build_object(
       'args',

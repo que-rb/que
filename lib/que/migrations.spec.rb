@@ -104,8 +104,6 @@ describe Que::Migrations do
   end
 
   describe "migration #4" do
-    it "should handle last_errors without a backtrace"
-
     it "should correctly migrate data down and up" do
       DB[:que_jobs].insert(
         id: 1,
@@ -150,12 +148,13 @@ describe Que::Migrations do
       # handles those. This behavior was never supported, so it shouldn't
       # happen, but better safe than sorry.
 
-      # The table primary key is different at this migration, so provide a
+      # The table primary key is different at this schema version, so provide a
       # returning clause so that Sequel doesn't get confused.
       DB[:que_jobs].returning(:job_id).insert(
         job_id: 3,
         job_class: 'Que::Job',
         args: JSON.dump({arg1: true, arg2: 'a'}),
+        last_error: "Error without a backtrace!",
       )
 
       DB[:que_jobs].returning(:job_id).insert(
@@ -189,8 +188,8 @@ describe Que::Migrations do
             is_processed: false,
             data: {args: [{arg1: true, arg2: 'a'}]},
             queue: 'default',
-            last_error_message: nil,
-            last_error_backtrace: nil,
+            last_error_message: "Error without a backtrace!",
+            last_error_backtrace: "",
           },
           {
             id: 4,
