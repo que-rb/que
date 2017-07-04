@@ -25,18 +25,18 @@ describe Que::Worker do
 
   before { worker }
 
-  def run_jobs(*passed_jobs)
-    jobs_to_run =
-      if passed_jobs.any?
-        passed_jobs.flatten!
-        passed_jobs
+  def run_jobs(*jobs)
+    jobs =
+      if jobs.any?
+        jobs.flatten!
+        jobs
       else
         jobs_dataset.all
       end
 
     result_queue.clear
 
-    jobs_to_run.map! { |job|
+    jobs.map! { |job|
       {
         priority: job[:priority],
         run_at: job[:run_at],
@@ -44,9 +44,9 @@ describe Que::Worker do
       }
     }
 
-    job_ids = jobs_to_run.map{|j| j[:id]}.sort
+    job_ids = jobs.map{|j| j[:id]}.sort
 
-    job_queue.push *jobs_to_run
+    job_queue.push *jobs
 
     sleep_until do
       result_queue.length == job_ids.length &&
