@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-# Workers basically wrap threads, which continually pull primary keys of jobs
-# from internal JobQueue objects, fetch and work those jobs, then pass their
-# ids to ResultQueues to be unlocked.
+# Workers basically wrap threads which continuously pull job ids from JobQueue
+# objects, fetch and work those jobs, then pass their ids to ResultQueues to be
+# unlocked.
 
 module Que
   class Worker

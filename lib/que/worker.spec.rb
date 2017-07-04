@@ -26,27 +26,22 @@ describe Que::Worker do
   before { worker }
 
   def run_jobs(*jobs)
-    jobs =
-      if jobs.any?
-        jobs.flatten!
-        jobs
-      else
-        jobs_dataset.all
-      end
+    jobs.flatten!
+    jobs = jobs_dataset.all if jobs.empty?
 
     result_queue.clear
 
-    jobs.map! { |job|
+    jobs.map! do |job|
       {
         priority: job[:priority],
-        run_at: job[:run_at],
-        id: job[:id]
+        run_at:   job[:run_at],
+        id:       job[:id],
       }
-    }
+    end
 
     job_ids = jobs.map{|j| j[:id]}.sort
 
-    job_queue.push *jobs
+    job_queue.push(*jobs)
 
     sleep_until do
       result_queue.length == job_ids.length &&
@@ -146,19 +141,15 @@ describe Que::Worker do
     end
 
     it "should pass it to the error notifier" do
-      begin
-        error = nil
-        Que.error_notifier = proc { |e| error = e }
+      error = nil
+      Que.error_notifier = proc { |e| error = e }
 
-        ErrorJob.enqueue priority: 1
+      ErrorJob.enqueue priority: 1
 
-        run_jobs
+      run_jobs
 
-        assert_instance_of RuntimeError, error
-        assert_equal "ErrorJob!", error.message
-      ensure
-        Que.error_notifier = nil
-      end
+      assert_instance_of RuntimeError, error
+      assert_equal "ErrorJob!", error.message
     end
 
     it "should exponentially back off the job" do
@@ -283,7 +274,13 @@ describe Que::Worker do
     end
 
     it "should throw an error if the job class doesn't descend from Que::Job" do
+      error = nil
+      Que.error_notifier = proc { |e| error = e }
+
       class J
+        def initialize(*args)
+        end
+
         def run(*args)
         end
       end
@@ -296,139 +293,134 @@ describe Que::Worker do
       job = jobs_dataset.first
       assert_equal 1, job[:error_count]
       assert_in_delta job[:run_at], Time.now + 4, 3
+
+      assert_instance_of NoMethodError, error
     end
 
     describe "in a job class that has a custom error handler" do
       it "should allow it to schedule a retry after a specific interval" do
-        begin
-          error = nil
-          Que.error_notifier = proc { |e| error = e }
+        error = nil
+        Que.error_notifier = proc { |e| error = e }
 
-          class CustomRetryIntervalJob < Que::Job
-            def run(*args)
-              raise "Blah!"
-            end
-
-            private
-
-            def handle_error(error)
-              retry_in(42)
-            end
+        class CustomRetryIntervalJob < Que::Job
+          def run(*args)
+            raise "Blah!"
           end
 
-          CustomRetryIntervalJob.enqueue
+          private
 
-          run_jobs
-
-          assert_equal 1, jobs_dataset.count
-          job = jobs_dataset.first
-          assert_equal 1, job[:error_count]
-          assert_match /\ABlah!/, job[:last_error_message]
-          assert_match(
-            /worker\.spec\.rb/,
-            job[:last_error_backtrace].split("\n").first,
-          )
-          assert_in_delta job[:run_at], Time.now + 42, 3
-        ensure
-          Que.error_notifier = nil
+          def handle_error(error)
+            retry_in(42)
+          end
         end
+
+        CustomRetryIntervalJob.enqueue
+
+        run_jobs
+
+        assert_equal 1, jobs_dataset.count
+        job = jobs_dataset.first
+        assert_equal 1, job[:error_count]
+        assert_match /\ABlah!/, job[:last_error_message]
+        assert_match(
+          /worker\.spec\.rb/,
+          job[:last_error_backtrace].split("\n").first,
+        )
+        assert_in_delta job[:run_at], Time.now + 42, 3
+
+        assert_instance_of RuntimeError, error
+        assert_equal "Blah!", error.message
       end
 
       it "should allow it to destroy the job" do
-        begin
-          error = nil
-          Que.error_notifier = proc { |e| error = e }
+        error = nil
+        Que.error_notifier = proc { |e| error = e }
 
-          class CustomRetryIntervalJob < Que::Job
-            def run(*args)
-              raise "Blah!"
-            end
-
-            private
-
-            def handle_error(error)
-              destroy
-            end
+        class CustomRetryIntervalJob < Que::Job
+          def run(*args)
+            raise "Blah!"
           end
 
-          CustomRetryIntervalJob.enqueue
+          private
 
-          assert_equal 1, jobs_dataset.count
-          run_jobs
-          assert_equal 0, jobs_dataset.count
-        ensure
-          Que.error_notifier = nil
+          def handle_error(error)
+            destroy
+          end
         end
+
+        CustomRetryIntervalJob.enqueue
+
+        assert_equal 1, jobs_dataset.count
+        run_jobs
+        assert_equal 0, jobs_dataset.count
+
+        assert_instance_of RuntimeError, error
+        assert_equal "Blah!", error.message
       end
 
       it "should allow it to return false to skip the error notification" do
-        begin
-          error = nil
-          Que.error_notifier = proc { |e| error = e }
+        error = nil
+        Que.error_notifier = proc { |e| error = e }
 
-          class CustomRetryIntervalJob < Que::Job
-            def run(*args)
-              raise "Blah!"
-            end
-
-            private
-
-            def handle_error(error)
-              false
-            end
+        class CustomRetryIntervalJob < Que::Job
+          def run(*args)
+            raise "Blah!"
           end
 
-          CustomRetryIntervalJob.enqueue
+          private
 
-          assert_equal 1, unprocessed_jobs_dataset.count
-          run_jobs
-          assert_equal 0, unprocessed_jobs_dataset.count
-
-          assert_nil error
-        ensure
-          Que.error_notifier = nil
+          def handle_error(error)
+            false
+          end
         end
+
+        CustomRetryIntervalJob.enqueue
+
+        assert_equal 1, unprocessed_jobs_dataset.count
+        run_jobs
+        assert_equal 0, unprocessed_jobs_dataset.count
+
+        assert_nil error
       end
 
       it "should allow it to call super to get the default behavior" do
-        begin
-          error = nil
-          Que.error_notifier = proc { |e| error = e }
+        error = nil
+        Que.error_notifier = proc { |e| error = e }
 
-          class CustomRetryIntervalJob < Que::Job
-            def run(*args)
-              raise "Blah!"
-            end
-
-            private
-
-            def handle_error(error)
-              case error
-              when RuntimeError
-                super
-              else
-                $error_handler_failed = true
-                raise "Bad!"
-              end
-            end
+        class CustomRetryIntervalJob < Que::Job
+          def run(*args)
+            raise "Blah!"
           end
 
-          CustomRetryIntervalJob.enqueue
-          run_jobs
-          assert_nil $error_handler_failed
+          private
 
-          assert_equal 1, jobs_dataset.count
-          job = jobs_dataset.first
-          assert_equal 1, job[:error_count]
-          assert_match /\ABlah!/, job[:last_error_message]
-          assert_match(
-            /worker\.spec\.rb/,
-            job[:last_error_backtrace].split("\n").first,
-          )
-          assert_in_delta job[:run_at], Time.now + 4, 3
-        ensure
-          Que.error_notifier = nil
+          def handle_error(error)
+            case error
+            when RuntimeError
+              super
+            else
+              $error_handler_failed = true
+              raise "Bad!"
+            end
+          end
         end
+
+        CustomRetryIntervalJob.enqueue
+        run_jobs
+        assert_nil $error_handler_failed
+
+        assert_equal 1, jobs_dataset.count
+        job = jobs_dataset.first
+        assert_equal 1, job[:error_count]
+        assert_match /\ABlah!/, job[:last_error_message]
+        assert_match(
+          /worker\.spec\.rb/,
+          job[:last_error_backtrace].split("\n").first,
+        )
+        assert_in_delta job[:run_at], Time.now + 4, 3
+
+        assert_instance_of RuntimeError, error
+        assert_equal "Blah!", error.message
       end
     end
   end
