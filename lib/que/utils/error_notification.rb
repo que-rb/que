@@ -18,6 +18,28 @@ module Que
         )
         nil
       end
+
+      MAXIMUM_QUEUE_SIZE = 5
+      ASYNC_QUEUE  = Queue.new
+      ASYNC_THREAD = Thread.new { loop { Que.notify_error(*ASYNC_QUEUE.pop) } }
+      ASYNC_THREAD.abort_on_exception = true
+
+      # Helper method to notify errors asynchronously. For use in high-priority
+      # code, where we don't want to be held up by whatever I/O the error
+      # notification proc contains.
+      def notify_error_async(*args)
+        # We don't synchronize around the size check and the push, so there's a
+        # race condition where the queue could grow to more than
+        # MAXIMUM_QUEUE_SIZE errors, but that's not really a huge concern. The
+        # size check is mainly here to ensure that the error queue doesn't grow
+        # unboundedly large in pathological cases.
+        if ASYNC_QUEUE.size < MAXIMUM_QUEUE_SIZE
+          ASYNC_QUEUE.push(args)
+          true
+        else
+          false
+        end
+      end
     end
   end
 end

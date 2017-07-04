@@ -36,9 +36,39 @@ describe Que::Utils::ErrorNotification do
   end
 
   describe "notify_error_async" do
-    it "should invoke notify_error in a separate thread"
+    it "should invoke notify_error in a separate thread" do
+      passed = nil
+      Que.error_notifier = proc { |*args| passed = args }
 
-    it "should swallow the error if there are more than five in the queue"
+      assert_equal true, Que.notify_error_async(1, 2)
+      sleep_until { passed == [1, 2] }
+      assert_empty Que::Utils::ErrorNotification::ASYNC_QUEUE
+    end
+
+    it "should swallow the error if there are more than five in the queue" do
+      begin
+        passed = nil
+        q = Queue.new
+        Que.error_notifier = proc { |*args| passed = args; q.pop }
+
+        assert_equal true, Que.notify_error_async(1, 2)
+        sleep_until { passed == [1, 2] }
+
+        assert_equal 0, Que::Utils::ErrorNotification::ASYNC_QUEUE.size
+
+        5.times { |i| assert_equal true, Que.notify_error_async(i) }
+
+        assert_equal 5, Que::Utils::ErrorNotification::ASYNC_QUEUE.size
+
+        assert_equal false, Que.notify_error_async('blah')
+      ensure
+        Que.error_notifier = nil
+        q.push(nil)
+        sleep_until do
+          Que::Utils::ErrorNotification::ASYNC_QUEUE.size == 0
+        end
+      end
+    end
   end
 
   describe "error_notifier=" do
