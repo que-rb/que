@@ -41,7 +41,8 @@ module Que
     end
 
     def retry_in(period)
-      Que.execute :set_error, [period, @_error.message] + @attrs.values_at(:queue, :priority, :run_at, :job_id)
+      error_message = "#{@_error.message}\n#{@_error.backtrace.join("\n")}"
+      Que.execute :set_error, [period, error_message] + @attrs.values_at(:queue, :priority, :run_at, :job_id)
       @retried = true
     end
 

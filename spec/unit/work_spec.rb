@@ -432,7 +432,10 @@ describe Que::Job, '.work' do
           DB[:que_jobs].count.should be 1
           job = DB[:que_jobs].first
           job[:error_count].should be 1
-          job[:last_error].should =~ /\ABlah!/
+
+          lines = job[:last_error].split("\n")
+          lines[0].should == "Blah!"
+          lines[1].should =~ /work_spec/
           job[:run_at].should be_within(3).of Time.now + 42
 
           error.should == result[:error]
