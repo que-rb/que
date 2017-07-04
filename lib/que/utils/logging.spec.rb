@@ -6,9 +6,9 @@ describe Que::Utils::Logging do
   describe "log" do
     it "should record the library and hostname and thread id in JSON" do
       Que.log event: "blah", source: 4
-      assert_equal 1, $logger.messages.count
+      assert_equal 1, QUE_LOGGER.messages.count
 
-      message = JSON.load($logger.messages.first)
+      message = JSON.load(QUE_LOGGER.messages.first)
       assert_equal 'que', message['lib']
       assert_equal Socket.gethostname, message['hostname']
       assert_equal Process.pid, message['pid']
@@ -19,14 +19,14 @@ describe Que::Utils::Logging do
 
     it "should respect a callable set as the logger" do
       begin
-        $logger.messages.clear
+        QUE_LOGGER.messages.clear
         called = false
-        Que.logger = proc { called = true; $logger }
+        Que.logger = proc { called = true; QUE_LOGGER }
         Que.log(event: "blah")
         assert called
         skip "Use a stub?"
       ensure
-        Que.logger = $logger
+        Que.logger = QUE_LOGGER
       end
     end
 
@@ -35,7 +35,7 @@ describe Que::Utils::Logging do
         Que.logger = nil
         assert_nil Que.log(event: "blah")
       ensure
-        Que.logger = $logger
+        Que.logger = QUE_LOGGER
       end
     end
 
@@ -43,8 +43,8 @@ describe Que::Utils::Logging do
       begin
         Que.log_formatter = proc { |data| "Logged event is #{data[:event]}" }
         Que.log event: 'my_event'
-        assert_equal 1, $logger.messages.count
-        assert_equal "Logged event is my_event", $logger.messages.first
+        assert_equal 1, QUE_LOGGER.messages.count
+        assert_equal "Logged event is my_event", QUE_LOGGER.messages.first
       ensure
         Que.log_formatter = nil
       end
@@ -54,7 +54,7 @@ describe Que::Utils::Logging do
       begin
         Que.log_formatter = proc { |data| false }
         Que.log event: "blah"
-        assert_empty $logger.messages
+        assert_empty QUE_LOGGER.messages
       ensure
         Que.log_formatter = nil
       end
@@ -77,7 +77,7 @@ describe Que::Utils::Logging do
         assert_equal :debug, $level
         assert_equal 'two', JSON.load($message)['message']
       ensure
-        Que.logger = $logger
+        Que.logger = QUE_LOGGER
         $level = $message = nil
       end
     end
@@ -87,9 +87,9 @@ describe Que::Utils::Logging do
         Que.log_formatter = proc { |m| raise "Blah!" }
 
         Que.log event: "blah", source: 4
-        assert_equal 1, $logger.messages.count
+        assert_equal 1, QUE_LOGGER.messages.count
 
-        message = $logger.messages.first
+        message = QUE_LOGGER.messages.first
         assert message.start_with?(
           "Error raised from Que.log_formatter proc: RuntimeError: Blah!"
         )

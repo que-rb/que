@@ -79,19 +79,19 @@ Que::Migrations.migrate!
 
 
 # Set up a dummy logger.
-Que.logger = $logger = Object.new
-$logger_mutex = Mutex.new # Protect against rare errors on Rubinius/JRuby.
+Que.logger = QUE_LOGGER = Object.new
+QUE_LOGGER_MUTEX = Mutex.new # Protect against rare errors on Rubinius/JRuby.
 
-def $logger.messages
+def QUE_LOGGER.messages
   @messages ||= []
 end
 
-def $logger.method_missing(m, message)
-  $logger_mutex.synchronize { messages << message }
+def QUE_LOGGER.method_missing(m, message)
+  QUE_LOGGER_MUTEX.synchronize { messages << message }
 end
 
 # Object includes Kernel#warn which is not what we expect, so remove:
-def $logger.warn(message)
+def QUE_LOGGER.warn(message)
   method_missing(:warn, message)
 end
 
@@ -144,7 +144,7 @@ class QueSpec < Minitest::Spec
   end
 
   def logged_messages
-    $logger.messages.map { |message| JSON.load(message) }
+    QUE_LOGGER.messages.map { |message| JSON.load(message) }
   end
 
   def locked_ids
@@ -174,7 +174,7 @@ class QueSpec < Minitest::Spec
 
     Que.pool = QUE_POOL
 
-    $logger.messages.clear
+    QUE_LOGGER.messages.clear
     $q1, $q2 = Queue.new, Queue.new
     $passed_args = nil
 
