@@ -23,14 +23,6 @@ module Que
 
 
 
-    ### Error Handling ###
-
-    # error_notifier is just a proc that is passed errors raised by jobs when
-    # they occur.
-    attr_accessor :error_notifier
-
-
-
     ### Default ###
 
     attr_writer :default_queue

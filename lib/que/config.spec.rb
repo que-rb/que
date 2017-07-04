@@ -17,8 +17,4 @@ describe Que do
       assert_match /Que connection not established!/, error.message
     end
   end
-
-  describe "error_notifier=" do
-    it "should raise an error unless passed nil or a callable"
-  end
 end

@@ -74,10 +74,8 @@ module Que
             begin
               callback.call(message)
               true
-            rescue => e
-              if notifier = Que.error_notifier
-                notifier.call(e)
-              end
+            rescue => error
+              Que.notify_error(error)
               false
             end
           end

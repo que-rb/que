@@ -21,10 +21,7 @@ module Que
       @que_error = error
       run_error_notifier = handle_error(error)
 
-      if run_error_notifier && Que.error_notifier
-        # Protect the work loop from a failure of the error notifier.
-        Que.error_notifier.call(error, que_attrs) rescue nil
-      end
+      Que.notify_error(error, que_attrs) if run_error_notifier
     ensure
       finish unless @que_resolved
     end

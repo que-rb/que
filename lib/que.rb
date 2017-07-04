@@ -11,6 +11,7 @@ module Que
 
   require_relative 'que/utils/assertions'
   require_relative 'que/utils/constantization'
+  require_relative 'que/utils/error_notification'
   require_relative 'que/utils/introspection'
   require_relative 'que/utils/json_serialization'
   require_relative 'que/utils/logging'
@@ -33,6 +34,7 @@ module Que
   class << self
     include Utils::Assertions
     include Utils::Constantization
+    include Utils::ErrorNotification
     include Utils::Introspection
     include Utils::JSONSerialization
     include Utils::Logging
