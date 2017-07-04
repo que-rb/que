@@ -31,20 +31,6 @@ module Que
 
 
 
-    ### Logging ###
-
-    attr_writer :logger, :log_formatter
-
-    def logger
-      @logger.respond_to?(:call) ? @logger.call : @logger
-    end
-
-    def log_formatter
-      @log_formatter ||= JSON.method(:dump)
-    end
-
-
-
     ### Default ###
 
     attr_writer :default_queue

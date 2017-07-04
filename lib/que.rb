@@ -2,7 +2,6 @@
 
 require 'forwardable'
 require 'socket' # For Socket.gethostname
-require 'json'
 
 module Que
   CURRENT_HOSTNAME = Socket.gethostname.freeze

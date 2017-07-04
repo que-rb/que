@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Tools for logging from Que.
+
 module Que
   module Utils
     module Logging
@@ -25,6 +27,16 @@ module Que
             l.error(msg)
           end
         end
+      end
+
+      attr_writer :logger, :log_formatter
+
+      def logger
+        @logger.respond_to?(:call) ? @logger.call : @logger
+      end
+
+      def log_formatter
+        @log_formatter ||= JSON.method(:dump)
       end
     end
   end

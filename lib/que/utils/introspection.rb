@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-# An assertion helper, so that error reports will hopefully be of higher
-# quality.
+# Tools for introspecting the state of the job queue.
 
 module Que
   module Utils

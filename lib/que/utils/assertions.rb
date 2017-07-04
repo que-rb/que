@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
-# An assertion helper, so that error reports will hopefully be of higher
-# quality.
+# Assertion helpers. Que has a fair amount of internal state, and there's no
+# telling what users will try to throw at it, so for ease of debugging issues it
+# makes sense to sanity-check frequently.
 
 module Que
   module Utils
