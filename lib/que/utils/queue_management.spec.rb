@@ -18,7 +18,7 @@ describe Que::Utils::QueueManagement do
       assert_equal 0, Que.db_version
       Que.create!
       assert_equal 1, Que.db_version
-      Que.migrate!
+      Que.migrate!(version: Que::Migrations::CURRENT_VERSION)
     end
   end
 
@@ -27,7 +27,7 @@ describe Que::Utils::QueueManagement do
       refute_equal 0, Que.db_version
       Que.drop!
       assert_equal 0, Que.db_version
-      Que.migrate!
+      Que.migrate!(version: Que::Migrations::CURRENT_VERSION)
     end
   end
 end

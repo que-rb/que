@@ -74,7 +74,7 @@ end
 DB.drop_table? :que_jobs
 DB.drop_table? :que_lockers
 DB.drop_function :que_job_notify, if_exists: true
-Que::Migrations.migrate!
+Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
 
 
 

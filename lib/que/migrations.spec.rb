@@ -27,7 +27,7 @@ describe Que::Migrations do
     assert_equal 100, default.call
 
     # Clean up.
-    Que.migrate!
+    Que.migrate!(version: Que::Migrations::CURRENT_VERSION)
   end
 
   it "should be able to get and set the current schema version" do
@@ -43,13 +43,13 @@ describe Que::Migrations do
     Que::Migrations.migrate! version: 0
     assert_equal 0, Que::Migrations.db_version
     assert_equal 0, Que.db_version
-    Que::Migrations.migrate!
+    Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
     assert_equal Que::Migrations::CURRENT_VERSION, Que::Migrations.db_version
 
     # The helper on the Que module does the same thing.
     Que.migrate! version: 0
     assert_equal 0, Que::Migrations.db_version
-    Que.migrate!
+    Que.migrate!(version: Que::Migrations::CURRENT_VERSION)
     assert_equal Que::Migrations::CURRENT_VERSION, Que::Migrations.db_version
   end
 
@@ -59,7 +59,7 @@ describe Que::Migrations do
     refute DB.table_exists?(:que_jobs)
 
     # Clean up.
-    Que::Migrations.migrate!
+    Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
     assert DB.table_exists?(:que_jobs)
   end
 
@@ -68,7 +68,7 @@ describe Que::Migrations do
     DB.create_table(:que_jobs){serial :id} # Dummy Table.
     assert_equal 1, Que::Migrations.db_version
     DB.drop_table(:que_jobs)
-    Que.migrate!
+    Que.migrate!(version: Que::Migrations::CURRENT_VERSION)
   end
 
   it "should be able to honor the original behavior of Que.create!" do
@@ -78,7 +78,7 @@ describe Que::Migrations do
     assert_equal 1, Que::Migrations.db_version
 
     # Clean up.
-    Que::Migrations.migrate!
+    Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
     assert DB.table_exists?(:que_jobs)
   end
 

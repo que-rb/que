@@ -7,7 +7,7 @@ module Que
     CURRENT_VERSION = 4
 
     class << self
-      def migrate!(version: CURRENT_VERSION)
+      def migrate!(version:)
         Que.transaction do
           current = db_version
 
