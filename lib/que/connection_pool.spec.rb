@@ -65,6 +65,8 @@ describe Que::ConnectionPool do
       )
     end
 
+    it "should typecast timestamps regardless of the output format"
+
     it "should reuse the same connection when inside a checkout block"
   end
 end
