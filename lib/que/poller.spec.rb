@@ -150,4 +150,6 @@ describe Que::Poller do
     4.times { q4.push nil }
     threads.each(&:join)
   end
+
+  it "should_poll? should exhibit reasonable behavior"
 end

@@ -17,17 +17,14 @@ describe Que::Utils::Logging do
       assert_equal Thread.current.object_id, message['thread']
     end
 
-    it "should allow a callable to be set as the logger" do
+    it "should respect a callable set as the logger" do
       begin
         $logger.messages.clear
-        Que.logger = proc { $logger }
-
-        Que::Job.enqueue
-        locker = Que::Locker.new
-        sleep_until { unprocessed_jobs_dataset.empty? }
-        locker.stop!
-
-        assert $logger.messages.count > 0
+        called = false
+        Que.logger = proc { called = true; $logger }
+        Que.log(event: "blah")
+        assert called
+        skip "Use a stub?"
       ensure
         Que.logger = $logger
       end
@@ -35,13 +32,8 @@ describe Que::Utils::Logging do
 
     it "should not raise an error when no logger is present" do
       begin
-        # Make sure we can get through a work cycle without a logger.
         Que.logger = nil
-
-        Que::Job.enqueue
-        locker = Que::Locker.new
-        sleep_until { unprocessed_jobs_dataset.empty? }
-        locker.stop!
+        assert_nil Que.log(event: "blah")
       ensure
         Que.logger = $logger
       end
@@ -61,7 +53,6 @@ describe Que::Utils::Logging do
     it "should not log anything if the logging formatter returns falsey" do
       begin
         Que.log_formatter = proc { |data| false }
-
         Que.log event: "blah"
         assert_empty $logger.messages
       ensure

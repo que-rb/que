@@ -11,10 +11,10 @@ describe Que::Utils::ErrorNotification do
     describe "when the error notification proc raises an error" do
       it "should log loudly and swallow it"
     end
+  end
 
-    describe "when passed an async argument" do
-      it "should pass the args to a queue to be notified on a separate thread"
-    end
+  describe "notify_error_async" do
+    it "should invoke notify_error in a separate thread"
   end
 
   describe "error_notifier=" do
