@@ -75,10 +75,7 @@ module Que
               callback.call(message)
               true
             rescue => error
-              # TODO: Want to notify this error asynchronously, because whatever
-              # thread is listening for messages we won't want to tie up with
-              # what is probably a long-running HTTP call.
-              Que.notify_error(error)
+              Que.notify_error_async(error)
               false
             end
           end
