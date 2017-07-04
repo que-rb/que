@@ -52,7 +52,7 @@ describe Que::Worker do
     end
   end
 
-  it "should handle namespaced subclasses" do
+  it "should handle namespaced job subclasses" do
     begin
       $run = false
 
@@ -233,6 +233,9 @@ describe Que::Worker do
     end
 
     it "should throw an error properly if there's no corresponding job class" do
+      error = nil
+      Que.error_notifier = proc { |e| error = e }
+
       jobs.insert job_class: "NonexistentClass"
 
       run_jobs Que.execute("SELECT * FROM que_jobs")
@@ -243,6 +246,8 @@ describe Que::Worker do
       assert_match /uninitialized constant:? .*NonexistentClass/,
         job[:last_error_message]
       assert_in_delta job[:run_at], Time.now + 4, 3
+
+      assert_instance_of NameError, error
     end
 
     it "should throw an error if the job class doesn't descend from Que::Job" do

@@ -86,8 +86,10 @@ module Que
             },
           )
 
+          Que.notify_error(error)
+
           begin
-            # If the Job class couldn't be determined, use the default retry
+            # If the Job class couldn't be resolved, use the default retry
             # backoff logic in Que::Job.
             job_class =
               if klass && klass <= Job
