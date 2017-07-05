@@ -4,14 +4,27 @@ jobs:
     working_directory: ~/que
     docker:
       - image: circleci/ruby:2.4
-        environment:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/que-test
       - image: circleci/postgres:9.6
         environment:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: que-test
+          POSTGRES_PORT: 5432
+      - image: circleci/postgres:9.5
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: que-test
+          POSTGRES_PORT: 5433
+      - image: circleci/postgres:9.4
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: que-test
+          POSTGRES_PORT: 5434
     steps:
       - checkout
       - run: bundle
-      - run: TEST_OPTS="--verbose --profile" bundle exec rake
+      - run: DATABASE_URL=postgres://postgres:postgres@localhost:5432/que-test TEST_OPTS="--verbose --profile" bundle exec rake
+      - run: DATABASE_URL=postgres://postgres:postgres@localhost:5433/que-test TEST_OPTS="--verbose --profile" bundle exec rake
+      - run: DATABASE_URL=postgres://postgres:postgres@localhost:5434/que-test TEST_OPTS="--verbose --profile" bundle exec rake
