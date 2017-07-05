@@ -9,19 +9,18 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: que-test
-          POSTGRES_PORT: 5432
       - image: circleci/postgres:9.5
+        command: -p 5433:5432
         environment:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: que-test
-          POSTGRES_PORT: 5433
       - image: circleci/postgres:9.4
+        command: -p 5434:5432
         environment:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: que-test
-          POSTGRES_PORT: 5434
     steps:
       - checkout
       - run: bundle
