@@ -1,4 +1,4 @@
-### Unreleased
+### 0.13.1 (2017-07-05)
 
 *   Fix issue that caused error stacktraces to not be persisted in most cases.
 
