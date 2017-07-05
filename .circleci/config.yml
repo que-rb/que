@@ -13,4 +13,5 @@ jobs:
           POSTGRES_DB: que-test
     steps:
       - checkout
+      - run: bundle
       - run: TEST_OPTS="--verbose --profile" bundle exec rake
