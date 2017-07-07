@@ -29,6 +29,51 @@ describe Que::ConnectionPool do
       refute_nil id2
       assert_equal id1, id2
     end
+
+    it "if the pool is not reentrant should raise an error" do
+      a = [1, 2, 3]
+      pool =
+        Que::ConnectionPool.new do |&block|
+          begin
+            i = a.pop
+            block.call(i)
+          ensure
+            a << i
+          end
+        end
+
+      pool.checkout do |i|
+        assert_equal 3, i
+        assert_equal [1, 2], a
+        error = assert_raises(Que::Error) { pool.checkout {} }
+        assert_match /is not reentrant/, error.message
+        assert_equal [1, 2], a
+      end
+
+      assert_equal [1, 2, 3], a
+    end
+
+    it "if the pool yields an object that's already checked out should error" do
+      pool = Que::ConnectionPool.new { |&block| block.call(4) }
+
+      q1, q2 = Queue.new, Queue.new
+      t =
+        Thread.new do
+          pool.checkout do |conn|
+            q1.push(nil)
+            q2.pop
+            assert_equal 4, conn
+          end
+        end
+
+      q1.pop
+
+      error = assert_raises(Que::Error) { pool.checkout {} }
+      assert_match /did not synchronize access properly/, error.message
+
+      q2.push(nil)
+      t.join
+    end
   end
 
   describe ".in_transaction?" do

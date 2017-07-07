@@ -8,10 +8,45 @@ module Que
   class ConnectionPool
     def initialize(&block)
       @connection_proc = block
+      @checked_out = Set.new
+      @mutex = Mutex.new
     end
 
-    def checkout(&block)
-      @connection_proc.call(&block)
+    def checkout
+      @connection_proc.call do |conn|
+        original  = Thread.current[:que_connection]
+        was_added = nil
+
+        begin
+          if original.nil?
+            @mutex.synchronize do
+              was_added = @checked_out.add?(conn.object_id)
+              unless was_added
+                raise Error, "Connection pool did not synchronize access properly!"
+              end
+            end
+          end
+
+          if original
+            if original.object_id != conn.object_id
+              raise Error, "Connection pool is not reentrant!"
+            end
+          else
+            Thread.current[:que_connection] = conn
+          end
+
+          yield(conn)
+        ensure
+          if original.nil?
+            Thread.current[:que_connection] = nil
+            if was_added
+              @mutex.synchronize do
+                Que.assert(@checked_out.delete?(conn.object_id))
+              end
+            end
+          end
+        end
+      end
     end
 
     def execute(command, params = nil)
