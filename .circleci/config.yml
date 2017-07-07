@@ -12,14 +12,6 @@ jobs:
     steps:
       - checkout
 
-      # # TODO: Try to do this in the Docker container?
-      # - run:
-      #     command: |
-      #       for version in $RUBY_VERSIONS
-      #       do
-      #         rvm $version do gem install bundler
-      #       done
-
       # Concatenate all our Gemfiles together, so we can update our Bundler
       # cache key whenever any of them change.
       - run: md5sum spec/gemfiles/Gemfile.* > bundler_checksum
@@ -33,7 +25,6 @@ jobs:
             do
               for gemfile_version in $GEMFILE_VERSIONS
               do
-                # Can install gems with any Ruby version - might as well use 2.4.
                 rvm $ruby_version do bundle install --gemfile spec/gemfiles/Gemfile.$gemfile_version --path vendor
               done
             done
