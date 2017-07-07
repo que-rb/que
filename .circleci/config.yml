@@ -6,12 +6,16 @@ jobs:
       - image: chanks/que-circleci:0.0.1
     steps:
       - checkout
-#      - run: rvm all do gem install bundler
-      - run: cd que && rvm all do bundle
+      - run: rvm 2.4 do gem install bundler
+      - run: rvm 2.3 do gem install bundler
+      - run: rvm 2.2 do gem install bundler
 
-      - run: echo "local all all trust" > /etc/postgresql/9.6/main/pg_hba.conf
-      - run: echo "local all all trust" > /etc/postgresql/9.5/main/pg_hba.conf
-      - run: echo "local all all trust" > /etc/postgresql/9.4/main/pg_hba.conf
+      - run: rvm 2.4 do bundle install --gemfile=que/Gemfile
+      - run: rvm 2.3 do bundle install --gemfile=que/Gemfile
+      - run: rvm 2.2 do bundle install --gemfile=que/Gemfile
+
+      - run: echo "host all all 127.0.0.1/32 trust" > /etc/postgresql/9.6/main/pg_hba.conf
+      - run: echo "local all all trust" >> /etc/postgresql/9.6/main/pg_hba.conf
 
       - run: mkdir /etc/ssl/private-copy; mv /etc/ssl/private/* /etc/ssl/private-copy/; rm -r /etc/ssl/private; mv /etc/ssl/private-copy /etc/ssl/private; chmod -R 0700 /etc/ssl/private; chown -R postgres /etc/ssl/private
       - run: service postgresql start
@@ -20,6 +24,7 @@ jobs:
       - run: createdb que-test -U postgres -p 5433
       - run: createdb que-test -U postgres -p 5434
 
-      - run: DATABASE_URL=postgres://postgres:postgres@localhost:5432/que-test TEST_OPTS="--verbose --profile" rvm all do bundle exec rake
-      - run: DATABASE_URL=postgres://postgres:postgres@localhost:5433/que-test TEST_OPTS="--verbose --profile" rvm all do bundle exec rake
-      - run: DATABASE_URL=postgres://postgres:postgres@localhost:5434/que-test TEST_OPTS="--verbose --profile" rvm all do bundle exec rake
+      - run: cd que
+      - run: DATABASE_URL=postgres://postgres:postgres@localhost:5432/que-test TEST_OPTS="--verbose --profile" rvm 2.4 do bundle exec rake
+      - run: DATABASE_URL=postgres://postgres:postgres@localhost:5433/que-test TEST_OPTS="--verbose --profile" rvm 2.3 do bundle exec rake
+      - run: DATABASE_URL=postgres://postgres:postgres@localhost:5434/que-test TEST_OPTS="--verbose --profile" rvm 2.2 do bundle exec rake
