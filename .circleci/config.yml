@@ -4,26 +4,64 @@ jobs:
     working_directory: ~/que
     docker:
       - image: chanks/que-circleci:0.0.1
+    environment:
+      - RUBY_VERSIONS: "2.2 2.3 2.4"
+      - PG_VERSIONS: "9.4 9.5 9.6"
+      - PG_PORTS: "5432 5433 5434"
     steps:
       - checkout
-      - run: rvm 2.4 do gem install bundler
-      - run: rvm 2.3 do gem install bundler
-      - run: rvm 2.2 do gem install bundler
 
-      - run: rvm 2.4 do bundle install
-      - run: rvm 2.3 do bundle install
-      - run: rvm 2.2 do bundle install
+      - run:
+          command: |
+            for version in $RUBY_VERSIONS
+            do
+              rvm $version do gem install bundler
+              rvm $version do bundle install
+            done
 
-      - run: echo "host all all 127.0.0.1/32 trust" > /etc/postgresql/9.6/main/pg_hba.conf
-      - run: echo "local all all trust" >> /etc/postgresql/9.6/main/pg_hba.conf
+      # - run: rvm 2.3 do gem install bundler
+      # - run: rvm 2.3 do gem install bundler
+      # - run: rvm 2.2 do gem install bundler
+
+      # - run: rvm 2.4 do bundle install
+      # - run: rvm 2.3 do bundle install
+      # - run: rvm 2.2 do bundle install
+
+      # - run: echo "host all all 127.0.0.1/32 trust" > /etc/postgresql/9.6/main/pg_hba.conf
+      # - run: echo "local all all trust" >> /etc/postgresql/9.6/main/pg_hba.conf
+
+      - run:
+          command: |
+            for version in $PG_VERSIONS
+            do
+              echo "host all all 127.0.0.1/32 trust" > /etc/postgresql/$version/main/pg_hba.conf
+              echo "local all all trust" >> /etc/postgresql/$version/main/pg_hba.conf
+            done
 
       - run: mkdir /etc/ssl/private-copy; mv /etc/ssl/private/* /etc/ssl/private-copy/; rm -r /etc/ssl/private; mv /etc/ssl/private-copy /etc/ssl/private; chmod -R 0700 /etc/ssl/private; chown -R postgres /etc/ssl/private
       - run: service postgresql start
 
-      - run: createdb que-test -U postgres -p 5432
-      - run: createdb que-test -U postgres -p 5433
-      - run: createdb que-test -U postgres -p 5434
+      - run:
+          command: |
+            for port in $PG_PORTS
+            do
+              createdb que-test -U postgres -p $port
+            done
 
-      - run: DATABASE_URL=postgres://postgres:postgres@localhost:5432/que-test TEST_OPTS="--verbose --profile" rvm 2.4 do bundle exec rake
-      - run: DATABASE_URL=postgres://postgres:postgres@localhost:5433/que-test TEST_OPTS="--verbose --profile" rvm 2.3 do bundle exec rake
-      - run: DATABASE_URL=postgres://postgres:postgres@localhost:5434/que-test TEST_OPTS="--verbose --profile" rvm 2.2 do bundle exec rake
+      - run:
+          command: |
+            for port in $PG_PORTS
+            do
+              for version in $RUBY_VERSIONS
+              do
+                DATABASE_URL=postgres://postgres:postgres@localhost:$port/que-test TEST_OPTS="--verbose --profile" rvm $version do bundle exec rake
+              done
+            done
+
+      # - run: createdb que-test -U postgres -p 5432
+      # - run: createdb que-test -U postgres -p 5433
+      # - run: createdb que-test -U postgres -p 5434
+
+      # - run: DATABASE_URL=postgres://postgres:postgres@localhost:5432/que-test TEST_OPTS="--verbose --profile" rvm 2.4 do bundle exec rake
+      # - run: DATABASE_URL=postgres://postgres:postgres@localhost:5433/que-test TEST_OPTS="--verbose --profile" rvm 2.3 do bundle exec rake
+      # - run: DATABASE_URL=postgres://postgres:postgres@localhost:5434/que-test TEST_OPTS="--verbose --profile" rvm 2.2 do bundle exec rake
