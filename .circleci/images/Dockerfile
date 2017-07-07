@@ -9,7 +9,7 @@ RUN apt-get install -y git ssh tar gzip ca-certificates build-essential \
   libc6-dev ncurses-dev automake libtool bison subversion pkg-config
 
 RUN apt-get install -y --allow-unauthenticated \
-  postgresql-common \
+  libpq-dev postgresql-common \
   postgresql-9.6 postgresql-contrib-9.6 \
   postgresql-9.5 postgresql-contrib-9.5 \
   postgresql-9.4 postgresql-contrib-9.4
