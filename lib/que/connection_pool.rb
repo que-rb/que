@@ -10,8 +10,24 @@ module Que
       @connection_proc = block
     end
 
-    def checkout(&block)
-      @connection_proc.call(&block)
+    def checkout
+      @connection_proc.call do |conn|
+        if original = Thread.current[:que_connection]
+          if original.object_id != conn.object_id
+            raise Error, "Connection pool is not reentrant!"
+          end
+        else
+          Thread.current[:que_connection] = conn
+        end
+
+        begin
+          yield(conn)
+        ensure
+          if original.nil?
+            Thread.current[:que_connection] = nil
+          end
+        end
+      end
     end
 
     def execute(command, params = nil)
