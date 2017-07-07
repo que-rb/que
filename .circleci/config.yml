@@ -1,32 +1,12 @@
-defaults: &defaults
-  working_directory: ~/que
-  docker:
-    - image: chanks/que-circleci:0.0.2
-  environment:
-    - RUBY_VERSIONS: "2.2 2.3 2.4"
-    - GEMFILE_VERSIONS: "current old older oldest"
-
-postgres_defaults: &postgres_defaults
-  steps:
-    - run:
-        command: |
-          echo "host all all 127.0.0.1/32 trust" > /etc/postgresql/$PG_VERSION/main/pg_hba.conf
-          echo "local all all trust" >> /etc/postgresql/$PG_VERSION/main/pg_hba.conf
-
-          service postgresql start $PG_VERSION
-          createdb que-test -U postgres -p $PG_PORT
-          for ruby_version in $RUBY_VERSIONS
-          do
-            for gemfile_version in $GEMFILE_VERSIONS
-            do
-              DATABASE_URL="postgres://postgres:postgres@localhost:$PG_PORT/que-test" BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$gemfile_version" TEST_OPTS="--verbose --profile" rvm $ruby_version do bundle exec rake
-            done
-          done
-
 version: 2
 jobs:
   build:
-    <<: *defaults
+    working_directory: ~/que
+    docker:
+      - image: chanks/que-circleci:0.0.2
+    environment:
+      - RUBY_VERSIONS: "2.2 2.3 2.4"
+      - GEMFILE_VERSIONS: "current old older oldest"
     steps:
       - checkout
 
@@ -57,37 +37,67 @@ jobs:
       - run: mkdir /etc/ssl/private-copy; mv /etc/ssl/private/* /etc/ssl/private-copy/; rm -r /etc/ssl/private; mv /etc/ssl/private-copy /etc/ssl/private; chmod -R 0700 /etc/ssl/private; chown -R postgres /etc/ssl/private
 
   postgres_9_6:
-    <<: *defaults
-    <<: *postgres_defaults
     environment:
+      - RUBY_VERSIONS: "2.2 2.3 2.4"
+      - GEMFILE_VERSIONS: "current old older oldest"
       - PG_VERSION: 9.6
       - PG_PORT: 5432
+    steps:
+      - run:
+          command: |
+            echo "host all all 127.0.0.1/32 trust" > /etc/postgresql/$PG_VERSION/main/pg_hba.conf
+            echo "local all all trust" >> /etc/postgresql/$PG_VERSION/main/pg_hba.conf
+
+            service postgresql start $PG_VERSION
+            createdb que-test -U postgres -p $PG_PORT
+            for ruby_version in $RUBY_VERSIONS
+            do
+              for gemfile_version in $GEMFILE_VERSIONS
+              do
+                DATABASE_URL="postgres://postgres:postgres@localhost:$PG_PORT/que-test" BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$gemfile_version" TEST_OPTS="--verbose --profile" rvm $ruby_version do bundle exec rake
+              done
+            done
 
   postgres_9_5:
-    <<: *defaults
-    <<: *postgres_defaults
     environment:
+      - RUBY_VERSIONS: "2.2 2.3 2.4"
+      - GEMFILE_VERSIONS: "current old older oldest"
       - PG_VERSION: 9.5
       - PG_PORT: 5433
+    steps:
+      - run:
+          command: |
+            echo "host all all 127.0.0.1/32 trust" > /etc/postgresql/$PG_VERSION/main/pg_hba.conf
+            echo "local all all trust" >> /etc/postgresql/$PG_VERSION/main/pg_hba.conf
+
+            service postgresql start $PG_VERSION
+            createdb que-test -U postgres -p $PG_PORT
+            for ruby_version in $RUBY_VERSIONS
+            do
+              for gemfile_version in $GEMFILE_VERSIONS
+              do
+                DATABASE_URL="postgres://postgres:postgres@localhost:$PG_PORT/que-test" BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$gemfile_version" TEST_OPTS="--verbose --profile" rvm $ruby_version do bundle exec rake
+              done
+            done
 
   postgres_9_4:
-    <<: *defaults
-    <<: *postgres_defaults
     environment:
+      - RUBY_VERSIONS: "2.2 2.3 2.4"
+      - GEMFILE_VERSIONS: "current old older oldest"
       - PG_VERSION: 9.4
       - PG_PORT: 5434
+    steps:
+      - run:
+          command: |
+            echo "host all all 127.0.0.1/32 trust" > /etc/postgresql/$PG_VERSION/main/pg_hba.conf
+            echo "local all all trust" >> /etc/postgresql/$PG_VERSION/main/pg_hba.conf
 
-workflows:
-  version: 2
-  build_all_postgres_versions:
-    jobs:
-      - build
-      - postgres_9_6:
-          requires:
-            - build
-      - postgres_9_5:
-          requires:
-            - build
-      - postgres_9_4:
-          requires:
-            - build
+            service postgresql start $PG_VERSION
+            createdb que-test -U postgres -p $PG_PORT
+            for ruby_version in $RUBY_VERSIONS
+            do
+              for gemfile_version in $GEMFILE_VERSIONS
+              do
+                DATABASE_URL="postgres://postgres:postgres@localhost:$PG_PORT/que-test" BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$gemfile_version" TEST_OPTS="--verbose --profile" rvm $ruby_version do bundle exec rake
+              done
+            done
