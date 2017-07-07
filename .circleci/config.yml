@@ -10,9 +10,9 @@ jobs:
       - run: rvm 2.3 do gem install bundler
       - run: rvm 2.2 do gem install bundler
 
-      - run: rvm 2.4 do bundle install --gemfile=que/Gemfile
-      - run: rvm 2.3 do bundle install --gemfile=que/Gemfile
-      - run: rvm 2.2 do bundle install --gemfile=que/Gemfile
+      - run: rvm 2.4 do bundle install
+      - run: rvm 2.3 do bundle install
+      - run: rvm 2.2 do bundle install
 
       - run: echo "host all all 127.0.0.1/32 trust" > /etc/postgresql/9.6/main/pg_hba.conf
       - run: echo "local all all trust" >> /etc/postgresql/9.6/main/pg_hba.conf
@@ -24,7 +24,6 @@ jobs:
       - run: createdb que-test -U postgres -p 5433
       - run: createdb que-test -U postgres -p 5434
 
-      - run: cd que
       - run: DATABASE_URL=postgres://postgres:postgres@localhost:5432/que-test TEST_OPTS="--verbose --profile" rvm 2.4 do bundle exec rake
       - run: DATABASE_URL=postgres://postgres:postgres@localhost:5433/que-test TEST_OPTS="--verbose --profile" rvm 2.3 do bundle exec rake
       - run: DATABASE_URL=postgres://postgres:postgres@localhost:5434/que-test TEST_OPTS="--verbose --profile" rvm 2.2 do bundle exec rake
