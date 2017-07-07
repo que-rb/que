@@ -9,8 +9,12 @@ defaults: &defaults
     # cache key whenever any of them change.
     - run: md5sum spec/gemfiles/Gemfile.* > bundler_checksum
 
+    # The CircleCI docs say we can use {{.Environment.RUBY_VERSION}} in the
+    # cache key, which would be cleaner, but all I get is `<no value>` :/
+    - run: echo $RUBY_VERSION >> bundler_checksum
+
     - restore_cache:
-        key: bundler-cache-{{.Environment.rubyVersion}}-{{checksum "bundler_checksum"}}
+        key: bundler-cache-{{checksum "bundler_checksum"}}
 
     - run:
         command: |
@@ -20,7 +24,7 @@ defaults: &defaults
           done
 
     - save_cache:
-        key: bundler-cache-{{.Environment.rubyVersion}}-{{checksum "bundler_checksum"}}
+        key: bundler-cache-{{checksum "bundler_checksum"}}
         paths:
           # Cache Gemfile.locks, and vendored gems are also under this directory.
           - spec/gemfiles
@@ -48,7 +52,7 @@ defaults: &defaults
             do
               DATABASE_URL="postgres://postgres:postgres@localhost:$PG_PORT/que-test" \
               BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
-              TEST_OPTS="--verbose --profile" \
+              TEST_OPTS="--profile" \
               rvm $RUBY_VERSION do bundle exec rake
             done
           done
