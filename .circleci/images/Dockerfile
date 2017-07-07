@@ -20,10 +20,10 @@ ENV PATH /usr/local/rvm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/s
 RUN /bin/bash -l -c "rvm requirements"
 
 RUN /bin/bash -l -c "rvm install 2.2"
-RUN /bin/bash -l -c "gem install bundler --no-ri --no-rdoc"
+RUN /bin/bash -l -c "rvm 2.2 do gem install bundler --no-ri --no-rdoc"
 
 RUN /bin/bash -l -c "rvm install 2.3"
-RUN /bin/bash -l -c "gem install bundler --no-ri --no-rdoc"
+RUN /bin/bash -l -c "rvm 2.3 do gem install bundler --no-ri --no-rdoc"
 
 RUN /bin/bash -l -c "rvm install 2.4"
-RUN /bin/bash -l -c "gem install bundler --no-ri --no-rdoc"
+RUN /bin/bash -l -c "rvm 2.4 do gem install bundler --no-ri --no-rdoc"
