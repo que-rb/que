@@ -46,13 +46,7 @@ jobs:
       # From: https://github.com/nimiq/docker-postgresql93/issues/2
       - run: mkdir /etc/ssl/private-copy; mv /etc/ssl/private/* /etc/ssl/private-copy/; rm -r /etc/ssl/private; mv /etc/ssl/private-copy /etc/ssl/private; chmod -R 0700 /etc/ssl/private; chown -R postgres /etc/ssl/private
       - run: service postgresql start
-
-      - run:
-          command: |
-            for port in $PG_PORTS
-            do
-              createdb que-test -U postgres -p $port
-            done
+      - run: for port in $PG_PORTS; do createdb que-test -U postgres -p $port; done
 
       - run:
           command: |
