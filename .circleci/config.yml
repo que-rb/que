@@ -49,9 +49,9 @@ defaults: &defaults
           done
 
 default_environment: &default_environment
-  - GEMFILE_VERSIONS: "current old older oldest"
-  - PG_VERSIONS: "9.4 9.5 9.6"
-  - PG_PORTS: "5432 5433 5434"
+  GEMFILE_VERSIONS: "current old older oldest"
+  PG_VERSIONS: "9.4 9.5 9.6"
+  PG_PORTS: "5432 5433 5434"
 
 version: 2
 jobs:
@@ -59,19 +59,19 @@ jobs:
     <<: *defaults
     environment:
       <<: *default_environment
-      - RUBY_VERSION: 2.2
+      RUBY_VERSION: 2.2
 
   ruby_2_3:
     <<: *defaults
     environment:
       <<: *default_environment
-      - RUBY_VERSION: 2.3
+      RUBY_VERSION: 2.3
 
   ruby_2_4:
     <<: *defaults
     environment:
       <<: *default_environment
-      - RUBY_VERSION: 2.4
+      RUBY_VERSION: 2.4
 
 workflows:
   version: 2
