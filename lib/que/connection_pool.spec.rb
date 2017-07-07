@@ -53,7 +53,27 @@ describe Que::ConnectionPool do
       assert_equal [1, 2, 3], a
     end
 
-    it "if the pool yields an object that's already checked out should error"
+    it "if the pool yields an object that's already checked out should error" do
+      pool = Que::ConnectionPool.new { |&block| block.call(4) }
+
+      q1, q2 = Queue.new, Queue.new
+      t =
+        Thread.new do
+          pool.checkout do |conn|
+            q1.push(nil)
+            q2.pop
+            assert_equal 4, conn
+          end
+        end
+
+      q1.pop
+
+      error = assert_raises(Que::Error) { pool.checkout {} }
+      assert_match /did not synchronize access properly/, error.message
+
+      q2.push(nil)
+      t.join
+    end
   end
 
   describe ".in_transaction?" do
