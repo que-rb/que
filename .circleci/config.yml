@@ -3,14 +3,13 @@ jobs:
   build:
     working_directory: ~/que
     docker:
-      - image: circleci/ruby:2.4
       - image: chanks/que-circleci:0.0.1
     steps:
       - checkout
       - run: bundle
-      - run: psql -c 'create database "que-test"' -U postgres -p 5432
-      - run: psql -c 'create database "que-test"' -U postgres -p 5433
-      - run: psql -c 'create database "que-test"' -U postgres -p 5434
+      - run: createdb que-test -U postgres -p 5432
+      - run: createdb que-test -U postgres -p 5433
+      - run: createdb que-test -U postgres -p 5434
       - run: DATABASE_URL=postgres://postgres:postgres@localhost:5432/que-test TEST_OPTS="--verbose --profile" bundle exec rake
       - run: DATABASE_URL=postgres://postgres:postgres@localhost:5433/que-test TEST_OPTS="--verbose --profile" bundle exec rake
       - run: DATABASE_URL=postgres://postgres:postgres@localhost:5434/que-test TEST_OPTS="--verbose --profile" bundle exec rake
