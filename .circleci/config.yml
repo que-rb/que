@@ -10,41 +10,46 @@ defaults: &defaults
     - run: md5sum spec/gemfiles/Gemfile.* > bundler_checksum
 
     - restore_cache:
-        key: bundler-cache-{{.Environment.RUBY_VERSION}}-{{checksum "bundler_checksum"}}
+        key: bundler-cache-{{.Environment.rubyVersion}}-{{checksum "bundler_checksum"}}
 
     - run:
         command: |
-          for gemfile_version in $GEMFILE_VERSIONS
+          for GEMFILE_VERSION in $GEMFILE_VERSIONS
           do
-            rvm $RUBY_VERSION do bundle install --gemfile spec/gemfiles/Gemfile.$gemfile_version --path vendor
+            rvm $RUBY_VERSION do bundle install --gemfile spec/gemfiles/Gemfile.$GEMFILE_VERSION --path vendor
           done
 
     - save_cache:
-        key: bundler-cache-{{.Environment.RUBY_VERSION}}-{{checksum "bundler_checksum"}}
+        key: bundler-cache-{{.Environment.rubyVersion}}-{{checksum "bundler_checksum"}}
         paths:
           # Cache Gemfile.locks, and vendored gems are also under this directory.
           - spec/gemfiles
 
     - run:
         command: |
-          for version in $PG_VERSIONS
+          for PG_VERSION in $PG_VERSIONS
           do
-            echo "host all all 127.0.0.1/32 trust" > /etc/postgresql/$version/main/pg_hba.conf
-            echo "local all all trust" >> /etc/postgresql/$version/main/pg_hba.conf
+            echo "host all all 127.0.0.1/32 trust" > /etc/postgresql/$PG_VERSION/main/pg_hba.conf
+            echo "local all all trust" >> /etc/postgresql/$PG_VERSION/main/pg_hba.conf
           done
 
     # From: https://github.com/nimiq/docker-postgresql93/issues/2
     - run: mkdir /etc/ssl/private-copy; mv /etc/ssl/private/* /etc/ssl/private-copy/; rm -r /etc/ssl/private; mv /etc/ssl/private-copy /etc/ssl/private; chmod -R 0700 /etc/ssl/private; chown -R postgres /etc/ssl/private
     - run: service postgresql start
-    - run: for port in $PG_PORTS; do createdb que-test -U postgres -p $port; done
+    - run: for PG_PORT in $PG_PORTS; do createdb que-test -U postgres -p $PG_PORT; done
 
     - run:
+        # TODO: Figure out how to run against multiple Postgres versions
+        # simultaneously on the same box.
         command: |
-          for port in $PG_PORTS
+          for PG_PORT in $PG_PORTS
           do
-            for gemfile_version in $GEMFILE_VERSIONS
+            for GEMFILE_VERSION in $GEMFILE_VERSIONS
             do
-              DATABASE_URL="postgres://postgres:postgres@localhost:$port/que-test" BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$gemfile_version" TEST_OPTS="--verbose --profile" rvm $RUBY_VERSION do bundle exec rake
+              DATABASE_URL="postgres://postgres:postgres@localhost:$PG_PORT/que-test" \
+              BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
+              TEST_OPTS="--verbose --profile" \
+              rvm $RUBY_VERSION do bundle exec rake
             done
           done
 
