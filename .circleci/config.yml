@@ -10,18 +10,48 @@ defaults: &defaults
   steps:
     - checkout
 
-    # Use all our Gemfiles as a Bundler cache key.
-    - run: md5sum spec/gemfiles/Gemfile.* > bundler_checksum
+    # Set up Postgres connection rules and fix SSL certificate error.
+    # SSL fix from https://github.com/nimiq/docker-postgresql93/issues/2
+    - run:
+        name: Postgres Setup
+        command: |
+          for PG_VERSION in $PG_VERSIONS
+          do
+            echo "host all all 127.0.0.1/32 trust" > \
+              /etc/postgresql/$PG_VERSION/main/pg_hba.conf
+            echo "local all all trust" >> \
+              /etc/postgresql/$PG_VERSION/main/pg_hba.conf
+          done
 
-    # The CircleCI docs say we can use {{.Environment.RUBY_VERSION}} in the
-    # cache key, which would be cleaner, but all I get is `<no value>` :/ So, be
-    # a bit hackier.
-    - run: echo $RUBY_VERSION >> bundler_checksum
+          mkdir /etc/ssl/private-copy
+          mv /etc/ssl/private/* /etc/ssl/private-copy/
+          rm -r /etc/ssl/private
+          mv /etc/ssl/private-copy /etc/ssl/private
+          chmod -R 0700 /etc/ssl/private
+          chown -R postgres /etc/ssl/private
+
+    - run:
+        name: Start Postgres
+        command: |
+          for PG_VERSION in $PG_VERSIONS
+          do
+            service postgresql start $PG_VERSION &
+          done
+
+    # Use all our Gemfiles as a Bundler cache key. The CircleCI docs say we can
+    # use {{.Environment.RUBY_VERSION}} in the cache key, which would be
+    # cleaner, but all I get is `<no value>` :/ So, be a bit hackier.
+    - run:
+        name: Calculate Bundler Cache Key
+        command: |
+          md5sum spec/gemfiles/Gemfile.* > bundler_checksum
+          echo $RUBY_VERSION >> bundler_checksum
 
     - restore_cache:
         key: bundler-cache-{{checksum "bundler_checksum"}}
 
     - run:
+        name: Install Gems
         command: |
           for GEMFILE_VERSION in $GEMFILE_VERSIONS
           do
@@ -36,33 +66,15 @@ defaults: &defaults
         paths: spec/gemfiles
 
     - run:
-        command: |
-          for PG_VERSION in $PG_VERSIONS
-          do
-            echo "host all all 127.0.0.1/32 trust" > \
-              /etc/postgresql/$PG_VERSION/main/pg_hba.conf
-            echo "local all all trust" >> \
-              /etc/postgresql/$PG_VERSION/main/pg_hba.conf
-          done
-
-    # Fix Postgres SSL certificate error.
-    # From: https://github.com/nimiq/docker-postgresql93/issues/2
-    - run:
-        command: |
-          mkdir /etc/ssl/private-copy
-          mv /etc/ssl/private/* /etc/ssl/private-copy/
-          rm -r /etc/ssl/private
-          mv /etc/ssl/private-copy /etc/ssl/private
-          chmod -R 0700 /etc/ssl/private
-          chown -R postgres /etc/ssl/private
-
-    - run: service postgresql start
-
-    - run:
+        name: Run Tests
         # Run tests against all Postgres versions simultaneously, since they
         # can't conflict, but save their outputs to files and print them
-        # afterwards so we don't get confusing, interleaved test output.
+        # afterwards so we don't get confusing, interleaved test output. Also
+        # start by waiting, so that we're sure all the Postgres versions are
+        # ready for us.
         command: |
+          wait
+
           for PORT in $PG_PORTS
           do
             (
