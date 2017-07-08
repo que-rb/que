@@ -10,19 +10,20 @@ defaults: &defaults
   steps:
     - checkout
 
-    # Set up Postgres connection rules and fix SSL certificate error.
-    # SSL fix from https://github.com/nimiq/docker-postgresql93/issues/2
     - run:
-        name: Postgres Setup
+        name: Postgres Configuration
         command: |
           for PG_VERSION in $PG_VERSIONS
           do
+            # Set up Postgres connection rules.
             echo "host all all 127.0.0.1/32 trust" > \
               /etc/postgresql/$PG_VERSION/main/pg_hba.conf
             echo "local all all trust" >> \
               /etc/postgresql/$PG_VERSION/main/pg_hba.conf
           done
 
+          # Fix SSL certificate error. Not sure why this is necessary.
+          # See https://github.com/nimiq/docker-postgresql93/issues/2
           mkdir /etc/ssl/private-copy
           mv /etc/ssl/private/* /etc/ssl/private-copy/
           rm -r /etc/ssl/private
@@ -34,11 +35,13 @@ defaults: &defaults
         name: Start Postgres
         background: true
         command: |
-          for PG_VERSION in $PG_VERSIONS
-          do
-            service postgresql start $PG_VERSION &
-          done
+          # Start up versions in parallel.
+          for PG_VERSION in $PG_VERSIONS;
+            do (service postgresql start $PG_VERSION &); done
 
+          # Once they're all started up, use postgres_ready to signal that to a
+          # later command. Do that so we can run this command safely in the
+          # background.
           wait
           touch postgres_ready
 
@@ -57,6 +60,8 @@ defaults: &defaults
     - run:
         name: Install Gems
         command: |
+          # If our vendored gems are present, don't bother running bundle
+          # install, it'll just take up time.
           if [ ! -d spec/gemfiles/vendor ]; then
             for GEMFILE_VERSION in $GEMFILE_VERSIONS
             do
@@ -73,14 +78,12 @@ defaults: &defaults
 
     - run:
         name: Run Tests
-        # Run tests against all Postgres versions simultaneously, since they
-        # can't conflict, but save their outputs to files and print them
-        # afterwards so we don't get confusing, interleaved test output. Also
-        # start by waiting, so that we're sure all the Postgres versions are
-        # ready for us.
         command: |
+          # Wait until we know Postgres is ready.
           while [ ! -f postgres_ready ]; do sleep 0.1; done
 
+          # Run tests against all Postgres versions simultaneously, since they
+          # can't conflict, but save their outputs to files.
           for PORT in $PG_PORTS
           do
             (
@@ -93,12 +96,11 @@ defaults: &defaults
             ) &
           done
 
+          # Let tests finish.
           wait
 
-          for PORT in $PG_PORTS
-          do
-            cat $PORT.output
-          done
+          # Print results in bulk so we don't get confusing, interleaved output.
+          for PORT in $PG_PORTS; do cat $PORT.output; done
 
 version: 2
 jobs:
