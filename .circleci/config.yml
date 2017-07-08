@@ -78,8 +78,7 @@ defaults: &defaults
               do
                 DATABASE_URL="postgres://postgres:@localhost:$PG_PORT/que-test" \
                 BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
-                echo rvm $RUBY_VERSION do bundle exec rake \
-                > $GEMFILE_VERSION.output
+                rvm $RUBY_VERSION do bundle exec rake > $GEMFILE_VERSION.output
               done
             ) &
           done
@@ -88,7 +87,7 @@ defaults: &defaults
 
           for GEMFILE_VERSION in $GEMFILE_VERSIONS
           do
-            echo $GEMFILE_VERSION.output
+            cat $GEMFILE_VERSION.output
           done
 
 version: 2
