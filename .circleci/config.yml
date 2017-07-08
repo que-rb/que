@@ -77,7 +77,7 @@ defaults: &defaults
         name: Run Tests
         command: |
           # Accumulate failed commands (test failures) in this script.
-          set +e
+          RESULT=0
 
           # Wait until we know Postgres is ready.
           while [ ! -f postgres_ready ]; do sleep 0.1; done
@@ -103,11 +103,17 @@ defaults: &defaults
           # Let tests finish.
           for pid in $pids
           do
-            wait $pid
+            wait $pid || let "RESULT=1"
           done
 
           # Print results in bulk so we don't get confusing, interleaved output.
           for PORT in $PG_PORTS; do cat $PORT.output; done
+
+          # Use appropriate exit code, to mark if any of the tests failed.
+          if [ "$RESULT" == "1" ];
+              then
+                 exit 1
+          fi
 
 version: 2
 jobs:
