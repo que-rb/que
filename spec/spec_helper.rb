@@ -62,9 +62,10 @@ DB.extension :pg_array
 
 if ENV['CI']
   DB.synchronize do |conn|
-    puts "Ruby #{RUBY_VERSION}"
-    puts "Sequel #{Sequel::VERSION}"
-    puts conn.async_exec("SELECT version()").to_a.first['version']
+    print "Ruby #{RUBY_VERSION}; "
+    print "PostgreSQL "
+    print conn.async_exec("SHOW server_version").to_a.first['server_version']
+    print "; "
   end
 end
 
