@@ -98,7 +98,7 @@ defaults: &defaults
           # Let tests finish.
           for pid in $pids
           do
-            waitpid $pid
+            wait $pid
           done
 
           # Print results in bulk so we don't get confusing, interleaved output.

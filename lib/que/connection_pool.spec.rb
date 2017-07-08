@@ -8,6 +8,10 @@ describe Que::ConnectionPool do
   end
 
   describe ".checkout" do
+    it "failing spec" do
+      raise "Blah!"
+    end
+
     it "should yield a connection" do
       pool.checkout do |conn|
         assert_instance_of PG::Connection, conn
