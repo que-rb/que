@@ -32,11 +32,15 @@ defaults: &defaults
 
     - run:
         name: Start Postgres
+        background: true
         command: |
           for PG_VERSION in $PG_VERSIONS
           do
             service postgresql start $PG_VERSION &
           done
+
+          wait
+          touch postgres_ready
 
     # Use all our Gemfiles as a Bundler cache key. The CircleCI docs say we can
     # use {{.Environment.RUBY_VERSION}} in the cache key, which would be
@@ -73,7 +77,7 @@ defaults: &defaults
         # start by waiting, so that we're sure all the Postgres versions are
         # ready for us.
         command: |
-          wait
+          while [ ! -f postgres_ready ]; do sleep 0.1; done
 
           for PORT in $PG_PORTS
           do
