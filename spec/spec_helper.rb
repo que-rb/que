@@ -97,10 +97,10 @@ end
 
 
 
-SPEC_LOGGER = Logger.new(STDOUT)
-
 class QueSpec < Minitest::Spec
   include Minitest::Hooks
+
+  SPEC_TIMEOUT = ENV['CI'] ? 10 : 1
 
   register_spec_type(//, self)
 
@@ -165,13 +165,7 @@ class QueSpec < Minitest::Spec
     "#{desc} @ #{spec_line}"
   end
 
-  def setup
-    # Optionally log to STDOUT which spec is about to run. This is noisy, but
-    # helpful in identifying hanging specs.
-    if ENV['LOG_SPEC']
-      SPEC_LOGGER.info "Running spec: #{current_spec_location}"
-    end
-
+  def around
     Que.pool = QUE_POOL
 
     QUE_LOGGER.messages.clear
@@ -180,15 +174,28 @@ class QueSpec < Minitest::Spec
 
     DB[:que_jobs].delete
     DB[:que_lockers].delete
-  end
 
-  def teardown
+    # Timeout is a problematic module in general, since it leaves things in an
+    # unknown and unsafe state. It should be avoided in library code, but in
+    # specs to ensure that they don't hang forever, it should be fine.
+    begin
+      Timeout.timeout(SPEC_TIMEOUT) { super }
+    rescue Timeout::Error => e
+      puts "\n\nSpec timed out: #{current_spec_location}\n\n"
+      # We're now in an unknown state, so there's no point in running the rest
+      # of the specs - they'll just add a bunch of obfuscating output.
+      abort
+    end
+
+    # A bit of lint: make sure that no specs leave advisory locks hanging open.
+    unless locked_ids.empty?
+      puts "\n\nAdvisory lock left open: #{current_spec_location}\n\n"
+      # Again, no point in running the rest of the specs, since our state is
+      # unknown/not clean.
+      abort
+    end
+
     DB[:que_jobs].delete
     DB[:que_lockers].delete
-
-    # A bit of lint: make sure that no advisory locks are left open.
-    unless locked_ids.empty?
-      SPEC_LOGGER.info "Advisory lock left open: #{current_spec_location}"
-    end
   end
 end
