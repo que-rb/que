@@ -1,12 +1,16 @@
 FROM ubuntu:16.04
 
-RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' > /etc/apt/sources.list.d/pgdg.list
+RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' > \
+  /etc/apt/sources.list.d/pgdg.list
 
 RUN apt-get update
 RUN apt-get install -y git ssh tar gzip ca-certificates build-essential \
   openssl libreadline6 libreadline6-dev curl zlib1g zlib1g-dev libssl-dev \
   libyaml-dev libsqlite3-dev sqlite3 libxml2-dev libxslt-dev autoconf \
   libc6-dev ncurses-dev automake libtool bison subversion pkg-config
+
+# TODO: Next time we're updating this image, move that Postgres SSL certificate
+# stuff and the pg_hba.conf configuration from the config.yml in here.
 
 RUN apt-get install -y --allow-unauthenticated \
   libpq-dev postgresql-common \
