@@ -57,13 +57,15 @@ defaults: &defaults
     - run:
         name: Install Gems
         command: |
-          for GEMFILE_VERSION in $GEMFILE_VERSIONS
-          do
-            rvm $RUBY_VERSION do \
-              bundle install \
-                --gemfile spec/gemfiles/Gemfile.$GEMFILE_VERSION \
-                --path vendor
-          done
+          if [ ! -d spec/gemfiles/vendor ]; then
+            for GEMFILE_VERSION in $GEMFILE_VERSIONS
+            do
+              rvm $RUBY_VERSION do \
+                bundle install \
+                  --gemfile spec/gemfiles/Gemfile.$GEMFILE_VERSION \
+                  --path vendor
+            done
+          fi
 
     - save_cache:
         key: bundler-cache-{{checksum "bundler_checksum"}}
