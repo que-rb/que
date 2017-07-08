@@ -67,6 +67,9 @@ defaults: &defaults
           done
 
     - run:
+        # Run tests against all Postgres versions simultaneously, since they
+        # can't conflict, but save their outputs to files and print them
+        # afterwards so we don't get confusing, interleaved test output.
         command: |
           for PG_PORT in $PG_PORTS
           do
@@ -75,11 +78,18 @@ defaults: &defaults
               do
                 DATABASE_URL="postgres://postgres:@localhost:$PG_PORT/que-test" \
                 BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
-                rvm $RUBY_VERSION do bundle exec rake
+                echo rvm $RUBY_VERSION do bundle exec rake \
+                > $GEMFILE_VERSION.output
               done
             ) &
           done
+
           wait
+
+          for GEMFILE_VERSION in $GEMFILE_VERSIONS
+          do
+            echo $GEMFILE_VERSION.output
+          done
 
 version: 2
 jobs:
