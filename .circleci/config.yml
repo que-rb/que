@@ -33,9 +33,7 @@ defaults: &defaults
 
     - save_cache:
         key: bundler-cache-{{checksum "bundler_checksum"}}
-        paths:
-          # Cache Gemfile.locks and gems vendored under this directory.
-          - spec/gemfiles
+        paths: spec/gemfiles
 
     - run:
         command: |
@@ -59,24 +57,18 @@ defaults: &defaults
           chown -R postgres /etc/ssl/private
 
     - run: service postgresql start
-    - run:
-        command: |
-          for PG_PORT in $PG_PORTS
-          do
-            createdb que-test -U postgres -p $PG_PORT
-          done
 
     - run:
         # Run tests against all Postgres versions simultaneously, since they
         # can't conflict, but save their outputs to files and print them
         # afterwards so we don't get confusing, interleaved test output.
         command: |
-          for PG_PORT in $PG_PORTS
+          for PORT in $PG_PORTS
           do
             (
               for GEMFILE_VERSION in $GEMFILE_VERSIONS
               do
-                DATABASE_URL="postgres://postgres:@localhost:$PG_PORT/que-test" \
+                DATABASE_URL="postgres://postgres:@localhost:$PORT/template1" \
                 BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
                 rvm $RUBY_VERSION do bundle exec rake > $GEMFILE_VERSION.output
               done
