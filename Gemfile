@@ -12,7 +12,7 @@ group :development, :test do
   gem 'pond',            require: nil
 
   gem 'pg',       require: nil, platform: :ruby
-  gem 'pg_jruby', require: nil, platform: :jruby
+  gem 'jruby-pg', require: nil, platform: :jruby
 end
 
 group :test do
