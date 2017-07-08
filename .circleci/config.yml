@@ -76,6 +76,9 @@ defaults: &defaults
     - run:
         name: Run Tests
         command: |
+          # Accumulate failed commands (test failures) in this script.
+          set +e
+
           # Wait until we know Postgres is ready.
           while [ ! -f postgres_ready ]; do sleep 0.1; done
 
@@ -88,8 +91,6 @@ defaults: &defaults
             (
               for GEMFILE_VERSION in $GEMFILE_VERSIONS
               do
-                echo "About to run $GEMFILE_VERSION on $PORT"
-
                 # Use the template1 DB that comes with Postgres so we don't have
                 # to spend time creating a new one.
                 DATABASE_URL="postgres://postgres:@localhost:$PORT/template1" \
@@ -102,7 +103,7 @@ defaults: &defaults
           # Let tests finish.
           for pid in $pids
           do
-            (wait $pid) || true
+            wait $pid
           done
 
           # Print results in bulk so we don't get confusing, interleaved output.
