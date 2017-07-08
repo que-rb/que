@@ -99,12 +99,10 @@ defaults: &defaults
             ) & pids+=($!)
           done
 
-          set -euxo pipefail
-
           # Let tests finish.
           for pid in $pids
           do
-            wait $pid
+            (wait $pid) || true
           done
 
           # Print results in bulk so we don't get confusing, interleaved output.
