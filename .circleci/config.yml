@@ -110,6 +110,8 @@ defaults: &defaults
           # Print results in bulk so we don't get confusing, interleaved output.
           for PORT in $PG_PORTS; do cat $PORT.output; done
 
+          sleep 1
+
           # Use appropriate exit code, to mark if any of the tests failed.
           if [ "$RESULT" == "1" ];
               then
