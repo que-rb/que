@@ -8,6 +8,7 @@ require 'json'
 require 'pond'
 require 'pry'
 require 'pg_examiner'
+require 'timeout'
 
 require 'minitest/autorun'
 require 'minitest/pride'
