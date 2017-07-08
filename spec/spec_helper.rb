@@ -61,7 +61,7 @@ DB.extension :pg_array
 
 
 if ENV['CI']
-  puts [
+  puts "\n\n" + [
     "Ruby: #{RUBY_VERSION}",
     "PostgreSQL: #{DB["SHOW server_version"].get}",
     "Gemfile: #{ENV['BUNDLE_GEMFILE']}",
