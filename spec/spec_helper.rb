@@ -61,12 +61,11 @@ DB.extension :pg_array
 
 
 if ENV['CI']
-  DB.synchronize do |conn|
-    print "Ruby #{RUBY_VERSION}; "
-    print "PostgreSQL "
-    print conn.async_exec("SHOW server_version").to_a.first['server_version']
-    print "; "
-  end
+  puts [
+    "Ruby: #{RUBY_VERSION}",
+    "PostgreSQL: #{DB["SHOW server_version"].get}",
+    "Gemfile: #{ENV['BUNDLE_GEMFILE']}",
+  ].join('; ')
 end
 
 
