@@ -36,8 +36,10 @@ defaults: &defaults
         background: true
         command: |
           # Start up versions in parallel.
-          for PG_VERSION in $PG_VERSIONS;
-            do (service postgresql start $PG_VERSION &); done
+          for PG_VERSION in $PG_VERSIONS
+          do
+            service postgresql start $PG_VERSION &
+          done
 
           # Once they're all started up, use postgres_ready to signal that to a
           # later command. Do that so we can run this command safely in the
