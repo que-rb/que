@@ -78,12 +78,10 @@ defaults: &defaults
         command: |
           # Accumulate failed commands (test failures) in this script.
           set +e
-          RESULT=0
+          pids=()
 
           # Wait until we know Postgres is ready.
           while [ ! -f postgres_ready ]; do sleep 0.1; done
-
-          pids=()
 
           # Run tests against all Postgres versions simultaneously, since they
           # can't conflict, but save their outputs to files.
@@ -102,21 +100,14 @@ defaults: &defaults
           done
 
           # Let tests finish.
-          for pid in $pids
-          do
-            wait $pid || let "RESULT=1"
-          done
+          result=0
+          for pid in $pids; do wait $pid || let "result=1"; done
 
           # Print results in bulk so we don't get confusing, interleaved output.
           for PORT in $PG_PORTS; do cat $PORT.output; done
 
-          sleep 1
-
           # Use appropriate exit code, to mark if any of the tests failed.
-          if [ "$RESULT" == "1" ];
-              then
-                 exit 1
-          fi
+          if [ "$result" == "1" ]; then exit 1; fi
 
 version: 2
 jobs:
