@@ -88,9 +88,11 @@ defaults: &defaults
             (
               for GEMFILE_VERSION in $GEMFILE_VERSIONS
               do
+                echo "About to run $GEMFILE_VERSION on $PORT"
+
                 DATABASE_URL="postgres://postgres:@localhost:$PORT/template1" \
                 BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
-                rvm $RUBY_VERSION do bundle exec rake >> $PORT.output
+                rvm $RUBY_VERSION do bundle exec rake # >> $PORT.output
               done
             ) # & pids+=($!)
           done
