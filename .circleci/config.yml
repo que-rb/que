@@ -6,7 +6,7 @@ default_environment: &default_environment
 defaults: &defaults
   working_directory: ~/que
   docker:
-    - image: chanks/que-circleci:0.0.3
+    - image: chanks/que-circleci:0.0.4
   steps:
     - checkout
 
@@ -14,15 +14,24 @@ defaults: &defaults
         name: Start Postgres
         background: true
         command: |
+          # Fix SSL certificate error. Not sure why this is necessary.
+          # See https://github.com/nimiq/docker-postgresql93/issues/2
+          mkdir /etc/ssl/private-copy
+          mv /etc/ssl/private/* /etc/ssl/private-copy/
+          rm -r /etc/ssl/private
+          mv /etc/ssl/private-copy /etc/ssl/private
+          chmod -R 0700 /etc/ssl/private
+          chown -R postgres /etc/ssl/private
+
           # Start up versions in parallel.
           for PG_VERSION in $PG_VERSIONS
           do
             (
-              # # Set up Postgres connection rules.
-              # echo "host all all 127.0.0.1/32 trust" > \
-              #   /etc/postgresql/$PG_VERSION/main/pg_hba.conf
-              # echo "local all all trust" >> \
-              #   /etc/postgresql/$PG_VERSION/main/pg_hba.conf
+              # Set up Postgres connection rules.
+              echo "host all all 127.0.0.1/32 trust" > \
+                /etc/postgresql/$PG_VERSION/main/pg_hba.conf
+              echo "local all all trust" >> \
+                /etc/postgresql/$PG_VERSION/main/pg_hba.conf
               service postgresql start $PG_VERSION
             ) &
           done

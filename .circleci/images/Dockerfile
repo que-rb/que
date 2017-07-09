@@ -15,18 +15,6 @@ RUN apt-get install -y --allow-unauthenticated \
   postgresql-9.5 postgresql-contrib-9.5 \
   postgresql-9.4 postgresql-contrib-9.4
 
-# Fix Postgres SSL certificate error. Not sure why this is necessary.
-# See https://github.com/nimiq/docker-postgresql93/issues/2
-RUN mkdir /etc/ssl/private-copy
-RUN mv /etc/ssl/private/* /etc/ssl/private-copy/
-RUN rm -r /etc/ssl/private
-RUN mv /etc/ssl/private-copy /etc/ssl/private
-RUN chmod -R 0700 /etc/ssl/private
-RUN chown -R postgres /etc/ssl/private
-
-# Make Postgres just trust all connections - this is only used for testing.
-RUN for PG_VERSION in 9.4 9.5 9.6; do echo "host all all 127.0.0.1/32 trust" > /etc/postgresql/$PG_VERSION/main/pg_hba.conf && echo "local all all trust" >> /etc/postgresql/$PG_VERSION/main/pg_hba.conf; done
-
 # Set up RVM and Rubies.
 
 RUN curl -L https://get.rvm.io | bash -s stable
