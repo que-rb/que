@@ -13,13 +13,7 @@ require 'timeout'
 require 'minitest/autorun'
 require 'minitest/pride'
 require 'minitest/hooks'
-
-begin
-  # This won't be available when running the oldest Gemfile, so be safe in
-  # loading it.
-  require 'minitest/profile'
-rescue LoadError
-end
+require 'minitest/profile'
 
 Dir['./spec/support/**/*.rb'].sort.each &method(:require)
 
