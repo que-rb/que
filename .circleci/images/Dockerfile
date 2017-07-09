@@ -1,5 +1,8 @@
 FROM ubuntu:16.04
 
+# TODO: Add PG repository certificate so we don't need --allow-unauthenticated
+# below.
+
 RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' > \
   /etc/apt/sources.list.d/pgdg.list
 
