@@ -131,7 +131,7 @@ jobs:
 
 workflows:
   version: 2
-  build_all_rubies:
+  build:
     jobs:
       - ruby_2_2
       - ruby_2_3
