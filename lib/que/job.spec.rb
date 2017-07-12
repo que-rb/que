@@ -28,6 +28,22 @@ describe Que::Job do
           assert_equal [1, 2], $args
         end
 
+        it "should deep-freeze its arguments" do
+          TestJobClass.class_eval do
+            def run(args)
+              $args = args
+            end
+          end
+
+          execute(array: [], hash: {}, string: 'blah'.dup)
+
+          assert_equal({array: [], hash: {}, string: 'blah'.dup}, $args)
+          assert $args.frozen?
+          assert $args[:array].frozen?
+          assert $args[:hash].frozen?
+          assert $args[:string].frozen?
+        end
+
         it "should handle keyword arguments just fine" do
           TestJobClass.class_eval do
             def run(a:, b: 4, c: 3)
@@ -152,6 +168,8 @@ describe Que::Job do
     def execute(*args)
       TestJobClass.run(*args)
     end
+
+    it "shouldn't fail if there's no DB connection"
 
     it "should propagate errors raised during the job"
   end

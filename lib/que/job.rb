@@ -59,8 +59,7 @@ module Que
     end
 
     def handle_error(error)
-      error_count = que_attrs[:error_count] += 1
-      delay       = self.class.resolve_setting(:retry_interval, error_count)
+      delay = self.class.resolve_setting(:retry_interval, error_count + 1)
       retry_in(delay)
     end
 
@@ -133,10 +132,17 @@ module Que
       def run(*args)
         # Make sure things behave the same as they would have with a round-trip
         # to the DB.
-        args = Que.deserialize_json(Que.serialize_json(args))
+        attrs =
+          Que.recursively_freeze(
+            Que.deserialize_json(
+              Que.serialize_json(
+                data: {args: args}
+              )
+            )
+          )
 
         # Should not fail if there's no DB connection.
-        new(data: {args: args}).tap { |job| job.run(*args) }
+        new(attrs).tap(&:_run)
       end
 
       def resolve_setting(setting, *args)

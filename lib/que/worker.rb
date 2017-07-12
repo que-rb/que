@@ -72,6 +72,8 @@ module Que
           pk_values = pk.values_at(:queue, :priority, :run_at, :id)
 
           if job = Que.execute(:get_job, pk_values).first
+            Que.recursively_freeze(job)
+
             start    = Time.now
             klass    = Que.constantize(job.fetch(:job_class))
             instance = klass.new(job)
