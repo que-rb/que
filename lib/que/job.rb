@@ -4,6 +4,37 @@
 
 module Que
   class Job
+    SQL.register_sql_statement \
+      :insert_job,
+      %{
+        INSERT INTO public.que_jobs
+        (queue, priority, run_at, job_class, data)
+        VALUES
+        (
+          coalesce($1, '')::text,
+          coalesce($2, 100)::smallint,
+          coalesce($3, now())::timestamptz,
+          $4::text,
+          coalesce($5, '{"args":[]}')::jsonb
+        )
+        RETURNING *
+      }
+
+    SQL.register_sql_statement \
+      :finish_job,
+      %{
+        UPDATE public.que_jobs
+        SET is_processed = true
+        WHERE id = $1::bigint
+      }
+
+    SQL.register_sql_statement \
+      :destroy_job,
+      %{
+        DELETE FROM public.que_jobs
+        WHERE id = $1::bigint
+      }
+
     attr_reader :que_attrs, :que_error
 
     def initialize(attrs)

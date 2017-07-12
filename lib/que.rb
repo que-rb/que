@@ -9,6 +9,10 @@ module Que
 
   class Error < StandardError; end
 
+  # Load up SQL registration logic before initialization logic that will use it.
+  require_relative 'que/sql'
+
+  # Load utilities before main logic that will use them.
   require_relative 'que/utils/assertions'
   require_relative 'que/utils/constantization'
   require_relative 'que/utils/error_notification'
@@ -27,7 +31,6 @@ module Que
   require_relative 'que/migrations'
   require_relative 'que/poller'
   require_relative 'que/result_queue'
-  require_relative 'que/sql'
   require_relative 'que/version'
   require_relative 'que/worker'
 

@@ -10,6 +10,39 @@ module Que
   class Locker
     attr_reader :thread, :workers, :job_queue, :locks, :pollers, :pool
 
+    SQL.register_sql_statement \
+      :clean_lockers,
+      %{
+        DELETE FROM public.que_lockers
+        WHERE pid = pg_backend_pid()
+        OR pid NOT IN (SELECT pid FROM pg_stat_activity)
+      }
+
+    SQL.register_sql_statement \
+      :register_locker,
+      %{
+        INSERT INTO public.que_lockers
+        (
+          pid,
+          worker_count,
+          worker_priorities,
+          ruby_pid,
+          ruby_hostname,
+          listening,
+          queues
+        )
+        VALUES
+        (
+          pg_backend_pid(),
+          $1::integer,
+          $2::integer[],
+          $3::integer,
+          $4::text,
+          $5::boolean,
+          $6::text[]
+        );
+      }
+
     DEFAULT_POLL_INTERVAL      = 1.0
     DEFAULT_WAIT_PERIOD        = 0.01
     DEFAULT_MINIMUM_QUEUE_SIZE = 2

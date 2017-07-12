@@ -55,7 +55,7 @@ module Que
 
       case command
       when Symbol
-        sql = SQL[command] || raise(Error, "Bad command! #{command.inspect}")
+        sql = SQL.fetch_sql(command)
         log[:event]   = :execute
         log[:command] = command
       when String
