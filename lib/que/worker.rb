@@ -13,18 +13,27 @@ module Que
       %{
         SELECT *
         FROM public.que_jobs
-        WHERE id = $1::bigint
+        WHERE queue    = $1::text
+          AND priority = $2::smallint
+          AND run_at   = $3::timestamptz
+          AND id       = $4::bigint
       }
 
     SQL.register_sql_statement \
       :set_error,
       %{
         UPDATE public.que_jobs
+
         SET error_count          = error_count + 1,
             run_at               = now() + $1::bigint * '1 second'::interval,
             last_error_message   = $2::text,
             last_error_backtrace = $3::text
-        WHERE id = $4::bigint
+
+        WHERE queue    = $4::text
+          AND priority = $5::smallint
+          AND run_at   = $6::timestamptz
+          AND id       = $7::bigint
+
       }
 
     def initialize(
@@ -58,9 +67,11 @@ module Que
       # Blocks until a job of the appropriate priority is available. If the
       # queue is shutting down this will return nil, which breaks the loop and
       # lets the thread finish.
-      while id = @job_queue.shift(*priority)
+      while pk = @job_queue.shift(*priority)
         begin
-          if job = Que.execute(:get_job, [id]).first
+          pk_values = pk.values_at(:queue, :priority, :run_at, :id)
+
+          if job = Que.execute(:get_job, pk_values).first
             start    = Time.now
             klass    = Que.constantize(job.fetch(:job_class))
             instance = klass.new(job)
@@ -89,14 +100,14 @@ module Que
             Que.log(
               level: :debug,
               event: :job_race_condition,
-              id:    id,
+              id:    pk.fetch(:id),
             )
           end
         rescue => error
           Que.log(
             level: :debug,
             event: :job_errored,
-            id: id,
+            id: pk.fetch(:id),
             job: job,
             error: {
               class:   error.class.to_s,
@@ -127,14 +138,13 @@ module Que
               delay,
               error.message,
               error.backtrace.join("\n"),
-              id,
-            ]
+            ] + pk_values
           rescue
             # If we can't reach the database for some reason, too bad, but
             # don't let it crash the work loop.
           end
         ensure
-          @result_queue.push(id)
+          @result_queue.push(pk.fetch(:id))
         end
       end
     end

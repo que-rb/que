@@ -84,7 +84,7 @@ module Que
             ) AS t1
           )
         )
-        SELECT priority, run_at, id
+        SELECT queue, priority, run_at, id
         FROM jobs
         WHERE locked
         LIMIT $3::integer

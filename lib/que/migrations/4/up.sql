@@ -14,7 +14,6 @@ ALTER TABLE que_jobs
   RENAME COLUMN last_error TO last_error_message;
 
 ALTER TABLE que_jobs
-  DROP CONSTRAINT que_jobs_pkey,
   ADD COLUMN last_error_backtrace text,
   ADD COLUMN data JSONB,
   ADD CONSTRAINT queue_length CHECK (char_length(queue) <= 60),
@@ -45,7 +44,6 @@ SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
     )::jsonb;
 
 ALTER TABLE que_jobs
-  ADD CONSTRAINT que_jobs_pkey PRIMARY KEY (id),
   ALTER COLUMN queue SET DEFAULT 'default',
   ALTER COLUMN data SET DEFAULT '{"args":[]}',
   ALTER COLUMN data SET NOT NULL,
@@ -57,9 +55,6 @@ ALTER TABLE que_jobs
     AND
     (jsonb_typeof(data->'args') = 'array')
   );
-
-CREATE UNIQUE INDEX que_jobs_poll_idx
-  ON que_jobs (queue, priority, run_at, id);
 
 CREATE INDEX que_jobs_data_gin_idx ON que_jobs USING gin (data jsonb_path_ops);
 
@@ -129,6 +124,7 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
       FROM (
         SELECT
           'new_job'    AS message_type,
+          NEW.queue    AS queue,
           NEW.priority AS priority,
           NEW.run_at   AS run_at,
           NEW.id       AS id

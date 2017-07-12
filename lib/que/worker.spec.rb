@@ -33,6 +33,7 @@ describe Que::Worker do
 
     jobs.map! do |job|
       {
+        queue:    job[:queue],
         priority: job[:priority],
         run_at:   job[:run_at],
         id:       job[:id],

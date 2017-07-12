@@ -59,7 +59,7 @@ module Que
           if @stop
             return
           elsif (key = @array.first) && key.fetch(:priority) <= priority
-            return shift_id
+            return @array.shift
           else
             @cv.wait
           end
@@ -113,10 +113,6 @@ module Que
 
       # Comparing a job's sort key against itself - this shouldn't happen.
       raise Error, "Compared a job's sort key to itself!"
-    end
-
-    def shift_id
-      @array.shift.fetch(:id)
     end
 
     def pop_ids(count)

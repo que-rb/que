@@ -442,8 +442,9 @@ describe Que::Locker do
     end
 
     it "should not try to lock and work jobs it has already locked" do
-      id = BlockJob.enqueue.que_attrs[:id]
       locker
+
+      id = BlockJob.enqueue.que_attrs[:id]
       $q1.pop
 
       assert_equal [], locker.job_queue.to_a
@@ -454,7 +455,7 @@ describe Que::Locker do
       payload =
         jobs_dataset.
           where(id: id).
-          select(Sequel.as('new_job', :message_type), :priority, :run_at, :id).
+          select(Sequel.as('new_job', :message_type), :queue, :priority, :run_at, :id).
           from_self(alias: :t).
           get{row_to_json(:t)}
 

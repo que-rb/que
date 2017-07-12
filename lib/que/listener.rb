@@ -10,6 +10,7 @@ module Que
 
     MESSAGE_FORMATS = {
       new_job: {
+        queue:    String,
         id:       Integer,
         run_at:   Time,
         priority: Integer,

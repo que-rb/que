@@ -135,6 +135,7 @@ describe Que::Job do
       attrs = TestJobClass.enqueue(*args).que_attrs
 
       sort_key = {
+        queue:    attrs[:queue],
         priority: attrs[:priority],
         run_at:   attrs[:run_at],
         id:       attrs[:id],

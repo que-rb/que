@@ -12,14 +12,14 @@ describe Que::JobQueue do
 
   let :job_array do
     [
-      {priority: 1, run_at: old, id: 1},
-      {priority: 1, run_at: old, id: 2},
-      {priority: 1, run_at: now, id: 3},
-      {priority: 1, run_at: now, id: 4},
-      {priority: 2, run_at: old, id: 5},
-      {priority: 2, run_at: old, id: 6},
-      {priority: 2, run_at: now, id: 7},
-      {priority: 2, run_at: now, id: 8},
+      {queue: '', priority: 1, run_at: old, id: 1},
+      {queue: '', priority: 1, run_at: old, id: 2},
+      {queue: '', priority: 1, run_at: now, id: 3},
+      {queue: '', priority: 1, run_at: now, id: 4},
+      {queue: '', priority: 2, run_at: old, id: 5},
+      {queue: '', priority: 2, run_at: old, id: 6},
+      {queue: '', priority: 2, run_at: now, id: 7},
+      {queue: '', priority: 2, run_at: now, id: 8},
     ]
   end
 
@@ -43,7 +43,7 @@ describe Que::JobQueue do
 
     describe "when the maximum size has been reached" do
       let :important_values do
-        (1..3).map { |id| {priority: 0, run_at: old, id: id} }
+        (1..3).map { |id| {queue: '', priority: 0, run_at: old, id: id} }
       end
 
       before do
@@ -64,11 +64,11 @@ describe Que::JobQueue do
 
       it "should work when passing multiple pks that would pass the maximum" do
         assert_equal \
-          job_array.first[:id],
+          job_array.first,
           job_queue.shift
 
         assert_equal \
-          job_array[7..7].map{|j| j[:id]},
+          job_array[7..7].map{|pk| pk[:id]},
           job_queue.push(*important_values[0..1])
 
         assert_equal 8, job_queue.size
@@ -86,14 +86,14 @@ describe Que::JobQueue do
   end
 
   describe "shift" do
-    it "should return the lowest item's id by sort order" do
+    it "should return the lowest item's pk by sort order" do
       job_queue.push *job_array
 
-      assert_equal job_array[0][:id], job_queue.shift
-      assert_equal job_array[1..7],   job_queue.to_a
+      assert_equal job_array[0],    job_queue.shift
+      assert_equal job_array[1..7], job_queue.to_a
 
-      assert_equal job_array[1][:id], job_queue.shift
-      assert_equal job_array[2..7],   job_queue.to_a
+      assert_equal job_array[1],    job_queue.shift
+      assert_equal job_array[2..7], job_queue.to_a
     end
 
     it "should block for multiple threads when the queue is empty" do
@@ -111,8 +111,10 @@ describe Que::JobQueue do
       sleep_until { threads.all? { |t| t.status == false } }
 
       assert_equal \
-        job_array[0..3].map{|j| j[:id]},
-        threads.map{|t| t[:job]}.sort
+        job_array[0..3],
+        threads.
+          map{|t| t[:job]}.
+          sort_by{|pk| pk.values_at(:priority, :run_at, :id)}
 
       assert_equal job_array[4..7], job_queue.to_a
     end
@@ -132,7 +134,7 @@ describe Que::JobQueue do
       job_queue.push(c)
       sleep_until { t.status == false }
 
-      assert_equal 3, t[:job]
+      assert_equal c, t[:job]
     end
 
     it "when blocked should only return for a request of sufficient priority" do
@@ -150,11 +152,11 @@ describe Que::JobQueue do
 
       threads.sort_by! { |t| t[:priority] }
 
-      value = {priority: 17, run_at: Time.now, id: 1}
+      value = {queue: '', priority: 17, run_at: Time.now, id: 1}
       job_queue.push value
 
       sleep_until { threads[3].status == false }
-      assert_equal 1, threads[3][:job]
+      assert_equal value, threads[3][:job]
       sleep_until { threads[0..2].all? { |t| t.status == 'sleep' } }
     end
   end
@@ -165,7 +167,7 @@ describe Que::JobQueue do
     end
 
     it "should return true if there is sufficient room in the queue" do
-      assert_equal job_array.first[:id], job_queue.shift
+      assert_equal job_array.first, job_queue.shift
       assert_equal 7, job_queue.size
       assert job_queue.accept?(job_array.last)
     end
@@ -175,7 +177,14 @@ describe Que::JobQueue do
     end
 
     it "should return false if the job's priority is lower than any queued" do
-      refute job_queue.accept?({priority: 100, run_at: Time.now, id: 45})
+      refute job_queue.accept?(
+        {
+          queue: '',
+          priority: 100,
+          run_at: Time.now,
+          id: 45,
+        }
+      )
     end
   end
 

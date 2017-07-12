@@ -43,7 +43,8 @@ describe Que::Migrations, "notification trigger" do
         assert_equal notify_pid, pid
 
         json = JSON.load(payload)
-        assert_equal %w(id message_type priority run_at), json.keys.sort
+        assert_equal %w(id message_type priority queue run_at), json.keys.sort
+        assert_equal 'default', json['queue']
         assert_equal 'new_job', json['message_type']
         assert_equal job[:id], json['id']
         assert_equal 100, json['priority']

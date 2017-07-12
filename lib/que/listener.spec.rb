@@ -137,13 +137,23 @@ describe Que::Listener do
 
         notify(
           message_type: 'new_job',
+          queue: 'queue_name',
           priority: 90,
           run_at: timestamp,
           id: 45,
         )
 
         assert_equal(
-          {new_job: [{priority: 90, run_at: Time.iso8601(timestamp), id: 45}]},
+          {
+            new_job: [
+              {
+                queue: 'queue_name',
+                priority: 90,
+                run_at: Time.iso8601(timestamp),
+                id: 45,
+              }
+            ]
+          },
           listener.wait_for_messages(10),
         )
       end
@@ -152,6 +162,7 @@ describe Que::Listener do
     describe "when the message is malformed" do
       let :message_to_malform do
         {
+          queue: 'queue_name',
           priority: 90,
           run_at: Time.iso8601("2017-06-30T18:33:35.425307Z"),
           id: 45,
@@ -161,12 +172,14 @@ describe Que::Listener do
       let :all_messages do
         [
           {
+            queue: 'queue_name',
             priority: 90,
             run_at: Time.iso8601("2017-06-30T18:33:33.402669Z"),
             id: 44,
           },
           message_to_malform,
           {
+            queue: 'queue_name',
             priority: 90,
             run_at: Time.iso8601("2017-06-30T18:33:35.425307Z"),
             id: 46,
@@ -226,8 +239,8 @@ describe Que::Listener do
 
         expected_message = [
           "Message of type 'new_job' doesn't match format!",
-          "Message: {:priority=>90, :run_at=>2017-06-30 18:33:35 UTC}",
-          "Format: {:id=>Integer, :run_at=>Time, :priority=>Integer}",
+          "Message: {:queue=>\"queue_name\", :priority=>90, :run_at=>2017-06-30 18:33:35 UTC}",
+          "Format: {:queue=>String, :id=>Integer, :run_at=>Time, :priority=>Integer}",
         ].join("\n")
 
         assert_equal expected_message, error.message
