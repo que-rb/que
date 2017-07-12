@@ -8,40 +8,43 @@ module Que
   class ConnectionPool
     def initialize(&block)
       @connection_proc = block
-      @checked_out = Set.new
-      @mutex = Mutex.new
+      @checked_out     = Set.new
+      @mutex           = Mutex.new
+      @thread_key      = "que_connection_pool_#{object_id}".to_sym
     end
 
     def checkout
       @connection_proc.call do |conn|
-        original  = Thread.current[:que_connection]
-        was_added = nil
+        # Did this pool already have a connection for this thread?
+        preexisting = current_connection
 
         begin
-          if original.nil?
-            @mutex.synchronize do
-              was_added = @checked_out.add?(conn.object_id)
-              unless was_added
-                raise Error, "Connection pool did not synchronize access properly!"
-              end
-            end
-          end
-
-          if original
-            if original.object_id != conn.object_id
+          if preexisting
+            # If so, check that the connection we just got is the one we expect.
+            unless preexisting.object_id == conn.object_id
               raise Error, "Connection pool is not reentrant!"
             end
           else
-            Thread.current[:que_connection] = conn
+            # If not, make sure that it wasn't promised to any other threads.
+            sync do
+              Que.assert(@checked_out.add?(conn.object_id)) do
+                "Connection pool didn't synchronize access properly! (entrance)"
+              end
+            end
+
+            self.current_connection = conn
           end
 
           yield(conn)
         ensure
-          if original.nil?
-            Thread.current[:que_connection] = nil
-            if was_added
-              @mutex.synchronize do
-                Que.assert(@checked_out.delete?(conn.object_id))
+          unless preexisting
+            # If we're at the top level (about to return this connection to the
+            # pool we got it from), mark it as no longer ours.
+            self.current_connection = nil
+
+            sync do
+              Que.assert(@checked_out.delete?(conn.object_id)) do
+                "Connection pool didn't synchronize access properly! (exit)"
               end
             end
           end
@@ -85,6 +88,18 @@ module Que
     end
 
     private
+
+    def sync
+      @mutex.synchronize { yield }
+    end
+
+    def current_connection
+      Thread.current[@thread_key]
+    end
+
+    def current_connection=(c)
+      Thread.current[@thread_key] = c
+    end
 
     def convert_params(params)
       params.map do |param|

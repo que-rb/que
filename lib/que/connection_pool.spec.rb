@@ -60,19 +60,26 @@ describe Que::ConnectionPool do
       t =
         Thread.new do
           pool.checkout do |conn|
+            assert_equal 4, conn
             q1.push(nil)
             q2.pop
-            assert_equal 4, conn
           end
         end
 
       q1.pop
 
       error = assert_raises(Que::Error) { pool.checkout {} }
-      assert_match /did not synchronize access properly/, error.message
+      assert_match(
+        /didn't synchronize access properly! \(entrance\)/,
+        error.message
+      )
 
       q2.push(nil)
-      t.join
+      error = assert_raises(Que::Error) { t.join }
+      assert_match(
+        /didn't synchronize access properly! \(exit\)/,
+        error.message
+      )
     end
   end
 
