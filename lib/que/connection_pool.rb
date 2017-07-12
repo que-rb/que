@@ -14,6 +14,8 @@ module Que
     end
 
     def checkout
+      # Do some asserting to ensure that the connection pool we're using is
+      # behaving properly.
       @connection_proc.call do |conn|
         # Did this pool already have a connection for this thread?
         preexisting = current_connection
