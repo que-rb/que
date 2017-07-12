@@ -1,4 +1,9 @@
-ALTER TABLE que_jobs SET (fillfactor = 90);
+ALTER TABLE que_jobs SET (
+  fillfactor = 90,
+  -- TODO: Try tweaking these values under benchmarks.
+  autovacuum_vacuum_scale_factor = 0.1,
+  autovacuum_vacuum_threshold = 50
+);
 
 ALTER TABLE que_jobs
   RENAME COLUMN job_id TO id;

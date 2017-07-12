@@ -1,4 +1,8 @@
-ALTER TABLE que_jobs RESET (fillfactor);
+ALTER TABLE que_jobs RESET (
+  fillfactor,
+  autovacuum_vacuum_scale_factor,
+  autovacuum_vacuum_threshold
+);
 
 DROP TRIGGER que_job_notify ON que_jobs;
 DROP FUNCTION que_job_notify();
