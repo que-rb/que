@@ -55,11 +55,12 @@ module Que
     private
 
     def error_count
-      que_attrs.fetch(:error_count)
+      count = que_attrs.fetch(:error_count)
+      @que_error ? count + 1 : count
     end
 
     def handle_error(error)
-      delay = self.class.resolve_setting(:retry_interval, error_count + 1)
+      delay = self.class.resolve_setting(:retry_interval, error_count)
       retry_in(delay)
     end
 
