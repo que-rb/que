@@ -169,7 +169,6 @@ describe Que::Migrations do
         [
           {
             id: 1,
-            is_processed: false,
             data: {args: [78, {arg1: true, arg2: 'a'}]},
             queue: 'default',
             last_error_message: nil,
@@ -177,7 +176,6 @@ describe Que::Migrations do
           },
           {
             id: 2,
-            is_processed: false,
             data: {args: [89, {arg1: true, arg2: 'b'}]},
             queue: 'other_queue',
             last_error_message: "Error: an error message",
@@ -185,7 +183,6 @@ describe Que::Migrations do
           },
           {
             id: 3,
-            is_processed: false,
             data: {args: [{arg1: true, arg2: 'a'}]},
             queue: 'default',
             last_error_message: "Error without a backtrace!",
@@ -193,7 +190,6 @@ describe Que::Migrations do
           },
           {
             id: 4,
-            is_processed: false,
             data: {args: [5]},
             queue: 'default',
             last_error_message: nil,
@@ -203,8 +199,7 @@ describe Que::Migrations do
         DB[:que_jobs].
           order(:id).
           select(
-            :id, :is_processed, :data, :queue,
-            :last_error_message, :last_error_backtrace,
+            :id, :data, :queue, :last_error_message, :last_error_backtrace
           ).
           all{|a| a[:data] = JSON.parse(a[:data], symbolize_names: true)}
       )

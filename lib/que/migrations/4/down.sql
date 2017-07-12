@@ -24,8 +24,6 @@ ALTER TABLE que_jobs
   DROP CONSTRAINT que_jobs_pkey,
   ADD COLUMN args JSON;
 
-DELETE FROM que_jobs WHERE is_processed;
-
 UPDATE que_jobs
   SET args = (data->'args')::json,
   queue = CASE queue WHEN 'default' THEN '' ELSE queue END,
@@ -33,7 +31,6 @@ UPDATE que_jobs
 
 ALTER TABLE que_jobs
   DROP COLUMN last_error_backtrace,
-  DROP COLUMN is_processed,
   DROP COLUMN data,
   ALTER COLUMN args SET NOT NULL,
   ALTER COLUMN args SET DEFAULT '[]',

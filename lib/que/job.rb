@@ -21,14 +21,6 @@ module Que
       }
 
     SQL.register_sql_statement \
-      :finish_job,
-      %{
-        UPDATE public.que_jobs
-        SET is_processed = true
-        WHERE id = $1::bigint
-      }
-
-    SQL.register_sql_statement \
       :destroy_job,
       %{
         DELETE FROM public.que_jobs
@@ -54,7 +46,7 @@ module Que
 
       Que.notify_error(error, que_attrs) if run_error_notifier
     ensure
-      finish unless @que_resolved
+      destroy unless @que_resolved
     end
 
     private
@@ -79,14 +71,6 @@ module Que
           que_error.backtrace.join("\n"),
           id,
         ]
-      end
-
-      @que_resolved = true
-    end
-
-    def finish
-      if id = que_attrs[:id]
-        Que.execute :finish_job, [id]
       end
 
       @que_resolved = true
