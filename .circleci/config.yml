@@ -78,6 +78,7 @@ defaults: &defaults
         command: |
           # Accumulate failed commands (test failures) in this script.
           set +e
+          pids=()
 
           # Wait until we know Postgres is ready.
           while [ ! -f postgres_ready ]; do sleep 0.1; done
@@ -93,10 +94,20 @@ defaults: &defaults
                 # to spend time creating a new one.
                 DATABASE_URL="postgres://postgres:@localhost:$PORT/template1" \
                 BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
-                rvm $RUBY_VERSION do bundle exec rake
+                rvm $RUBY_VERSION do bundle exec rake >> $PORT.output 2>&1
               done
-            )
+            ) & pids+=($!)
           done
+
+          # Let tests finish.
+          result=0
+          for pid in $pids; do wait $pid || let "result=1"; done
+
+          # Print results in bulk so we don't get confusing, interleaved output.
+          for PORT in $PG_PORTS; do cat $PORT.output; done
+
+          # Use appropriate exit code, to mark if any of the tests failed.
+          if [ "$result" == "1" ]; then exit 1; fi
 
 version: 2
 jobs:
