@@ -100,7 +100,7 @@ end
 class QueSpec < Minitest::Spec
   include Minitest::Hooks
 
-  SPEC_TIMEOUT = (ENV['SPEC_TIMEOUT'] || (ENV['CI'] ? 5 : 600)).to_i
+  SPEC_TIMEOUT = (ENV['SPEC_TIMEOUT'] || (ENV['CI'] ? 10 : 600)).to_i
 
   register_spec_type(//, self)
 
