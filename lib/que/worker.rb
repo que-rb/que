@@ -131,7 +131,7 @@ module Que
 
             delay =
               job_class.
-              resolve_setting(
+              resolve_que_setting(
                 :retry_interval,
                 job.fetch(:error_count) + 1,
               )

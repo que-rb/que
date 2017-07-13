@@ -64,8 +64,7 @@ module Que
     end
 
     def handle_error(error)
-      delay = self.class.resolve_setting(:retry_interval, error_count)
-      retry_in(delay)
+      retry_in(resolve_que_setting(:retry_interval, error_count))
     end
 
     # Explicitly check for the job id in these helpers, because it won't exist
@@ -95,6 +94,10 @@ module Que
       key if key.all? { |v| !v.nil? }
     end
 
+    def resolve_que_setting(*args)
+      self.class.resolve_que_setting(*args)
+    end
+
     @retry_interval = proc { |count| count ** 4 + 3 }
 
     class << self
@@ -112,16 +115,16 @@ module Que
         args << arg_opts if arg_opts.any?
 
         attrs = {
-          queue:    queue     || resolve_setting(:queue) || Que.default_queue,
-          priority: priority  || resolve_setting(:priority),
-          run_at:   run_at    || resolve_setting(:run_at),
+          queue:    queue    || resolve_que_setting(:queue) || Que.default_queue,
+          priority: priority || resolve_que_setting(:priority),
+          run_at:   run_at   || resolve_que_setting(:run_at),
           data:     Que.serialize_json(args: args),
           job_class: \
             job_class || name ||
             raise(Error, "Can't enqueue an anonymous subclass of Que::Job"),
         }
 
-        if attrs[:run_at].nil? && resolve_setting(:run_synchronously)
+        if attrs[:run_at].nil? && resolve_que_setting(:run_synchronously)
           run(*args)
         else
           values =
@@ -150,7 +153,7 @@ module Que
         new(attrs).tap(&:_run)
       end
 
-      def resolve_setting(setting, *args)
+      def resolve_que_setting(setting, *args)
         iv_name = :"@#{setting}"
 
         if instance_variable_defined?(iv_name)
@@ -158,7 +161,9 @@ module Que
           value.respond_to?(:call) ? value.call(*args) : value
         else
           c = superclass
-          c.resolve_setting(setting, *args) if c.respond_to?(:resolve_setting)
+          if c.respond_to?(:resolve_que_setting)
+            c.resolve_que_setting(setting, *args)
+          end
         end
       end
     end
