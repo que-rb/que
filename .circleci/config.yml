@@ -76,8 +76,6 @@ defaults: &defaults
     - run:
         name: Run Tests
         command: |
-          # Accumulate failed commands (test failures) in this script.
-          set +e
           pids=()
 
           # Wait until we know Postgres is ready.
