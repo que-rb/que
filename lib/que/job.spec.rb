@@ -143,6 +143,16 @@ describe Que::Job do
     end
   end
 
+  module ActsLikeASynchronousJob
+    def self.included(base)
+      base.class_eval do
+        it "shouldn't fail if there's no DB connection"
+
+        it "should propagate errors raised during the job"
+      end
+    end
+  end
+
   describe "running jobs from the DB" do
     include ActsLikeAJob
 
@@ -179,13 +189,20 @@ describe Que::Job do
 
   describe "the JobClass.run() method" do
     include ActsLikeAJob
+    include ActsLikeASynchronousJob
 
     def execute(*args)
       TestJobClass.run(*args)
     end
+  end
 
-    it "shouldn't fail if there's no DB connection"
+  describe "the JobClass.enqueue() method when run_synchronously is set" do
+    include ActsLikeAJob
+    include ActsLikeASynchronousJob
 
-    it "should propagate errors raised during the job"
+    def execute(*args)
+      TestJobClass.run_synchronously = true
+      TestJobClass.enqueue(*args)
+    end
   end
 end

@@ -125,7 +125,8 @@ module Que
         }
 
         if attrs[:run_at].nil? && resolve_que_setting(:run_synchronously)
-          run(*args)
+          attrs[:data] = Que.deserialize_json(attrs[:data])
+          _run_attrs(attrs)
         else
           values =
             Que.execute(
@@ -140,17 +141,10 @@ module Que
       def run(*args)
         # Make sure things behave the same as they would have with a round-trip
         # to the DB.
-        attrs =
-          Que.recursively_freeze(
-            Que.deserialize_json(
-              Que.serialize_json(
-                data: {args: args}
-              )
-            )
-          )
+        data = Que.deserialize_json(Que.serialize_json(args: args))
 
         # Should not fail if there's no DB connection.
-        new(attrs).tap(&:_run)
+        _run_attrs(data: data)
       end
 
       def resolve_que_setting(setting, *args)
@@ -165,6 +159,13 @@ module Que
             c.resolve_que_setting(setting, *args)
           end
         end
+      end
+
+      private
+
+      def _run_attrs(attrs)
+        Que.recursively_freeze(attrs)
+        new(attrs).tap(&:_run)
       end
     end
   end
