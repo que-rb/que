@@ -52,6 +52,11 @@ QUE_POOL = Que.pool
 require 'sequel'
 DB = Sequel.connect(QUE_URL)
 DB.extension :pg_array
+DB.extension :pg_json
+
+def Sequel.parse_json(json)
+  JSON.parse(json, symbolize_names: true, create_additions: false)
+end
 
 
 
@@ -157,6 +162,10 @@ class QueSpec < Minitest::Spec
   end
 
   def around
+    if ENV['LOG_SPEC']
+      puts "Running: #{current_spec_location}"
+    end
+
     Que.pool = QUE_POOL
 
     QUE_LOGGER.messages.clear
@@ -186,7 +195,12 @@ class QueSpec < Minitest::Spec
       abort
     end
 
-    DB[:que_jobs].delete
-    DB[:que_lockers].delete
+    begin
+      DB[:que_jobs].delete
+      DB[:que_lockers].delete
+    rescue
+      # If these fail, the DB is in a bad state and we're probably failing anyway.
+      raise if passed?
+    end
   end
 end

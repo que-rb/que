@@ -141,7 +141,7 @@ describe Que::Migrations do
         DB[:que_jobs].
           order(:job_id).
           select(:job_id, :args, :queue, :last_error).
-          all{|a| a[:args] = JSON.parse(a[:args], symbolize_names: true)}
+          all
       )
 
       # Add a few rows where args is not an array, to make sure the migration
@@ -201,7 +201,7 @@ describe Que::Migrations do
           select(
             :id, :data, :queue, :last_error_message, :last_error_backtrace
           ).
-          all{|a| a[:data] = JSON.parse(a[:data], symbolize_names: true)}
+          all
       )
     end
   end
