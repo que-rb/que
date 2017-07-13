@@ -123,6 +123,21 @@ describe Que::Job do
           assert_empty jobs_dataset
         end
 
+        it "should make it easy to override the finishing action" do
+          TestJobClass.class_eval do
+            def finish
+              $args = []
+              $args << :before_destroy
+              destroy
+              $args << :after_destroy
+            end
+          end
+
+          execute
+          assert_equal [:before_destroy, :after_destroy], $args
+          assert_empty jobs_dataset
+        end
+
         it "should make it easy to finish the job"
       end
     end
