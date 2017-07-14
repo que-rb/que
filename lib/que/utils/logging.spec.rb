@@ -95,4 +95,26 @@ describe Que::Utils::Logging do
       assert_equal 'blah', Que.get_logger
     end
   end
+
+  describe "internal_log" do
+    it "should be a no-op if there's no internal_logger set" do
+      Que.internal_logger = nil
+      assert_nil Que.internal_log { "blah!" }
+    end
+
+    it "should output whatever's in the block to the internal_logger" do
+      Que.internal_log { "blah!" }
+      Que.internal_log { {key: "Blah!"} }
+      Que.internal_log { [35, 47] }
+
+      assert_equal(
+        [
+          "blah!",
+          "{\"key\":\"Blah!\"}",
+          "[35, 47]",
+        ],
+        QUE_INTERNAL_LOGGER.messages,
+      )
+    end
+  end
 end

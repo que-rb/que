@@ -29,7 +29,25 @@ module Que
         end
       end
 
-      attr_accessor :logger, :log_formatter
+      # Logging method used specifically to instrument Que's internals. Fetches
+      # log contents by yielding to a block so that we avoid allocating
+      # unnecessary objects in production use.
+      def internal_log
+        if l = internal_logger
+          data = yield
+
+          output =
+            case data
+            when Hash   then JSON.dump(data)
+            when String then data
+            else             data.to_s
+            end
+
+          l.info(output)
+        end
+      end
+
+      attr_accessor :logger, :log_formatter, :internal_logger
 
       def get_logger
         @logger.respond_to?(:call) ? @logger.call : @logger

@@ -78,24 +78,8 @@ Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
 
 
 
-# Set up a dummy logger.
-Que.logger = QUE_LOGGER = Object.new
-QUE_LOGGER_MUTEX = Mutex.new # Protect against rare errors on Rubinius/JRuby.
-
-def QUE_LOGGER.messages
-  @messages ||= []
-end
-
-def QUE_LOGGER.method_missing(m, message)
-  QUE_LOGGER_MUTEX.synchronize { messages << message }
-end
-
-# Object includes Kernel#warn which is not what we expect, so remove:
-def QUE_LOGGER.warn(message)
-  method_missing(:warn, message)
-end
-
-
+# Set up dummy loggers.
+QUE_LOGGER = QUE_INTERNAL_LOGGER = DummyLogger.new
 
 class QueSpec < Minitest::Spec
   include Minitest::Hooks
@@ -166,11 +150,14 @@ class QueSpec < Minitest::Spec
       puts "Running: #{current_spec_location}"
     end
 
-    Que.pool          = QUE_POOL
-    Que.logger        = QUE_LOGGER
-    Que.log_formatter = nil
+    Que.pool            = QUE_POOL
+    Que.logger          = QUE_LOGGER
+    Que.internal_logger = QUE_INTERNAL_LOGGER
+    Que.log_formatter   = nil
 
     QUE_LOGGER.messages.clear
+    QUE_INTERNAL_LOGGER.messages.clear
+
     $q1, $q2 = Queue.new, Queue.new
     $passed_args = nil
 
