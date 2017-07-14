@@ -81,18 +81,27 @@ describe Que::Utils::Logging do
 
   describe "get_logger" do
     it "should return nil if the logger is nil" do
-      Que.logger = nil
+      Que.logger          = nil
+      Que.internal_logger = nil
+
       assert_nil Que.get_logger
+      assert_nil Que.get_logger(internal: true)
     end
 
     it "should return the logger if it's a non-callable" do
-      Que.logger = 5
+      Que.logger          = 5
+      Que.internal_logger = 5
+
       assert_equal 5, Que.get_logger
+      assert_equal 5, Que.get_logger(internal: true)
     end
 
     it "should return the results of a callable" do
-      Que.logger = proc { 'blah' }
-      assert_equal 'blah', Que.get_logger
+      Que.logger          = proc { 'blah1' }
+      Que.internal_logger = proc { 'blah2' }
+
+      assert_equal 'blah1', Que.get_logger
+      assert_equal 'blah2', Que.get_logger(internal: true)
     end
   end
 
@@ -110,6 +119,20 @@ describe Que::Utils::Logging do
         [
           "{\"internal_event\":\"thing_happened\",\"key\":\"Blah!\"}",
           "{\"internal_event\":\"thing_happened\",\"key\":\"Blah again!\"}",
+        ],
+        QUE_INTERNAL_LOGGER.messages,
+      )
+    end
+
+    it "should support assigning a proc as the internal logger" do
+      called = false
+      Que.internal_logger = proc { called = true; QUE_INTERNAL_LOGGER }
+      Que.internal_log(:thing_happened) { {key: "Blah!"} }
+
+      assert called
+      assert_equal(
+        [
+          "{\"internal_event\":\"thing_happened\",\"key\":\"Blah!\"}",
         ],
         QUE_INTERNAL_LOGGER.messages,
       )

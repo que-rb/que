@@ -5,6 +5,8 @@
 module Que
   module Utils
     module Logging
+      attr_accessor :logger, :log_formatter, :internal_logger
+
       def log(level: :info, event:, **data)
         data =
           {
@@ -30,11 +32,12 @@ module Que
         end
       end
 
-      # Logging method used specifically to instrument Que's internals. Fetches
-      # log contents by yielding to a block so that we avoid allocating
-      # unnecessary objects in production use.
+      # Logging method used specifically to instrument Que's internals. There's
+      # usually not an internal logger set up, so this method is generally a no-
+      # op unless the specs are running or we're trying to debug an issue
+      # somebody is having remotely.
       def internal_log(event)
-        if l = internal_logger
+        if l = get_logger(internal: true)
           data = {}
           data[:internal_event] = Que.assert(Symbol, event)
           data.merge!(Que.assert(Hash, yield))
@@ -42,10 +45,9 @@ module Que
         end
       end
 
-      attr_accessor :logger, :log_formatter, :internal_logger
-
-      def get_logger
-        @logger.respond_to?(:call) ? @logger.call : @logger
+      def get_logger(internal: false)
+        l = internal ? internal_logger : logger
+        l.respond_to?(:call) ? l.call : l
       end
 
       def log_formatter
