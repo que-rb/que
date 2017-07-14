@@ -35,10 +35,9 @@ module Que
       # unnecessary objects in production use.
       def internal_log(event)
         if l = internal_logger
-          data = Que.assert(Hash, yield)
-
-          data[:internal_event] = event
-
+          data = {}
+          data[:internal_event] = Que.assert(Symbol, event)
+          data.merge!(Que.assert(Hash, yield))
           l.info(JSON.dump(data))
         end
       end

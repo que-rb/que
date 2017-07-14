@@ -108,8 +108,8 @@ describe Que::Utils::Logging do
 
       assert_equal(
         [
-          "{\"key\":\"Blah!\",\"internal_event\":\"thing_happened\"}",
-          "{\"key\":\"Blah again!\",\"internal_event\":\"thing_happened\"}",
+          "{\"internal_event\":\"thing_happened\",\"key\":\"Blah!\"}",
+          "{\"internal_event\":\"thing_happened\",\"key\":\"Blah again!\"}",
         ],
         QUE_INTERNAL_LOGGER.messages,
       )
