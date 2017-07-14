@@ -130,8 +130,15 @@ class QueSpec < Minitest::Spec
     QUE_LOGGER.messages.map { |message| JSON.parse(message, symbolize_names: true) }
   end
 
-  def internal_messages
-    QUE_INTERNAL_LOGGER.messages.map { |message| JSON.parse(message, symbolize_names: true) }
+  def internal_messages(event: nil)
+    messages =
+      QUE_INTERNAL_LOGGER.messages.map { |m| JSON.parse(m, symbolize_names: true) }
+
+    if event
+      messages = messages.select { |m| m[:internal_event] == event }
+    end
+
+    messages
   end
 
   def locked_ids

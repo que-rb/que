@@ -330,8 +330,7 @@ describe Que::Locker do
       3.times { $q2.push nil }
       locker.stop!
 
-      locker_polled_events =
-        internal_messages.select{|m| m[:internal_event] == 'locker_polled'}
+      locker_polled_events = internal_messages(event: 'locker_polled')
 
       # First big batch lock, tried to fill the queue and didn't quite get
       # there.
@@ -462,10 +461,7 @@ describe Que::Locker do
       DB.notify "que_listener_#{pid}",
         payload: JSON.dump(payload.merge(message_type: 'new_job'))
 
-      m =
-        sleep_until do
-          internal_messages.find {|m| m[:internal_event] == 'messages_received'}
-        end
+      m = sleep_until { internal_messages(event: 'messages_received').first }
 
       payload[:run_at] = Time.iso8601(payload[:run_at]).to_s
 

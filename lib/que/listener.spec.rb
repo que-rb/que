@@ -39,7 +39,7 @@ describe Que::Listener do
     it "should return empty if there were no messages before the timeout" do
       # Use a short timeout, since we'll always hit it in this spec.
       assert_equal({}, listener.wait_for_messages(0.001))
-      assert_empty internal_messages.select{|m| m[:internal_event] == 'messages_received'}
+      assert_empty internal_messages(event: 'messages_received')
     end
 
     it "should return frozen messages" do
@@ -58,7 +58,7 @@ describe Que::Listener do
             }
           }
         ],
-        internal_messages.select{|m| m[:internal_event] == 'messages_received'}
+        internal_messages(event: 'messages_received')
       )
     end
 
