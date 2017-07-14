@@ -79,7 +79,8 @@ Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
 
 
 # Set up dummy loggers.
-QUE_LOGGER = QUE_INTERNAL_LOGGER = DummyLogger.new
+QUE_LOGGER          = DummyLogger.new
+QUE_INTERNAL_LOGGER = DummyLogger.new
 
 class QueSpec < Minitest::Spec
   include Minitest::Hooks
@@ -125,6 +126,10 @@ class QueSpec < Minitest::Spec
 
   def logged_messages
     QUE_LOGGER.messages.map { |message| JSON.load(message) }
+  end
+
+  def internal_messages
+    QUE_INTERNAL_LOGGER.messages.map { |message| JSON.load(message) }
   end
 
   def locked_ids

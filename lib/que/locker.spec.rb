@@ -331,7 +331,7 @@ describe Que::Locker do
       locker.stop!
 
       locker_polled_events =
-        logged_messages.select{|m| m['event'] == 'locker_polled'}
+        internal_messages.select{|m| m['internal_event'] == 'locker_polled'}
 
       # First big batch lock, tried to fill the queue and didn't quite get
       # there.

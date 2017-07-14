@@ -125,12 +125,13 @@ module Que
       @last_polled_at      = Time.now
       @last_poll_satisfied = limit == jobs.count
 
-      Que.log(
-        level: :debug,
-        event: :locker_polled,
-        limit: limit,
-        locked: jobs.count,
-      )
+      Que.internal_log :locker_polled do
+        {
+          limit:  limit,
+          locked: jobs.count,
+          held_locks: held_locks.to_a
+        }
+      end
 
       jobs
     end
