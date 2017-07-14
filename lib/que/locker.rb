@@ -145,6 +145,7 @@ module Que
 
         Que.internal_log :locker_start do
           {
+            object_id:          object_id,
             listen:             !!@listener,
             queues:             @queue_names,
             backend_pid:        conn.backend_pid,

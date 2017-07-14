@@ -36,6 +36,7 @@ describe Que::Locker do
       assert_equal 1, events.count
 
       event = events.first
+      assert_equal locker.object_id,   event[:object_id]
       assert_equal listen,             event[:listen]
       assert_kind_of Integer,          event[:backend_pid]
       assert_equal queues,             event[:queues]
