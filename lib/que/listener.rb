@@ -103,6 +103,16 @@ module Que
         messages.each(&:freeze)
       end
 
+      output.delete_if {|k,v| v.empty?}
+
+      if output.any?
+        Que.internal_log(:messages_received) do
+          {
+            messages: output,
+          }
+        end
+      end
+
       output
     end
 

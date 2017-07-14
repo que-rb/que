@@ -111,7 +111,9 @@ class QueSpec < Minitest::Spec
   def sleep_until(timeout = QUE_SLEEP_UNTIL_TIMEOUT)
     deadline = Time.now + timeout
     loop do
-      break if yield
+      if result = yield
+        return result
+      end
       if Time.now > deadline
         puts "sleep_until timeout reached!"
         raise "sleep_until timeout reached!"

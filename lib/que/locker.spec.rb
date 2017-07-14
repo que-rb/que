@@ -442,9 +442,9 @@ describe Que::Locker do
     end
 
     it "should not try to lock and work jobs it has already locked" do
+      id = BlockJob.enqueue.que_attrs[:id]
       locker
 
-      id = BlockJob.enqueue.que_attrs[:id]
       $q1.pop
 
       assert_equal [], locker.job_queue.to_a
@@ -453,17 +453,28 @@ describe Que::Locker do
       payload =
         jobs_dataset.
           where(id: id).
-          select(Sequel.as('new_job', :message_type), :queue, :priority, :run_at, :id).
+          select(:queue, :priority, :run_at, :id).
           from_self(alias: :t).
           get{row_to_json(:t)}
 
       pid = DB[:que_lockers].get(:pid)
       refute_nil pid
-      DB.notify "que_listener_#{pid}", payload: JSON.dump(payload)
+      DB.notify "que_listener_#{pid}",
+        payload: JSON.dump(payload.merge(message_type: 'new_job'))
 
-      # A bit hacky. Nothing should happen in response to this payload, so wait
-      # a bit.
-      sleep 0.05
+      m =
+        sleep_until do
+          internal_messages.find {|m| m[:internal_event] == 'messages_received'}
+        end
+
+      payload[:run_at] = Time.iso8601(payload[:run_at]).to_s
+
+      assert_equal(
+        {
+          new_job: [payload],
+        },
+        m[:messages],
+      )
 
       $q2.push nil
       locker.stop!
