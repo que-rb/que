@@ -81,6 +81,11 @@ describe Que::Listener do
       )
     end
 
+    it "should not return a message type entry if none of the messages were well-formed" do
+      notify(message_type: 'new_job', priority: 2, id: 4)
+      assert_equal({}, listener.wait_for_messages(10))
+    end
+
     it "should accept arrays of messages" do
       notifications = []
 
