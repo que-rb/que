@@ -166,7 +166,9 @@ class QueSpec < Minitest::Spec
       puts "Running: #{current_spec_location}"
     end
 
-    Que.pool = QUE_POOL
+    Que.pool          = QUE_POOL
+    Que.logger        = QUE_LOGGER
+    Que.log_formatter = nil
 
     QUE_LOGGER.messages.clear
     $q1, $q2 = Queue.new, Queue.new

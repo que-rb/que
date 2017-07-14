@@ -18,46 +18,31 @@ describe Que::Utils::Logging do
     end
 
     it "should respect a callable set as the logger" do
-      begin
-        QUE_LOGGER.messages.clear
-        called = false
-        Que.logger = proc { called = true; QUE_LOGGER }
-        Que.log(event: "blah")
-        assert called
-        skip "Use a stub?"
-      ensure
-        Que.logger = QUE_LOGGER
-      end
+      QUE_LOGGER.messages.clear
+      called = false
+      Que.logger = proc { called = true; QUE_LOGGER }
+      Que.log(event: "blah")
+      assert called
+      refute_empty QUE_LOGGER.messages
     end
 
     it "should not raise an error when no logger is present" do
-      begin
-        Que.logger = nil
-        assert_nil Que.log(event: "blah")
-      ensure
-        Que.logger = QUE_LOGGER
-      end
+      Que.logger = nil
+      assert_nil Que.log(event: "blah")
+      assert_empty QUE_LOGGER.messages
     end
 
     it "should allow the use of a custom log formatter" do
-      begin
-        Que.log_formatter = proc { |data| "Logged event is #{data[:event]}" }
-        Que.log event: 'my_event'
-        assert_equal 1, QUE_LOGGER.messages.count
-        assert_equal "Logged event is my_event", QUE_LOGGER.messages.first
-      ensure
-        Que.log_formatter = nil
-      end
+      Que.log_formatter = proc { |data| "Logged event is #{data[:event]}" }
+      Que.log event: 'my_event'
+      assert_equal 1, QUE_LOGGER.messages.count
+      assert_equal "Logged event is my_event", QUE_LOGGER.messages.first
     end
 
     it "should not log anything if the logging formatter returns falsey" do
-      begin
-        Que.log_formatter = proc { |data| false }
-        Que.log event: "blah"
-        assert_empty QUE_LOGGER.messages
-      ensure
-        Que.log_formatter = nil
-      end
+      Que.log_formatter = proc { |data| false }
+      Que.log event: "blah"
+      assert_empty QUE_LOGGER.messages
     end
 
     it "should use a :level option to set the log level if one exists" do
@@ -77,25 +62,37 @@ describe Que::Utils::Logging do
         assert_equal :debug, $level
         assert_equal 'two', JSON.load($message)['message']
       ensure
-        Que.logger = QUE_LOGGER
         $level = $message = nil
       end
     end
 
     it "should just log a generic message if the log formatter raises an error" do
-      begin
-        Que.log_formatter = proc { |m| raise "Blah!" }
+      Que.log_formatter = proc { |m| raise "Blah!" }
 
-        Que.log event: "blah", source: 4
-        assert_equal 1, QUE_LOGGER.messages.count
+      Que.log event: "blah", source: 4
+      assert_equal 1, QUE_LOGGER.messages.count
 
-        message = QUE_LOGGER.messages.first
-        assert message.start_with?(
-          "Error raised from Que.log_formatter proc: RuntimeError: Blah!"
-        )
-      ensure
-        Que.log_formatter = nil
-      end
+      message = QUE_LOGGER.messages.first
+      assert message.start_with?(
+        "Error raised from Que.log_formatter proc: RuntimeError: Blah!"
+      )
+    end
+  end
+
+  describe "get_logger" do
+    it "should return nil if the logger is nil" do
+      Que.logger = nil
+      assert_nil Que.get_logger
+    end
+
+    it "should return the logger if it's a non-callable" do
+      Que.logger = 5
+      assert_equal 5, Que.get_logger
+    end
+
+    it "should return the results of a callable" do
+      Que.logger = proc { 'blah' }
+      assert_equal 'blah', Que.get_logger
     end
   end
 end

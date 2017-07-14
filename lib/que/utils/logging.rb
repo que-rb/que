@@ -14,7 +14,7 @@ module Que
             thread:   Thread.current.object_id
           }.merge(data)
 
-        if l = logger
+        if l = get_logger
           begin
             if output = log_formatter.call(data)
               l.send level, output
@@ -29,9 +29,9 @@ module Que
         end
       end
 
-      attr_writer :logger, :log_formatter
+      attr_accessor :logger, :log_formatter
 
-      def logger
+      def get_logger
         @logger.respond_to?(:call) ? @logger.call : @logger
       end
 
