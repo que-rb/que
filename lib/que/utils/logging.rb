@@ -32,18 +32,13 @@ module Que
       # Logging method used specifically to instrument Que's internals. Fetches
       # log contents by yielding to a block so that we avoid allocating
       # unnecessary objects in production use.
-      def internal_log
+      def internal_log(event)
         if l = internal_logger
-          data = yield
+          data = Que.assert(Hash, yield)
 
-          output =
-            case data
-            when Hash   then JSON.dump(data)
-            when String then data
-            else             data.to_s
-            end
+          data[:internal_event] = event
 
-          l.info(output)
+          l.info(JSON.dump(data))
         end
       end
 

@@ -99,19 +99,17 @@ describe Que::Utils::Logging do
   describe "internal_log" do
     it "should be a no-op if there's no internal_logger set" do
       Que.internal_logger = nil
-      assert_nil Que.internal_log { "blah!" }
+      assert_nil Que.internal_log(:thing_happened) { raise "Blah!" }
     end
 
     it "should output whatever's in the block to the internal_logger" do
-      Que.internal_log { "blah!" }
-      Que.internal_log { {key: "Blah!"} }
-      Que.internal_log { [35, 47] }
+      Que.internal_log(:thing_happened) { {key: "Blah!"} }
+      Que.internal_log(:thing_happened) { {key: "Blah again!"} }
 
       assert_equal(
         [
-          "blah!",
-          "{\"key\":\"Blah!\"}",
-          "[35, 47]",
+          "{\"key\":\"Blah!\",\"internal_event\":\"thing_happened\"}",
+          "{\"key\":\"Blah again!\",\"internal_event\":\"thing_happened\"}",
         ],
         QUE_INTERNAL_LOGGER.messages,
       )
