@@ -1,88 +1,74 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
-require 'optparse'
-require 'ostruct'
-require 'logger'
+require_relative 'command_line_interface'
 
 $stdout.sync = true
 
-options = OpenStruct.new
+Que::CommandLineInterface.parse(
+  args:   ARGV,
+  output: $stdout,
+)
 
-OptionParser.new do |opts|
-  opts.banner = 'usage: que [options] file/to/require ...'
+# if args.length.zero?
+#   $stdout.puts <<-OUTPUT
+# You didn't include any Ruby files to require!
+# Que needs to be able to load your application before it can process jobs.
+# (Hint: If you're using Rails, try `que ./config/environment.rb`)
+# (Or use `que -h` for a list of options)
+# OUTPUT
+# exit 1
+# end
 
-  opts.on('-w', '--worker-count [COUNT]', Integer, "Set number of workers in process (default: 4)") do |worker_count|
-    options.worker_count = worker_count
-  end
+locker =
+  Que::Locker.new(
+    poll_interval: 5.0,
+  )
 
-  opts.on('-i', '--wake-interval [INTERVAL]', Float, "Set maximum interval between polls of the job queue (in seconds) (default: 0.1)") do |wake_interval|
-    options.wake_interval = wake_interval
-  end
-
-  opts.on('-l', '--log-level [LEVEL]', String, "Set level of Que's logger (debug, info, warn, error, fatal) (default: info)") do |log_level|
-    options.log_level = log_level
-  end
-
-  opts.on('-q', '--queue-name [NAME]', String, "Set the name of the queue to work jobs from (default: the default queue)") do |queue_name|
-    options.queue_name = queue_name
-  end
-
-  opts.on('-v', '--version', "Show Que version") do
-    require 'que'
-    $stdout.puts "Que version #{Que::VERSION}"
-    exit 0
-  end
-
-  opts.on('-h', '--help', "Show help text") do
-    $stdout.puts opts
-    exit 0
-  end
-end.parse!(ARGV)
-
-if ARGV.length.zero?
-  $stdout.puts <<-OUTPUT
-You didn't include any Ruby files to require!
-Que needs to be able to load your application before it can process jobs.
-(Hint: If you're using Rails, try `que ./config/environment.rb`)
-(Or use `que -h` for a list of options)
-OUTPUT
-exit 1
-end
-
-ARGV.each do |file|
-  begin
-    require file
-  rescue LoadError
-    $stdout.puts "Could not load file '#{file}'"
-  end
-end
-
-Que.logger ||= Logger.new(STDOUT)
-
-begin
-  if log_level = (options.log_level || ENV['QUE_LOG_LEVEL'])
-    Que.logger.level = Logger.const_get(log_level.upcase)
-  end
-rescue NameError
-  $stdout.puts "Bad logging level: #{log_level}"
-  exit 1
-end
-
-Que.queue_name    = options.queue_name     || ENV['QUE_QUEUE']         || Que.queue_name    || nil
-Que.worker_count  = (options.worker_count  || ENV['QUE_WORKER_COUNT']  || Que.worker_count  || 4).to_i
-Que.wake_interval = (options.wake_interval || ENV['QUE_WAKE_INTERVAL'] || Que.wake_interval || 0.1).to_f
-Que.mode          = :async
-
-stop = false
-%w(INT TERM).each { |signal| trap(signal) { stop = true } }
+$stop_que_executable = false
+%w[INT TERM].each { |signal| trap(signal) { $stop_que_executable = true } }
 
 loop do
   sleep 0.01
-  break if stop
+  break if $stop_que_executable
 end
 
-$stdout.puts
-$stdout.puts "Finishing Que's current jobs before exiting..."
-Que.worker_count = 0
-Que.mode = :off
-$stdout.puts "Que's jobs finished, exiting..."
+locker.stop!
+
+# ARGV.each do |file|
+#   begin
+#     require file
+#   rescue LoadError
+#     $stdout.puts "Could not load file '#{file}'"
+#   end
+# end
+
+# Que.logger ||= Logger.new(STDOUT)
+
+# begin
+#   if log_level = (options.log_level || ENV['QUE_LOG_LEVEL'])
+#     Que.logger.level = Logger.const_get(log_level.upcase)
+#   end
+# rescue NameError
+#   $stdout.puts "Bad logging level: #{log_level}"
+#   exit 1
+# end
+
+# Que.queue_name    = options.queue_name     || ENV['QUE_QUEUE']         || Que.queue_name    || nil
+# Que.worker_count  = (options.worker_count  || ENV['QUE_WORKER_COUNT']  || Que.worker_count  || 4).to_i
+# Que.wake_interval = (options.wake_interval || ENV['QUE_WAKE_INTERVAL'] || Que.wake_interval || 0.1).to_f
+# Que.mode          = :async
+
+# stop = false
+# %w(INT TERM).each { |signal| trap(signal) { stop = true } }
+
+# loop do
+#   sleep 0.01
+#   break if stop
+# end
+
+# $stdout.puts
+# $stdout.puts "Finishing Que's current jobs before exiting..."
+# Que.worker_count = 0
+# Que.mode = :off
+# $stdout.puts "Que's jobs finished, exiting..."
