@@ -32,7 +32,7 @@ describe Que::Locker do
 
       assert_equal 0, DB[:que_lockers].count
 
-      events = logged_messages.select { |m| m[:event] == 'locker_start' }
+      events = internal_messages(event: 'locker_start')
       assert_equal 1, events.count
 
       event = events.first

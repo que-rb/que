@@ -138,16 +138,22 @@ module Que
     def work_loop
       checkout do |conn|
         Que.log(
-          level:              :debug,
-          event:              :locker_start,
-          listen:             !!@listener,
-          queues:             @queue_names,
-          backend_pid:        conn.backend_pid,
-          wait_period:        @wait_period,
-          minimum_queue_size: @minimum_queue_size,
-          maximum_queue_size: @job_queue.maximum_size,
-          worker_priorities:  @workers.map(&:priority),
+          level: :debug,
+          event: :locker_start,
+          queues: @queue_names,
         )
+
+        Que.internal_log :locker_start do
+          {
+            listen:             !!@listener,
+            queues:             @queue_names,
+            backend_pid:        conn.backend_pid,
+            wait_period:        @wait_period,
+            minimum_queue_size: @minimum_queue_size,
+            maximum_queue_size: @job_queue.maximum_size,
+            worker_priorities:  @workers.map(&:priority),
+          }
+        end
 
         begin
           @listener.listen if @listener
