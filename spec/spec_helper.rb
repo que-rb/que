@@ -188,13 +188,5 @@ class QueSpec < Minitest::Spec
       # unknown/not clean.
       abort
     end
-
-    begin
-      DB[:que_jobs].delete
-      DB[:que_lockers].delete
-    rescue
-      # If these fail, the DB is in a bad state and we're probably failing anyway.
-      raise if passed?
-    end
   end
 end
