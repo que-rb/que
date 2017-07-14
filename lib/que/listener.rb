@@ -94,7 +94,6 @@ module Que
               ].join("\n")
 
               Que.notify_error_async(Error.new(message))
-
               false
             end
           end
