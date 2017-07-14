@@ -125,11 +125,11 @@ class QueSpec < Minitest::Spec
   end
 
   def logged_messages
-    QUE_LOGGER.messages.map { |message| JSON.load(message) }
+    QUE_LOGGER.messages.map { |message| JSON.parse(message, symbolize_names: true) }
   end
 
   def internal_messages
-    QUE_INTERNAL_LOGGER.messages.map { |message| JSON.load(message) }
+    QUE_INTERNAL_LOGGER.messages.map { |message| JSON.parse(message, symbolize_names: true) }
   end
 
   def locked_ids

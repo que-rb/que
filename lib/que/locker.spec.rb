@@ -32,17 +32,17 @@ describe Que::Locker do
 
       assert_equal 0, DB[:que_lockers].count
 
-      events = logged_messages.select { |m| m['event'] == 'locker_start' }
+      events = logged_messages.select { |m| m[:event] == 'locker_start' }
       assert_equal 1, events.count
 
       event = events.first
-      assert_equal listen,             event['listen']
-      assert_kind_of Integer,          event['backend_pid']
-      assert_equal queues,             event['queues']
-      assert_equal wait_period,        event['wait_period']
-      assert_equal minimum_queue_size, event['minimum_queue_size']
-      assert_equal maximum_queue_size, event['maximum_queue_size']
-      assert_equal worker_priorities,  event['worker_priorities']
+      assert_equal listen,             event[:listen]
+      assert_kind_of Integer,          event[:backend_pid]
+      assert_equal queues,             event[:queues]
+      assert_equal wait_period,        event[:wait_period]
+      assert_equal minimum_queue_size, event[:minimum_queue_size]
+      assert_equal maximum_queue_size, event[:maximum_queue_size]
+      assert_equal worker_priorities,  event[:worker_priorities]
     end
 
     it "should have reasonable defaults" do
@@ -331,18 +331,18 @@ describe Que::Locker do
       locker.stop!
 
       locker_polled_events =
-        internal_messages.select{|m| m['internal_event'] == 'locker_polled'}
+        internal_messages.select{|m| m[:internal_event] == 'locker_polled'}
 
       # First big batch lock, tried to fill the queue and didn't quite get
       # there.
       event = locker_polled_events.shift
-      assert_equal 8, event['limit']
-      assert_equal 4, event['locked']
+      assert_equal 8, event[:limit]
+      assert_equal 4, event[:locked]
 
       # Second big batch lock, filled the queue.
       second_mass_lock =
         locker_polled_events.find do |e|
-          e['limit'] == 7 && e['locked'] == 7
+          e[:limit] == 7 && e[:locked] == 7
         end
 
       assert(
@@ -442,8 +442,6 @@ describe Que::Locker do
     end
 
     it "should not try to lock and work jobs it has already locked" do
-      skip "Tackle this once we're doing some special logging"
-
       locker
 
       id = BlockJob.enqueue.que_attrs[:id]
@@ -537,7 +535,7 @@ describe Que::Locker do
       locker.stop!
       workers.each { |worker| assert_equal false, worker.thread.status }
 
-      events = logged_messages.select { |m| m['event'] == 'locker_stop' }
+      events = logged_messages.select { |m| m[:event] == 'locker_stop' }
       assert_equal 1, events.count
     end
 

@@ -67,9 +67,9 @@ describe Que::Worker do
       assert_equal [1, 2, 3], $results
       assert_equal job_ids, result_queue.to_a
 
-      events = logged_messages.select{|m| m['event'] == 'job_worked'}
+      events = logged_messages.select{|m| m[:event] == 'job_worked'}
       assert_equal 3, events.count
-      assert_equal [1, 2, 3], events.map{|m| m['job']['priority']}
+      assert_equal [1, 2, 3], events.map{|m| m[:job][:priority]}
     ensure
       $results = nil
     end
@@ -132,13 +132,13 @@ describe Que::Worker do
       run_jobs
       assert_equal job_ids, result_queue.to_a
 
-      events = logged_messages.select{|m| m['event'] == 'job_errored'}
+      events = logged_messages.select{|m| m[:event] == 'job_errored'}
       assert_equal 1, events.count
 
       event = events.first
-      assert_equal 1, event['job']['priority']
-      assert_kind_of Integer, event['job']['id']
-      assert_equal "ErrorJob!", event['error']
+      assert_equal 1, event[:job][:priority]
+      assert_kind_of Integer, event[:job][:id]
+      assert_equal "ErrorJob!", event[:error]
     end
 
     it "should pass it to the error notifier" do

@@ -28,9 +28,9 @@ describe Que::Utils::ErrorNotification do
         assert_equal 1, logged_messages.length
         m = logged_messages.first
 
-        assert_equal "error_notifier callable raised an error", m['message']
-        assert_equal "Uh-oh!", m['error_message']
-        assert_instance_of Array, m['error_backtrace']
+        assert_equal "error_notifier callable raised an error", m[:message]
+        assert_equal "Uh-oh!", m[:error_message]
+        assert_instance_of Array, m[:error_backtrace]
       end
     end
   end
