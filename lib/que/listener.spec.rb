@@ -10,14 +10,16 @@ describe Que::Listener do
   end
 
   around do |&block|
-    QUE_POOL.checkout do |conn|
-      begin
-        listener.listen
-        @connection = conn
+    super() do
+      QUE_POOL.checkout do |conn|
+        begin
+          listener.listen
+          @connection = conn
 
-        super(&block)
-      ensure
-        listener.unlisten
+          block.call
+        ensure
+          listener.unlisten
+        end
       end
     end
   end
