@@ -5,13 +5,14 @@
 module Que
   module Utils
     module Logging
-      def log(level: :info, **data)
+      def log(level: :info, event:, **data)
         data =
           {
             lib:      :que,
             hostname: CURRENT_HOSTNAME,
             pid:      Process.pid,
-            thread:   Thread.current.object_id
+            thread:   Thread.current.object_id,
+            event:    Que.assert(Symbol, event),
           }.merge(data)
 
         if l = get_logger

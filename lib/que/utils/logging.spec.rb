@@ -5,7 +5,7 @@ require 'spec_helper'
 describe Que::Utils::Logging do
   describe "log" do
     it "should record the library and hostname and thread id in JSON" do
-      Que.log event: "blah", source: 4
+      Que.log event: :blah, source: 4
       assert_equal 1, QUE_LOGGER.messages.count
 
       message = JSON.load(QUE_LOGGER.messages.first)
@@ -21,27 +21,27 @@ describe Que::Utils::Logging do
       QUE_LOGGER.messages.clear
       called = false
       Que.logger = proc { called = true; QUE_LOGGER }
-      Que.log(event: "blah")
+      Que.log(event: :blah)
       assert called
       refute_empty QUE_LOGGER.messages
     end
 
     it "should not raise an error when no logger is present" do
       Que.logger = nil
-      assert_nil Que.log(event: "blah")
+      assert_nil Que.log(event: :blah)
       assert_empty QUE_LOGGER.messages
     end
 
     it "should allow the use of a custom log formatter" do
       Que.log_formatter = proc { |data| "Logged event is #{data[:event]}" }
-      Que.log event: 'my_event'
+      Que.log event: :my_event
       assert_equal 1, QUE_LOGGER.messages.count
       assert_equal "Logged event is my_event", QUE_LOGGER.messages.first
     end
 
     it "should not log anything if the logging formatter returns falsey" do
       Que.log_formatter = proc { |data| false }
-      Que.log event: "blah"
+      Que.log event: :blah
       assert_empty QUE_LOGGER.messages
     end
 
@@ -54,11 +54,11 @@ describe Que::Utils::Logging do
           $message = message
         end
 
-        Que.log message: 'one'
+        Que.log event: :thing_happened, message: 'one'
         assert_equal :info, $level
         assert_equal 'one', JSON.load($message)['message']
 
-        Que.log message: 'two', level: 'debug'
+        Que.log event: :thing_happened, message: 'two', level: 'debug'
         assert_equal :debug, $level
         assert_equal 'two', JSON.load($message)['message']
       ensure
@@ -69,7 +69,7 @@ describe Que::Utils::Logging do
     it "should just log a generic message if the log formatter raises an error" do
       Que.log_formatter = proc { |m| raise "Blah!" }
 
-      Que.log event: "blah", source: 4
+      Que.log event: :blah, source: 4
       assert_equal 1, QUE_LOGGER.messages.count
 
       message = QUE_LOGGER.messages.first

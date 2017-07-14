@@ -11,6 +11,7 @@ module Que
         end
       rescue => error
         Que.log(
+          event: :error_notifier_failed,
           level: :error,
           message: "error_notifier callable raised an error",
           error_message: error.message,
