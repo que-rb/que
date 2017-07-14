@@ -153,9 +153,7 @@ class QueSpec < Minitest::Spec
   end
 
   def around
-    if ENV['LOG_SPEC']
-      puts "Running: #{current_spec_location}"
-    end
+    puts "Running: #{current_spec_location}" if ENV['LOG_SPEC']
 
     Que.pool            = QUE_POOL
     Que.logger          = QUE_LOGGER
