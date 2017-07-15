@@ -45,11 +45,7 @@ module Que
 
               # Be very defensive about the message we receive - it may not be
               # valid JSON, and may not have a message_type key.
-              messages =
-                begin
-                  Que.deserialize_json(payload)
-                rescue JSON::ParserError
-                end
+              messages = parse_payload(payload)
 
               next unless messages
 
@@ -124,6 +120,12 @@ module Que
     end
 
     private
+
+    def parse_payload(payload)
+      Que.deserialize_json(payload)
+    rescue JSON::ParserError
+      nil # TODO: Maybe log? Or notify the error?
+    end
 
     def message_matches_format?(message, format)
       return false unless message.length == format.length
