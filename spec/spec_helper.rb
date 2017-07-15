@@ -122,6 +122,13 @@ class QueSpec < Minitest::Spec
     end
   end
 
+  class << self
+    # More easily hammer a certain spec.
+    def hit(*args, &block)
+      100.times { it(*args, &block) }
+    end
+  end
+
   def jobs_dataset
     DB[:que_jobs]
   end
