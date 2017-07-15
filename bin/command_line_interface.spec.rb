@@ -6,9 +6,9 @@ require 'spec_helper'
 describe Que::CommandLineInterface do
   VACUUM = Object.new
 
-  def VACUUM.puts(*args)
+  def VACUUM.puts(arg)
     @messages ||= []
-    @messages << args
+    @messages << arg
   end
 
   def VACUUM.messages
@@ -26,9 +26,50 @@ describe Que::CommandLineInterface do
   end
 
   it "when invoked with -h or --help should print help text" do
-    results = execute "-h"
-    assert_equal({should_exit: true}, results)
-    binding.pry unless $stop
-    0
+    ["-h", "--help"].each do |command|
+      code = execute(command)
+      assert_equal 0, code
+      assert_equal 1, VACUUM.messages.length
+      assert_match %r(usage: que \[options\] \[file/to/require\]), VACUUM.messages.first.to_s
+      VACUUM.messages.clear
+    end
+  end
+
+  it "when invoked with -v or --version should print the version" do
+    ["-v", "--version"].each do |command|
+      code = execute(command)
+      assert_equal 0, code
+      assert_equal 1, VACUUM.messages.length
+      assert_equal "Que Version #{Que::VERSION}", VACUUM.messages.first.to_s
+      VACUUM.messages.clear
+    end
+  end
+
+  describe "when invoked without a file to require" do
+    it "should infer ./config/environment.rb if it exists"
+
+    it "should output an error message if the rails config file doesn't exist"
+  end
+
+  describe "should start up a locker" do
+    it "after requiring a file"
+
+    it "that can shut down gracefully"
+
+    it "with a configurable worker count and priorities"
+
+    it "with a configurable list of queues"
+
+    it "with a configurable wait period"
+
+    it "should error if the wait period is below a minimum"
+
+    it "with a configurable local queue size"
+
+    it "with a configurable poll interval"
+
+    it "should error if the poll interval is below a minimum"
+
+    it "with a configurable log level"
   end
 end

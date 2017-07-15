@@ -5,70 +5,10 @@ require_relative 'command_line_interface'
 
 $stdout.sync = true
 
-Que::CommandLineInterface.parse(
-  args:   ARGV,
-  output: $stdout,
-)
-
-# if args.length.zero?
-#   $stdout.puts <<-OUTPUT
-# You didn't include any Ruby files to require!
-# Que needs to be able to load your application before it can process jobs.
-# (Hint: If you're using Rails, try `que ./config/environment.rb`)
-# (Or use `que -h` for a list of options)
-# OUTPUT
-# exit 1
-# end
-
-locker =
-  Que::Locker.new(
-    poll_interval: 5.0,
+exit_code =
+  Que::CommandLineInterface.parse(
+    args:   ARGV,
+    output: $stdout,
   )
 
-$stop_que_executable = false
-%w[INT TERM].each { |signal| trap(signal) { $stop_que_executable = true } }
-
-loop do
-  sleep 0.01
-  break if $stop_que_executable
-end
-
-locker.stop!
-
-# ARGV.each do |file|
-#   begin
-#     require file
-#   rescue LoadError
-#     $stdout.puts "Could not load file '#{file}'"
-#   end
-# end
-
-# Que.logger ||= Logger.new(STDOUT)
-
-# begin
-#   if log_level = (options.log_level || ENV['QUE_LOG_LEVEL'])
-#     Que.logger.level = Logger.const_get(log_level.upcase)
-#   end
-# rescue NameError
-#   $stdout.puts "Bad logging level: #{log_level}"
-#   exit 1
-# end
-
-# Que.queue_name    = options.queue_name     || ENV['QUE_QUEUE']         || Que.queue_name    || nil
-# Que.worker_count  = (options.worker_count  || ENV['QUE_WORKER_COUNT']  || Que.worker_count  || 4).to_i
-# Que.wake_interval = (options.wake_interval || ENV['QUE_WAKE_INTERVAL'] || Que.wake_interval || 0.1).to_f
-# Que.mode          = :async
-
-# stop = false
-# %w(INT TERM).each { |signal| trap(signal) { stop = true } }
-
-# loop do
-#   sleep 0.01
-#   break if stop
-# end
-
-# $stdout.puts
-# $stdout.puts "Finishing Que's current jobs before exiting..."
-# Que.worker_count = 0
-# Que.mode = :off
-# $stdout.puts "Que's jobs finished, exiting..."
+exit(exit_code)
