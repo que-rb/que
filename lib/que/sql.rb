@@ -5,7 +5,7 @@ module Que
     class << self
       def register_sql_statement(name, sql)
         if sql_statements.has_key?(name)
-          raise Error, "duplicate SQL statement declaration!"
+          raise Error, "Duplicate SQL statement declaration! (#{name})"
         end
 
         # Strip excess whitespace from SQL statements so the logs are cleaner.
