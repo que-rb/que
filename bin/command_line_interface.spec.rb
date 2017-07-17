@@ -48,8 +48,8 @@ describe Que::CommandLineInterface do
     end
   end
 
-  def assert_successful_invocation(command)
-    BlockJob.enqueue
+  def assert_successful_invocation(command, queue_name: 'default')
+    BlockJob.enqueue(queue: queue_name)
     t = Thread.new { execute(command) }
 
     $q1.pop
@@ -171,7 +171,8 @@ MSG
     def assert_locker_started(
       worker_priorities: [10, 30, 50, nil, nil, nil],
       poll_interval: 5,
-      wait_period: 0.1
+      wait_period: 0.1,
+      queues: ['default']
     )
       locker_starts = internal_messages(event: 'locker_start')
       assert_equal 1, locker_starts.length
@@ -179,7 +180,7 @@ MSG
       locker_start = locker_starts.first
 
       assert_equal true, locker_start[:listen]
-      assert_equal ['default'], locker_start[:queues]
+      assert_equal queues, locker_start[:queues]
       assert_equal @que_locker[:pid], locker_start[:backend_pid]
       assert_equal poll_interval, locker_start[:poll_interval]
       assert_equal wait_period, locker_start[:wait_period]
@@ -224,7 +225,21 @@ MSG
 
     it "should error if the wait period is below a minimum"
 
-    it "with a configurable list of queues"
+    ["-q", "--queue-name"].each do |command|
+      it "with #{command} to configure the queue being worked" do
+        assert_successful_invocation "./#{file_name} #{command} my_queue", queue_name: 'my_queue'
+        assert_locker_started(
+          queues: ['my_queue']
+        )
+      end
+    end
+
+    it "should support using multiple arguments to specify multiple queues" do
+      assert_successful_invocation "./#{file_name} -q queue_1 --queue-name queue_2 -q queue_3 --queue-name queue_4", queue_name: 'queue_3'
+      assert_locker_started(
+        queues: ['queue_1', 'queue_2', 'queue_3', 'queue_4']
+      )
+    end
 
     it "with a configurable local queue size"
 

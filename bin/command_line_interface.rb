@@ -55,15 +55,15 @@ module Que
             wait_period = p
           end
 
-          opts.on(
-            '-l',
-            '--log-level [LEVEL]',
-            String,
-            "Set level at which to log to STDOUT " \
-              "(debug, info, warn, error, fatal) (default: info)",
-          ) do |l|
-            log_level = l
-          end
+          # opts.on(
+          #   '-l',
+          #   '--log-level [LEVEL]',
+          #   String,
+          #   "Set level at which to log to STDOUT " \
+          #     "(debug, info, warn, error, fatal) (default: info)",
+          # ) do |l|
+          #   log_level = l
+          # end
 
           opts.on(
             '-q',
