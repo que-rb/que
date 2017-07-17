@@ -112,6 +112,14 @@ OUTPUT
           return 1
         end
 
+        args.each do |file|
+          begin
+            require file
+          rescue LoadError
+            output.puts "Could not load file '#{file}'"
+            return 1
+          end
+        end
 
 
         # $stop_que_executable = false
@@ -122,14 +130,6 @@ OUTPUT
         #   break if $stop_que_executable
         # end
 
-
-        # ARGV.each do |file|
-        #   begin
-        #     require file
-        #   rescue LoadError
-        #     $stdout.puts "Could not load file '#{file}'"
-        #   end
-        # end
 
         # Que.logger ||= Logger.new(STDOUT)
 
