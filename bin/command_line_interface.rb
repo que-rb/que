@@ -126,10 +126,8 @@ OUTPUT
           end
         end
 
-        return 0
-
-        # $stop_que_executable = false
-        # %w[INT TERM].each { |signal| trap(signal) { $stop_que_executable = true } }
+        $stop_que_executable = false
+        %w[INT TERM].each { |signal| trap(signal) { $stop_que_executable = true } }
 
         # Que.logger ||= Logger.new(STDOUT)
 
@@ -147,16 +145,21 @@ OUTPUT
         # Que.wake_interval = (options.wake_interval || ENV['QUE_WAKE_INTERVAL'] || Que.wake_interval || 0.1).to_f
         # Que.mode          = :async
 
-        # loop do
-        #   sleep 0.1
-        #   break if $stop_que_executable
-        # end
+        locker =
+          Que::Locker.new(options)
 
-        # output.puts
-        # output.puts "Finishing Que's current jobs before exiting..."
-        # Que.worker_count = 0
-        # Que.mode = :off
-        # output.puts "Que's jobs finished, exiting..."
+        loop do
+          sleep 0.01
+          break if $stop_que_executable
+        end
+
+        output.puts ''
+        output.puts "Finishing Que's current jobs before exiting..."
+
+        locker.stop!
+
+        output.puts "Que's jobs finished, exiting..."
+        return 0
       end
     end
   end

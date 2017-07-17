@@ -48,11 +48,24 @@ describe Que::CommandLineInterface do
     end
   end
 
+  def assert_successful_invocation(command)
+    BlockJob.enqueue
+    t = Thread.new { execute(command) }
+
+    $q1.pop
+    $stop_que_executable = true
+    $q2.push nil
+
+    assert_equal 0, t.value
+  end
+
   around do |&block|
     super() do
       VACUUM.messages.clear
 
       block.call
+
+      $stop_que_executable = nil
 
       written_files.map do |name|
         File.delete("#{name}.rb") if File.exist?("#{name}.rb")
@@ -82,8 +95,9 @@ describe Que::CommandLineInterface do
   describe "when requiring files" do
     it "should infer ./config/environment.rb if it exists" do
       write_file 'config/environment'
-      code = execute("")
-      assert_equal 0, code
+
+      assert_successful_invocation ""
+
       assert LOADED_FILES['config/environment']
       FileUtils.rm_r("./config")
     end
@@ -103,9 +117,16 @@ MSG
       files = 2.times.map { next_file_name }
       files.each { |file| write_file(file) }
 
-      code = execute "./#{files[0]} ./#{files[1]}"
-      assert_equal 0, code
-      assert_empty VACUUM.messages
+      assert_successful_invocation "./#{files[0]} ./#{files[1]}"
+
+      assert_equal(
+        [
+          "",
+          "Finishing Que's current jobs before exiting...",
+          "Que's jobs finished, exiting...",
+        ],
+        VACUUM.messages,
+      )
 
       assert_equal(
         {files[0] => true, files[1] => true},
@@ -142,10 +163,11 @@ MSG
         {file_name => true},
         LOADED_FILES
       )
-      super
     end
 
-    it "that can shut down gracefully"
+    it "that can shut down gracefully" do
+      assert_successful_invocation "./#{file_name}"
+    end
 
     it "with a configurable worker count and priorities"
 
