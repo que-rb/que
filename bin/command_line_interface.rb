@@ -104,12 +104,17 @@ module Que
         options[:wait_period] = wait_period.to_f / 1000
 
         if args.length.zero?
-          output.puts <<-OUTPUT
+          # Sensible default for Rails.
+          if File.exist?('./config/environment.rb')
+            args << './config/environment.rb'
+          else
+            output.puts <<-OUTPUT
 You didn't include any Ruby files to require!
 Que needs to be able to load your application before it can process jobs.
 (Or use `que -h` for a list of options)
 OUTPUT
-          return 1
+            return 1
+          end
         end
 
         args.each do |file|
@@ -121,6 +126,7 @@ OUTPUT
           end
         end
 
+        return 0
 
         # $stop_que_executable = false
         # %w[INT TERM].each { |signal| trap(signal) { $stop_que_executable = true } }

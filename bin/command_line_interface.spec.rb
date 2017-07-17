@@ -36,7 +36,7 @@ describe Que::CommandLineInterface do
     end
 
     File.open(filename, 'w') do |file|
-      file.write "$#{name.tr('/', '_')}_required = true"
+      file.write "$#{name.tr('.', '').tr('/', '_')}_required = true"
     end
   end
 
@@ -45,10 +45,11 @@ describe Que::CommandLineInterface do
   end
 
   after do
-    written_files.each do |file|
-      File.delete("#{file}.rb")
-      eval "$#{name.tr('/', '_')}_required = nil"
+    written_files.each do |name|
+      File.delete("#{name}.rb")
+      eval "$#{name.tr('.', '').tr('/', '_')}_required = nil"
     end
+    FileUtils.rm_r("./config") if File.directory?("./config")
   end
 
   ["-h", "--help"].each do |command|
@@ -78,6 +79,7 @@ describe Que::CommandLineInterface do
     end
 
     it "should output an error message if the rails config file doesn't exist" do
+      $break = true
       code = execute("")
       assert_equal 1, code
       assert_equal 1, VACUUM.messages.length
@@ -101,14 +103,14 @@ MSG
     end
 
     it "should raise an error if any of the files don't exist" do
-      write_file 'file_1'
-      code = execute "./file_1 ./file_2"
+      write_file 'file_3'
+      code = execute "./file_3 ./file_4"
       assert_equal 1, code
 
-      assert_empty VACUUM.messages
+      assert_equal ["Could not load file './file_4'"], VACUUM.messages
 
-      assert $file_1_required
-      refute $file_2_required
+      assert $file_3_required
+      refute $file_4_required
     end
   end
 

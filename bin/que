@@ -7,7 +7,7 @@ $stdout.sync = true
 
 exit_code =
   Que::CommandLineInterface.parse(
-    args:   ARGV,
+    args:   ARGV.dup,
     output: $stdout,
   )
 
