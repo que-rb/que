@@ -76,8 +76,6 @@ defaults: &defaults
     - run:
         name: Run Tests
         command: |
-          pids=()
-
           # Wait until we know Postgres is ready.
           while [ ! -f postgres_ready ]; do sleep 0.1; done
 
@@ -86,8 +84,6 @@ defaults: &defaults
           for PORT in $PG_PORTS
           do
             (
-              subresult=0
-
               for GEMFILE_VERSION in $GEMFILE_VERSIONS
               do
                 # Use the template1 DB that comes with Postgres so we don't have
@@ -96,24 +92,18 @@ defaults: &defaults
                   DATABASE_URL="postgres://postgres:@localhost:$PORT/template1" \
                   BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
                   rvm $RUBY_VERSION do bundle exec rake >> $PORT.output 2>&1
-                ) || let "subresult=1"
+                ) || touch "$(RUBY_VERSION)_specs_failed"
               done
-
-              echo "Subresult for $PORT $GEMFILE_VERSION is $subresult"
-
-              if [ "$subresult" == "1" ]; then exit 1; fi
-            ) & pids+=($!)
+            ) &
           done
 
-          # Let tests finish.
-          result=0
-          for pid in $pids; do wait $pid || let "result=1"; done
+          wait
 
           # Print results in bulk so we don't get confusing, interleaved output.
           for PORT in $PG_PORTS; do cat $PORT.output; done
 
           # Use appropriate exit code, to mark if any of the tests failed.
-          if [ "$result" == "1" ]; then exit 1; fi
+          if [ -f "$(RUBY_VERSION)_specs_failed" ]; then exit 1; fi
 
 version: 2
 jobs:
