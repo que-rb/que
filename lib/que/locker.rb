@@ -10,6 +10,30 @@ module Que
   class Locker
     attr_reader :thread, :workers, :job_queue, :locks, :pollers, :pool
 
+    MESSAGE_RESOLVERS = {}
+
+    class << self
+      def register_message_resolver(name, lambda)
+        if MESSAGE_RESOLVERS.has_key?(name)
+          raise Error, "Duplicate message resolver declaration! (#{name})"
+        end
+
+        MESSAGE_RESOLVERS[name] = lambda
+      end
+    end
+
+    register_message_resolver \
+      :new_job,
+      -> (messages) {
+        # TODO: Check for acceptance in bulk, attempt locking in bulk, push jobs
+        # in bulk.
+        messages.each do |message|
+          if @job_queue.accept?(message) && lock_job?(message.fetch(:id))
+            push_jobs([message])
+          end
+        end
+      }
+
     SQL.register_sql_statement \
       :clean_lockers,
       %{
@@ -230,15 +254,8 @@ module Que
       end
 
       @listener.wait_for_messages(@wait_period).each do |type, messages|
-        case type
-        when :new_job
-          # TODO: Check for acceptance in bulk, attempt locking in bulk, push
-          # jobs in bulk.
-          messages.each do |message|
-            if @job_queue.accept?(message) && lock_job?(message.fetch(:id))
-              push_jobs([message])
-            end
-          end
+        if resolver = MESSAGE_RESOLVERS[type]
+          instance_exec messages, &resolver
         else
           # TODO: Unexpected type - log something? Ignore it?
         end
