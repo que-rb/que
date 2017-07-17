@@ -84,7 +84,7 @@ module Que
             "Show Que version",
           ) do
             require 'que'
-            output.puts "Que Version #{Que::VERSION}"
+            output.puts "Que version #{Que::VERSION}"
             return 0
           end
 
@@ -103,14 +103,14 @@ module Que
         # Convert from milliseconds to seconds.
         options[:wait_period] = wait_period.to_f / 1000
 
-        # if args.length.zero?
-        #   output.puts <<-OUTPUT
-        # You didn't include any Ruby files to require!
-        # Que needs to be able to load your application before it can process jobs.
-        # (Or use `que -h` for a list of options)
-        # OUTPUT
-        #   exit 1
-        # end
+        if args.length.zero?
+          output.puts <<-OUTPUT
+You didn't include any Ruby files to require!
+Que needs to be able to load your application before it can process jobs.
+(Or use `que -h` for a list of options)
+OUTPUT
+          return 1
+        end
 
 
 

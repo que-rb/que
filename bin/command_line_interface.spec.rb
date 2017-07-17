@@ -25,30 +25,37 @@ describe Que::CommandLineInterface do
     VACUUM.messages.clear
   end
 
-  it "when invoked with -h or --help should print help text" do
-    ["-h", "--help"].each do |command|
+  ["-h", "--help"].each do |command|
+    it "when invoked with #{command} should print help text" do
       code = execute(command)
       assert_equal 0, code
       assert_equal 1, VACUUM.messages.length
       assert_match %r(usage: que \[options\] \[file/to/require\]), VACUUM.messages.first.to_s
-      VACUUM.messages.clear
     end
   end
 
-  it "when invoked with -v or --version should print the version" do
-    ["-v", "--version"].each do |command|
+  ["-v", "--version"].each do |command|
+    it "when invoked with #{command} should print the version" do
       code = execute(command)
       assert_equal 0, code
       assert_equal 1, VACUUM.messages.length
-      assert_equal "Que Version #{Que::VERSION}", VACUUM.messages.first.to_s
-      VACUUM.messages.clear
+      assert_equal "Que version #{Que::VERSION}", VACUUM.messages.first.to_s
     end
   end
 
   describe "when invoked without a file to require" do
     it "should infer ./config/environment.rb if it exists"
 
-    it "should output an error message if the rails config file doesn't exist"
+    it "should output an error message if the rails config file doesn't exist" do
+      code = execute("")
+      assert_equal 1, code
+      assert_equal 1, VACUUM.messages.length
+      assert_equal <<-MSG, VACUUM.messages.first.to_s
+You didn't include any Ruby files to require!
+Que needs to be able to load your application before it can process jobs.
+(Or use `que -h` for a list of options)
+MSG
+    end
   end
 
   describe "should start up a locker" do
