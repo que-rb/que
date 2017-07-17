@@ -92,10 +92,14 @@ defaults: &defaults
               do
                 # Use the template1 DB that comes with Postgres so we don't have
                 # to spend time creating a new one.
-                DATABASE_URL="postgres://postgres:@localhost:$PORT/template1" \
-                BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
-                rvm $RUBY_VERSION do bundle exec rake >> $PORT.output 2>&1 || let "subresult=1"
+                (
+                  DATABASE_URL="postgres://postgres:@localhost:$PORT/template1" \
+                  BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
+                  rvm $RUBY_VERSION do bundle exec rake >> $PORT.output 2>&1
+                ) || let "subresult=1"
               done
+
+              echo "Subresult for $PORT $GEMFILE_VERSION is $subresult"
 
               if [ "$subresult" == "1" ]; then exit 1; fi
             ) & pids+=($!)
