@@ -1,6 +1,7 @@
 default_environment: &default_environment
   GEMFILE_VERSIONS: "current old older oldest"
   PG_VERSIONS: "9.4 9.5 9.6"
+  PG_PORTS: "5432 5433 5434"
 
 default_spec_run: &default_spec_run
   background: true
