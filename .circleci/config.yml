@@ -17,6 +17,8 @@ default_spec_run: &default_spec_run
       rvm $RUBY_VERSION do bundle exec rake
     done
 
+    touch "${PG_PORT}_done"
+
 defaults: &defaults
   working_directory: ~/que
   docker:
@@ -104,6 +106,15 @@ defaults: &defaults
         name: Run Tests on Postgres 9.4
         environment:
           PG_PORT: 5434
+
+    - run:
+        name: Wait For Specs to Finish
+        command: |
+          # Wait until each individual job is done.
+          for PG_PORT in $PG_PORTS
+          do
+            while [ ! -f "${PG_PORT}_done" ]; do sleep 0.1; done
+          done
 
 version: 2
 jobs:
