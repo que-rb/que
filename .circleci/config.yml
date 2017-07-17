@@ -3,23 +3,6 @@ default_environment: &default_environment
   PG_VERSIONS: "9.4 9.5 9.6"
   PG_PORTS: "5432 5433 5434"
 
-default_spec_run: &default_spec_run
-  background: true
-  command: |
-    # Wait until we know Postgres is ready.
-    while [ ! -f postgres_ready ]; do sleep 0.1; done
-
-    for GEMFILE_VERSION in $GEMFILE_VERSIONS
-    do
-      # Use the template1 DB that comes with Postgres so we don't have
-      # to spend time creating a new one.
-      DATABASE_URL="postgres://postgres:@localhost:$PG_PORT/template1" \
-      BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
-      rvm $RUBY_VERSION do bundle exec rake
-    done
-
-    touch "${PG_PORT}_done"
-
 defaults: &defaults
   working_directory: ~/que
   docker:
@@ -91,31 +74,38 @@ defaults: &defaults
         paths: spec/gemfiles
 
     - run:
-        <<: *default_spec_run
-        name: Run Tests on Postgres 9.6
-        environment:
-          PG_PORT: 5432
-
-    - run:
-        <<: *default_spec_run
-        name: Run Tests on Postgres 9.5
-        environment:
-          PG_PORT: 5433
-
-    - run:
-        <<: *default_spec_run
-        name: Run Tests on Postgres 9.4
-        environment:
-          PG_PORT: 5434
-
-    - run:
-        name: Wait For Specs to Finish
+        name: Run Tests
         command: |
-          # Wait until each individual job is done.
-          for PG_PORT in $PG_PORTS
+          pids=()
+
+          # Wait until we know Postgres is ready.
+          while [ ! -f postgres_ready ]; do sleep 0.1; done
+
+          # Run tests against all Postgres versions simultaneously, since they
+          # can't conflict, but save their outputs to files.
+          for PORT in $PG_PORTS
           do
-            while [ ! -f "${PG_PORT}_done" ]; do sleep 0.1; done
+            (
+              for GEMFILE_VERSION in $GEMFILE_VERSIONS
+              do
+                # Use the template1 DB that comes with Postgres so we don't have
+                # to spend time creating a new one.
+                DATABASE_URL="postgres://postgres:@localhost:$PORT/template1" \
+                BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
+                rvm $RUBY_VERSION do bundle exec rake >> $PORT.output 2>&1
+              done
+            ) & pids+=($!)
           done
+
+          # Let tests finish.
+          result=0
+          for pid in $pids; do wait $pid || let "result=1"; done
+
+          # Print results in bulk so we don't get confusing, interleaved output.
+          for PORT in $PG_PORTS; do cat $PORT.output; done
+
+          # Use appropriate exit code, to mark if any of the tests failed.
+          if [ "$result" == "1" ]; then exit 1; fi
 
 version: 2
 jobs:
