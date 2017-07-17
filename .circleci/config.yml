@@ -92,7 +92,7 @@ defaults: &defaults
                   DATABASE_URL="postgres://postgres:@localhost:$PORT/template1" \
                   BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
                   rvm $RUBY_VERSION do bundle exec rake >> $PORT.output 2>&1
-                ) || touch "$(RUBY_VERSION)_specs_failed"
+                ) || touch "${RUBY_VERSION}_specs_failed"
               done
             ) &
           done
@@ -103,7 +103,7 @@ defaults: &defaults
           for PORT in $PG_PORTS; do cat $PORT.output; done
 
           # Use appropriate exit code, to mark if any of the tests failed.
-          if [ -f "$(RUBY_VERSION)_specs_failed" ]; then exit 1; fi
+          if [ -f "${RUBY_VERSION}_specs_failed" ]; then exit 1; fi
 
 version: 2
 jobs:
