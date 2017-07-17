@@ -131,12 +131,6 @@ OUTPUT
         # $stop_que_executable = false
         # %w[INT TERM].each { |signal| trap(signal) { $stop_que_executable = true } }
 
-        # loop do
-        #   sleep 0.01
-        #   break if $stop_que_executable
-        # end
-
-
         # Que.logger ||= Logger.new(STDOUT)
 
         # begin
@@ -144,7 +138,7 @@ OUTPUT
         #     Que.logger.level = Logger.const_get(log_level.upcase)
         #   end
         # rescue NameError
-        #   $stdout.puts "Bad logging level: #{log_level}"
+        #   output.puts "Bad logging level: #{log_level}"
         #   exit 1
         # end
 
@@ -153,20 +147,16 @@ OUTPUT
         # Que.wake_interval = (options.wake_interval || ENV['QUE_WAKE_INTERVAL'] || Que.wake_interval || 0.1).to_f
         # Que.mode          = :async
 
-        # stop = false
-        # %w(INT TERM).each { |signal| trap(signal) { stop = true } }
-
         # loop do
-        #   sleep 0.01
-        #   break if stop
+        #   sleep 0.1
+        #   break if $stop_que_executable
         # end
 
-        # $stdout.puts
-        # $stdout.puts "Finishing Que's current jobs before exiting..."
+        # output.puts
+        # output.puts "Finishing Que's current jobs before exiting..."
         # Que.worker_count = 0
         # Que.mode = :off
-        # $stdout.puts "Que's jobs finished, exiting..."
-
+        # output.puts "Que's jobs finished, exiting..."
       end
     end
   end

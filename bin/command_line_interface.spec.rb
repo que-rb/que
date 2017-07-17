@@ -6,6 +6,14 @@ require 'spec_helper'
 describe Que::CommandLineInterface do
   VACUUM = Object.new
 
+  $que_spec_file_number = 0
+
+  LOADED_FILES = {}
+
+  def next_file_name
+    "file_#{$que_spec_file_number += 1}"
+  end
+
   def VACUUM.puts(arg)
     @messages ||= []
     @messages << arg
@@ -36,20 +44,21 @@ describe Que::CommandLineInterface do
     end
 
     File.open(filename, 'w') do |file|
-      file.write "$#{name.tr('.', '').tr('/', '_')}_required = true"
+      file.write %(LOADED_FILES["#{name}"] = true)
     end
   end
 
-  before do
-    VACUUM.messages.clear
-  end
+  around do |&block|
+    super() do
+      VACUUM.messages.clear
 
-  after do
-    written_files.each do |name|
-      File.delete("#{name}.rb")
-      eval "$#{name.tr('.', '').tr('/', '_')}_required = nil"
+      block.call
+
+      written_files.map do |name|
+        File.delete("#{name}.rb") if File.exist?("#{name}.rb")
+      end
+      LOADED_FILES.clear
     end
-    FileUtils.rm_r("./config") if File.directory?("./config")
   end
 
   ["-h", "--help"].each do |command|
@@ -75,11 +84,11 @@ describe Que::CommandLineInterface do
       write_file 'config/environment'
       code = execute("")
       assert_equal 0, code
-      assert $config_environment_required
+      assert LOADED_FILES['config/environment']
+      FileUtils.rm_r("./config")
     end
 
-    it "should output an error message if the rails config file doesn't exist" do
-      $break = true
+    it "should output an error message if no files are specified and the rails config file doesn't exist" do
       code = execute("")
       assert_equal 1, code
       assert_equal 1, VACUUM.messages.length
@@ -91,36 +100,49 @@ MSG
     end
 
     it "should be able to require multiple files" do
-      write_file 'file_1'
-      write_file 'file_2'
+      files = 2.times.map { next_file_name }
+      files.each { |file| write_file(file) }
 
-      code = execute "./file_1 ./file_2"
+      code = execute "./#{files[0]} ./#{files[1]}"
       assert_equal 0, code
       assert_empty VACUUM.messages
 
-      assert $file_1_required
-      assert $file_2_required
+      assert_equal(
+        {files[0] => true, files[1] => true},
+        LOADED_FILES
+      )
     end
 
     it "should raise an error if any of the files don't exist" do
-      write_file 'file_3'
-      code = execute "./file_3 ./file_4"
+      name = next_file_name
+      write_file name
+      code = execute "./#{name} ./nonexistent_file"
       assert_equal 1, code
 
-      assert_equal ["Could not load file './file_4'"], VACUUM.messages
+      assert_equal ["Could not load file './nonexistent_file'"], VACUUM.messages
 
-      assert $file_3_required
-      refute $file_4_required
+      assert_equal(
+        {name => true},
+        LOADED_FILES
+      )
     end
   end
 
   describe "should start up a locker" do
+    let :file_name do
+      next_file_name
+    end
+
     before do
-      write_file 'config/environment'
+      write_file(file_name)
     end
 
     after do
-      assert $config_environment_required
+      assert_equal(
+        {file_name => true},
+        LOADED_FILES
+      )
+      super
     end
 
     it "that can shut down gracefully"
