@@ -6,8 +6,6 @@ module Que
   module CommandLineInterface
     class << self
       def parse(args:, output:)
-        options = {}
-
         # Queues
         # poll_interval:      Que::Locker::DEFAULT_POLL_INTERVAL,
         # wait_period:        Que::Locker::DEFAULT_WAIT_PERIOD,
@@ -34,17 +32,17 @@ module Que
             Integer,
             "Set number of workers in process (default: 6)",
           ) do |w|
-            options[:worker_count] = worker_count
+            options[:worker_count] = w
           end
 
           opts.on(
-            '-p',
+            '-i',
             '--poll-interval [INTERVAL]',
             Float,
             "Set maximum interval between polls for available jobs " \
               "(in seconds) (default: 5)",
-          ) do |p|
-            options[:poll_interval] = wake_interval
+          ) do |i|
+            options[:poll_interval] = i
           end
 
           opts.on(

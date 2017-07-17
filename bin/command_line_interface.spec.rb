@@ -53,6 +53,9 @@ describe Que::CommandLineInterface do
     t = Thread.new { execute(command) }
 
     $q1.pop
+
+    @que_locker = DB[:que_lockers].first
+
     $stop_que_executable = true
     $q2.push nil
 
@@ -165,11 +168,49 @@ MSG
       )
     end
 
-    it "that can shut down gracefully" do
-      assert_successful_invocation "./#{file_name}"
+    def assert_locker_started(
+      worker_priorities: [10, 30, 50, nil, nil, nil],
+      poll_interval: 5
+    )
+      locker_starts = internal_messages(event: 'locker_start')
+      assert_equal 1, locker_starts.length
+
+      locker_start = locker_starts.first
+
+      assert_equal true, locker_start[:listen]
+      assert_equal ['default'], locker_start[:queues]
+      assert_equal @que_locker[:pid], locker_start[:backend_pid]
+      assert_equal poll_interval, locker_start[:poll_interval]
+      assert_equal 0.1, locker_start[:wait_period]
+      assert_equal 2, locker_start[:minimum_queue_size]
+      assert_equal 8, locker_start[:maximum_queue_size]
+      assert_equal worker_priorities, locker_start[:worker_priorities]
     end
 
-    it "with a configurable worker count and priorities"
+    it "that can shut down gracefully" do
+      assert_successful_invocation "./#{file_name}"
+      assert_locker_started
+    end
+
+    ["-w", "--worker-count"].each do |command|
+      it "with #{command} to configure the worker count" do
+        assert_successful_invocation "./#{file_name} #{command} 10"
+        assert_locker_started(
+          worker_priorities: [10, 30, 50, nil, nil, nil, nil, nil, nil, nil],
+        )
+      end
+    end
+
+    ["-i", "--poll-interval"].each do |command|
+      it "with #{command} to configure the poll interval" do
+        assert_successful_invocation "./#{file_name} #{command} 10"
+        assert_locker_started(
+          poll_interval: 10,
+        )
+      end
+    end
+
+    it "should error if the poll interval is below a minimum"
 
     it "with a configurable list of queues"
 
@@ -178,10 +219,6 @@ MSG
     it "should error if the wait period is below a minimum"
 
     it "with a configurable local queue size"
-
-    it "with a configurable poll interval"
-
-    it "should error if the poll interval is below a minimum"
 
     it "with a configurable log level"
   end
