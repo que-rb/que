@@ -5,13 +5,10 @@ require 'spec_helper'
 
 describe Que::CommandLineInterface do
   VACUUM = Object.new
-
-  $que_spec_file_number = 0
-
   LOADED_FILES = {}
 
-  def next_file_name
-    "file_#{$que_spec_file_number += 1}"
+  def random_filename
+    "file_#{Digest::MD5.hexdigest(rand.to_s)}"
   end
 
   def VACUUM.puts(arg)
@@ -23,10 +20,18 @@ describe Que::CommandLineInterface do
     @messages ||= []
   end
 
-  def execute(text)
+  def execute(
+    text,
+    default_require_file: Que::CommandLineInterface::RAILS_ENVIRONMENT_FILE
+  )
+
     args   = text.split(/\s/)
     output = VACUUM
-    Que::CommandLineInterface.parse(args: args, output: output)
+    Que::CommandLineInterface.parse(
+      args: args,
+      output: output,
+      default_require_file: default_require_file,
+    )
   end
 
   let :written_files do
@@ -36,21 +41,25 @@ describe Que::CommandLineInterface do
   def write_file(name)
     written_files << name
 
-    filename = "#{name}.rb"
-
-    dirname = File.dirname(filename)
-    unless File.directory?(dirname)
-      FileUtils.mkdir_p(dirname)
-    end
-
-    File.open(filename, 'w') do |file|
+    File.open("#{name}.rb", 'w') do |file|
       file.write %(LOADED_FILES["#{name}"] = true)
     end
   end
 
-  def assert_successful_invocation(command, queue_name: 'default')
+  def assert_successful_invocation(
+    command,
+    queue_name: 'default',
+    default_require_file: Que::CommandLineInterface::RAILS_ENVIRONMENT_FILE
+  )
+
     BlockJob.enqueue(queue: queue_name)
-    t = Thread.new { execute(command) }
+    t =
+      Thread.new do
+        execute(
+          command,
+          default_require_file: default_require_file,
+        )
+      end
 
     $q1.pop
 
@@ -96,13 +105,16 @@ describe Que::CommandLineInterface do
   end
 
   describe "when requiring files" do
-    it "should infer ./config/environment.rb if it exists" do
-      write_file 'config/environment'
+    it "should infer the default require file if it exists" do
+      filename = random_filename
+      write_file(filename)
 
-      assert_successful_invocation ""
+      assert_successful_invocation "", default_require_file: "./#{filename}.rb"
 
-      assert LOADED_FILES['config/environment']
-      FileUtils.rm_r("./config")
+      assert_equal(
+        {filename => true},
+        LOADED_FILES
+      )
     end
 
     it "should output an error message if no files are specified and the rails config file doesn't exist" do
@@ -117,7 +129,7 @@ MSG
     end
 
     it "should be able to require multiple files" do
-      files = 2.times.map { next_file_name }
+      files = 2.times.map { random_filename }
       files.each { |file| write_file(file) }
 
       assert_successful_invocation "./#{files[0]} ./#{files[1]}"
@@ -138,7 +150,7 @@ MSG
     end
 
     it "should raise an error if any of the files don't exist" do
-      name = next_file_name
+      name = random_filename
       write_file name
       code = execute "./#{name} ./nonexistent_file"
       assert_equal 1, code
@@ -154,7 +166,7 @@ MSG
 
   describe "should start up a locker" do
     let :file_name do
-      next_file_name
+      random_filename
     end
 
     before do

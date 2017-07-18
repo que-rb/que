@@ -4,8 +4,15 @@ require 'optparse'
 
 module Que
   module CommandLineInterface
+    RAILS_ENVIRONMENT_FILE = './config/environment.rb'
+
     class << self
-      def parse(args:, output:)
+      def parse(
+        args:,
+        output:,
+        default_require_file: RAILS_ENVIRONMENT_FILE
+      )
+
         # Queues
         # poll_interval:      Que::Locker::DEFAULT_POLL_INTERVAL,
         # wait_period:        Que::Locker::DEFAULT_WAIT_PERIOD,
@@ -103,8 +110,8 @@ module Que
 
         if args.length.zero?
           # Sensible default for Rails.
-          if File.exist?('./config/environment.rb')
-            args << './config/environment.rb'
+          if File.exist?(default_require_file)
+            args << default_require_file
           else
             output.puts <<-OUTPUT
 You didn't include any Ruby files to require!
