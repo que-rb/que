@@ -4,6 +4,7 @@ require 'optparse'
 
 module Que
   module CommandLineInterface
+    # Have a sensible default require file for Rails.
     RAILS_ENVIRONMENT_FILE = './config/environment.rb'
 
     class << self
@@ -98,7 +99,6 @@ module Que
         end.parse!(args)
 
         if args.length.zero?
-          # Sensible default for Rails.
           if File.exist?(default_require_file)
             args << default_require_file
           else
@@ -134,22 +134,15 @@ OUTPUT
         #   exit 1
         # end
 
-        # Que.queue_name    = options.queue_name     || ENV['QUE_QUEUE']         || Que.queue_name    || nil
-        # Que.worker_count  = (options.worker_count  || ENV['QUE_WORKER_COUNT']  || Que.worker_count  || 4).to_i
-        # Que.wake_interval = (options.wake_interval || ENV['QUE_WAKE_INTERVAL'] || Que.wake_interval || 0.1).to_f
-        # Que.mode          = :async
-
         options = {
-          # Convert from milliseconds to seconds.
-          wait_period:   wait_period.to_f / 1000,
+          wait_period:   wait_period.to_f / 1000, # Milliseconds to seconds.
           worker_count:  worker_count,
           poll_interval: poll_interval,
         }
 
         options[:queues] = queues if queues.any?
 
-        locker =
-          Que::Locker.new(options)
+        locker = Que::Locker.new(options)
 
         loop do
           sleep 0.01
