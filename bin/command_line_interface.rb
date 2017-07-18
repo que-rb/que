@@ -7,28 +7,22 @@ module Que
     RAILS_ENVIRONMENT_FILE = './config/environment.rb'
 
     class << self
+      # Need to rely on dependency injection a bit to make this method cleanly
+      # testable :/
       def parse(
         args:,
         output:,
         default_require_file: RAILS_ENVIRONMENT_FILE
       )
 
-        # Queues
-        # poll_interval:      Que::Locker::DEFAULT_POLL_INTERVAL,
-        # wait_period:        Que::Locker::DEFAULT_WAIT_PERIOD,
-        # minimum_queue_size: Que::Locker::DEFAULT_MINIMUM_QUEUE_SIZE,
-        # maximum_queue_size: Que::Locker::DEFAULT_MAXIMUM_QUEUE_SIZE,
-        # worker_priorities:  [10, 30, 50, nil, nil, nil]
-
-        # Defaults:
-        options = {
-          poll_interval:  5,
-          worker_count:   6,
-        }
-
-        wait_period = 100
-        log_level = :info
-        queues = []
+        queues        = []
+        # log_level     = :info
+        wait_period   = 100
+        worker_count  = 6
+        poll_interval = 5
+        # minimum_queue_size = Que::Locker::DEFAULT_MINIMUM_QUEUE_SIZE,
+        # maximum_queue_size = Que::Locker::DEFAULT_MAXIMUM_QUEUE_SIZE,
+        # worker_priorities  = [10, 30, 50, nil, nil, nil]
 
         OptionParser.new do |opts|
           opts.banner = 'usage: que [options] [file/to/require] ...'
@@ -39,7 +33,7 @@ module Que
             Integer,
             "Set number of workers in process (default: 6)",
           ) do |w|
-            options[:worker_count] = w
+            worker_count = w
           end
 
           opts.on(
@@ -49,7 +43,7 @@ module Que
             "Set maximum interval between polls for available jobs " \
               "(in seconds) (default: 5)",
           ) do |i|
-            options[:poll_interval] = i
+            poll_interval = i
           end
 
           opts.on(
@@ -103,11 +97,6 @@ module Que
           end
         end.parse!(args)
 
-        options[:queues] = queues if queues.any?
-
-        # Convert from milliseconds to seconds.
-        options[:wait_period] = wait_period.to_f / 1000
-
         if args.length.zero?
           # Sensible default for Rails.
           if File.exist?(default_require_file)
@@ -149,6 +138,15 @@ OUTPUT
         # Que.worker_count  = (options.worker_count  || ENV['QUE_WORKER_COUNT']  || Que.worker_count  || 4).to_i
         # Que.wake_interval = (options.wake_interval || ENV['QUE_WAKE_INTERVAL'] || Que.wake_interval || 0.1).to_f
         # Que.mode          = :async
+
+        options = {
+          # Convert from milliseconds to seconds.
+          wait_period:   wait_period.to_f / 1000,
+          worker_count:  worker_count,
+          poll_interval: poll_interval,
+        }
+
+        options[:queues] = queues if queues.any?
 
         locker =
           Que::Locker.new(options)

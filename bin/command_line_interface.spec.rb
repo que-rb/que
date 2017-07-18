@@ -7,8 +7,11 @@ describe Que::CommandLineInterface do
   VACUUM = Object.new
   LOADED_FILES = {}
 
+  # On CircleCI we run the spec suite in parallel, and writing/deleting the same
+  # files will result in spec failures. So instead just generate a new file name
+  # for each spec to write/delete.
   def random_filename
-    "file_#{Digest::MD5.hexdigest(rand.to_s)}"
+    "spec/tmp/file_#{Digest::MD5.hexdigest(rand.to_s)}"
   end
 
   def VACUUM.puts(arg)
@@ -53,7 +56,8 @@ describe Que::CommandLineInterface do
   )
 
     BlockJob.enqueue(queue: queue_name)
-    t =
+
+    thread =
       Thread.new do
         execute(
           command,
@@ -68,7 +72,7 @@ describe Que::CommandLineInterface do
     $stop_que_executable = true
     $q2.push nil
 
-    assert_equal 0, t.value
+    assert_equal 0, thread.value
   end
 
   around do |&block|
