@@ -11,7 +11,7 @@ describe Que::CommandLineInterface do
   # files will result in spec failures. So instead just generate a new file name
   # for each spec to write/delete.
   def random_filename
-    "spec/tmp/file_#{Digest::MD5.hexdigest(rand.to_s)}"
+    "spec/temp/file_#{Digest::MD5.hexdigest(rand.to_s)}"
   end
 
   def VACUUM.puts(arg)
