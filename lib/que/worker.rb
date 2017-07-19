@@ -77,13 +77,10 @@ module Que
         else
           # The job was locked but doesn't exist anymore, due to a race
           # condition that exists because advisory locks don't obey MVCC. Not
-          # necessarily a problem, but if it happens a lot it may be
-          # meaningful somehow, so log it.
-          Que.log(
-            level: :debug,
-            event: :job_race_condition,
-            id:    pk.fetch(:id),
-          )
+          # necessarily a problem, but if it happens a lot it may be meaningful.
+          Que.internal_log(:job_lock_race_condition) do
+            {pk: pk}
+          end
         end
 
         @result_queue.push(pk.fetch(:id))
