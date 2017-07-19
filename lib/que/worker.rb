@@ -33,7 +33,6 @@ module Que
           AND priority = $5::smallint
           AND run_at   = $6::timestamptz
           AND id       = $7::bigint
-
       }
 
     def initialize(
