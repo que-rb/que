@@ -6,7 +6,7 @@
 
 module Que
   class Worker
-    attr_reader :thread, :priority, :current_job_pk
+    attr_reader :thread, :priority
 
     SQL.register_sql_statement \
       :get_job,
@@ -67,8 +67,8 @@ module Que
       # Blocks until a job of the appropriate priority is available. If the
       # queue is shutting down this will return nil, which breaks the loop and
       # lets the thread finish.
-      while @current_job_pk = @job_queue.shift(*priority)
-        pk_values = current_job_pk.values_at(:queue, :priority, :run_at, :id)
+      while pk = @job_queue.shift(*priority)
+        pk_values = pk.values_at(:queue, :priority, :run_at, :id)
 
         if job = Que.execute(:get_job, pk_values).first
           Que.recursively_freeze(job)
@@ -79,11 +79,11 @@ module Que
           # condition that exists because advisory locks don't obey MVCC. Not
           # necessarily a problem, but if it happens a lot it may be meaningful.
           Que.internal_log(:job_lock_race_condition) do
-            {pk: current_job_pk}
+            {pk: pk}
           end
         end
 
-        @result_queue.push(current_job_pk.fetch(:id))
+        @result_queue.push(pk.fetch(:id))
       end
     end
 
