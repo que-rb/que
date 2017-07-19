@@ -100,7 +100,8 @@ describe Que::Worker do
 
   it "should skip a job if passed a nonexistent sort key" do
     assert_equal 0, jobs_dataset.count
-    run_jobs priority: 1,
+    run_jobs queue:    'default',
+             priority: 1,
              run_at:   Time.now,
              id:       587648
 

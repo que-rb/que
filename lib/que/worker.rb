@@ -68,86 +68,83 @@ module Que
       # queue is shutting down this will return nil, which breaks the loop and
       # lets the thread finish.
       while pk = @job_queue.shift(*priority)
-        begin
-          pk_values = pk.values_at(:queue, :priority, :run_at, :id)
+        pk_values = pk.values_at(:queue, :priority, :run_at, :id)
 
-          if job = Que.execute(:get_job, pk_values).first
-            Que.recursively_freeze(job)
+        if job = Que.execute(:get_job, pk_values).first
+          Que.recursively_freeze(job)
 
-            start    = Time.now
-            klass    = Que.constantize(job.fetch(:job_class))
-            instance = klass.new(job)
-            instance._run
-
-            log_message = {
-              level: :debug,
-              job: job,
-              elapsed: (Time.now - start),
-            }
-
-            if e = instance.que_error
-              log_message[:event] = :job_errored
-              # TODO: Convert this to a string manually?
-              log_message[:error] = e
-            else
-              log_message[:event] = :job_worked
-            end
-
-            Que.log(log_message)
-          else
-            # The job was locked but doesn't exist anymore, due to a race
-            # condition that exists because advisory locks don't obey MVCC. Not
-            # necessarily a problem, but if it happens a lot it may be
-            # meaningful somehow, so log it.
-            Que.log(
-              level: :debug,
-              event: :job_race_condition,
-              id:    pk.fetch(:id),
-            )
-          end
-        rescue => error
+          work_job(job)
+        else
+          # The job was locked but doesn't exist anymore, due to a race
+          # condition that exists because advisory locks don't obey MVCC. Not
+          # necessarily a problem, but if it happens a lot it may be
+          # meaningful somehow, so log it.
           Que.log(
             level: :debug,
-            event: :job_errored,
-            id: pk.fetch(:id),
-            job: job,
-            error: {
-              class:   error.class.to_s,
-              message: error.message,
-            },
+            event: :job_race_condition,
+            id:    pk.fetch(:id),
+          )
+        end
+
+        @result_queue.push(pk.fetch(:id))
+      end
+    end
+
+    def work_job(job)
+      start    = Time.now
+      klass    = Que.constantize(job.fetch(:job_class))
+      instance = klass.new(job)
+      instance._run
+
+      log_message = {
+        level: :debug,
+        job: job,
+        elapsed: (Time.now - start),
+      }
+
+      if e = instance.que_error
+        log_message[:event] = :job_errored
+        # TODO: Convert this to a string manually?
+        log_message[:error] = e
+      else
+        log_message[:event] = :job_worked
+      end
+
+      Que.log(log_message)
+    rescue => error
+      Que.log(
+        level: :debug,
+        event: :job_errored,
+        id: job.fetch(:id),
+        job: job,
+        error: {
+          class:   error.class.to_s,
+          message: error.message,
+        },
+      )
+
+      Que.notify_error(error)
+
+      begin
+        # If the Job class couldn't be resolved, use the default retry
+        # backoff logic in Que::Job.
+        job_class = (klass && klass <= Job) ? klass : Job
+
+        delay =
+          job_class.
+          resolve_que_setting(
+            :retry_interval,
+            job.fetch(:error_count) + 1,
           )
 
-          Que.notify_error(error)
-
-          begin
-            # If the Job class couldn't be resolved, use the default retry
-            # backoff logic in Que::Job.
-            job_class =
-              if klass && klass <= Job
-                klass
-              else
-                Job
-              end
-
-            delay =
-              job_class.
-              resolve_que_setting(
-                :retry_interval,
-                job.fetch(:error_count) + 1,
-              )
-
-            Que.execute :set_error, [
-              delay,
-              error.message,
-              error.backtrace.join("\n"),
-            ] + pk_values
-          rescue
-            # If we can't reach the database for some reason, too bad, but
-            # don't let it crash the work loop.
-          end
-        ensure
-          @result_queue.push(pk.fetch(:id))
-        end
+        Que.execute :set_error, [
+          delay,
+          error.message,
+          error.backtrace.join("\n"),
+        ] + job.values_at(:queue, :priority, :run_at, :id)
+      rescue
+        # If we can't reach the database for some reason, too bad, but
+        # don't let it crash the work loop.
       end
     end
   end
