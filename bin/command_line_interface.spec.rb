@@ -251,10 +251,13 @@ MSG
     end
 
     it "should support using multiple arguments to specify multiple queues" do
-      assert_successful_invocation "./#{file_name} -q queue_1 --queue-name queue_2 -q queue_3 --queue-name queue_4", queue_name: 'queue_3'
-      assert_locker_started(
-        queues: ['queue_1', 'queue_2', 'queue_3', 'queue_4']
-      )
+      queues = ['queue_1', 'queue_2', 'queue_3', 'queue_4']
+
+      assert_successful_invocation \
+        "./#{file_name} -q queue_1 --queue-name queue_2 -q queue_3 --queue-name queue_4",
+        queue_name: queues.sample # Shouldn't matter.
+
+      assert_locker_started(queues: queues)
     end
 
     it "with a configurable local queue size"
