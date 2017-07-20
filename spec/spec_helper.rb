@@ -108,16 +108,21 @@ class QueSpec < Minitest::Spec
   QUE_SLEEP_UNTIL_TIMEOUT = ENV['CI'] ? 10 : 2
 
   # Helper for testing threaded code.
+  def sleep_until!(*args, &block)
+    sleep_until(*args, &block) || raise("sleep_until! timeout reached")
+  end
+
   def sleep_until(timeout = QUE_SLEEP_UNTIL_TIMEOUT)
     deadline = Time.now + timeout
     loop do
       if result = yield
         return result
       end
+
       if Time.now > deadline
-        puts "sleep_until timeout reached!"
-        raise "sleep_until timeout reached!"
+        return false
       end
+
       sleep 0.01
     end
   end

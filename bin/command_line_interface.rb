@@ -17,7 +17,7 @@ module Que
       )
 
         queues             = []
-        # log_level          = :info
+        log_level          = 'info'
         wait_period        = 100
         worker_count       = 6
         poll_interval      = 5
@@ -75,15 +75,15 @@ module Que
             maximum_queue_size = s
           end
 
-          # opts.on(
-          #   '-l',
-          #   '--log-level [LEVEL]',
-          #   String,
-          #   "Set level at which to log to STDOUT " \
-          #     "(debug, info, warn, error, fatal) (default: info)",
-          # ) do |l|
-          #   log_level = l
-          # end
+          opts.on(
+            '-l',
+            '--log-level [LEVEL]',
+            String,
+            "Set level at which to log to STDOUT " \
+              "(debug, info, warn, error, fatal) (default: info)",
+          ) do |l|
+            log_level = l
+          end
 
           opts.on(
             '-q',
@@ -141,16 +141,14 @@ OUTPUT
         $stop_que_executable = false
         %w[INT TERM].each { |signal| trap(signal) { $stop_que_executable = true } }
 
-        # Que.logger ||= Logger.new(STDOUT)
+        Que.logger ||= Logger.new(STDOUT)
 
-        # begin
-        #   if log_level = (options.log_level || ENV['QUE_LOG_LEVEL'])
-        #     Que.logger.level = Logger.const_get(log_level.upcase)
-        #   end
-        # rescue NameError
-        #   output.puts "Bad logging level: #{log_level}"
-        #   exit 1
-        # end
+        begin
+          Que.logger.level = Logger.const_get(log_level.upcase)
+        rescue NameError
+          output.puts "Unsupported logging level: #{log_level} (try debug, info, warn, error, or fatal)"
+          return 1
+        end
 
         if minimum_queue_size > maximum_queue_size
           output.puts "Your minimum-queue-size (#{minimum_queue_size}) is " \

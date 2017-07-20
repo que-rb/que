@@ -65,9 +65,16 @@ describe Que::CommandLineInterface do
         )
       end
 
+    unless sleep_until(600) { !$q1.empty? }
+      puts "CLI invocation thread hung!"
+      thread.join
+    end
+
     $q1.pop
 
     @que_locker = DB[:que_lockers].first
+
+    yield if block_given?
 
     $stop_que_executable = true
     $q2.push nil
@@ -77,6 +84,9 @@ describe Que::CommandLineInterface do
 
   around do |&block|
     super() do
+      # Don't interfere with the executable trying to set the logger to STDOUT.
+      Que.logger = nil
+
       VACUUM.messages.clear
 
       block.call
@@ -277,6 +287,21 @@ MSG
         VACUUM.messages.first.to_s
     end
 
-    it "with a configurable log level"
+    it "with a configurable log level" do
+      assert_successful_invocation("./#{file_name} --log-level=warn") do
+        logger = Que.logger
+        assert_instance_of Logger, logger
+        assert_equal logger.level, Logger::WARN
+      end
+    end
+
+    it "when passing a nonexistent log level should raise an error" do
+      code = execute("./#{file_name} --log-level=warning")
+      assert_equal 1, code
+      assert_equal 1, VACUUM.messages.length
+      assert_equal \
+        "Unsupported logging level: warning (try debug, info, warn, error, or fatal)",
+        VACUUM.messages.first.to_s
+    end
   end
 end
