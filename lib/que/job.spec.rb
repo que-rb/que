@@ -5,6 +5,9 @@ require 'spec_helper'
 describe Que::Job do
   before do
     class TestJobClass < Que::Job
+      def run(*args)
+        $args = args
+      end
     end
   end
 
@@ -17,31 +20,20 @@ describe Que::Job do
     def self.included(base)
       base.class_eval do
         it "should pass its arguments to the run method" do
-          TestJobClass.class_eval do
-            def run(a, b)
-              $args = [a, b]
-            end
-          end
-
           execute(1, 2)
-
           assert_equal [1, 2], $args
         end
 
         it "should deep-freeze its arguments" do
-          TestJobClass.class_eval do
-            def run(args)
-              $args = args
-            end
-          end
-
           execute(array: [], hash: {}, string: 'blah'.dup)
 
-          assert_equal({array: [], hash: {}, string: 'blah'.dup}, $args)
-          assert $args.frozen?
-          assert $args[:array].frozen?
-          assert $args[:hash].frozen?
-          assert $args[:string].frozen?
+          assert_equal([{array: [], hash: {}, string: 'blah'.dup}], $args)
+
+          hash = $args.first
+          assert hash.frozen?
+          assert hash[:array].frozen?
+          assert hash[:hash].frozen?
+          assert hash[:string].frozen?
         end
 
         it "should handle keyword arguments just fine" do
@@ -61,19 +53,13 @@ describe Que::Job do
         end
 
         it "should symbolize argument hashes" do
-          TestJobClass.class_eval do
-            def run(args)
-              $args = args
-            end
-          end
-
           execute(a: 1, b: 2)
-          assert_equal({a: 1, b: 2}, $args)
+          assert_equal([{a: 1, b: 2}], $args)
 
           # The run() helper should convert these to symbols, just as if they'd
           # been passed through the DB.
           execute('a' => 1, 'b' => 2)
-          assert_equal({a: 1, b: 2}, $args)
+          assert_equal([{a: 1, b: 2}], $args)
         end
 
         it "should handle subclassed jobs" do
