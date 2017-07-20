@@ -78,10 +78,10 @@ module Que
           # The job was locked but doesn't exist anymore, due to a race
           # condition that exists because advisory locks don't obey MVCC. Not
           # necessarily a problem, but if it happens a lot it may be meaningful.
-          Que.internal_log(:job_lock_race_condition) do
-            {pk: pk}
-          end
+          Que.internal_log(:job_lock_race_condition) { {pk: pk} }
         end
+
+        Que.internal_log(:pushing_finished_job) { {pk: pk} }
 
         @result_queue.push(pk.fetch(:id))
       end
