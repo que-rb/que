@@ -20,6 +20,20 @@ describe Que::Utils::ErrorNotification do
       assert_nil Que.notify_error(1)
     end
 
+    describe "when the error_notifier isn't a callable" do
+      it "should log loudly and swallow the error" do
+        Que.error_notifier = Object.new
+        assert_nil Que.notify_error(1)
+
+        assert_equal 1, logged_messages.length
+        m = logged_messages.first
+
+        assert_equal "error_notifier callable raised an error", m[:message]
+        assert_match(/undefined method/, m[:error_message])
+        assert_instance_of Array, m[:error_backtrace]
+      end
+    end
+
     describe "when the error notification proc raises an error" do
       it "should log loudly and swallow it" do
         Que.error_notifier = proc { |*args| raise "Uh-oh!" }
@@ -69,9 +83,5 @@ describe Que::Utils::ErrorNotification do
         end
       end
     end
-  end
-
-  describe "error_notifier=" do
-    it "should raise an error unless passed nil or a callable"
   end
 end
