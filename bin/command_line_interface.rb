@@ -29,50 +29,22 @@ module Que
           opts.banner = 'usage: que [options] [file/to/require] ...'
 
           opts.on(
-            '-w',
-            '--worker-count [COUNT]',
-            Integer,
-            "Set number of workers in process (default: 6)",
-          ) do |w|
-            worker_count = w
+            '-h',
+            '--help',
+            "Show this help text.",
+          ) do
+            output.puts opts.help
+            return 0
           end
 
           opts.on(
             '-i',
             '--poll-interval [INTERVAL]',
             Float,
-            "Set maximum interval between polls for available jobs " \
-              "(in seconds) (default: 5)",
+            "Set maximum interval between polls for available jobs, " \
+              "in seconds (default: 5)",
           ) do |i|
             poll_interval = i
-          end
-
-          opts.on(
-            '-p',
-            '--wait-period [PERIOD]',
-            Float,
-            "Set maximum interval between checks of the in-memory job queue " \
-              "(in milliseconds) (default: 100)",
-          ) do |p|
-            wait_period = p
-          end
-
-          opts.on(
-            '--minimum-queue-size [SIZE]',
-            Integer,
-            "Set minimum number of jobs to be cached in this process " \
-              "awaiting a worker (default: 2)",
-          ) do |s|
-            minimum_queue_size = s
-          end
-
-          opts.on(
-            '--maximum-queue-size [SIZE]',
-            Integer,
-            "Set maximum number of jobs to be cached in this process " \
-              "awaiting a worker (default: 8)",
-          ) do |s|
-            maximum_queue_size = s
           end
 
           opts.on(
@@ -90,8 +62,8 @@ module Que
             '--queue-name [NAME]',
             String,
             "Set a queue name to work jobs from. " \
-              "Can be included multiple times. " \
-              "Defaults to only the default queue.",
+              "Can be passed multiple times. " \
+              "(default: the default queue only)",
           ) do |queue_name|
             queues << queue_name
           end
@@ -99,7 +71,7 @@ module Que
           opts.on(
             '-v',
             '--version',
-            "Show Que version",
+            "Print Que version and exit.",
           ) do
             require 'que'
             output.puts "Que version #{Que::VERSION}"
@@ -107,12 +79,39 @@ module Que
           end
 
           opts.on(
-            '-h',
-            '--help',
-            "Show help text",
-          ) do
-            output.puts opts.help
-            return 0
+            '-w',
+            '--worker-count [COUNT]',
+            Integer,
+            "Set number of workers in process (default: 6)",
+          ) do |w|
+            worker_count = w
+          end
+
+          opts.on(
+            '--maximum-queue-size [SIZE]',
+            Integer,
+            "Set maximum number of jobs to be cached in this process " \
+              "awaiting a worker (default: 8)",
+          ) do |s|
+            maximum_queue_size = s
+          end
+
+          opts.on(
+            '--minimum-queue-size [SIZE]',
+            Integer,
+            "Set minimum number of jobs to be cached in this process " \
+              "awaiting a worker (default: 2)",
+          ) do |s|
+            minimum_queue_size = s
+          end
+
+          opts.on(
+            '--wait-period [PERIOD]',
+            Float,
+            "Set maximum interval between checks of the in-memory job queue, " \
+              "in milliseconds (default: 100)",
+          ) do |p|
+            wait_period = p
           end
         end.parse!(args)
 

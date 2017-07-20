@@ -240,13 +240,11 @@ MSG
       end
     end
 
-    ["-p", "--wait-period"].each do |command|
-      it "with #{command} to configure the wait period" do
-        assert_successful_invocation "./#{file_name} #{command} 200"
-        assert_locker_started(
-          wait_period: 0.2,
-        )
-      end
+    it "with --wait-period to configure the wait period" do
+      assert_successful_invocation "./#{file_name} --wait-period 200"
+      assert_locker_started(
+        wait_period: 0.2,
+      )
     end
 
     ["-q", "--queue-name"].each do |command|
