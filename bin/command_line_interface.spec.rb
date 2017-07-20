@@ -301,5 +301,13 @@ MSG
         "Unsupported logging level: warning (try debug, info, warn, error, or fatal)",
         VACUUM.messages.first.to_s
     end
+
+    it "when passing --worker-priorities to specify worker priorities" do
+      assert_successful_invocation("./#{file_name} --worker-priorities 10,15,20,25")
+
+      assert_locker_started(
+        worker_priorities: [10, 15, 20, 25, nil, nil],
+      )
+    end
   end
 end

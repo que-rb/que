@@ -23,7 +23,7 @@ module Que
         poll_interval      = 5
         minimum_queue_size = 2
         maximum_queue_size = 8
-        # worker_priorities  = [10, 30, 50, nil, nil, nil]
+        worker_priorities  = [10, 30, 50]
 
         OptionParser.new do |opts|
           opts.banner = 'usage: que [options] [file/to/require] ...'
@@ -113,6 +113,15 @@ module Que
           ) do |p|
             wait_period = p
           end
+
+          opts.on(
+            '--worker-priorities [LIST]',
+            Array,
+            "List of priorities to assign to workers, " \
+              "unspecified workers take jobs of any priority (default: 10,30,50)",
+          ) do |p|
+            worker_priorities = p.map(&:to_i)
+          end
         end.parse!(args)
 
         if args.length.zero?
@@ -161,6 +170,7 @@ OUTPUT
           poll_interval:      poll_interval,
           minimum_queue_size: minimum_queue_size,
           maximum_queue_size: maximum_queue_size,
+          worker_priorities:  worker_priorities,
         }
 
         options[:queues] = queues if queues.any?
