@@ -146,7 +146,20 @@ describe Que::Job do
   module ActsLikeASynchronousJob
     def self.included(base)
       base.class_eval do
-        it "shouldn't fail if there's no DB connection"
+        it "shouldn't fail if there's no DB connection" do
+          # We want to make sure that the act of working a job synchronously
+          # doesn't necessarily touch the DB. One way to do this is to run the
+          # job inside a failed transaction.
+          Que.checkout do
+            Que.execute "BEGIN"
+            assert_raises(PG::SyntaxError) { Que.execute "This isn't valid SQL!" }
+            assert_raises(PG::InFailedSqlTransaction) { Que.execute "SELECT 1" }
+
+            execute
+
+            Que.execute "ROLLBACK"
+          end
+        end
 
         it "should propagate errors raised during the job"
       end
