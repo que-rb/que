@@ -188,7 +188,9 @@ MSG
       worker_priorities: [10, 30, 50, nil, nil, nil],
       poll_interval: 5,
       wait_period: 0.1,
-      queues: ['default']
+      queues: ['default'],
+      minimum_queue_size: 2,
+      maximum_queue_size: 8
     )
       locker_starts = internal_messages(event: 'locker_start')
       assert_equal 1, locker_starts.length
@@ -200,8 +202,8 @@ MSG
       assert_equal @que_locker[:pid], locker_start[:backend_pid]
       assert_equal poll_interval, locker_start[:poll_interval]
       assert_equal wait_period, locker_start[:wait_period]
-      assert_equal 2, locker_start[:minimum_queue_size]
-      assert_equal 8, locker_start[:maximum_queue_size]
+      assert_equal minimum_queue_size, locker_start[:minimum_queue_size]
+      assert_equal maximum_queue_size, locker_start[:maximum_queue_size]
       assert_equal worker_priorities, locker_start[:worker_priorities]
     end
 
@@ -228,8 +230,6 @@ MSG
       end
     end
 
-    it "should error if the poll interval is below a minimum"
-
     ["-p", "--wait-period"].each do |command|
       it "with #{command} to configure the wait period" do
         assert_successful_invocation "./#{file_name} #{command} 200"
@@ -238,8 +238,6 @@ MSG
         )
       end
     end
-
-    it "should error if the wait period is below a minimum"
 
     ["-q", "--queue-name"].each do |command|
       it "with #{command} to configure the queue being worked" do
@@ -260,7 +258,17 @@ MSG
       assert_locker_started(queues: queues)
     end
 
-    it "with a configurable local queue size"
+    it "with a configurable local queue size" do
+      assert_successful_invocation \
+        "./#{file_name} --minimum-queue-size 8 --maximum-queue-size 20"
+
+      assert_locker_started(
+        minimum_queue_size: 8,
+        maximum_queue_size: 20,
+      )
+    end
+
+    it "should raise an error if the minimum_queue_size is above the maximum_queue_size"
 
     it "with a configurable log level"
   end

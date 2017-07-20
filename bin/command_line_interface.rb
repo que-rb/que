@@ -16,13 +16,13 @@ module Que
         default_require_file: RAILS_ENVIRONMENT_FILE
       )
 
-        queues        = []
-        # log_level     = :info
-        wait_period   = 100
-        worker_count  = 6
-        poll_interval = 5
-        # minimum_queue_size = Que::Locker::DEFAULT_MINIMUM_QUEUE_SIZE,
-        # maximum_queue_size = Que::Locker::DEFAULT_MAXIMUM_QUEUE_SIZE,
+        queues             = []
+        # log_level          = :info
+        wait_period        = 100
+        worker_count       = 6
+        poll_interval      = 5
+        minimum_queue_size = 2
+        maximum_queue_size = 8
         # worker_priorities  = [10, 30, 50, nil, nil, nil]
 
         OptionParser.new do |opts|
@@ -55,6 +55,24 @@ module Que
               "(in milliseconds) (default: 100)",
           ) do |p|
             wait_period = p
+          end
+
+          opts.on(
+            '--minimum-queue-size [SIZE]',
+            Integer,
+            "Set minimum number of jobs to be cached in this process " \
+              "awaiting a worker (default: 2)",
+          ) do |s|
+            minimum_queue_size = s
+          end
+
+          opts.on(
+            '--maximum-queue-size [SIZE]',
+            Integer,
+            "Set maximum number of jobs to be cached in this process " \
+              "awaiting a worker (default: 8)",
+          ) do |s|
+            maximum_queue_size = s
           end
 
           # opts.on(
@@ -135,9 +153,11 @@ OUTPUT
         # end
 
         options = {
-          wait_period:   wait_period.to_f / 1000, # Milliseconds to seconds.
-          worker_count:  worker_count,
-          poll_interval: poll_interval,
+          wait_period:        wait_period.to_f / 1000, # Milliseconds to seconds.
+          worker_count:       worker_count,
+          poll_interval:      poll_interval,
+          minimum_queue_size: minimum_queue_size,
+          maximum_queue_size: maximum_queue_size,
         }
 
         options[:queues] = queues if queues.any?
