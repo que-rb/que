@@ -153,9 +153,8 @@ OUTPUT
         # end
 
         if minimum_queue_size > maximum_queue_size
-          output.puts <<-SQL
-Your minimum-queue-size (#{minimum_queue_size}) is greater than your maximum-queue-size (#{maximum_queue_size})!
-SQL
+          output.puts "Your minimum-queue-size (#{minimum_queue_size}) is " \
+            "greater than your maximum-queue-size (#{maximum_queue_size})!"
           return 1
         end
 

@@ -272,9 +272,9 @@ MSG
       code = execute("./#{file_name} --minimum-queue-size 10")
       assert_equal 1, code
       assert_equal 1, VACUUM.messages.length
-      assert_equal <<-MSG, VACUUM.messages.first.to_s
-Your minimum-queue-size (10) is greater than your maximum-queue-size (8)!
-MSG
+      assert_equal \
+        "Your minimum-queue-size (10) is greater than your maximum-queue-size (8)!",
+        VACUUM.messages.first.to_s
     end
 
     it "with a configurable log level"
