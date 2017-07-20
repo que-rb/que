@@ -268,7 +268,14 @@ MSG
       )
     end
 
-    it "should raise an error if the minimum_queue_size is above the maximum_queue_size"
+    it "should raise an error if the minimum_queue_size is above the maximum_queue_size" do
+      code = execute("./#{file_name} --minimum-queue-size 10")
+      assert_equal 1, code
+      assert_equal 1, VACUUM.messages.length
+      assert_equal <<-MSG, VACUUM.messages.first.to_s
+Your minimum-queue-size (10) is greater than your maximum-queue-size (8)!
+MSG
+    end
 
     it "with a configurable log level"
   end

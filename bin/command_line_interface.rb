@@ -152,6 +152,13 @@ OUTPUT
         #   exit 1
         # end
 
+        if minimum_queue_size > maximum_queue_size
+          output.puts <<-SQL
+Your minimum-queue-size (#{minimum_queue_size}) is greater than your maximum-queue-size (#{maximum_queue_size})!
+SQL
+          return 1
+        end
+
         options = {
           wait_period:        wait_period.to_f / 1000, # Milliseconds to seconds.
           worker_count:       worker_count,
