@@ -96,10 +96,6 @@ describe Que::Job do
           assert_equal 0, $error_count
         end
 
-        it "should expose the correct error_count in the handle_error method"
-
-        it "should make it easy to determine whether to notify errors"
-
         it "should make it easy to destroy the job" do
           TestJobClass.class_eval do
             def run
@@ -125,6 +121,12 @@ describe Que::Job do
             Que.execute "BEGIN"
             assert_raises(PG::SyntaxError) { Que.execute "This isn't valid SQL!" }
             assert_raises(PG::InFailedSqlTransaction) { Que.execute "SELECT 1" }
+
+            TestJobClass.class_eval do
+              def run
+                destroy
+              end
+            end
 
             execute
 
@@ -176,6 +178,58 @@ describe Que::Job do
       )
 
       sleep_until { result_queue.clear == [attrs[:id]] }
+    end
+
+    describe "#handle_error" do
+      before do
+        TestJobClass.class_eval do
+          def run
+            raise "Uh-oh!"
+          end
+        end
+      end
+
+      it "should be passed the error object and expose the correct error_count" do
+        TestJobClass.class_eval do
+          def handle_error(error)
+            $args = [error_count, error]
+          end
+        end
+
+        execute
+
+        count, error = $args
+        assert_equal 1, count
+        assert_equal "Uh-oh!", error.message
+      end
+
+      it "should make it easy to signal that the error should be notified" do
+        error = nil
+        Que.error_notifier = proc { |e| error = e }
+
+        TestJobClass.class_eval do
+          def handle_error(error)
+            true # Notify error
+          end
+        end
+
+        execute
+        assert_equal "Uh-oh!", error.message
+      end
+
+      it "should make it easy to signal that the error should not be notified" do
+        error = nil
+        Que.error_notifier = proc { |e| error = e }
+
+        TestJobClass.class_eval do
+          def handle_error(error)
+            false # Do not notify error
+          end
+        end
+
+        execute
+        assert_nil error
+      end
     end
   end
 
