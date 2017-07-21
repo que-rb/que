@@ -43,6 +43,12 @@ module Que
 
     def _run
       run(*que_attrs.fetch(:data).fetch(:args))
+    end
+
+    # Run the job with the error handling and cleaning up that we need when
+    # running in a worker. This method is skipped when running synchronously.
+    def _run_asynchronously
+      _run
     rescue => error
       @que_error = error
       run_error_notifier = handle_error(error)

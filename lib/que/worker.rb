@@ -90,7 +90,7 @@ module Que
       start    = Time.now
       klass    = Que.constantize(job.fetch(:job_class))
       instance = klass.new(job)
-      instance._run
+      instance._run_asynchronously
 
       log_message = {
         level: :debug,

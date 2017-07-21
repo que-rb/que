@@ -112,21 +112,6 @@ describe Que::Job do
         end
 
         it "should make it easy to finish the job"
-
-        it "should make it easy to override the finishing action" do
-          TestJobClass.class_eval do
-            def finish
-              $args = []
-              $args << :before_destroy
-              destroy
-              $args << :after_destroy
-            end
-          end
-
-          execute
-          assert_equal [:before_destroy, :after_destroy], $args
-          assert_empty jobs_dataset
-        end
       end
     end
   end
@@ -150,8 +135,6 @@ describe Que::Job do
         end
 
         it "should propagate errors raised during the job" do
-          skip
-
           TestJobClass.class_eval do
             def run
               raise "Uh-oh!"
@@ -195,6 +178,21 @@ describe Que::Job do
       )
 
       sleep_until { result_queue.clear == [attrs[:id]] }
+    end
+
+    it "should make it easy to override the finishing action" do
+      TestJobClass.class_eval do
+        def finish
+          $args = []
+          $args << :before_destroy
+          destroy
+          $args << :after_destroy
+        end
+      end
+
+      execute
+      assert_equal [:before_destroy, :after_destroy], $args
+      assert_empty jobs_dataset
     end
   end
 
