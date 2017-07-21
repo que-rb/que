@@ -38,6 +38,14 @@ module Que
       # Make sure we never pass nil to this method, so we don't hang the thread.
       Que.assert(Numeric, timeout)
 
+      Que.internal_log :listener_waiting do
+        {
+          object_id: object_id,
+          # TODO: backend_pid: connection.backend_pid,
+          timeout:   timeout,
+        }
+      end
+
       output = {}
 
       @pool.checkout do |conn|

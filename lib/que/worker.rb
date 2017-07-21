@@ -46,6 +46,15 @@ module Que
       @job_queue    = Que.assert(JobQueue, job_queue)
       @result_queue = Que.assert(ResultQueue, result_queue)
 
+      Que.internal_log(:worker_instantiate) do
+        {
+          id:           object_id,
+          priority:     priority,
+          job_queue:    job_queue.object_id,
+          result_queue: result_queue.object_id,
+        }
+      end
+
       @thread =
         Thread.new do
           # An error causing this thread to exit is a bug in Que, which we want
@@ -67,10 +76,13 @@ module Que
       # queue is shutting down this will return nil, which breaks the loop and
       # lets the thread finish.
       while pk = @job_queue.shift(*priority)
+        Que.internal_log(:worker_received_job) { {pk: pk} }
+
         pk_values = pk.values_at(:queue, :priority, :run_at, :id)
 
         if job = Que.execute(:get_job, pk_values).first
           Que.recursively_freeze(job)
+          Que.internal_log(:worker_fetched_job) { {job: job} }
 
           work_job(job)
         else

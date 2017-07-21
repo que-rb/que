@@ -136,9 +136,12 @@ module Que
 
       Que.internal_log :locker_polled do
         {
-          limit:  limit,
-          locked: jobs.count,
-          held_locks: held_locks.to_a
+          object_id:    object_id,
+          queue:        @queue,
+          limit:        limit,
+          locked:       jobs.count,
+          held_locks:   held_locks.to_a,
+          newly_locked: jobs.map{|job| job.fetch(:id)}
         }
       end
 

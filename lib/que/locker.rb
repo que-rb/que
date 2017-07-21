@@ -267,6 +267,13 @@ module Que
 
       space = @job_queue.space
 
+      Que.internal_log :locker_polling do
+        {
+          object_id: object_id,
+          space:     space,
+        }
+      end
+
       pollers.each do |poller|
         break if space <= 0
 
@@ -305,8 +312,18 @@ module Que
     end
 
     def try_advisory_lock(id)
-      execute("SELECT pg_try_advisory_lock($1)", [id]).
-        first.fetch(:pg_try_advisory_lock)
+      r = execute("SELECT pg_try_advisory_lock($1) AS l", [id]).first.fetch(:l)
+
+      Que.internal_log :locker_attempted_lock do
+        {
+          object_id: object_id,
+          # TODO: backend_pid: connection.backend_pid,
+          id:        id,
+          result:    r,
+        }
+      end
+
+      r
     end
 
     def unlock_finished_jobs
@@ -326,6 +343,14 @@ module Que
       # Unclear how untrusted input would get passed to this method, but since
       # we need string interpolation here, make sure we only have integers.
       ids.map!(&:to_i)
+
+      Que.internal_log :locker_unlocking do
+        {
+          object_id: object_id,
+          # TODO: backend_pid: connection.backend_pid,
+          ids:       ids,
+        }
+      end
 
       values = ids.join('), (')
 
