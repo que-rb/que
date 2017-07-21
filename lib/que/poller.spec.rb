@@ -152,5 +152,45 @@ describe Que::Poller do
     threads.each(&:join)
   end
 
-  it "should_poll? should exhibit reasonable behavior"
+  describe "should_poll?" do
+    let :poller do
+      Que::Poller.new(
+        pool: Que.pool,
+        queue: 'default',
+        poll_interval: 5,
+      )
+    end
+
+    it "should be true if the poller hasn't run before" do
+      assert poller.should_poll?
+    end
+
+    it "should be true if the last poll returned a full complement of jobs" do
+      jobs = 5.times.map { Que::Job.enqueue }
+
+      result = poller.poll(3, held_locks: Set.new)
+      assert_equal 3, result.length
+
+      assert poller.should_poll?
+    end
+
+    it "should be false if the last poll didn't return a full complement of jobs" do
+      jobs = 5.times.map { Que::Job.enqueue }
+
+      result = poller.poll(7, held_locks: Set.new)
+      assert_equal 5, result.length
+
+      refute poller.should_poll?
+    end
+
+    it "should be true if the last poll didn't return a full complement of jobs, but the poll_interval has elapsed" do
+      jobs = 5.times.map { Que::Job.enqueue }
+
+      result = poller.poll(7, held_locks: Set.new)
+      assert_equal 5, result.length
+
+      poller.instance_variable_set(:@last_polled_at, Time.now - 30)
+      assert poller.should_poll?
+    end
+  end
 end
