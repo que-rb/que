@@ -107,6 +107,21 @@ module Que
           "greater than the maximum_queue_size (#{maximum_queue_size})!"
       end
 
+      Que.internal_log :locker_instantiate do
+        {
+          queues:             queues,
+          object_id:          object_id,
+          listen:             listen,
+          poll:               poll,
+          poll_interval:      poll_interval,
+          wait_period:        wait_period,
+          maximum_queue_size: maximum_queue_size,
+          minimum_queue_size: minimum_queue_size,
+          worker_count:       worker_count,
+          worker_priorities:  worker_priorities,
+        }
+      end
+
       # Local cache of which advisory locks are held by this connection.
       @locks = Set.new
 
@@ -192,15 +207,9 @@ module Que
 
         Que.internal_log :locker_start do
           {
-            object_id:          object_id,
-            listen:             !!@listener,
-            queues:             @queue_names,
-            backend_pid:        conn.backend_pid,
-            wait_period:        @wait_period,
-            poll_interval:      @poll_interval,
-            minimum_queue_size: @minimum_queue_size,
-            maximum_queue_size: @job_queue.maximum_size,
-            worker_priorities:  @workers.map(&:priority),
+            object_id:   object_id,
+            backend_pid: conn.backend_pid,
+            worker_priorities: workers.map(&:priority),
           }
         end
 

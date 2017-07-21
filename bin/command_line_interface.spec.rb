@@ -180,13 +180,32 @@ MSG
       )
     end
 
-    def assert_locker_started(
-      worker_priorities: [10, 30, 50, nil, nil, nil],
+    def assert_locker_instantiated(
+      worker_priorities: [10, 30, 50],
       poll_interval: 5,
-      wait_period: 0.05,
+      wait_period: 50,
       queues: ['default'],
       minimum_queue_size: 2,
       maximum_queue_size: 8
+    )
+
+      locker_instantiates = internal_messages(event: 'locker_instantiate')
+      assert_equal 1, locker_instantiates.length
+
+      locker_instantiate = locker_instantiates.first
+
+      assert_equal true,               locker_instantiate[:listen]
+      assert_equal true,               locker_instantiate[:poll]
+      assert_equal queues,             locker_instantiate[:queues]
+      assert_equal poll_interval,      locker_instantiate[:poll_interval]
+      assert_equal wait_period,        locker_instantiate[:wait_period]
+      assert_equal minimum_queue_size, locker_instantiate[:minimum_queue_size]
+      assert_equal maximum_queue_size, locker_instantiate[:maximum_queue_size]
+      assert_equal worker_priorities,  locker_instantiate[:worker_priorities]
+    end
+
+    def assert_locker_started(
+      worker_priorities: [10, 30, 50, nil, nil, nil]
     )
 
       locker_starts = internal_messages(event: 'locker_start')
@@ -194,14 +213,8 @@ MSG
 
       locker_start = locker_starts.first
 
-      assert_equal true,               locker_start[:listen]
-      assert_equal queues,             locker_start[:queues]
-      assert_equal @que_locker[:pid],  locker_start[:backend_pid]
-      assert_equal poll_interval,      locker_start[:poll_interval]
-      assert_equal wait_period,        locker_start[:wait_period]
-      assert_equal minimum_queue_size, locker_start[:minimum_queue_size]
-      assert_equal maximum_queue_size, locker_start[:maximum_queue_size]
-      assert_equal worker_priorities,  locker_start[:worker_priorities]
+      assert_equal worker_priorities, locker_start[:worker_priorities]
+      assert_equal @que_locker[:pid], locker_start[:backend_pid]
     end
 
     it "that can shut down gracefully" do
@@ -212,6 +225,7 @@ MSG
     ["-w", "--worker-count"].each do |command|
       it "with #{command} to configure the worker count" do
         assert_successful_invocation "./#{filename} #{command} 10"
+        assert_locker_instantiated
         assert_locker_started(
           worker_priorities: [10, 30, 50, nil, nil, nil, nil, nil, nil, nil],
         )
@@ -221,23 +235,22 @@ MSG
     ["-i", "--poll-interval"].each do |command|
       it "with #{command} to configure the poll interval" do
         assert_successful_invocation "./#{filename} #{command} 10"
-        assert_locker_started(
-          poll_interval: 10,
-        )
+        assert_locker_instantiated(poll_interval: 10)
+        assert_locker_started
       end
     end
 
     it "with --wait-period to configure the wait period" do
       assert_successful_invocation "./#{filename} --wait-period 200"
-      assert_locker_started(
-        wait_period: 0.2,
+      assert_locker_instantiated(
+        wait_period: 200,
       )
     end
 
     ["-q", "--queue-name"].each do |command|
       it "with #{command} to configure the queue being worked" do
         assert_successful_invocation "./#{filename} #{command} my_queue", queue_name: 'my_queue'
-        assert_locker_started(
+        assert_locker_instantiated(
           queues: ['my_queue']
         )
       end
@@ -250,14 +263,14 @@ MSG
         "./#{filename} -q queue_1 --queue-name queue_2 -q queue_3 --queue-name queue_4",
         queue_name: queues.sample # Shouldn't matter.
 
-      assert_locker_started(queues: queues)
+      assert_locker_instantiated(queues: queues)
     end
 
     it "with a configurable local queue size" do
       assert_successful_invocation \
         "./#{filename} --minimum-queue-size 8 --maximum-queue-size 20"
 
-      assert_locker_started(
+      assert_locker_instantiated(
         minimum_queue_size: 8,
         maximum_queue_size: 20,
       )

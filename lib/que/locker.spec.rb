@@ -4,13 +4,9 @@ require 'spec_helper'
 
 describe Que::Locker do
   describe "when starting up" do
-    def assert_startup(
+    def assert_que_locker_insertion(
       listen:             true,
       queues:             [Que::DEFAULT_QUEUE],
-      poll_interval:      Que::Locker::DEFAULT_POLL_INTERVAL,
-      wait_period:        Que::Locker::DEFAULT_WAIT_PERIOD,
-      minimum_queue_size: Que::Locker::DEFAULT_MINIMUM_QUEUE_SIZE,
-      maximum_queue_size: Que::Locker::DEFAULT_MAXIMUM_QUEUE_SIZE,
       worker_priorities:  [10, 30, 50, nil, nil, nil]
     )
 
@@ -31,23 +27,10 @@ describe Que::Locker do
       locker.stop!
 
       assert_equal 0, DB[:que_lockers].count
-
-      events = internal_messages(event: 'locker_start')
-      assert_equal 1, events.count
-
-      event = events.first
-      assert_equal locker.object_id,        event[:object_id]
-      assert_equal listen,                  event[:listen]
-      assert_kind_of Integer,               event[:backend_pid]
-      assert_equal queues,                  event[:queues]
-      assert_equal wait_period.to_f / 1000, event[:wait_period]
-      assert_equal minimum_queue_size,      event[:minimum_queue_size]
-      assert_equal maximum_queue_size,      event[:maximum_queue_size]
-      assert_equal worker_priorities,       event[:worker_priorities]
     end
 
     it "should have reasonable defaults" do
-      assert_startup
+      assert_que_locker_insertion
     end
 
     it "should allow configuration of various parameters" do
@@ -62,13 +45,9 @@ describe Que::Locker do
         worker_count:       8,
       )
 
-      assert_startup(
+      assert_que_locker_insertion(
         queues:             ['my_queue'],
         listen:             false,
-        minimum_queue_size: 5,
-        maximum_queue_size: 45,
-        wait_period:        200,
-        poll_interval:      0.4,
         worker_priorities:  [1, 2, 3, 4, nil, nil, nil, nil],
       )
     end
@@ -78,7 +57,7 @@ describe Que::Locker do
         Que.default_queue = 'a_new_default_queue'
         locker_settings.clear
 
-        assert_startup(
+        assert_que_locker_insertion(
           queues: ['a_new_default_queue'],
         )
       ensure
