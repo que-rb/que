@@ -19,6 +19,13 @@ module Que
 
     def initialize(pool:)
       @pool = pool
+
+      Que.internal_log :listener_instantiate do
+        {
+          object_id:     object_id,
+          # TODO: backend_pid: connection.backend_pid,
+        }
+      end
     end
 
     def listen
@@ -122,6 +129,13 @@ module Que
         # Unlisten and drain notifications before releasing the connection.
         @pool.execute "UNLISTEN *"
         {} while conn.notifies
+      end
+
+      Que.internal_log :listener_unlisten do
+        {
+          object_id:     object_id,
+          # TODO: backend_pid: connection.backend_pid,
+        }
       end
     end
 

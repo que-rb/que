@@ -110,6 +110,8 @@ module Que
 
       Que.internal_log :poller_instantiate do
         {
+          object_id:     object_id,
+          # TODO: backend_pid: connection.backend_pid,
           queue:         queue,
           poll_interval: poll_interval,
         }
