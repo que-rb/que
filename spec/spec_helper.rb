@@ -209,6 +209,11 @@ class QueSpec < Minitest::Spec
       abort
     end
 
+    if f = failure
+      e = f.exception
+      puts "\n\n#{e.class}: #{e.message}\n#{e.backtrace.join("\n")}\n\n"
+    end
+
     # A bit of lint: make sure that no specs leave advisory locks hanging open.
     unless locked_ids.empty?
       puts "\n\nAdvisory lock left open: #{current_spec_location}\n\n"
