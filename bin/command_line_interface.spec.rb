@@ -75,7 +75,7 @@ describe Que::CommandLineInterface do
 
   around do |&block|
     super() do
-      # Don't interfere with the executable trying to set the logger to STDOUT.
+      # Let the CLI set the logger if it needs to.
       Que.logger = nil
       VACUUM.messages.clear
 
@@ -284,6 +284,18 @@ MSG
       assert_equal \
         "Unsupported logging level: warning (try debug, info, warn, error, or fatal)",
         VACUUM.messages.first.to_s
+    end
+
+    it "when passing --log-internals should output Que's internal logs" do
+      Que.internal_logger = nil
+
+      assert_successful_invocation("./#{filename} --log-internals --log-level=warn") do
+        logger = Que.logger
+        assert_instance_of Logger, logger
+        assert_equal logger.level, Logger::WARN
+
+        assert_equal logger.object_id, Que.internal_logger.object_id
+      end
     end
 
     it "when passing --worker-priorities to specify worker priorities" do

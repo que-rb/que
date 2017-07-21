@@ -21,6 +21,7 @@ module Que
         wait_period        = 100
         worker_count       = 6
         poll_interval      = 5
+        log_internals      = false
         minimum_queue_size = 2
         maximum_queue_size = 8
         worker_priorities  = [10, 30, 50]
@@ -88,6 +89,15 @@ module Que
           end
 
           opts.on(
+            '--log-internals',
+            Integer,
+            "Log verbosely about Que's internal state. " \
+              "Only recommended for debugging issues",
+          ) do |l|
+            log_internals = true
+          end
+
+          opts.on(
             '--maximum-queue-size [SIZE]',
             Integer,
             "Set maximum number of jobs to be cached in this process " \
@@ -150,6 +160,10 @@ OUTPUT
         %w[INT TERM].each { |signal| trap(signal) { $stop_que_executable = true } }
 
         Que.logger ||= Logger.new(STDOUT)
+
+        if log_internals
+          Que.internal_logger = Que.logger
+        end
 
         begin
           Que.logger.level = Logger.const_get(log_level.upcase)
