@@ -36,7 +36,15 @@ module Que
       @pool.checkout do |conn|
         loop do
           notification_received =
-            conn.wait_for_notify(timeout) do |_, _, payload|
+            conn.wait_for_notify(timeout) do |channel, pid, payload|
+              Que.internal_log(:notification_received) do
+                {
+                  channel: channel,
+                  source_pid: pid,
+                  payload: payload,
+                }
+              end
+
               # We've received at least one notification, so zero out the
               # timeout before we loop again to retrieve the next message. This
               # ensures that we don't wait an additional `timeout` seconds after
@@ -64,6 +72,10 @@ module Que
           break unless notification_received
         end
       end
+
+      return output if output.empty?
+
+      Que.internal_log(:messages_received) { {messages: output} }
 
       output.each do |type, messages|
         if callback = MESSAGE_CALLBACKS[type]
@@ -100,13 +112,7 @@ module Que
 
       output.delete_if { |_, messages| messages.empty? }
 
-      if output.any?
-        Que.internal_log(:messages_received) do
-          {
-            messages: output,
-          }
-        end
-      end
+      Que.internal_log(:messages_processed) { {messages: output} }
 
       output
     end

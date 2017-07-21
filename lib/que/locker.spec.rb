@@ -447,7 +447,7 @@ describe Que::Locker do
       DB.notify "que_listener_#{pid}",
         payload: JSON.dump(payload.merge(message_type: 'new_job'))
 
-      m = sleep_until { internal_messages(event: 'messages_received').first }
+      m = sleep_until { internal_messages(event: 'messages_processed').first }
 
       payload[:run_at] = Time.iso8601(payload[:run_at]).to_s
 
