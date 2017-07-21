@@ -212,8 +212,12 @@ class QueSpec < Minitest::Spec
     end
 
     if f = failure && !skipped? && ENV['CI']
-      e = f.exception
-      puts "\n\n#{e.class}: #{e.message}\n#{e.backtrace.join("\n")}\n\n"
+      begin
+        e = f.exception
+        puts "\n\n#{e.class}: #{e.message}\n#{e.backtrace.join("\n")}\n\n"
+      rescue => error
+        puts "#{error.class}: #{error.message}"
+      end
     end
 
     # A bit of lint: make sure that no specs leave advisory locks hanging open.
