@@ -51,7 +51,14 @@ module Que
       _run
     rescue => error
       @que_error = error
-      run_error_notifier = handle_error(error)
+
+      run_error_notifier =
+        begin
+          handle_error(error)
+        rescue => error_2
+          Que.notify_error(error_2, que_attrs)
+          retry_in_default_interval
+        end
 
       Que.notify_error(error, que_attrs) if run_error_notifier
     ensure
@@ -66,6 +73,10 @@ module Que
     end
 
     def handle_error(error)
+      retry_in_default_interval
+    end
+
+    def retry_in_default_interval
       retry_in(resolve_que_setting(:retry_interval, error_count))
     end
 

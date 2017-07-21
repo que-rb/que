@@ -256,8 +256,6 @@ describe Que::Job do
       end
 
       it "when it raises an error of its own should notify it as well" do
-        skip
-
         errors = []
         Que.error_notifier = proc { |e| errors << e }
 
@@ -271,7 +269,7 @@ describe Que::Job do
 
         assert_equal 1, jobs_dataset.count
 
-        assert_equal ["Uh-oh!", "Uh-oh again!"], errors.map(&:message)
+        assert_equal ["Uh-oh again!", "Uh-oh!"], errors.map(&:message)
       end
     end
   end
