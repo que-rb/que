@@ -42,8 +42,9 @@ module Que
       end
 
       def get_logger(internal: false)
-        l = internal ? internal_logger : logger
-        l.respond_to?(:call) ? l.call : l
+        if l = internal ? internal_logger : logger
+          l.respond_to?(:call) ? l.call : l
+        end
       end
 
       def log_formatter
