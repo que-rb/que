@@ -6,6 +6,10 @@ module Que
       attr_accessor :error_notifier
 
       def notify_error(*args)
+        Que.internal_log(:error_notification_attempted) do
+          {args: args.inspect}
+        end
+
         if notifier = error_notifier
           notifier.call(*args)
         end

@@ -63,7 +63,6 @@ module Que
         end
 
       params = convert_params(params) if params
-
       start  = Time.now
       result = execute_sql(sql, params)
 
@@ -72,6 +71,7 @@ module Que
           command: command,
           params:  params,
           elapsed: Time.now - start,
+          ntuples: result.ntuples,
         }
       end
 
@@ -128,8 +128,7 @@ module Que
     }
 
     # JSON, JSONB
-    CAST_PROCS[114] = CAST_PROCS[3802] =
-      -> (json) { Que.deserialize_json(json) }
+    CAST_PROCS[114] = CAST_PROCS[3802] = -> (j) { Que.deserialize_json(j) }
 
     # Integer, bigint, smallint
     CAST_PROCS[23] = CAST_PROCS[20] = CAST_PROCS[21] = proc(&:to_i)
@@ -140,17 +139,18 @@ module Que
       output = result.to_a
 
       result.fields.each_with_index do |field, index|
-        symbol    = field.to_sym
-        converter = CAST_PROCS[result.ftype(index)]
+        symbol = field.to_sym
 
-        output.each do |hash|
-          value = hash.delete(field)
-
-          if value && converter
-            value = converter.call(value)
+        if converter = CAST_PROCS[result.ftype(index)]
+          output.each do |hash|
+            value = hash.delete(field)
+            value = converter.call(value) if value
+            hash[symbol] = value
           end
-
-          hash[symbol] = value
+        else
+          output.each do |hash|
+            hash[symbol] = hash.delete(field)
+          end
         end
       end
 

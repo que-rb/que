@@ -34,6 +34,7 @@ module Que
 
     def initialize(attrs)
       @que_attrs = attrs
+      Que.internal_log(:job_instantiate) { attrs }
     end
 
     # Subclasses should define their own run methods, but keep an empty one
@@ -72,6 +73,7 @@ module Que
       @que_error ? count + 1 : count
     end
 
+    # To be overridden in subclasses.
     def handle_error(error)
       retry_in_default_interval
     end
@@ -88,7 +90,7 @@ module Que
           period,
           que_error.message,
           que_error.backtrace.join("\n"),
-        ] + job_key
+        ].concat(key)
       end
 
       @que_resolved = true
@@ -134,7 +136,7 @@ module Que
           data:     Que.serialize_json(args: args),
           job_class: \
             job_class || name ||
-            raise(Error, "Can't enqueue an anonymous subclass of Que::Job"),
+              raise(Error, "Can't enqueue an anonymous subclass of Que::Job"),
         }
 
         if attrs[:run_at].nil? && resolve_que_setting(:run_synchronously)
