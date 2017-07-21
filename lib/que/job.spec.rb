@@ -134,17 +134,41 @@ describe Que::Job do
           end
         end
 
-        it "should propagate errors raised during the job" do
+        it "should propagate errors raised during the job, and not invoke handle_error" do
           TestJobClass.class_eval do
             def run
               raise "Uh-oh!"
+            end
+
+            def handle_error
+              $args = true
             end
           end
 
           error = assert_raises { execute }
           assert_equal "Uh-oh!", error.message
+          assert_nil $args
         end
       end
+    end
+  end
+
+  describe "the JobClass.run() method" do
+    include ActsLikeAJob
+    include ActsLikeASynchronousJob
+
+    def execute(*args)
+      TestJobClass.run(*args)
+    end
+  end
+
+  describe "the JobClass.enqueue() method when run_synchronously is set" do
+    include ActsLikeAJob
+    include ActsLikeASynchronousJob
+
+    def execute(*args)
+      TestJobClass.run_synchronously = true
+      TestJobClass.enqueue(*args)
     end
   end
 
@@ -230,25 +254,25 @@ describe Que::Job do
         execute
         assert_nil error
       end
-    end
-  end
 
-  describe "the JobClass.run() method" do
-    include ActsLikeAJob
-    include ActsLikeASynchronousJob
+      it "when it raises an error of its own should notify it as well" do
+        skip
 
-    def execute(*args)
-      TestJobClass.run(*args)
-    end
-  end
+        errors = []
+        Que.error_notifier = proc { |e| errors << e }
 
-  describe "the JobClass.enqueue() method when run_synchronously is set" do
-    include ActsLikeAJob
-    include ActsLikeASynchronousJob
+        TestJobClass.class_eval do
+          def handle_error(error)
+            raise "Uh-oh again!"
+          end
+        end
 
-    def execute(*args)
-      TestJobClass.run_synchronously = true
-      TestJobClass.enqueue(*args)
+        execute
+
+        assert_equal 1, jobs_dataset.count
+
+        assert_equal ["Uh-oh!", "Uh-oh again!"], errors.map(&:message)
+      end
     end
   end
 end
