@@ -4,40 +4,35 @@ require_relative 'command_line_interface'
 require 'spec_helper'
 
 describe Que::CommandLineInterface do
-  VACUUM = Object.new
   LOADED_FILES = {}
 
-  def VACUUM.puts(arg)
-    @messages ||= []
-    @messages << arg
-  end
+  around do |&block|
+    super() do
+      # Let the CLI set the logger if it needs to.
+      Que.logger = nil
 
-  def VACUUM.messages
-    @messages ||= []
-  end
+      block.call
 
-  def execute(
-    text,
-    default_require_file: Que::CommandLineInterface::RAILS_ENVIRONMENT_FILE
-  )
-    Que::CommandLineInterface.parse(
-      args: text.split(/\s/),
-      output: VACUUM,
-      default_require_file: default_require_file,
-    )
+      $stop_que_executable = nil
+      LOADED_FILES.clear
+      written_files.each { |name| File.delete("#{name}.rb") }
+    end
   end
 
   let(:written_files) { [] }
 
-  def write_file
-    # On CircleCI we run the spec suite in parallel, and writing/deleting the
-    # same files will result in spec failures. So instead just generate a new
-    # file name for each spec to write/delete.
+  let :output do
+    o = Object.new
 
-    name = "spec/temp/file_#{Digest::MD5.hexdigest(rand.to_s)}"
-    written_files << name
-    File.open("#{name}.rb", 'w') { |f| f.puts %(LOADED_FILES["#{name}"] = true) }
-    name
+    def o.puts(arg)
+      messages << arg
+    end
+
+    def o.messages
+      @messages ||= []
+    end
+
+    o
   end
 
   def assert_successful_invocation(
@@ -73,26 +68,34 @@ describe Que::CommandLineInterface do
     assert_equal 0, thread.value
   end
 
-  around do |&block|
-    super() do
-      # Let the CLI set the logger if it needs to.
-      Que.logger = nil
-      VACUUM.messages.clear
+  def execute(
+    text,
+    default_require_file: Que::CommandLineInterface::RAILS_ENVIRONMENT_FILE
+  )
+    Que::CommandLineInterface.parse(
+      args: text.split(/\s/),
+      output: output,
+      default_require_file: default_require_file,
+    )
+  end
 
-      block.call
+  def write_file
+    # On CircleCI we run the spec suite in parallel, and writing/deleting the
+    # same files will result in spec failures. So instead just generate a new
+    # file name for each spec to write/delete.
 
-      $stop_que_executable = nil
-      LOADED_FILES.clear
-      written_files.each { |name| File.delete("#{name}.rb") }
-    end
+    name = "spec/temp/file_#{Digest::MD5.hexdigest(rand.to_s)}"
+    written_files << name
+    File.open("#{name}.rb", 'w') { |f| f.puts %(LOADED_FILES["#{name}"] = true) }
+    name
   end
 
   ["-h", "--help"].each do |command|
     it "when invoked with #{command} should print help text" do
       code = execute(command)
       assert_equal 0, code
-      assert_equal 1, VACUUM.messages.length
-      assert_match %r(usage: que \[options\] \[file/to/require\]), VACUUM.messages.first.to_s
+      assert_equal 1, output.messages.length
+      assert_match %r(usage: que \[options\] \[file/to/require\]), output.messages.first.to_s
     end
   end
 
@@ -100,8 +103,8 @@ describe Que::CommandLineInterface do
     it "when invoked with #{command} should print the version" do
       code = execute(command)
       assert_equal 0, code
-      assert_equal 1, VACUUM.messages.length
-      assert_equal "Que version #{Que::VERSION}", VACUUM.messages.first.to_s
+      assert_equal 1, output.messages.length
+      assert_equal "Que version #{Que::VERSION}", output.messages.first.to_s
     end
   end
 
@@ -120,8 +123,8 @@ describe Que::CommandLineInterface do
     it "should output an error message if no files are specified and the rails config file doesn't exist" do
       code = execute("")
       assert_equal 1, code
-      assert_equal 1, VACUUM.messages.length
-      assert_equal <<-MSG, VACUUM.messages.first.to_s
+      assert_equal 1, output.messages.length
+      assert_equal <<-MSG, output.messages.first.to_s
 You didn't include any Ruby files to require!
 Que needs to be able to load your application before it can process jobs.
 (Or use `que -h` for a list of options)
@@ -139,7 +142,7 @@ MSG
           "Finishing Que's current jobs before exiting...",
           "Que's jobs finished, exiting...",
         ],
-        VACUUM.messages,
+        output.messages,
       )
 
       assert_equal(
@@ -156,7 +159,7 @@ MSG
       code = execute "./#{name} ./nonexistent_file"
       assert_equal 1, code
 
-      assert_equal ["Could not load file './nonexistent_file'"], VACUUM.messages
+      assert_equal ["Could not load file './nonexistent_file'"], output.messages
 
       assert_equal(
         {name => true},
@@ -263,10 +266,10 @@ MSG
     it "should raise an error if the minimum_queue_size is above the maximum_queue_size" do
       code = execute("./#{filename} --minimum-queue-size 10")
       assert_equal 1, code
-      assert_equal 1, VACUUM.messages.length
+      assert_equal 1, output.messages.length
       assert_equal \
         "Your minimum-queue-size (10) is greater than your maximum-queue-size (8)!",
-        VACUUM.messages.first.to_s
+        output.messages.first.to_s
     end
 
     it "with a configurable log level" do
@@ -280,10 +283,10 @@ MSG
     it "when passing a nonexistent log level should raise an error" do
       code = execute("./#{filename} --log-level=warning")
       assert_equal 1, code
-      assert_equal 1, VACUUM.messages.length
+      assert_equal 1, output.messages.length
       assert_equal \
         "Unsupported logging level: warning (try debug, info, warn, error, or fatal)",
-        VACUUM.messages.first.to_s
+        output.messages.first.to_s
     end
 
     it "when passing --log-internals should output Que's internal logs" do
