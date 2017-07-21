@@ -47,7 +47,6 @@ describe Que::Locker do
     end
 
     it "should have reasonable defaults" do
-      locker_settings.clear
       assert_startup
     end
 
@@ -175,6 +174,7 @@ describe Que::Locker do
     assert_equal 0, jobs_dataset.count
 
     locker_settings[:poll_interval] = 0.01
+    locker_settings[:poll] = true
     locker_settings[:listen] = false
     locker
 
@@ -187,11 +187,12 @@ describe Que::Locker do
     locker.stop!
   end
 
-  it "when poll_interval is set to nil should still listen for jobs" do
+  it "when poll is set to false should still listen for jobs" do
     assert_equal 0, jobs_dataset.count
 
-    locker_settings[:poll_interval] = nil
-    sleep_until { locker.thread.status == 'sleep' }
+    locker_settings[:poll] = false
+    locker
+    sleep_until { !listening_lockers.empty? }
 
     Que::Job.enqueue
     sleep_until { jobs_dataset.empty? }
@@ -207,6 +208,7 @@ describe Que::Locker do
       job1, job2 = BlockJob.enqueue, BlockJob.enqueue
       job3 = Que::Job.enqueue(queue: 'my_special_queue')
 
+      locker_settings[:poll] = true
       locker
 
       # Two jobs worked simultaneously:
@@ -227,6 +229,7 @@ describe Que::Locker do
 
       locker_settings[:queues] = ['queue1', 'queue2']
       locker
+      sleep_until { !listening_lockers.empty? }
 
       # Two jobs worked simultaneously:
       $q1.pop;      $q1.pop
@@ -261,7 +264,7 @@ describe Que::Locker do
         FROM generate_series(1, 100) AS i;
       SQL
 
-      locker_settings.clear
+      locker_settings[:poll] = true
       locker
       sleep_until { jobs_dataset.empty? }
       locker.stop!
@@ -354,6 +357,7 @@ describe Que::Locker do
     it "should trigger a new poll when the queue drops to the minimum size" do
       ids = 9.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
 
+      locker_settings[:poll] = true
       locker
       3.times { $q1.pop }
 
@@ -442,8 +446,10 @@ describe Que::Locker do
     end
 
     it "should not try to lock and work jobs it has already locked" do
-      id = BlockJob.enqueue.que_attrs[:id]
       locker
+      sleep_until { !listening_lockers.empty? }
+
+      id = BlockJob.enqueue.que_attrs[:id]
 
       $q1.pop
 

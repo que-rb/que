@@ -78,14 +78,25 @@ module Que
       queues:             [Que.default_queue],
       connection:         nil,
       listen:             true,
+      poll:               true,
       poll_interval:      DEFAULT_POLL_INTERVAL,
       wait_period:        DEFAULT_WAIT_PERIOD,
-      minimum_queue_size: DEFAULT_MINIMUM_QUEUE_SIZE,
       maximum_queue_size: DEFAULT_MAXIMUM_QUEUE_SIZE,
+      minimum_queue_size: DEFAULT_MINIMUM_QUEUE_SIZE,
       worker_count:       DEFAULT_WORKER_COUNT,
       worker_priorities:  DEFAULT_WORKER_PRIORITIES,
       on_worker_start:    nil
     )
+
+      Que.assert([TrueClass, FalseClass], listen)
+      Que.assert([TrueClass, FalseClass], poll)
+      Que.assert(Numeric, poll_interval)
+      Que.assert(Numeric, wait_period)
+      Que.assert(Integer, maximum_queue_size)
+      Que.assert(Integer, minimum_queue_size)
+      Que.assert(Integer, worker_count)
+      Que.assert(Array, worker_priorities)
+      worker_priorities.each { |p| Que.assert(Integer, p) }
 
       if minimum_queue_size > maximum_queue_size
         raise "minimum_queue_size (#{minimum_queue_size}) is " \
@@ -115,14 +126,16 @@ module Que
       @job_queue    = JobQueue.new(maximum_size: maximum_queue_size)
       @result_queue = ResultQueue.new
 
-      @pollers =
-        queues.map do |queue|
-          Poller.new(
-            pool:          @pool,
-            queue:         queue,
-            poll_interval: poll_interval,
-          )
-        end
+      if poll
+        @pollers =
+          queues.map do |queue|
+            Poller.new(
+              pool:          @pool,
+              queue:         queue,
+              poll_interval: poll_interval,
+            )
+          end
+      end
 
       # If the worker_count exceeds the array of priorities it'll result in
       # extra workers that will work jobs of any priority. For example, the

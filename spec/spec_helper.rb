@@ -90,9 +90,7 @@ class QueSpec < Minitest::Spec
   register_spec_type(//, self)
 
   let :locker_settings do
-    {
-      poll_interval: nil,
-    }
+    {}
   end
 
   let :locker do
@@ -136,6 +134,10 @@ class QueSpec < Minitest::Spec
 
   def jobs_dataset
     DB[:que_jobs]
+  end
+
+  def listening_lockers
+    DB[:que_lockers].where(:listening)
   end
 
   def logged_messages
