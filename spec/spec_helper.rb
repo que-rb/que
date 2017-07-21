@@ -150,7 +150,7 @@ class QueSpec < Minitest::Spec
       assert_equal 'que',              message.delete(:lib)
       assert_equal Socket.gethostname, message.delete(:hostname)
       assert_equal Process.pid,        message.delete(:pid)
-      assert_instance_of Integer,      message.delete(:thread)
+      assert_kind_of Integer,          message.delete(:thread)
 
       assert_in_delta Time.iso8601(message.delete(:t)), Time.now.utc, 5
     end
