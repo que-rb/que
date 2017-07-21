@@ -182,7 +182,7 @@ MSG
 
     def assert_locker_started(
       worker_priorities: [10, 30, 50, nil, nil, nil],
-      poll_interval: 5,
+      poll_interval: 1,
       wait_period: 0.05,
       queues: ['default'],
       minimum_queue_size: 2,
@@ -268,7 +268,7 @@ MSG
       assert_equal 1, code
       assert_equal 1, output.messages.length
       assert_equal \
-        "Your minimum-queue-size (10) is greater than your maximum-queue-size (8)!",
+        "minimum_queue_size (10) is greater than the maximum_queue_size (8)!",
         output.messages.first.to_s
     end
 

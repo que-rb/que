@@ -87,6 +87,11 @@ module Que
       on_worker_start:    nil
     )
 
+      if minimum_queue_size > maximum_queue_size
+        raise "minimum_queue_size (#{minimum_queue_size}) is " \
+          "greater than the maximum_queue_size (#{maximum_queue_size})!"
+      end
+
       # Local cache of which advisory locks are held by this connection.
       @locks = Set.new
 

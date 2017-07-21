@@ -16,15 +16,10 @@ module Que
         default_require_file: RAILS_ENVIRONMENT_FILE
       )
 
-        queues             = []
-        log_level          = 'info'
-        wait_period        = 50
-        worker_count       = 6
-        poll_interval      = 5
-        log_internals      = false
-        minimum_queue_size = 2
-        maximum_queue_size = 8
-        worker_priorities  = [10, 30, 50]
+        options       = {}
+        queues        = []
+        log_level     = 'info'
+        log_internals = false
 
         OptionParser.new do |opts|
           opts.banner = 'usage: que [options] [file/to/require] ...'
@@ -45,7 +40,7 @@ module Que
             "Set maximum interval between polls for available jobs, " \
               "in seconds (default: 5)",
           ) do |i|
-            poll_interval = i
+            options[:poll_interval] = i
           end
 
           opts.on(
@@ -85,7 +80,7 @@ module Que
             Integer,
             "Set number of workers in process (default: 6)",
           ) do |w|
-            worker_count = w
+            options[:worker_count] = w
           end
 
           opts.on(
@@ -103,7 +98,7 @@ module Que
             "Set maximum number of jobs to be cached in this process " \
               "awaiting a worker (default: 8)",
           ) do |s|
-            maximum_queue_size = s
+            options[:maximum_queue_size] = s
           end
 
           opts.on(
@@ -112,7 +107,7 @@ module Que
             "Set minimum number of jobs to be cached in this process " \
               "awaiting a worker (default: 2)",
           ) do |s|
-            minimum_queue_size = s
+            options[:minimum_queue_size] = s
           end
 
           opts.on(
@@ -121,7 +116,7 @@ module Que
             "Set maximum interval between checks of the in-memory job queue, " \
               "in milliseconds (default: 50)",
           ) do |p|
-            wait_period = p
+            options[:wait_period] = p
           end
 
           opts.on(
@@ -130,7 +125,7 @@ module Que
             "List of priorities to assign to workers, " \
               "unspecified workers take jobs of any priority (default: 10,30,50)",
           ) do |p|
-            worker_priorities = p.map(&:to_i)
+            options[:worker_priorities] = p.map(&:to_i)
           end
         end.parse!(args)
 
@@ -172,24 +167,15 @@ OUTPUT
           return 1
         end
 
-        if minimum_queue_size > maximum_queue_size
-          output.puts "Your minimum-queue-size (#{minimum_queue_size}) is " \
-            "greater than your maximum-queue-size (#{maximum_queue_size})!"
-          return 1
-        end
-
-        options = {
-          wait_period:        wait_period,
-          worker_count:       worker_count,
-          poll_interval:      poll_interval,
-          minimum_queue_size: minimum_queue_size,
-          maximum_queue_size: maximum_queue_size,
-          worker_priorities:  worker_priorities,
-        }
-
         options[:queues] = queues if queues.any?
 
-        locker = Que::Locker.new(options)
+        locker =
+          begin
+            Que::Locker.new(options)
+          rescue => e
+            output.puts(e.message)
+            return 1
+          end
 
         loop do
           sleep 0.01
