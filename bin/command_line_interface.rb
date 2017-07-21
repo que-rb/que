@@ -16,17 +16,67 @@ module Que
         default_require_file: RAILS_ENVIRONMENT_FILE
       )
 
-        queues        = []
-        # log_level     = :info
-        wait_period   = 100
-        worker_count  = 6
-        poll_interval = 5
-        # minimum_queue_size = Que::Locker::DEFAULT_MINIMUM_QUEUE_SIZE,
-        # maximum_queue_size = Que::Locker::DEFAULT_MAXIMUM_QUEUE_SIZE,
-        # worker_priorities  = [10, 30, 50, nil, nil, nil]
+        queues             = []
+        log_level          = 'info'
+        wait_period        = 100
+        worker_count       = 6
+        poll_interval      = 5
+        minimum_queue_size = 2
+        maximum_queue_size = 8
+        worker_priorities  = [10, 30, 50]
 
         OptionParser.new do |opts|
           opts.banner = 'usage: que [options] [file/to/require] ...'
+
+          opts.on(
+            '-h',
+            '--help',
+            "Show this help text.",
+          ) do
+            output.puts opts.help
+            return 0
+          end
+
+          opts.on(
+            '-i',
+            '--poll-interval [INTERVAL]',
+            Float,
+            "Set maximum interval between polls for available jobs, " \
+              "in seconds (default: 5)",
+          ) do |i|
+            poll_interval = i
+          end
+
+          opts.on(
+            '-l',
+            '--log-level [LEVEL]',
+            String,
+            "Set level at which to log to STDOUT " \
+              "(debug, info, warn, error, fatal) (default: info)",
+          ) do |l|
+            log_level = l
+          end
+
+          opts.on(
+            '-q',
+            '--queue-name [NAME]',
+            String,
+            "Set a queue name to work jobs from. " \
+              "Can be passed multiple times. " \
+              "(default: the default queue only)",
+          ) do |queue_name|
+            queues << queue_name
+          end
+
+          opts.on(
+            '-v',
+            '--version',
+            "Print Que version and exit.",
+          ) do
+            require 'que'
+            output.puts "Que version #{Que::VERSION}"
+            return 0
+          end
 
           opts.on(
             '-w',
@@ -38,63 +88,39 @@ module Que
           end
 
           opts.on(
-            '-i',
-            '--poll-interval [INTERVAL]',
-            Float,
-            "Set maximum interval between polls for available jobs " \
-              "(in seconds) (default: 5)",
-          ) do |i|
-            poll_interval = i
+            '--maximum-queue-size [SIZE]',
+            Integer,
+            "Set maximum number of jobs to be cached in this process " \
+              "awaiting a worker (default: 8)",
+          ) do |s|
+            maximum_queue_size = s
           end
 
           opts.on(
-            '-p',
+            '--minimum-queue-size [SIZE]',
+            Integer,
+            "Set minimum number of jobs to be cached in this process " \
+              "awaiting a worker (default: 2)",
+          ) do |s|
+            minimum_queue_size = s
+          end
+
+          opts.on(
             '--wait-period [PERIOD]',
             Float,
-            "Set maximum interval between checks of the in-memory job queue " \
-              "(in milliseconds) (default: 100)",
+            "Set maximum interval between checks of the in-memory job queue, " \
+              "in milliseconds (default: 100)",
           ) do |p|
             wait_period = p
           end
 
-          # opts.on(
-          #   '-l',
-          #   '--log-level [LEVEL]',
-          #   String,
-          #   "Set level at which to log to STDOUT " \
-          #     "(debug, info, warn, error, fatal) (default: info)",
-          # ) do |l|
-          #   log_level = l
-          # end
-
           opts.on(
-            '-q',
-            '--queue-name [NAME]',
-            String,
-            "Set a queue name to work jobs from. " \
-              "Can be included multiple times. " \
-              "Defaults to only the default queue.",
-          ) do |queue_name|
-            queues << queue_name
-          end
-
-          opts.on(
-            '-v',
-            '--version',
-            "Show Que version",
-          ) do
-            require 'que'
-            output.puts "Que version #{Que::VERSION}"
-            return 0
-          end
-
-          opts.on(
-            '-h',
-            '--help',
-            "Show help text",
-          ) do
-            output.puts opts.help
-            return 0
+            '--worker-priorities [LIST]',
+            Array,
+            "List of priorities to assign to workers, " \
+              "unspecified workers take jobs of any priority (default: 10,30,50)",
+          ) do |p|
+            worker_priorities = p.map(&:to_i)
           end
         end.parse!(args)
 
@@ -123,21 +149,28 @@ OUTPUT
         $stop_que_executable = false
         %w[INT TERM].each { |signal| trap(signal) { $stop_que_executable = true } }
 
-        # Que.logger ||= Logger.new(STDOUT)
+        Que.logger ||= Logger.new(STDOUT)
 
-        # begin
-        #   if log_level = (options.log_level || ENV['QUE_LOG_LEVEL'])
-        #     Que.logger.level = Logger.const_get(log_level.upcase)
-        #   end
-        # rescue NameError
-        #   output.puts "Bad logging level: #{log_level}"
-        #   exit 1
-        # end
+        begin
+          Que.logger.level = Logger.const_get(log_level.upcase)
+        rescue NameError
+          output.puts "Unsupported logging level: #{log_level} (try debug, info, warn, error, or fatal)"
+          return 1
+        end
+
+        if minimum_queue_size > maximum_queue_size
+          output.puts "Your minimum-queue-size (#{minimum_queue_size}) is " \
+            "greater than your maximum-queue-size (#{maximum_queue_size})!"
+          return 1
+        end
 
         options = {
-          wait_period:   wait_period.to_f / 1000, # Milliseconds to seconds.
-          worker_count:  worker_count,
-          poll_interval: poll_interval,
+          wait_period:        wait_period.to_f / 1000, # Milliseconds to seconds.
+          worker_count:       worker_count,
+          poll_interval:      poll_interval,
+          minimum_queue_size: minimum_queue_size,
+          maximum_queue_size: maximum_queue_size,
+          worker_priorities:  worker_priorities,
         }
 
         options[:queues] = queues if queues.any?

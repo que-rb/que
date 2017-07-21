@@ -5,6 +5,9 @@ require 'spec_helper'
 describe Que::Job do
   before do
     class TestJobClass < Que::Job
+      def run(*args)
+        $args = args
+      end
     end
   end
 
@@ -17,31 +20,20 @@ describe Que::Job do
     def self.included(base)
       base.class_eval do
         it "should pass its arguments to the run method" do
-          TestJobClass.class_eval do
-            def run(a, b)
-              $args = [a, b]
-            end
-          end
-
           execute(1, 2)
-
           assert_equal [1, 2], $args
         end
 
         it "should deep-freeze its arguments" do
-          TestJobClass.class_eval do
-            def run(args)
-              $args = args
-            end
-          end
-
           execute(array: [], hash: {}, string: 'blah'.dup)
 
-          assert_equal({array: [], hash: {}, string: 'blah'.dup}, $args)
-          assert $args.frozen?
-          assert $args[:array].frozen?
-          assert $args[:hash].frozen?
-          assert $args[:string].frozen?
+          assert_equal([{array: [], hash: {}, string: 'blah'.dup}], $args)
+
+          hash = $args.first
+          assert hash.frozen?
+          assert hash[:array].frozen?
+          assert hash[:hash].frozen?
+          assert hash[:string].frozen?
         end
 
         it "should handle keyword arguments just fine" do
@@ -61,19 +53,13 @@ describe Que::Job do
         end
 
         it "should symbolize argument hashes" do
-          TestJobClass.class_eval do
-            def run(args)
-              $args = args
-            end
-          end
-
           execute(a: 1, b: 2)
-          assert_equal({a: 1, b: 2}, $args)
+          assert_equal([{a: 1, b: 2}], $args)
 
           # The run() helper should convert these to symbols, just as if they'd
           # been passed through the DB.
           execute('a' => 1, 'b' => 2)
-          assert_equal({a: 1, b: 2}, $args)
+          assert_equal([{a: 1, b: 2}], $args)
         end
 
         it "should handle subclassed jobs" do
@@ -100,8 +86,6 @@ describe Que::Job do
         end
 
         it "should expose the job's error_count" do
-          skip "Needs run() support"
-
           TestJobClass.class_eval do
             def run
               $error_count = error_count
@@ -111,6 +95,10 @@ describe Que::Job do
           execute
           assert_equal 0, $error_count
         end
+
+        it "should expose the correct error_count in the handle_error method"
+
+        it "should make it easy to determine whether to notify errors"
 
         it "should make it easy to destroy the job" do
           TestJobClass.class_eval do
@@ -122,6 +110,8 @@ describe Que::Job do
           execute
           assert_empty jobs_dataset
         end
+
+        it "should make it easy to finish the job"
 
         it "should make it easy to override the finishing action" do
           TestJobClass.class_eval do
@@ -137,8 +127,6 @@ describe Que::Job do
           assert_equal [:before_destroy, :after_destroy], $args
           assert_empty jobs_dataset
         end
-
-        it "should make it easy to finish the job"
       end
     end
   end
@@ -146,9 +134,33 @@ describe Que::Job do
   module ActsLikeASynchronousJob
     def self.included(base)
       base.class_eval do
-        it "shouldn't fail if there's no DB connection"
+        it "shouldn't fail if there's no DB connection" do
+          # We want to make sure that the act of working a job synchronously
+          # doesn't necessarily touch the DB. One way to do this is to run the
+          # job inside a failed transaction.
+          Que.checkout do
+            Que.execute "BEGIN"
+            assert_raises(PG::SyntaxError) { Que.execute "This isn't valid SQL!" }
+            assert_raises(PG::InFailedSqlTransaction) { Que.execute "SELECT 1" }
 
-        it "should propagate errors raised during the job"
+            execute
+
+            Que.execute "ROLLBACK"
+          end
+        end
+
+        it "should propagate errors raised during the job" do
+          skip
+
+          TestJobClass.class_eval do
+            def run
+              raise "Uh-oh!"
+            end
+          end
+
+          error = assert_raises { execute }
+          assert_equal "Uh-oh!", error.message
+        end
       end
     end
   end
@@ -175,14 +187,13 @@ describe Que::Job do
 
       attrs = TestJobClass.enqueue(*args).que_attrs
 
-      sort_key = {
+      job_queue.push(
         queue:    attrs[:queue],
         priority: attrs[:priority],
         run_at:   attrs[:run_at],
         id:       attrs[:id],
-      }
+      )
 
-      job_queue.push(sort_key)
       sleep_until { result_queue.clear == [attrs[:id]] }
     end
   end
