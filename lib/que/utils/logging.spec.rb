@@ -106,6 +106,14 @@ describe Que::Utils::Logging do
   end
 
   describe "internal_log" do
+    def get_messages
+      messages = QUE_INTERNAL_LOGGER.messages.map{|m| JSON.parse(m, symbolize_names: true)}
+      messages.each do |message|
+        assert_in_delta Time.iso8601(message.delete(:t)), Time.now.utc, 5
+      end
+      messages
+    end
+
     it "should be a no-op if there's no internal_logger set" do
       Que.internal_logger = nil
       assert_nil Que.internal_log(:thing_happened) { raise "Blah!" }
@@ -114,7 +122,6 @@ describe Que::Utils::Logging do
     it "should output whatever's in the block to the internal_logger" do
       Que.internal_log(:thing_happened) { {key: "Blah!"} }
       Que.internal_log(:thing_happened) { {key: "Blah again!"} }
-
 
       assert_equal(
         [
@@ -135,7 +142,7 @@ describe Que::Utils::Logging do
             key: "Blah again!",
           },
         ],
-        QUE_INTERNAL_LOGGER.messages.map{|m| JSON.parse(m, symbolize_names: true)},
+        get_messages,
       )
     end
 
@@ -156,7 +163,7 @@ describe Que::Utils::Logging do
             key: "Blah!",
           },
         ],
-        QUE_INTERNAL_LOGGER.messages.map{|m| JSON.parse(m, symbolize_names: true)},
+        get_messages,
       )
     end
   end

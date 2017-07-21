@@ -35,6 +35,7 @@ module Que
         if l = get_logger(internal: true)
           data = _default_log_data
           data[:internal_event] = Que.assert(Symbol, event)
+          data[:t] = Time.now.utc.iso8601(6)
           data.merge!(Que.assert(Hash, yield))
           l.info(JSON.dump(data))
         end
