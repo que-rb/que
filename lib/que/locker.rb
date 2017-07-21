@@ -133,7 +133,7 @@ module Que
           Que.pool
         end
 
-      @queue_names        = queues
+      @queue_names        = queues.is_a?(Hash) ? queues.keys : queues
       @listener           = Listener.new(pool: @pool) if listen
       @wait_period        = wait_period.to_f / 1000 # Milliseconds to seconds.
       @poll_interval      = poll_interval
@@ -147,11 +147,11 @@ module Que
 
       if poll
         @pollers =
-          queues.map do |queue|
+          queues.map do |queue, interval|
             Poller.new(
               pool:          @pool,
               queue:         queue,
-              poll_interval: poll_interval,
+              poll_interval: interval || poll_interval,
             )
           end
       end
@@ -210,6 +210,7 @@ module Que
             object_id:   object_id,
             backend_pid: conn.backend_pid,
             worker_priorities: workers.map(&:priority),
+            pollers: pollers && pollers.map { |p| [p.queue, p.poll_interval] }
           }
         end
 

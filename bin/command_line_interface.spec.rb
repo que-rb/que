@@ -251,7 +251,7 @@ MSG
       it "with #{command} to configure the queue being worked" do
         assert_successful_invocation "./#{filename} #{command} my_queue", queue_name: 'my_queue'
         assert_locker_instantiated(
-          queues: ['my_queue']
+          queues: {my_queue: 5}
         )
       end
     end
@@ -263,7 +263,27 @@ MSG
         "./#{filename} -q queue_1 --queue-name queue_2 -q queue_3 --queue-name queue_4",
         queue_name: queues.sample # Shouldn't matter.
 
-      assert_locker_instantiated(queues: queues)
+      assert_locker_instantiated(
+        queues: {queue_1: 5, queue_2: 5, queue_3: 5, queue_4: 5}
+      )
+    end
+
+    it "should support specifying poll intervals for individual queues" do
+      assert_successful_invocation \
+        "./#{filename} --poll-interval 4 -q queue_1=6 --queue-name queue_2 -q queue_3 --queue-name queue_4=7",
+        queue_name: 'queue_3'
+
+      assert_locker_instantiated(
+        queues: {queue_1: 6, queue_2: 4, queue_3: 4, queue_4: 7},
+        poll_interval: 4,
+      )
+
+      poller_instantiations = internal_messages(event: 'poller_instantiate')
+
+      assert_equal(
+        [["queue_1", 6.0], ["queue_2", 4.0], ["queue_3", 4.0], ["queue_4", 7.0]],
+        poller_instantiations.map{|p| p.values_at(:queue, :poll_interval)}
+      )
     end
 
     it "with a configurable local queue size" do

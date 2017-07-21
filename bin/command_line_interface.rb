@@ -20,6 +20,7 @@ module Que
         queues        = []
         log_level     = 'info'
         log_internals = false
+        poll_interval = 5
 
         OptionParser.new do |opts|
           opts.banner = 'usage: que [options] [file/to/require] ...'
@@ -40,7 +41,7 @@ module Que
             "Set maximum interval between polls for available jobs, " \
               "in seconds (default: 5)",
           ) do |i|
-            options[:poll_interval] = i
+            poll_interval = i
           end
 
           opts.on(
@@ -167,7 +168,22 @@ OUTPUT
           return 1
         end
 
-        options[:queues] = queues if queues.any?
+        if queues.any?
+          queues_hash = {}
+
+          queues.each do |queue|
+            name, interval = queue.split('=')
+            p              = interval ? Float(interval) : poll_interval
+
+            Que.assert(p > 0.01) { "Poll intervals can't be less than 0.01 seconds!" }
+
+            queues_hash[name] = p
+          end
+
+          options[:queues] = queues_hash
+        end
+
+        options[:poll_interval] = poll_interval
 
         locker =
           begin

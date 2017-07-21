@@ -107,6 +107,13 @@ module Que
       @poll_interval       = poll_interval
       @last_polled_at      = nil
       @last_poll_satisfied = nil
+
+      Que.internal_log :poller_instantiate do
+        {
+          queue:         queue,
+          poll_interval: poll_interval,
+        }
+      end
     end
 
     def poll(limit, held_locks:)
