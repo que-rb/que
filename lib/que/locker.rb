@@ -68,7 +68,7 @@ module Que
       }
 
     DEFAULT_POLL_INTERVAL      = 1.0
-    DEFAULT_WAIT_PERIOD        = 0.01
+    DEFAULT_WAIT_PERIOD        = 100
     DEFAULT_MINIMUM_QUEUE_SIZE = 2
     DEFAULT_MAXIMUM_QUEUE_SIZE = 8
     DEFAULT_WORKER_COUNT       = 6
@@ -100,7 +100,7 @@ module Que
 
       @queue_names        = queues
       @listener           = Listener.new(pool: @pool) if listen
-      @wait_period        = wait_period
+      @wait_period        = wait_period.to_f / 1000 # Milliseconds to seconds.
       @poll_interval      = poll_interval
       @minimum_queue_size = minimum_queue_size
 

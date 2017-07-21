@@ -179,7 +179,7 @@ OUTPUT
         end
 
         options = {
-          wait_period:        wait_period.to_f / 1000, # Milliseconds to seconds.
+          wait_period:        wait_period,
           worker_count:       worker_count,
           poll_interval:      poll_interval,
           minimum_queue_size: minimum_queue_size,

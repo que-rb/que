@@ -36,14 +36,14 @@ describe Que::Locker do
       assert_equal 1, events.count
 
       event = events.first
-      assert_equal locker.object_id,   event[:object_id]
-      assert_equal listen,             event[:listen]
-      assert_kind_of Integer,          event[:backend_pid]
-      assert_equal queues,             event[:queues]
-      assert_equal wait_period,        event[:wait_period]
-      assert_equal minimum_queue_size, event[:minimum_queue_size]
-      assert_equal maximum_queue_size, event[:maximum_queue_size]
-      assert_equal worker_priorities,  event[:worker_priorities]
+      assert_equal locker.object_id,        event[:object_id]
+      assert_equal listen,                  event[:listen]
+      assert_kind_of Integer,               event[:backend_pid]
+      assert_equal queues,                  event[:queues]
+      assert_equal wait_period.to_f / 1000, event[:wait_period]
+      assert_equal minimum_queue_size,      event[:minimum_queue_size]
+      assert_equal maximum_queue_size,      event[:maximum_queue_size]
+      assert_equal worker_priorities,       event[:worker_priorities]
     end
 
     it "should have reasonable defaults" do
@@ -57,7 +57,7 @@ describe Que::Locker do
         listen:             false,
         minimum_queue_size: 5,
         maximum_queue_size: 45,
-        wait_period:        0.2,
+        wait_period:        200,
         poll_interval:      0.4,
         worker_priorities:  [1, 2, 3, 4],
         worker_count:       8,
@@ -68,7 +68,7 @@ describe Que::Locker do
         listen:             false,
         minimum_queue_size: 5,
         maximum_queue_size: 45,
-        wait_period:        0.2,
+        wait_period:        200,
         poll_interval:      0.4,
         worker_priorities:  [1, 2, 3, 4, nil, nil, nil, nil],
       )
