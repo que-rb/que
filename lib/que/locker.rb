@@ -88,18 +88,22 @@ module Que
       on_worker_start:    nil
     )
 
-      Que.assert([TrueClass, FalseClass], listen)
-      Que.assert([TrueClass, FalseClass], poll)
-      Que.assert(Numeric, poll_interval)
-      Que.assert(Numeric, wait_period)
-      Que.assert(Integer, maximum_queue_size)
-      Que.assert(Integer, minimum_queue_size)
-      Que.assert(Integer, worker_count)
-      Que.assert(Array, worker_priorities)
+      # Sanity-check all our arguments, since some users may instantiate Locker
+      # directly.
+      Que.assert [TrueClass, FalseClass], listen
+      Que.assert [TrueClass, FalseClass], poll
+
+      Que.assert Numeric, poll_interval
+      Que.assert Numeric, wait_period
+      Que.assert Integer, maximum_queue_size
+      Que.assert Integer, minimum_queue_size
+      Que.assert Integer, worker_count
+
+      Que.assert Array, worker_priorities
       worker_priorities.each { |p| Que.assert(Integer, p) }
 
-      if minimum_queue_size > maximum_queue_size
-        raise "minimum_queue_size (#{minimum_queue_size}) is " \
+      Que.assert(minimum_queue_size <= maximum_queue_size) do
+        "minimum_queue_size (#{minimum_queue_size}) is " \
           "greater than the maximum_queue_size (#{maximum_queue_size})!"
       end
 
