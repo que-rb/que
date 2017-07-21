@@ -107,10 +107,9 @@ module Que
           "greater than the maximum_queue_size (#{maximum_queue_size})!"
       end
 
-      Que.internal_log :locker_instantiate do
+      Que.internal_log :locker_instantiate, self do
         {
           queues:             queues,
-          object_id:          object_id,
           listen:             listen,
           poll:               poll,
           poll_interval:      poll_interval,
@@ -205,9 +204,8 @@ module Que
           queues: @queue_names,
         )
 
-        Que.internal_log :locker_start do
+        Que.internal_log :locker_start, self do
           {
-            object_id:   object_id,
             backend_pid: conn.backend_pid,
             worker_priorities: workers.map(&:priority),
             pollers: pollers && pollers.map { |p| [p.queue, p.poll_interval] }
@@ -267,12 +265,7 @@ module Que
 
       space = @job_queue.space
 
-      Que.internal_log :locker_polling do
-        {
-          object_id: object_id,
-          space:     space,
-        }
-      end
+      Que.internal_log(:locker_polling, self) { {space: space} }
 
       pollers.each do |poller|
         break if space <= 0
@@ -314,12 +307,11 @@ module Que
     def try_advisory_lock(id)
       r = execute("SELECT pg_try_advisory_lock($1) AS l", [id]).first.fetch(:l)
 
-      Que.internal_log :locker_attempted_lock do
+      Que.internal_log :locker_attempted_lock, self do
         {
-          object_id: object_id,
           # TODO: backend_pid: connection.backend_pid,
-          id:        id,
-          result:    r,
+          id:     id,
+          result: r,
         }
       end
 
@@ -344,11 +336,10 @@ module Que
       # we need string interpolation here, make sure we only have integers.
       ids.map!(&:to_i)
 
-      Que.internal_log :locker_unlocking do
+      Que.internal_log :locker_unlocking, self do
         {
-          object_id: object_id,
           # TODO: backend_pid: connection.backend_pid,
-          ids:       ids,
+          ids: ids,
         }
       end
 

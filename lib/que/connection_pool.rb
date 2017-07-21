@@ -66,12 +66,13 @@ module Que
       start  = Time.now
       result = execute_sql(sql, params)
 
-      Que.internal_log :execute_sql do
+      Que.internal_log :pool_execute, self do
         {
-          command: command,
-          params:  params,
-          elapsed: Time.now - start,
-          ntuples: result.ntuples,
+          # TODO: backend_pid: conn.backend_pid,
+          command:   command,
+          params:    params,
+          elapsed:   Time.now - start,
+          ntuples:   result.ntuples,
         }
       end
 

@@ -31,11 +31,13 @@ module Que
       # usually not an internal logger set up, so this method is generally a no-
       # op unless the specs are running or we're trying to debug an issue
       # somebody is having remotely.
-      def internal_log(event)
+      def internal_log(event, object = nil)
         if l = get_logger(internal: true)
           data = _default_log_data
+
           data[:internal_event] = Que.assert(Symbol, event)
-          data[:t] = Time.now.utc.iso8601(6)
+          data[:object_id]      = object.object_id if object
+          data[:t]              = Time.now.utc.iso8601(6)
 
           additional = Que.assert(Hash, yield)
 

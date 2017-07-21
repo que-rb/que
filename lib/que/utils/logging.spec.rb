@@ -146,6 +146,26 @@ describe Que::Utils::Logging do
       )
     end
 
+    it "when given an object as the second argument should include its object_id" do
+      object = Object.new
+      Que.internal_log(:thing_happened, object) { {key: "Blah!"} }
+
+      assert_equal(
+        [
+          {
+            lib: 'que',
+            hostname: Socket.gethostname,
+            pid: Process.pid,
+            thread: Thread.current.object_id,
+            internal_event: 'thing_happened',
+            object_id: object.object_id,
+            key: "Blah!",
+          },
+        ],
+        get_messages,
+      )
+    end
+
     it "should support assigning a proc as the internal logger" do
       called = false
       Que.internal_logger = proc { called = true; QUE_INTERNAL_LOGGER }

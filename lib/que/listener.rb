@@ -20,9 +20,8 @@ module Que
     def initialize(pool:)
       @pool = pool
 
-      Que.internal_log :listener_instantiate do
+      Que.internal_log :listener_instantiate, self do
         {
-          object_id:     object_id,
           # TODO: backend_pid: connection.backend_pid,
         }
       end
@@ -38,11 +37,10 @@ module Que
       # Make sure we never pass nil to this method, so we don't hang the thread.
       Que.assert(Numeric, timeout)
 
-      Que.internal_log :listener_waiting do
+      Que.internal_log :listener_waiting, self do
         {
-          object_id: object_id,
           # TODO: backend_pid: connection.backend_pid,
-          timeout:   timeout,
+          timeout: timeout,
         }
       end
 
@@ -52,9 +50,10 @@ module Que
         loop do
           notification_received =
             conn.wait_for_notify(timeout) do |channel, pid, payload|
-              Que.internal_log(:notification_received) do
+              Que.internal_log(:listener_received_notification, self) do
                 {
                   channel: channel,
+                  # TODO: backend_pid: connection.backend_pid,
                   source_pid: pid,
                   payload: payload,
                 }
@@ -90,7 +89,7 @@ module Que
 
       return output if output.empty?
 
-      Que.internal_log(:messages_received) { {messages: output} }
+      Que.internal_log(:listener_received_messages, self) { {messages: output} }
 
       output.each do |type, messages|
         if callback = MESSAGE_CALLBACKS[type]
@@ -127,7 +126,7 @@ module Que
 
       output.delete_if { |_, messages| messages.empty? }
 
-      Que.internal_log(:messages_processed) { {messages: output} }
+      Que.internal_log(:listener_processed_messages, self) { {messages: output} }
 
       output
     end
@@ -139,9 +138,8 @@ module Que
         {} while conn.notifies
       end
 
-      Que.internal_log :listener_unlisten do
+      Que.internal_log :listener_unlisten, self do
         {
-          object_id:     object_id,
           # TODO: backend_pid: connection.backend_pid,
         }
       end

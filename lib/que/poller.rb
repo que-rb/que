@@ -108,9 +108,8 @@ module Que
       @last_polled_at      = nil
       @last_poll_satisfied = nil
 
-      Que.internal_log :poller_instantiate do
+      Que.internal_log :poller_instantiate, self do
         {
-          object_id:     object_id,
           # TODO: backend_pid: connection.backend_pid,
           queue:         queue,
           poll_interval: poll_interval,
@@ -134,14 +133,13 @@ module Que
       @last_polled_at      = Time.now
       @last_poll_satisfied = limit == jobs.count
 
-      Que.internal_log :locker_polled do
+      Que.internal_log :poller_polled, self do
         {
-          object_id:    object_id,
           queue:        @queue,
           limit:        limit,
           locked:       jobs.count,
           held_locks:   held_locks.to_a,
-          newly_locked: jobs.map{|job| job.fetch(:id)}
+          newly_locked: jobs.map { |job| job.fetch(:id) },
         }
       end
 

@@ -46,9 +46,8 @@ module Que
       @job_queue    = Que.assert(JobQueue, job_queue)
       @result_queue = Que.assert(ResultQueue, result_queue)
 
-      Que.internal_log(:worker_instantiate) do
+      Que.internal_log(:worker_instantiate, self) do
         {
-          id:           object_id,
           priority:     priority,
           job_queue:    job_queue.object_id,
           result_queue: result_queue.object_id,
@@ -76,23 +75,23 @@ module Que
       # queue is shutting down this will return nil, which breaks the loop and
       # lets the thread finish.
       while pk = @job_queue.shift(*priority)
-        Que.internal_log(:worker_received_job) { {pk: pk} }
+        Que.internal_log(:worker_received_job, self) { {pk: pk} }
 
         pk_values = pk.values_at(:queue, :priority, :run_at, :id)
 
         if job = Que.execute(:get_job, pk_values).first
           Que.recursively_freeze(job)
-          Que.internal_log(:worker_fetched_job) { {job: job} }
+          Que.internal_log(:worker_fetched_job, self) { {job: job} }
 
           work_job(job)
         else
           # The job was locked but doesn't exist anymore, due to a race
           # condition that exists because advisory locks don't obey MVCC. Not
           # necessarily a problem, but if it happens a lot it may be meaningful.
-          Que.internal_log(:job_lock_race_condition) { {pk: pk} }
+          Que.internal_log(:worker_job_lock_race_condition, self) { {pk: pk} }
         end
 
-        Que.internal_log(:pushing_finished_job) { {pk: pk} }
+        Que.internal_log(:worker_pushing_finished_job, self) { {pk: pk} }
 
         @result_queue.push(pk.fetch(:id))
       end

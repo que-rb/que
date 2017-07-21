@@ -34,7 +34,7 @@ module Que
 
     def initialize(attrs)
       @que_attrs = attrs
-      Que.internal_log(:job_instantiate) { attrs }
+      Que.internal_log(:job_instantiate, self) { attrs }
     end
 
     # Subclasses should define their own run methods, but keep an empty one
