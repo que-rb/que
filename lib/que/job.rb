@@ -55,14 +55,10 @@ module Que
 
       Que.notify_error(error, que_attrs) if run_error_notifier
     ensure
-      finish unless @que_resolved
+      destroy unless @que_resolved
     end
 
     private
-
-    def finish
-      destroy
-    end
 
     def error_count
       count = que_attrs.fetch(:error_count)
