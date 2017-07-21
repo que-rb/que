@@ -115,12 +115,27 @@ describe Que::Utils::Logging do
       Que.internal_log(:thing_happened) { {key: "Blah!"} }
       Que.internal_log(:thing_happened) { {key: "Blah again!"} }
 
+
       assert_equal(
         [
-          "{\"internal_event\":\"thing_happened\",\"key\":\"Blah!\"}",
-          "{\"internal_event\":\"thing_happened\",\"key\":\"Blah again!\"}",
+          {
+            lib: 'que',
+            hostname: Socket.gethostname,
+            pid: Process.pid,
+            thread: Thread.current.object_id,
+            internal_event: 'thing_happened',
+            key: "Blah!",
+          },
+          {
+            lib: 'que',
+            hostname: Socket.gethostname,
+            pid: Process.pid,
+            thread: Thread.current.object_id,
+            internal_event: 'thing_happened',
+            key: "Blah again!",
+          },
         ],
-        QUE_INTERNAL_LOGGER.messages,
+        QUE_INTERNAL_LOGGER.messages.map{|m| JSON.parse(m, symbolize_names: true)},
       )
     end
 
@@ -132,9 +147,16 @@ describe Que::Utils::Logging do
       assert called
       assert_equal(
         [
-          "{\"internal_event\":\"thing_happened\",\"key\":\"Blah!\"}",
+          {
+            lib: 'que',
+            hostname: Socket.gethostname,
+            pid: Process.pid,
+            thread: Thread.current.object_id,
+            internal_event: 'thing_happened',
+            key: "Blah!",
+          },
         ],
-        QUE_INTERNAL_LOGGER.messages,
+        QUE_INTERNAL_LOGGER.messages.map{|m| JSON.parse(m, symbolize_names: true)},
       )
     end
   end

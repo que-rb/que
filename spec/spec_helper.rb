@@ -146,6 +146,13 @@ class QueSpec < Minitest::Spec
     messages =
       QUE_INTERNAL_LOGGER.messages.map { |m| JSON.parse(m, symbolize_names: true) }
 
+    messages.each do |message|
+      assert_equal 'que',              message.delete(:lib)
+      assert_equal Socket.gethostname, message.delete(:hostname)
+      assert_equal Process.pid,        message.delete(:pid)
+      assert_instance_of Integer,      message.delete(:thread)
+    end
+
     if event
       messages = messages.select { |m| m[:internal_event] == event }
     end

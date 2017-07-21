@@ -7,15 +7,10 @@ module Que
     module Logging
       attr_accessor :logger, :log_formatter, :internal_logger
 
-      def log(level: :info, event:, **data)
-        data =
-          {
-            lib:      :que,
-            hostname: CURRENT_HOSTNAME,
-            pid:      Process.pid,
-            thread:   Thread.current.object_id,
-            event:    Que.assert(Symbol, event),
-          }.merge(data)
+      def log(level: :info, event:, **extra)
+        data = _default_log_data
+        data[:event] = Que.assert(Symbol, event)
+        data.merge!(extra)
 
         if l = get_logger
           begin
@@ -38,7 +33,7 @@ module Que
       # somebody is having remotely.
       def internal_log(event)
         if l = get_logger(internal: true)
-          data = {}
+          data = _default_log_data
           data[:internal_event] = Que.assert(Symbol, event)
           data.merge!(Que.assert(Hash, yield))
           l.info(JSON.dump(data))
@@ -52,6 +47,17 @@ module Que
 
       def log_formatter
         @log_formatter ||= JSON.method(:dump)
+      end
+
+      private
+
+      def _default_log_data
+        {
+          lib:      :que,
+          hostname: CURRENT_HOSTNAME,
+          pid:      Process.pid,
+          thread:   Thread.current.object_id,
+        }
       end
     end
   end
