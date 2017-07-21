@@ -36,7 +36,17 @@ module Que
           data = _default_log_data
           data[:internal_event] = Que.assert(Symbol, event)
           data[:t] = Time.now.utc.iso8601(6)
-          data.merge!(Que.assert(Hash, yield))
+
+          additional = Que.assert(Hash, yield)
+
+          # Make sure that none of our log contents accidentally overwrite our
+          # default data contents.
+          expected_length = data.length + additional.length
+          data.merge!(additional)
+          Que.assert(expected_length == data.length) do
+            "Bad internal logging keys in: #{additional.keys.inspect}"
+          end
+
           l.info(JSON.dump(data))
         end
       end
