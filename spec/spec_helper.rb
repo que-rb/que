@@ -209,7 +209,7 @@ class QueSpec < Minitest::Spec
       abort
     end
 
-    if f = failure
+    if ENV['CI'] && f = failure
       e = f.exception
       puts "\n\n#{e.class}: #{e.message}\n#{e.backtrace.join("\n")}\n\n"
     end
