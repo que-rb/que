@@ -152,9 +152,6 @@ OUTPUT
           end
         end
 
-        $stop_que_executable = false
-        %w[INT TERM].each { |signal| trap(signal) { $stop_que_executable = true } }
-
         Que.logger ||= Logger.new(STDOUT)
 
         if log_internals
@@ -192,6 +189,9 @@ OUTPUT
             output.puts(e.message)
             return 1
           end
+
+        $stop_que_executable = false
+        %w[INT TERM].each { |signal| trap(signal) { $stop_que_executable = true } }
 
         loop do
           sleep 0.01
