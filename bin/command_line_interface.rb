@@ -18,7 +18,7 @@ module Que
 
         queues             = []
         log_level          = 'info'
-        wait_period        = 100
+        wait_period        = 50
         worker_count       = 6
         poll_interval      = 5
         log_internals      = false
@@ -119,7 +119,7 @@ module Que
             '--wait-period [PERIOD]',
             Float,
             "Set maximum interval between checks of the in-memory job queue, " \
-              "in milliseconds (default: 100)",
+              "in milliseconds (default: 50)",
           ) do |p|
             wait_period = p
           end
