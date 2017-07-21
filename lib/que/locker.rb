@@ -67,7 +67,7 @@ module Que
         );
       }
 
-    DEFAULT_POLL_INTERVAL      = 1.0
+    DEFAULT_POLL_INTERVAL      = 5.0
     DEFAULT_WAIT_PERIOD        = 50
     DEFAULT_MINIMUM_QUEUE_SIZE = 2
     DEFAULT_MAXIMUM_QUEUE_SIZE = 8
