@@ -86,8 +86,6 @@ describe Que::Job do
         end
 
         it "should expose the job's error_count" do
-          skip "Needs run() support"
-
           TestJobClass.class_eval do
             def run
               $error_count = error_count
@@ -97,6 +95,10 @@ describe Que::Job do
           execute
           assert_equal 0, $error_count
         end
+
+        it "should expose the correct error_count in the handle_error method"
+
+        it "should make it easy to determine whether to notify errors"
 
         it "should make it easy to destroy the job" do
           TestJobClass.class_eval do
@@ -108,6 +110,8 @@ describe Que::Job do
           execute
           assert_empty jobs_dataset
         end
+
+        it "should make it easy to finish the job"
 
         it "should make it easy to override the finishing action" do
           TestJobClass.class_eval do
@@ -123,8 +127,6 @@ describe Que::Job do
           assert_equal [:before_destroy, :after_destroy], $args
           assert_empty jobs_dataset
         end
-
-        it "should make it easy to finish the job"
       end
     end
   end
@@ -147,7 +149,18 @@ describe Que::Job do
           end
         end
 
-        it "should propagate errors raised during the job"
+        it "should propagate errors raised during the job" do
+          skip
+
+          TestJobClass.class_eval do
+            def run
+              raise "Uh-oh!"
+            end
+          end
+
+          error = assert_raises { execute }
+          assert_equal "Uh-oh!", error.message
+        end
       end
     end
   end
@@ -174,14 +187,13 @@ describe Que::Job do
 
       attrs = TestJobClass.enqueue(*args).que_attrs
 
-      sort_key = {
+      job_queue.push(
         queue:    attrs[:queue],
         priority: attrs[:priority],
         run_at:   attrs[:run_at],
         id:       attrs[:id],
-      }
+      )
 
-      job_queue.push(sort_key)
       sleep_until { result_queue.clear == [attrs[:id]] }
     end
   end

@@ -164,6 +164,7 @@ module Que
       private
 
       def _run_attrs(attrs)
+        attrs[:error_count] = 0
         Que.recursively_freeze(attrs)
         new(attrs).tap(&:_run)
       end
