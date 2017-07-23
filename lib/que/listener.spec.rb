@@ -24,9 +24,9 @@ describe Que::Listener do
     end
   end
 
-  def notify(payload)
+  def notify(payload, channel: "que_listener_#{connection.backend_pid}")
     payload = JSON.dump(payload) unless payload.is_a?(String)
-    DB.notify("que_listener_#{connection.backend_pid}", payload: payload)
+    DB.notify(channel, payload: payload)
   end
 
   def notify_multiple(notifications)
@@ -104,6 +104,19 @@ describe Que::Listener do
         },
         listener.wait_for_messages(10),
       )
+    end
+
+    describe "when given a specific channel" do
+      let :listener do
+        Que::Listener.new(pool: QUE_POOL, channel: 'test_channel')
+      end
+
+      it "should listen on that channel" do
+        notify({message_type: 'type_1', arg: 'blah'}, channel: 'test_channel')
+
+        result = listener.wait_for_messages(10)[:type_1].first
+        assert_equal({arg: 'blah'}, result)
+      end
     end
 
     describe "when the messages aren't valid JSON of the format we expect" do

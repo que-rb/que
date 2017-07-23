@@ -23,8 +23,9 @@ module Que
       end
     end
 
-    def initialize(pool:)
-      @pool = pool
+    def initialize(pool:, channel: nil)
+      @pool    = pool
+      @channel = channel
 
       Que.internal_log :listener_instantiate, self do
         {
@@ -35,7 +36,7 @@ module Que
 
     def listen
       @pool.checkout do |conn|
-        @pool.execute "LISTEN que_listener_#{conn.backend_pid}"
+        @pool.execute "LISTEN #{@channel || "que_listener_#{conn.backend_pid}"}"
       end
     end
 
