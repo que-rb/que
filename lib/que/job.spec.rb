@@ -212,7 +212,7 @@ describe Que::Job do
         id:       attrs[:id],
       )
 
-      sleep_until { result_queue.clear == [attrs[:id]] }
+      sleep_until! { result_queue.clear.map{|m| m.fetch(:id)} == [attrs[:id]] }
     end
 
     it "should make it easy to override the finishing action" do

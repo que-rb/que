@@ -46,8 +46,14 @@ describe Que::Worker do
 
     sleep_until do
       result_queue.length == job_ids.length &&
-      result_queue.to_a.sort == job_ids
+      finished_job_ids == job_ids
     end
+  end
+
+  def finished_job_ids
+    messages = result_queue.to_a
+    messages.each { |m| assert_equal :job_finished, m.fetch(:message_type) }
+    messages.map{|m| m.fetch(:id)}.sort
   end
 
   it "should repeatedly work jobs that are passed to it via its job_queue" do
@@ -65,7 +71,7 @@ describe Que::Worker do
       run_jobs
 
       assert_equal [1, 2, 3], $results
-      assert_equal job_ids, result_queue.to_a
+      assert_equal job_ids, finished_job_ids
 
       events = logged_messages.select{|m| m[:event] == 'job_worked'}
       assert_equal 3, events.count
@@ -105,7 +111,7 @@ describe Que::Worker do
              run_at:   Time.now,
              id:       587648
 
-    assert_equal [587648], result_queue.to_a
+    assert_equal [587648], finished_job_ids
   end
 
   describe "when given a priority requirement" do
@@ -116,7 +122,7 @@ describe Que::Worker do
 
       job_queue.push *jobs
 
-      sleep_until { result_queue.to_a == (1..10).to_a }
+      sleep_until { finished_job_ids == (1..10).to_a }
 
       assert_equal jobs[10..19], job_queue.to_a
     end
@@ -133,7 +139,7 @@ describe Que::Worker do
 
       job_ids = jobs_dataset.order_by(:priority).select_map(:id)
       run_jobs
-      assert_equal job_ids, result_queue.to_a
+      assert_equal job_ids, finished_job_ids
 
       events = logged_messages.select{|m| m[:event] == 'job_errored'}
       assert_equal 1, events.count

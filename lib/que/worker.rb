@@ -93,7 +93,9 @@ module Que
 
         Que.internal_log(:worker_pushing_finished_job, self) { {pk: pk} }
 
-        @result_queue.push(pk.fetch(:id))
+        result = pk.dup
+        result[:message_type] = :job_finished
+        @result_queue.push(result)
       end
     end
 

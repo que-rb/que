@@ -244,7 +244,7 @@ module Que
 
           loop do
             wait
-            unlock_finished_jobs
+            handle_results
 
             poll
             break if @stop
@@ -260,7 +260,7 @@ module Que
           @job_queue.stop
           @workers.each(&:wait_until_stopped)
 
-          unlock_finished_jobs
+          handle_results
         ensure
           execute :clean_lockers
 
@@ -331,8 +331,18 @@ module Que
       r
     end
 
-    def unlock_finished_jobs
-      unlock_jobs(@result_queue.clear)
+    def handle_results
+      messages_by_type =
+        @result_queue.clear.group_by{|r| r.fetch(:message_type)}
+
+      messages_by_type.each do |type, messages|
+        case type
+        when :job_finished
+          unlock_jobs(messages.map{|m| m.fetch(:id)})
+        else
+          raise Error, "Unexpected result message type: #{type.inspect}"
+        end
+      end
     end
 
     def push_jobs(sort_keys)
