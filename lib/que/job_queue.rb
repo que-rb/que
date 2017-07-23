@@ -56,7 +56,7 @@ module Que
     def shift(priority = Float::INFINITY)
       loop do
         sync do
-          if @stop
+          if stopping?
             return
           elsif (key = @array.first) && key.fetch(:priority) <= priority
             return @array.shift
@@ -94,6 +94,10 @@ module Que
 
     def clear
       sync { pop_ids(size) }
+    end
+
+    def stopping?
+      sync { !!@stop }
     end
 
     private

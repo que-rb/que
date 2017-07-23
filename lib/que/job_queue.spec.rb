@@ -248,4 +248,12 @@ describe Que::JobQueue do
       assert_equal [], job_queue.clear
     end
   end
+
+  describe "stopping?" do
+    it "should return true if the job queue is being shut down" do
+      refute job_queue.stopping?
+      job_queue.stop
+      assert job_queue.stopping?
+    end
+  end
 end
