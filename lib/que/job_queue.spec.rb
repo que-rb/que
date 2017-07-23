@@ -106,9 +106,9 @@ describe Que::JobQueue do
           end
         end
 
-      sleep_until { threads.all? { |t| t.status == 'sleep' } }
+      sleep_until! { threads.all? { |t| t.status == 'sleep' } }
       job_queue.push *job_array
-      sleep_until { threads.all? { |t| t.status == false } }
+      sleep_until! { threads.all? { |t| t.status == false } }
 
       assert_equal \
         job_array[0..3],
@@ -126,13 +126,13 @@ describe Que::JobQueue do
 
       job_queue.push(a)
       t = Thread.new { Thread.current[:job] = job_queue.shift(5) }
-      sleep_until { t.status == 'sleep' }
+      sleep_until! { t.status == 'sleep' }
 
       job_queue.push(b)
-      sleep_until { t.status == 'sleep' }
+      sleep_until! { t.status == 'sleep' }
 
       job_queue.push(c)
-      sleep_until { t.status == false }
+      sleep_until! { t.status == false }
 
       assert_equal c, t[:job]
     end
@@ -148,16 +148,16 @@ describe Que::JobQueue do
         end
       end
 
-      sleep_until { threads.all? { |t| t.status == 'sleep' } }
+      sleep_until! { threads.all? { |t| t.status == 'sleep' } }
 
       threads.sort_by! { |t| t[:priority] }
 
       value = {queue: '', priority: 17, run_at: Time.now, id: 1}
       job_queue.push value
 
-      sleep_until { threads[3].status == false }
+      sleep_until! { threads[3].status == false }
       assert_equal value, threads[3][:job]
-      sleep_until { threads[0..2].all? { |t| t.status == 'sleep' } }
+      sleep_until! { threads[0..2].all? { |t| t.status == 'sleep' } }
     end
   end
 
@@ -225,9 +225,9 @@ describe Que::JobQueue do
           end
         end
 
-      sleep_until { threads.all? { |t| t.status == 'sleep' } }
+      sleep_until! { threads.all? { |t| t.status == 'sleep' } }
       job_queue.stop
-      sleep_until { threads.all? { |t| t.status == false } }
+      sleep_until! { threads.all? { |t| t.status == false } }
 
       threads.map { |t| assert_nil t[:job] }
       10.times { assert_nil job_queue.shift }

@@ -12,7 +12,7 @@ describe Que::Locker do
 
       assert_equal 0, DB[:que_lockers].count
       locker
-      sleep_until { DB[:que_lockers].count == 1 }
+      sleep_until! { DB[:que_lockers].count == 1 }
 
       record = DB[:que_lockers].first
       assert_equal queues,                   record[:queues]
@@ -73,12 +73,12 @@ describe Que::Locker do
       locker_settings[:connection] = pg
       locker
 
-      sleep_until { DB[:que_lockers].select_map(:pid) == [pid] }
+      sleep_until! { DB[:que_lockers].select_map(:pid) == [pid] }
       locker.stop!
     end
 
     it "should have a high-priority work thread" do
-      sleep_until { locker.thread.priority == 1 }
+      sleep_until! { locker.thread.priority == 1 }
 
       locker.workers.each do |worker|
         assert locker.thread.priority > worker.thread.priority
@@ -117,7 +117,7 @@ describe Que::Locker do
       assert_equal 2, DB[:que_lockers].count
 
       locker
-      sleep_until { DB[:que_lockers].count == 1 }
+      sleep_until! { DB[:que_lockers].count == 1 }
 
       record = DB[:que_lockers].first
       assert_equal backend_pid, record[:pid]
@@ -158,10 +158,10 @@ describe Que::Locker do
     locker
 
     Que::Job.enqueue
-    sleep_until { jobs_dataset.empty? }
+    sleep_until! { jobs_dataset.empty? }
 
     Que::Job.enqueue
-    sleep_until { jobs_dataset.empty? }
+    sleep_until! { jobs_dataset.empty? }
 
     locker.stop!
   end
@@ -171,13 +171,13 @@ describe Que::Locker do
 
     locker_settings[:poll] = false
     locker
-    sleep_until { !listening_lockers.empty? }
+    sleep_until! { !listening_lockers.empty? }
 
     Que::Job.enqueue
-    sleep_until { jobs_dataset.empty? }
+    sleep_until! { jobs_dataset.empty? }
 
     Que::Job.enqueue
-    sleep_until { jobs_dataset.empty? }
+    sleep_until! { jobs_dataset.empty? }
 
     locker.stop!
   end
@@ -208,7 +208,7 @@ describe Que::Locker do
 
       locker_settings[:queues] = ['queue1', 'queue2']
       locker
-      sleep_until { !listening_lockers.empty? }
+      sleep_until! { !listening_lockers.empty? }
 
       # Two jobs worked simultaneously:
       $q1.pop;      $q1.pop
@@ -245,7 +245,7 @@ describe Que::Locker do
 
       locker_settings[:poll] = true
       locker
-      sleep_until { jobs_dataset.empty? }
+      sleep_until! { jobs_dataset.empty? }
       locker.stop!
     end
   end
@@ -308,7 +308,7 @@ describe Que::Locker do
           end
         end
 
-      sleep_until { locked_ids == ids[0..10] }
+      sleep_until! { locked_ids == ids[0..10] }
 
       3.times { $q2.push nil }
       locker.stop!
@@ -345,7 +345,7 @@ describe Que::Locker do
 
       # Get the queue size down to 1, and it should lock the final one.
       6.times { $q2.push nil }
-      sleep_until { locked_ids.include?(ids[-1]) }
+      sleep_until! { locked_ids.include?(ids[-1]) }
       3.times { $q2.push nil }
 
       locker.stop!
@@ -357,7 +357,7 @@ describe Que::Locker do
       assert_equal 0, jobs_dataset.count
 
       locker
-      sleep_until { DB[:que_lockers].count == 1 }
+      sleep_until! { DB[:que_lockers].count == 1 }
 
       job = BlockJob.enqueue
       $q1.pop
@@ -365,8 +365,8 @@ describe Que::Locker do
       assert_equal [job.que_attrs[:id]], locked_ids
 
       $q2.push nil
-      sleep_until { jobs_dataset.count == 0 }
-      sleep_until { locked_ids.empty? }
+      sleep_until! { jobs_dataset.count == 0 }
+      sleep_until! { locked_ids.empty? }
 
       locker.stop!
     end
@@ -375,7 +375,7 @@ describe Que::Locker do
       locker_settings[:queues] = ['queue_1', 'queue_2']
       locker
 
-      sleep_until { DB[:que_lockers].count == 1 }
+      sleep_until! { DB[:que_lockers].count == 1 }
       assert_equal ['queue_1', 'queue_2'], DB[:que_lockers].get(:queues)
 
       BlockJob.enqueue queue: 'queue_1'
@@ -387,7 +387,7 @@ describe Que::Locker do
 
       $q2.push(nil); $q2.push(nil)
 
-      sleep_until { jobs_dataset.count == 0 }
+      sleep_until! { jobs_dataset.count == 0 }
       locker.stop!
     end
 
@@ -398,7 +398,7 @@ describe Que::Locker do
       locker_settings[:poll_interval] = 0.01
       locker
 
-      sleep_until { DB[:que_lockers].count == 1 }
+      sleep_until! { DB[:que_lockers].count == 1 }
 
       id = nil
       q1, q2 = Queue.new, Queue.new
@@ -426,7 +426,7 @@ describe Que::Locker do
 
     it "should not try to lock and work jobs it has already locked" do
       locker
-      sleep_until { !listening_lockers.empty? }
+      sleep_until! { !listening_lockers.empty? }
 
       id = BlockJob.enqueue.que_attrs[:id]
 
@@ -447,7 +447,7 @@ describe Que::Locker do
       DB.notify "que_listener_#{pid}",
         payload: JSON.dump(payload.merge(message_type: 'new_job'))
 
-      m = sleep_until { internal_messages(event: 'listener_processed_messages').first }
+      m = sleep_until! { internal_messages(event: 'listener_processed_messages').first }
 
       payload[:run_at] = Time.iso8601(payload[:run_at]).to_s
 
@@ -466,12 +466,12 @@ describe Que::Locker do
       locker_settings.replace(worker_count: 1, maximum_queue_size: 3)
       locker
 
-      sleep_until { DB[:que_lockers].count == 1 }
+      sleep_until! { DB[:que_lockers].count == 1 }
 
       BlockJob.enqueue(priority: 5)
       $q1.pop
       ids = 3.times.map { Que::Job.enqueue(priority: 5).que_attrs[:id] }
-      sleep_until { ids_in_local_queue == ids }
+      sleep_until! { ids_in_local_queue == ids }
 
       id = Que::Job.enqueue(priority: 10).que_attrs[:id]
 
@@ -486,18 +486,18 @@ describe Que::Locker do
       locker_settings.replace(worker_count: 1, maximum_queue_size: 3)
       locker
 
-      sleep_until { DB[:que_lockers].count == 1 }
+      sleep_until! { DB[:que_lockers].count == 1 }
 
       block_job_id = BlockJob.enqueue(priority: 5).que_attrs[:id]
       $q1.pop
       ids = 3.times.map { Que::Job.enqueue(priority: 5).que_attrs[:id] }
 
-      sleep_until { ids_in_local_queue == ids }
+      sleep_until! { ids_in_local_queue == ids }
 
       id = Que::Job.enqueue(priority: 2).que_attrs[:id]
 
-      sleep_until { ids_in_local_queue == [id] + ids[0..1] }
-      sleep_until { locked_ids == (ids_in_local_queue + [block_job_id]).sort }
+      sleep_until! { ids_in_local_queue == [id] + ids[0..1] }
+      sleep_until! { locked_ids == (ids_in_local_queue + [block_job_id]).sort }
 
       $q2.push nil
       locker.stop!
@@ -513,7 +513,7 @@ describe Que::Locker do
       workers = locker.workers
       locker.stop
 
-      sleep_until do
+      sleep_until! do
         workers.count{|w| w.thread.status != false} == 1
       end
 
@@ -536,16 +536,16 @@ describe Que::Locker do
       job_ids = 6.times.map { BlockJob.enqueue.que_attrs[:id] }
       locker
 
-      sleep_until { locked_ids == job_ids }
+      sleep_until! { locked_ids == job_ids }
 
       3.times { $q1.pop }
 
-      sleep_until { ids_in_local_queue == job_ids[3..5] }
+      sleep_until! { ids_in_local_queue == job_ids[3..5] }
 
       t = Thread.new { locker.stop! }
 
-      sleep_until { locker.job_queue.to_a.empty? }
-      sleep_until { locked_ids == job_ids[0..2] }
+      sleep_until! { locker.job_queue.to_a.empty? }
+      sleep_until! { locked_ids == job_ids[0..2] }
 
       3.times { $q2.push nil }
 
@@ -555,7 +555,7 @@ describe Que::Locker do
     it "should wait for its currently running jobs to finish" do
       locker
 
-      sleep_until { DB[:que_lockers].count == 1 }
+      sleep_until! { DB[:que_lockers].count == 1 }
 
       job_id = BlockJob.enqueue.que_attrs[:id]
 
@@ -569,7 +569,7 @@ describe Que::Locker do
 
     it "should clear its own record from the que_lockers table" do
       locker
-      sleep_until { DB[:que_lockers].count == 1 }
+      sleep_until! { DB[:que_lockers].count == 1 }
 
       BlockJob.enqueue
       $q1.pop

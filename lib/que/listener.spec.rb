@@ -254,7 +254,7 @@ describe Que::Listener do
         error = nil
         Que.error_notifier = proc { |e| error = e }
         assert_message_ignored
-        sleep_until { !error.nil? }
+        sleep_until! { !error.nil? }
 
         assert_instance_of Que::Error, error
 
@@ -274,7 +274,7 @@ describe Que::Listener do
         Que.error_notifier = proc { |e| error = e }
 
         assert_message_ignored
-        sleep_until { !error.nil? }
+        sleep_until! { !error.nil? }
         assert_instance_of ArgumentError, error
       end
     end

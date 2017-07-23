@@ -44,7 +44,7 @@ describe Que::Worker do
 
     job_queue.push(*jobs)
 
-    sleep_until do
+    sleep_until! do
       result_queue.length == job_ids.length &&
       finished_job_ids == job_ids
     end
@@ -122,7 +122,7 @@ describe Que::Worker do
 
       job_queue.push *jobs
 
-      sleep_until { finished_job_ids == (1..10).to_a }
+      sleep_until! { finished_job_ids == (1..10).to_a }
 
       assert_equal jobs[10..19], job_queue.to_a
     end
