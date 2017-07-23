@@ -107,7 +107,16 @@ describe Que::Job do
           assert_empty jobs_dataset
         end
 
-        it "should make it easy to finish the job"
+        it "should make it easy to finish the job" do
+          TestJobClass.class_eval do
+            def run
+              finish
+            end
+          end
+
+          execute
+          assert_empty jobs_dataset
+        end
       end
     end
   end
