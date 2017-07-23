@@ -230,6 +230,8 @@ describe Que::Job do
       assert_empty jobs_dataset
     end
 
+    it "calling retry_in when there's no error shouldn't be problematic"
+
     it "raising an unrecoverable error shouldn't delete the job record" do
       class BigBadError < Exception; end
 
