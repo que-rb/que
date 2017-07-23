@@ -201,7 +201,7 @@ describe Que::Job do
     end
 
     def execute(*args)
-      worker # Initialize worker
+      worker # Make sure worker is initialized.
 
       attrs = TestJobClass.enqueue(*args).que_attrs
 
@@ -228,6 +228,20 @@ describe Que::Job do
       execute
       assert_equal [:before_destroy, :after_destroy], $args
       assert_empty jobs_dataset
+    end
+
+    it "raising an unrecoverable error shouldn't delete the job record" do
+      class BigBadError < Exception; end
+
+      TestJobClass.class_eval do
+        def run
+          raise BigBadError
+        end
+      end
+
+      assert_empty jobs_dataset
+      assert_raises(BigBadError) { execute }
+      refute_empty jobs_dataset
     end
 
     describe "#handle_error" do

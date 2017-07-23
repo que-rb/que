@@ -30,6 +30,22 @@ module Que
           AND id       = $4::bigint
       }
 
+    SQL.register_sql_statement \
+      :set_error,
+      %{
+        UPDATE public.que_jobs
+
+        SET error_count          = error_count + 1,
+            run_at               = now() + $1::bigint * '1 second'::interval,
+            last_error_message   = $2::text,
+            last_error_backtrace = $3::text
+
+        WHERE queue    = $4::text
+          AND priority = $5::smallint
+          AND run_at   = $6::timestamptz
+          AND id       = $7::bigint
+      }
+
     attr_reader :que_attrs, :que_error
 
     def initialize(attrs)
@@ -50,6 +66,7 @@ module Que
     # running in a worker. This method is skipped when running synchronously.
     def _run_asynchronously
       _run
+      finish unless @que_resolved
     rescue => error
       @que_error = error
 
@@ -62,7 +79,6 @@ module Que
         end
 
       Que.notify_error(error, que_attrs) if run_error_notifier
-    ensure
       finish unless @que_resolved
     end
 
@@ -90,11 +106,15 @@ module Que
     # if we're doing JobClass.run().
     def retry_in(period)
       if key = job_key
-        Que.execute :set_error, [
-          period,
-          que_error.message,
-          que_error.backtrace.join("\n"),
-        ].concat(key)
+        values = [period]
+
+        if e = que_error
+          values << e.message << e.backtrace.join("\n")
+        else
+          values << nil << nil
+        end
+
+        Que.execute :set_error, values.concat(key)
       end
 
       @que_resolved = true

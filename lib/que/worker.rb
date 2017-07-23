@@ -19,22 +19,6 @@ module Que
           AND id       = $4::bigint
       }
 
-    SQL.register_sql_statement \
-      :set_error,
-      %{
-        UPDATE public.que_jobs
-
-        SET error_count          = error_count + 1,
-            run_at               = now() + $1::bigint * '1 second'::interval,
-            last_error_message   = $2::text,
-            last_error_backtrace = $3::text
-
-        WHERE queue    = $4::text
-          AND priority = $5::smallint
-          AND run_at   = $6::timestamptz
-          AND id       = $7::bigint
-      }
-
     def initialize(
       job_queue:,
       result_queue:,
