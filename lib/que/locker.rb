@@ -10,6 +10,19 @@ module Que
   class Locker
     attr_reader :thread, :workers, :job_queue, :locks, :pollers, :pool
 
+    Listener.register_message_callback :new_job, -> (message) {
+      message[:run_at] = Time.parse(message.fetch(:run_at))
+    }
+
+    Listener.register_message_format \
+      :new_job,
+      {
+        queue:    String,
+        id:       Integer,
+        run_at:   Time,
+        priority: Integer,
+      }
+
     MESSAGE_RESOLVERS = {}
 
     class << self

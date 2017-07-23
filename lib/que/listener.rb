@@ -2,20 +2,26 @@
 
 module Que
   class Listener
-    MESSAGE_CALLBACKS = {
-      new_job: -> (message) {
-        message[:run_at] = Time.parse(message.fetch(:run_at))
-      },
-    }.freeze
+    MESSAGE_CALLBACKS = {}
+    MESSAGE_FORMATS   = {}
 
-    MESSAGE_FORMATS = {
-      new_job: {
-        queue:    String,
-        id:       Integer,
-        run_at:   Time,
-        priority: Integer,
-      },
-    }.each_value(&:freeze).freeze
+    class << self
+      def register_message_callback(name, l)
+        if MESSAGE_CALLBACKS.has_key?(name)
+          raise Error, "Duplicate message callback declaration! (#{name})"
+        end
+
+        MESSAGE_CALLBACKS[name] = l
+      end
+
+      def register_message_format(name, l)
+        if MESSAGE_FORMATS.has_key?(name)
+          raise Error, "Duplicate message format declaration! (#{name})"
+        end
+
+        MESSAGE_FORMATS[name] = l
+      end
+    end
 
     def initialize(pool:)
       @pool = pool
