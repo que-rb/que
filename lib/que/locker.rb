@@ -22,29 +22,10 @@ module Que
   class Locker
     attr_reader :thread, :workers, :job_queue, :locks, :pollers, :pool
 
-    MESSAGE_RESOLVERS = {}
-    RESULT_RESOLVERS = {}
+    MESSAGE_RESOLVERS = Utils::Registrar.new
+    RESULT_RESOLVERS  = Utils::Registrar.new
 
-    class << self
-      def register_message_resolver(name, lambda)
-        if MESSAGE_RESOLVERS.has_key?(name)
-          raise Error, "Duplicate message resolver declaration! (#{name})"
-        end
-
-        MESSAGE_RESOLVERS[name] = lambda
-      end
-
-      def register_result_resolver(name, lambda)
-        if RESULT_RESOLVERS.has_key?(name)
-          raise Error, "Duplicate result resolver declaration! (#{name})"
-        end
-
-        RESULT_RESOLVERS[name] = lambda
-      end
-    end
-
-    register_message_resolver \
-      :new_job,
+    MESSAGE_RESOLVERS[:new_job] =
       -> (messages) {
         # TODO: Check for acceptance in bulk, attempt locking in bulk, push jobs
         # in bulk.
@@ -55,8 +36,7 @@ module Que
         end
       }
 
-    register_result_resolver \
-      :job_finished,
+    RESULT_RESOLVERS[:job_finished] =
       -> (messages) {
         unlock_jobs(messages.map{|m| m.fetch(:id)})
       }
