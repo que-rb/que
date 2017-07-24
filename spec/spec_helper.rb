@@ -206,6 +206,7 @@ class QueSpec < Minitest::Spec
       Timeout.timeout(SPEC_TIMEOUT) { super }
     rescue Timeout::Error => e
       puts "\n\nSpec timed out: #{current_spec_location}\n\n"
+      puts "Timed out at:\n\n#{e.backtrace.join("\n")}\n\n"
       # We're now in an unknown state, so there's no point in running the rest
       # of the specs - they'll just add a bunch of obfuscating output.
       abort
