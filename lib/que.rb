@@ -29,6 +29,7 @@ module Que
   require_relative 'que/utils/transactions'
 
   require_relative 'que/config'
+  require_relative 'que/connection'
   require_relative 'que/connection_pool'
   require_relative 'que/job'
   require_relative 'que/job_queue'
