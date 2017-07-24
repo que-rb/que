@@ -9,6 +9,24 @@ describe Que::Listener do
     Que::Listener.new(pool: QUE_POOL)
   end
 
+  let :message_1 do
+    {
+      queue: 'queue_name',
+      priority: 90,
+      run_at: Time.iso8601("2017-06-30T18:33:33.402669Z"),
+      id: 44,
+    }
+  end
+
+  let :message_2 do
+    {
+      queue: 'queue_name',
+      priority: 90,
+      run_at: Time.iso8601("2017-06-30T18:33:35.425307Z"),
+      id: 46,
+    }
+  end
+
   around do |&block|
     super() do
       QUE_POOL.checkout do |conn|
@@ -205,19 +223,9 @@ describe Que::Listener do
 
       let :all_messages do
         [
-          {
-            queue: 'queue_name',
-            priority: 90,
-            run_at: Time.iso8601("2017-06-30T18:33:33.402669Z"),
-            id: 44,
-          },
+          message_1,
           message_to_malform,
-          {
-            queue: 'queue_name',
-            priority: 90,
-            run_at: Time.iso8601("2017-06-30T18:33:35.425307Z"),
-            id: 46,
-          },
+          message_2,
         ]
       end
 
@@ -239,8 +247,8 @@ describe Que::Listener do
         assert_equal(
           {
             new_job: [
-              all_messages[0],
-              all_messages[2],
+              message_1,
+              message_2,
             ]
           },
           listener.wait_for_messages(10),
