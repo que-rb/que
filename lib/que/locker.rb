@@ -7,12 +7,11 @@
 require 'set'
 
 module Que
-  Listener.register_message_callback :new_job, -> (message) {
+  Listener::MESSAGE_CALLBACKS[:new_job] = -> (message) {
     message[:run_at] = Time.parse(message.fetch(:run_at))
   }
 
-  Listener.register_message_format \
-    :new_job,
+  Listener::MESSAGE_FORMATS[:new_job] =
     {
       queue:    String,
       id:       Integer,

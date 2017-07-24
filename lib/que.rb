@@ -9,6 +9,9 @@ module Que
 
   class Error < StandardError; end
 
+  # Need support for object registration early.
+  require_relative 'que/utils/registrar'
+
   # Load up modules that allow registration before modules that use it.
   require_relative 'que/sql'
   require_relative 'que/listener'

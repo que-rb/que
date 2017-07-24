@@ -2,26 +2,8 @@
 
 module Que
   class Listener
-    MESSAGE_CALLBACKS = {}
-    MESSAGE_FORMATS   = {}
-
-    class << self
-      def register_message_callback(name, l)
-        if MESSAGE_CALLBACKS.has_key?(name)
-          raise Error, "Duplicate message callback declaration! (#{name})"
-        end
-
-        MESSAGE_CALLBACKS[name] = l
-      end
-
-      def register_message_format(name, l)
-        if MESSAGE_FORMATS.has_key?(name)
-          raise Error, "Duplicate message format declaration! (#{name})"
-        end
-
-        MESSAGE_FORMATS[name] = l
-      end
-    end
+    MESSAGE_CALLBACKS = Utils::Registrar.new(raise_on_missing: false)
+    MESSAGE_FORMATS   = Utils::Registrar.new(raise_on_missing: false, &:freeze)
 
     def initialize(pool:, channel: nil)
       @pool    = pool
