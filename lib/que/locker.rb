@@ -61,16 +61,14 @@ module Que
         unlock_jobs(messages.map{|m| m.fetch(:id)})
       }
 
-    SQL.register_sql_statement \
-      :clean_lockers,
+    SQL[:clean_lockers] =
       %{
         DELETE FROM public.que_lockers
         WHERE pid = pg_backend_pid()
         OR pid NOT IN (SELECT pid FROM pg_stat_activity)
       }
 
-    SQL.register_sql_statement \
-      :register_locker,
+    SQL[:register_locker] =
       %{
         INSERT INTO public.que_lockers
         (

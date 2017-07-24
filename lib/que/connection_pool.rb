@@ -57,7 +57,7 @@ module Que
     def execute(command, params = nil)
       sql =
         case command
-        when Symbol then SQL.fetch_sql(command)
+        when Symbol then SQL[command]
         when String then command
         else raise Error, "Bad command! #{command.inspect}"
         end

@@ -8,8 +8,7 @@ module Que
   class Worker
     attr_reader :thread, :priority
 
-    SQL.register_sql_statement \
-      :get_job,
+    SQL[:get_job] =
       %{
         SELECT *
         FROM public.que_jobs

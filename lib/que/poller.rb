@@ -50,8 +50,7 @@ module Que
     # Thanks to RhodiumToad in #postgresql for help with the original version
     # of the job lock CTE.
 
-    SQL.register_sql_statement \
-      :poll_jobs,
+    SQL[:poll_jobs] =
       %{
         WITH RECURSIVE jobs AS (
           SELECT (j).*, pg_try_advisory_lock((j).id) AS locked

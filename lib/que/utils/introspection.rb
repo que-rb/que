@@ -5,8 +5,7 @@
 module Que
   module Utils
     module Introspection
-      SQL.register_sql_statement \
-        :job_stats,
+      SQL[:job_stats] =
         %{
           SELECT job_class,
                  count(*)                    AS count,
@@ -28,8 +27,7 @@ module Que
         execute :job_stats
       end
 
-      SQL.register_sql_statement \
-        :job_states,
+      SQL[:job_states] =
         %{
           SELECT que_jobs.*,
                  pg.ruby_hostname,

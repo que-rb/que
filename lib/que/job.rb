@@ -4,8 +4,7 @@
 
 module Que
   class Job
-    SQL.register_sql_statement \
-      :insert_job,
+    SQL[:insert_job] =
       %{
         INSERT INTO public.que_jobs
         (queue, priority, run_at, job_class, data)
@@ -20,8 +19,7 @@ module Que
         RETURNING *
       }
 
-    SQL.register_sql_statement \
-      :destroy_job,
+    SQL[:destroy_job] =
       %{
         DELETE FROM public.que_jobs
         WHERE queue    = $1::text
@@ -30,8 +28,7 @@ module Que
           AND id       = $4::bigint
       }
 
-    SQL.register_sql_statement \
-      :set_error,
+    SQL[:set_error] =
       %{
         UPDATE public.que_jobs
 

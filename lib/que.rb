@@ -12,8 +12,9 @@ module Que
   # Need support for object registration early.
   require_relative 'que/utils/registrar'
 
+  SQL = Utils::Registrar.new { |sql| sql.strip.gsub(/\s+/, ' ').freeze }
+
   # Load up modules that allow registration before modules that use it.
-  require_relative 'que/sql'
   require_relative 'que/listener'
 
   # Load utilities before main logic that will use them.
