@@ -240,14 +240,14 @@ module Que
             "{\"#{@queue_names.join('","')}\"}",
           ]
 
-          poll
-
           loop do
-            wait
-            handle_results
-
             poll
             break if @stop
+
+            wait
+            break if @stop
+
+            handle_results
           end
 
           Que.log(
