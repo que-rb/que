@@ -124,7 +124,7 @@ module Que
       @pool.checkout do |conn|
         # Unlisten and drain notifications before releasing the connection.
         @pool.execute "UNLISTEN *"
-        {} while conn.notifies
+        conn.drain_notifications
       end
 
       Que.internal_log :listener_unlisten, self do

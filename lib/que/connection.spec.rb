@@ -16,7 +16,7 @@ describe Que::Connection do
     end
   end
 
-  describe ".in_transaction?" do
+  describe "in_transaction?" do
     it "should know when it is in a transaction" do
       refute connection.in_transaction?
       connection.execute "BEGIN"
@@ -26,7 +26,11 @@ describe Que::Connection do
     end
   end
 
-  describe ".execute" do
+  describe "drain_notifications" do
+    it "should return nil and delete all the notifications waiting for the connection"
+  end
+
+  describe "execute" do
     it "should cast JSON params correctly" do
       result = connection.execute("SELECT $1::jsonb::text AS j", [{blah: 3}])
       assert_equal [{j: "{\"blah\": 3}"}], result

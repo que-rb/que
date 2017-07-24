@@ -160,25 +160,25 @@ describe Que::Listener do
   describe "unlisten" do
     it "should stop listening for new messages" do
       notify(message_type: 'blah')
-      {} while connection.notifies
+      connection.drain_notifications
 
       listener.unlisten
       notify(message_type: 'blah')
 
       # Execute a new query to fetch any new notifications.
       connection.async_exec "SELECT 1"
-      assert_nil connection.notifies
+      assert_nil connection.next_notification
     end
 
     it "when unlistening should not leave any residual messages" do
       5.times { notify(message_type: 'blah') }
 
       listener.unlisten
-      assert_nil connection.notifies
+      assert_nil connection.next_notification
 
       # Execute a new query to fetch any remaining notifications.
       connection.async_exec "SELECT 1"
-      assert_nil connection.notifies
+      assert_nil connection.next_notification
     end
   end
 

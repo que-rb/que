@@ -10,7 +10,7 @@ module Que
 
     attr_reader :pg
 
-    def_delegators :pg, :backend_pid, :notifies, :wait_for_notify, :async_exec
+    def_delegators :pg, :backend_pid, :wait_for_notify, :async_exec
 
     def initialize(pg:)
       @pg = pg
@@ -39,6 +39,14 @@ module Que
       end
 
       convert_result(result)
+    end
+
+    def next_notification
+      pg.notifies
+    end
+
+    def drain_notifications
+      loop { break if next_notification.nil? }
     end
 
     def in_transaction?
