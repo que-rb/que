@@ -24,6 +24,7 @@ module Que
     attr_reader :thread, :workers, :job_queue, :locks, :pollers, :pool
 
     MESSAGE_RESOLVERS = {}
+    RESULT_RESOLVERS = {}
 
     class << self
       def register_message_resolver(name, lambda)
@@ -32,6 +33,14 @@ module Que
         end
 
         MESSAGE_RESOLVERS[name] = lambda
+      end
+
+      def register_result_resolver(name, lambda)
+        if RESULT_RESOLVERS.has_key?(name)
+          raise Error, "Duplicate result resolver declaration! (#{name})"
+        end
+
+        RESULT_RESOLVERS[name] = lambda
       end
     end
 
@@ -45,6 +54,12 @@ module Que
             push_jobs([message])
           end
         end
+      }
+
+    register_result_resolver \
+      :job_finished,
+      -> (messages) {
+        unlock_jobs(messages.map{|m| m.fetch(:id)})
       }
 
     SQL.register_sql_statement \
@@ -336,9 +351,8 @@ module Que
         @result_queue.clear.group_by{|r| r.fetch(:message_type)}
 
       messages_by_type.each do |type, messages|
-        case type
-        when :job_finished
-          unlock_jobs(messages.map{|m| m.fetch(:id)})
+        if resolver = RESULT_RESOLVERS[type]
+          instance_exec messages, &resolver
         else
           raise Error, "Unexpected result message type: #{type.inspect}"
         end
