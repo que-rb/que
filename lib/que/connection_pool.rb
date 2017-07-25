@@ -21,7 +21,7 @@ module Que
         begin
           if preexisting
             # If so, check that the connection we just got is the one we expect.
-            unless preexisting.pg.object_id == conn.object_id
+            unless preexisting.wrapped_connection.object_id == conn.object_id
               raise Error, "Connection pool is not reentrant!"
             end
           else
@@ -32,7 +32,7 @@ module Que
               end
             end
 
-            self.current_connection = wrapped = Connection.new(pg: conn)
+            self.current_connection = wrapped = Connection.new(conn)
           end
 
           yield(wrapped)

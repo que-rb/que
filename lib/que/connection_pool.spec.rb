@@ -43,7 +43,7 @@ describe Que::ConnectionPool do
         end
 
       pool.checkout do |i|
-        assert_equal 3, i.pg
+        assert_equal 3, i.wrapped_connection
         assert_equal [1, 2], a
         error = assert_raises(Que::Error) { pool.checkout {} }
         assert_match /is not reentrant/, error.message
@@ -60,7 +60,7 @@ describe Que::ConnectionPool do
       t =
         Thread.new do
           pool.checkout do |conn|
-            assert_equal 4, conn.pg
+            assert_equal 4, conn.wrapped_connection
             q1.push(nil)
             q2.pop
           end

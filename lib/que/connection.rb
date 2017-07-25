@@ -8,12 +8,12 @@ module Que
   class Connection
     extend Forwardable
 
-    attr_reader :pg
+    attr_reader :wrapped_connection
 
-    def_delegators :pg, :backend_pid, :wait_for_notify
+    def_delegators :wrapped_connection, :backend_pid, :wait_for_notify
 
-    def initialize(pg:)
-      @pg = pg
+    def initialize(connection)
+      @wrapped_connection = connection
     end
 
     def execute(command, params = nil)
@@ -30,7 +30,7 @@ module Que
 
       Que.internal_log :connection_execute, self do
         {
-          backend_pid: pg.backend_pid,
+          backend_pid: wrapped_connection.backend_pid,
           command:     command,
           params:      params,
           elapsed:     Time.now - start,
@@ -42,7 +42,7 @@ module Que
     end
 
     def next_notification
-      pg.notifies
+      wrapped_connection.notifies
     end
 
     def drain_notifications
@@ -50,7 +50,7 @@ module Que
     end
 
     def in_transaction?
-      pg.transaction_status != ::PG::PQTRANS_IDLE
+      wrapped_connection.transaction_status != ::PG::PQTRANS_IDLE
     end
 
     private
@@ -78,9 +78,9 @@ module Que
     def execute_sql(sql, params)
       # Some PG versions dislike being passed an empty or nil params argument.
       if params && !params.empty?
-        pg.async_exec(sql, params)
+        wrapped_connection.async_exec(sql, params)
       else
-        pg.async_exec(sql)
+        wrapped_connection.async_exec(sql)
       end
     end
 
