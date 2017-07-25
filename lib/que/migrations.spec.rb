@@ -88,12 +88,12 @@ describe Que::Migrations do
 
     Que.checkout do |conn|
       versions.each do |version|
-        original_snapshot = PGExaminer.examine(conn)
+        original_snapshot = PGExaminer.examine(conn.pg)
 
         Que.migrate! version: version
         Que.migrate! version: version - 1
 
-        new_snapshot = PGExaminer.examine(conn)
+        new_snapshot = PGExaminer.examine(conn.pg)
         diff = original_snapshot.diff(new_snapshot)
 
         assert_empty diff, "Migration ##{version} didn't precisely undo itself!"

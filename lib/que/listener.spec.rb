@@ -167,7 +167,7 @@ describe Que::Listener do
       notify(message_type: 'blah')
 
       # Execute a new query to fetch any new notifications.
-      connection.async_exec "SELECT 1"
+      connection.execute "SELECT 1"
       assert_nil connection.next_notification
     end
 
@@ -178,7 +178,7 @@ describe Que::Listener do
       assert_nil connection.next_notification
 
       # Execute a new query to fetch any remaining notifications.
-      connection.async_exec "SELECT 1"
+      connection.execute "SELECT 1"
       assert_nil connection.next_notification
     end
   end

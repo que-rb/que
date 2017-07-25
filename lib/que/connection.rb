@@ -10,7 +10,7 @@ module Que
 
     attr_reader :pg
 
-    def_delegators :pg, :backend_pid, :wait_for_notify, :async_exec
+    def_delegators :pg, :backend_pid, :wait_for_notify
 
     def initialize(pg:)
       @pg = pg
