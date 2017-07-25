@@ -31,26 +31,46 @@ describe Que::ConnectionPool do
     end
 
     it "if the pool is not reentrant should raise an error" do
-      a = [1, 2, 3]
+      # Borrow three PG connections from QUE_POOL.
+
+      q1, q2 = Queue.new, Queue.new
+      threads = Array.new(3) do
+        Thread.new do
+          QUE_POOL.checkout do |c|
+            q1.push(nil)
+            q2.pop
+            c
+          end
+        end
+      end
+
+      3.times { q1.pop }
+      3.times { q2.push nil }
+
+      connections = threads.map { |t| t.value.wrapped_connection }
+
       pool =
         Que::ConnectionPool.new do |&block|
           begin
-            i = a.pop
-            block.call(i)
+            c = connections.pop
+            block.call(c)
           ensure
-            a << i
+            connections << c
           end
         end
 
-      pool.checkout do |i|
-        assert_equal 3, i.wrapped_connection
-        assert_equal [1, 2], a
+      pool.checkout do |c|
+        assert_instance_of Que::Connection, c
+        assert_instance_of PG::Connection,  c.wrapped_connection
+
+        assert_equal 2, connections.length
+
         error = assert_raises(Que::Error) { pool.checkout {} }
         assert_match /is not reentrant/, error.message
-        assert_equal [1, 2], a
+        assert_equal 2, connections.length
       end
 
-      assert_equal [1, 2, 3], a
+      assert_equal 3, connections.length
     end
 
     it "if the pool yields an object that's already checked out should error" do
