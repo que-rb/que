@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Tools for introspecting the state of the job queue.
+# Helper method for recursively freezing a data structure.
 
 module Que
   module Utils

@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-# Workers basically wrap threads which continuously pull job ids from JobQueue
-# objects, fetch and work those jobs, then pass their ids to ResultQueues to be
-# unlocked.
+# Workers wrap threads which continuously pull job pks from JobQueue objects,
+# fetch and work those jobs, and export relevant data to ResultQueues.
 
 module Que
   class Worker
@@ -40,7 +39,7 @@ module Que
       @thread =
         Thread.new do
           # An error causing this thread to exit is a bug in Que, which we want
-          # to know about ASAP, so abort the process if it happens.
+          # to know about ASAP, so propagate the error if it happens.
           Thread.current.abort_on_exception = true
           start_callback.call(self) if start_callback.respond_to?(:call)
           work_loop

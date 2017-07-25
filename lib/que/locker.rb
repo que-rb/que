@@ -166,7 +166,7 @@ module Que
       @thread =
         Thread.new do
           # An error causing this thread to exit is a bug in Que, which we want
-          # to know about ASAP, so abort the process if it happens.
+          # to know about ASAP, so propagate the error if it happens.
           Thread.current.abort_on_exception = true
 
           # Give this thread priority, so it can promptly respond to NOTIFYs.

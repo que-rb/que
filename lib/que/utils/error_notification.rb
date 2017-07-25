@@ -32,14 +32,13 @@ module Que
       # Helper method to notify errors asynchronously. For use in high-priority
       # code, where we don't want to be held up by whatever I/O the error
       # notification proc contains.
-
-      # We don't synchronize around the size check and the push, so there's a
-      # race condition where the queue could grow to more than
-      # MAXIMUM_QUEUE_SIZE errors, but that's not really a huge concern. The
-      # size check is mainly here to ensure that the error queue doesn't grow
-      # unboundedly large in pathological cases.
-
       def notify_error_async(*args)
+        # We don't synchronize around the size check and the push, so there's a
+        # race condition where the queue could grow to more than the maximum
+        # number of errors, but no big deal if it does. The size check is mainly
+        # here to ensure that the error queue doesn't grow unboundedly large in
+        # pathological cases.
+
         if ASYNC_QUEUE.size < MAXIMUM_QUEUE_SIZE
           ASYNC_QUEUE.push(args)
           true
