@@ -3,9 +3,7 @@
 require 'spec_helper'
 
 describe Que::Connection do
-  let :connection do
-    @connection
-  end
+  let(:connection) { @connection }
 
   around do |&block|
     super() do
@@ -26,8 +24,19 @@ describe Que::Connection do
     end
   end
 
-  describe "drain_notifications" do
-    it "should return nil and delete all the notifications waiting for the connection"
+  describe "next_notification and drain_notifications" do
+    it "should allow access to pending notifications" do
+      connection.execute "LISTEN test_queue"
+      5.times { |i| DB.notify('test_queue', payload: i.to_s) }
+      connection.execute("UNLISTEN *")
+
+      assert_equal "0", connection.next_notification[:extra]
+      connection.drain_notifications
+      assert_nil connection.next_notification
+
+      # Cleanup
+      connection.drain_notifications
+    end
   end
 
   describe "execute" do
