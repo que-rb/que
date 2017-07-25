@@ -6,7 +6,7 @@ describe Que::Listener do
   attr_reader :connection
 
   let :listener do
-    Que::Listener.new(pool: QUE_POOL)
+    Que::Listener.new(connection: connection)
   end
 
   let :message_1 do
@@ -31,8 +31,8 @@ describe Que::Listener do
     super() do
       QUE_POOL.checkout do |conn|
         begin
-          listener.listen
           @connection = conn
+          listener.listen
 
           block.call
         ensure
@@ -72,6 +72,7 @@ describe Que::Listener do
           {
             internal_event: 'listener_processed_messages',
             object_id: listener.object_id,
+            backend_pid: connection.backend_pid,
             messages: {
               type_1: [{arg: 'blah'}]
             }
@@ -126,7 +127,7 @@ describe Que::Listener do
 
     describe "when given a specific channel" do
       let :listener do
-        Que::Listener.new(pool: QUE_POOL, channel: 'test_channel')
+        Que::Listener.new(connection: connection, channel: 'test_channel')
       end
 
       it "should listen on that channel" do

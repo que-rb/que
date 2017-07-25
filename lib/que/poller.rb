@@ -90,18 +90,18 @@ module Que
       }
 
     attr_reader \
-      :pool,
+      :connection,
       :queue,
       :poll_interval,
       :last_polled_at,
       :last_poll_satisfied
 
     def initialize(
-      pool:,
+      connection:,
       queue:,
       poll_interval:
     )
-      @pool                = pool
+      @connection          = connection
       @queue               = queue
       @poll_interval       = poll_interval
       @last_polled_at      = nil
@@ -109,7 +109,7 @@ module Que
 
       Que.internal_log :poller_instantiate, self do
         {
-          # TODO: backend_pid: connection.backend_pid,
+          backend_pid:   connection.backend_pid,
           queue:         queue,
           poll_interval: poll_interval,
         }
@@ -120,7 +120,7 @@ module Que
       return unless should_poll?
 
       jobs =
-        pool.execute(
+        connection.execute(
           :poll_jobs,
           [
             @queue,

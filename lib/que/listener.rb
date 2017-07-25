@@ -5,21 +5,22 @@ module Que
     MESSAGE_CALLBACKS = Utils::Registrar.new(raise_on_missing: false)
     MESSAGE_FORMATS   = Utils::Registrar.new(raise_on_missing: false, &:freeze)
 
-    def initialize(pool:, channel: nil)
-      @pool    = pool
-      @channel = channel
+    attr_reader :connection
+
+    def initialize(connection:, channel: nil)
+      @connection = connection
+      @channel    = channel
 
       Que.internal_log :listener_instantiate, self do
         {
-          # TODO: backend_pid: connection.backend_pid,
+          backend_pid: connection.backend_pid,
         }
       end
     end
 
     def listen
-      @pool.checkout do |conn|
-        @pool.execute "LISTEN #{@channel || "que_listener_#{conn.backend_pid}"}"
-      end
+      connection.execute \
+        "LISTEN #{@channel || "que_listener_#{connection.backend_pid}"}"
     end
 
     def wait_for_messages(timeout)
@@ -28,57 +29,60 @@ module Que
 
       Que.internal_log :listener_waiting, self do
         {
-          # TODO: backend_pid: connection.backend_pid,
-          timeout: timeout,
+          backend_pid: connection.backend_pid,
+          timeout:     timeout,
         }
       end
 
       output = {}
 
-      @pool.checkout do |conn|
-        loop do
-          notification_received =
-            conn.wait_for_notify(timeout) do |channel, pid, payload|
-              Que.internal_log(:listener_received_notification, self) do
-                {
-                  channel: channel,
-                  # TODO: backend_pid: connection.backend_pid,
-                  source_pid: pid,
-                  payload: payload,
-                }
-              end
-
-              # We've received at least one notification, so zero out the
-              # timeout before we loop again to retrieve the next message. This
-              # ensures that we don't wait an additional `timeout` seconds after
-              # processing the final message before this method returns.
-              timeout = 0
-
-              # Be very defensive about the message we receive - it may not be
-              # valid JSON, and may not have a message_type key.
-              messages = parse_payload(payload)
-
-              next unless messages
-
-              unless messages.is_a?(Array)
-                messages = [messages]
-              end
-
-              messages.each do |message|
-                message_type = message && message.delete(:message_type)
-                next unless message_type.is_a?(String)
-
-                (output[message_type.to_sym] ||= []) << message
-              end
+      loop do
+        notification_received =
+          connection.wait_for_notify(timeout) do |channel, pid, payload|
+            Que.internal_log(:listener_received_notification, self) do
+              {
+                channel:     channel,
+                backend_pid: connection.backend_pid,
+                source_pid:  pid,
+                payload:     payload,
+              }
             end
 
-          break unless notification_received
-        end
+            # We've received at least one notification, so zero out the
+            # timeout before we loop again to retrieve the next message. This
+            # ensures that we don't wait an additional `timeout` seconds after
+            # processing the final message before this method returns.
+            timeout = 0
+
+            # Be very defensive about the message we receive - it may not be
+            # valid JSON, and may not have a message_type key.
+            messages = parse_payload(payload)
+
+            next unless messages
+
+            unless messages.is_a?(Array)
+              messages = [messages]
+            end
+
+            messages.each do |message|
+              message_type = message && message.delete(:message_type)
+              next unless message_type.is_a?(String)
+
+              (output[message_type.to_sym] ||= []) << message
+            end
+          end
+
+        break unless notification_received
       end
 
       return output if output.empty?
 
-      Que.internal_log(:listener_received_messages, self) { {messages: output} }
+      Que.internal_log(:listener_received_messages, self) do
+        {
+          backend_pid: connection.backend_pid,
+          messages: output,
+        }
+      end
 
       output.each do |type, messages|
         if callback = MESSAGE_CALLBACKS[type]
@@ -115,21 +119,24 @@ module Que
 
       output.delete_if { |_, messages| messages.empty? }
 
-      Que.internal_log(:listener_processed_messages, self) { {messages: output} }
+      Que.internal_log(:listener_processed_messages, self) do
+        {
+          backend_pid: connection.backend_pid,
+          messages: output,
+        }
+      end
 
       output
     end
 
     def unlisten
-      @pool.checkout do |conn|
-        # Unlisten and drain notifications before releasing the connection.
-        @pool.execute "UNLISTEN *"
-        conn.drain_notifications
-      end
+      # Unlisten and drain notifications before releasing the connection.
+      connection.execute "UNLISTEN *"
+      connection.drain_notifications
 
       Que.internal_log :listener_unlisten, self do
         {
-          # TODO: backend_pid: connection.backend_pid,
+          backend_pid: connection.backend_pid,
         }
       end
     end

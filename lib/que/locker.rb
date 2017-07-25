@@ -20,7 +20,7 @@ module Que
     }
 
   class Locker
-    attr_reader :thread, :workers, :job_queue, :locks, :pollers, :pool
+    attr_reader :thread, :workers, :job_queue, :locks, :pollers, :connection
 
     MESSAGE_RESOLVERS = Utils::Registrar.new
     RESULT_RESOLVERS  = Utils::Registrar.new
@@ -129,16 +129,7 @@ module Que
       # Local cache of which advisory locks are held by this connection.
       @locks = Set.new
 
-      @pool =
-        if connection
-          # Wrap the given connection in a dummy connection pool.
-          ConnectionPool.new { |&block| block.call(connection) }
-        else
-          Que.pool
-        end
-
       @queue_names        = queues.is_a?(Hash) ? queues.keys : queues
-      @listener           = Listener.new(pool: @pool) if listen
       @wait_period        = wait_period.to_f / 1000 # Milliseconds to seconds.
       @poll_interval      = poll_interval
       @minimum_queue_size = minimum_queue_size
@@ -148,17 +139,6 @@ module Que
       # of finished jobs from workers.
       @job_queue    = JobQueue.new(maximum_size: maximum_queue_size)
       @result_queue = ResultQueue.new
-
-      if poll
-        @pollers =
-          queues.map do |queue, interval|
-            Poller.new(
-              pool:          @pool,
-              queue:         queue,
-              poll_interval: interval || poll_interval,
-            )
-          end
-      end
 
       # If the worker_count exceeds the array of priorities it'll result in
       # extra workers that will work jobs of any priority. For example, the
@@ -175,6 +155,14 @@ module Que
           )
         end
 
+      pool =
+        if connection
+          # Wrap the given connection in a dummy connection pool.
+          ConnectionPool.new { |&block| block.call(connection) }
+        else
+          Que.pool
+        end
+
       @thread =
         Thread.new do
           # An error causing this thread to exit is a bug in Que, which we want
@@ -183,7 +171,27 @@ module Que
 
           # Give this thread priority, so it can promptly respond to NOTIFYs.
           Thread.current.priority = 1
-          work_loop
+
+          pool.checkout do |connection|
+            @connection = connection
+
+            if listen
+              @listener = Listener.new(connection: connection)
+            end
+
+            if poll
+              @pollers =
+                queues.map do |queue, interval|
+                  Poller.new(
+                    connection:    connection,
+                    queue:         queue,
+                    poll_interval: interval || poll_interval,
+                  )
+                end
+            end
+
+            work_loop
+          end
         end
     end
 
@@ -202,67 +210,65 @@ module Que
     private
 
     def work_loop
-      checkout do |conn|
-        Que.log(
-          level: :debug,
-          event: :locker_start,
-          queues: @queue_names,
-        )
+      Que.log(
+        level: :debug,
+        event: :locker_start,
+        queues: @queue_names,
+      )
 
-        Que.internal_log :locker_start, self do
-          {
-            backend_pid: conn.backend_pid,
-            worker_priorities: workers.map(&:priority),
-            pollers: pollers && pollers.map { |p| [p.queue, p.poll_interval] }
-          }
-        end
+      Que.internal_log :locker_start, self do
+        {
+          backend_pid: connection.backend_pid,
+          worker_priorities: workers.map(&:priority),
+          pollers: pollers && pollers.map { |p| [p.queue, p.poll_interval] }
+        }
+      end
 
-        begin
-          @listener.listen if @listener
+      begin
+        @listener.listen if @listener
 
-          # A previous locker that didn't exit cleanly may have left behind
-          # a bad locker record, so clean up before registering.
-          execute :clean_lockers
-          execute :register_locker, [
-            @workers.count,
-            "{#{@workers.map(&:priority).map{|p| p || 'NULL'}.join(',')}}",
-            Process.pid,
-            CURRENT_HOSTNAME, 
-            !!@listener,
-            "{\"#{@queue_names.join('","')}\"}",
-          ]
+        # A previous locker that didn't exit cleanly may have left behind
+        # a bad locker record, so clean up before registering.
+        execute :clean_lockers
+        execute :register_locker, [
+          @workers.count,
+          "{#{@workers.map(&:priority).map{|p| p || 'NULL'}.join(',')}}",
+          Process.pid,
+          CURRENT_HOSTNAME,
+          !!@listener,
+          "{\"#{@queue_names.join('","')}\"}",
+        ]
 
-          loop do
-            poll
-            break if @stop
+        loop do
+          poll
+          break if @stop
 
-            wait
-            break if @stop
-
-            handle_results
-          end
-
-          Que.log(
-            level: :debug,
-            event: :locker_stop,
-          )
-
-          unlock_jobs(@job_queue.clear)
-
-          @job_queue.stop
-          @workers.each(&:wait_until_stopped)
+          wait
+          break if @stop
 
           handle_results
-        ensure
-          execute :clean_lockers
-
-          @listener.unlisten if @listener
         end
+
+        Que.log(
+          level: :debug,
+          event: :locker_stop,
+        )
+
+        unlock_jobs(@job_queue.clear)
+
+        @job_queue.stop
+        @workers.each(&:wait_until_stopped)
+
+        handle_results
+      ensure
+        execute :clean_lockers
+
+        @listener.unlisten if @listener
       end
     end
 
     extend Forwardable
-    def_delegators :@pool, :execute, :checkout
+    def_delegators :connection, :execute
 
     def poll
       return unless pollers
@@ -314,9 +320,9 @@ module Que
 
       Que.internal_log :locker_attempted_lock, self do
         {
-          # TODO: backend_pid: connection.backend_pid,
-          id:     id,
-          result: r,
+          backend_pid: connection.backend_pid,
+          id:          id,
+          result:      r,
         }
       end
 

@@ -3,9 +3,22 @@
 require 'spec_helper'
 
 describe Que::Poller do
-  def held_advisory_locks
+  let :connection do
+    @connection
+  end
+
+  around do |&block|
+    super() do
+      EXTRA_POOL.checkout do |conn|
+        @connection = conn
+        block.call
+      end
+    end
+  end
+
+  def held_advisory_locks(override_connection: nil)
     ids =
-      Que.execute <<-SQL
+      (override_connection || connection).execute <<-SQL
         SELECT objid
         FROM pg_locks
         WHERE locktype = 'advisory'
@@ -15,15 +28,14 @@ describe Que::Poller do
     ids.map!{|h| h[:objid].to_i}.sort
   end
 
-  def poll(count, options = {})
-    assert_empty held_advisory_locks
+  def poll(count, queue_name: 'default', job_ids: [], override_connection: nil)
+    assert_empty held_advisory_locks(override_connection: override_connection)
 
-    queue_name = options[:queue_name] || 'default'
-    job_ids = (options[:job_ids] || []).to_set
+    job_ids = job_ids.to_set
 
     poller =
       Que::Poller.new(
-        pool: Que.pool,
+        connection: override_connection || connection,
         queue: queue_name,
         poll_interval: 5,
       )
@@ -32,13 +44,13 @@ describe Que::Poller do
 
     returned_job_ids = jobs.map { |j| j[:id] }
 
-    assert_equal held_advisory_locks, returned_job_ids.sort
+    assert_equal held_advisory_locks(override_connection: override_connection), returned_job_ids.sort
 
     returned_job_ids
   end
 
   after do
-    Que.execute "SELECT pg_advisory_unlock_all()"
+    connection.execute "SELECT pg_advisory_unlock_all()"
   end
 
   it "should not fail if there aren't enough jobs to return" do
@@ -116,11 +128,11 @@ describe Que::Poller do
     # Poll 25 jobs each from four connections simultaneously.
     threads = 4.times.map do
       Thread.new do
-        Que.checkout do
+        Que.checkout do |conn|
           q1.push nil
           q2.pop
 
-          Thread.current[:jobs] = poll(25)
+          Thread.current[:jobs] = poll(25, override_connection: conn)
 
           q3.push nil
           q4.pop
@@ -155,7 +167,7 @@ describe Que::Poller do
   describe "should_poll?" do
     let :poller do
       Que::Poller.new(
-        pool: Que.pool,
+        connection: connection,
         queue: 'default',
         poll_interval: 5,
       )
