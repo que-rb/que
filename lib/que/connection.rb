@@ -6,6 +6,13 @@
 # pool, so this class isn't currently suitable for storing data about the
 # connection long-term (like what statements it has prepared, for example).
 
+# If we wanted to do that, we'd probably need to sneak a reference to the
+# wrapper into the PG::Connection object itself, by just setting a instance
+# variable that's something namespaced and hopefully safe, like
+# `@que_connection_wrapper`. It's a bit ugly, but it should ensure that we don't
+# cause any memory leaks in esoteric setups where one-off connections are being
+# established and then garbage-collected.
+
 require 'time' # For Time.parse
 
 module Que
