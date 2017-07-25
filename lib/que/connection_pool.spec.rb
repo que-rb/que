@@ -74,13 +74,13 @@ describe Que::ConnectionPool do
     end
 
     it "if the pool yields an object that's already checked out should error" do
-      pool = Que::ConnectionPool.new { |&block| block.call(4) }
+      pool = Que::ConnectionPool.new { |&block| block.call(EXTRA_PG_CONNECTION) }
 
       q1, q2 = Queue.new, Queue.new
       t =
         Thread.new do
           pool.checkout do |conn|
-            assert_equal 4, conn.wrapped_connection
+            assert_equal EXTRA_PG_CONNECTION, conn.wrapped_connection
             q1.push(nil)
             q2.pop
           end
