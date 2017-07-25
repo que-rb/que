@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-# A wrapper around whatever connection pool we're using.
+# A wrapper around whatever connection pool we're using. Mainly just asserts
+# that the source connection pool is reentrant and thread-safe.
 
 module Que
   class ConnectionPool
@@ -21,7 +22,7 @@ module Que
         begin
           if preexisting
             # If so, check that the connection we just got is the one we expect.
-            unless preexisting.wrapped_connection.object_id == conn.object_id
+            if preexisting.wrapped_connection.object_id != conn.object_id
               raise Error, "Connection pool is not reentrant!"
             end
           else
@@ -37,9 +38,9 @@ module Que
 
           yield(wrapped)
         ensure
-          unless preexisting
-            # If we're at the top level (about to return this connection to the
-            # pool we got it from), mark it as no longer ours.
+          if preexisting.nil?
+            # We're at the top level (about to return this connection to the
+            # pool we got it from), so mark it as no longer ours.
             self.current_connection = nil
 
             sync do

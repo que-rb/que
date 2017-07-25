@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
-# A wrapper around connection objects, to improve the query API a bit.
+# A simple wrapper class around connections that basically just improves the
+# query API a bit. Currently, our connection pool wrapper discards these
+# connection wrappers once the connection is returned to the source connection
+# pool, so this class isn't currently suitable for storing data about the
+# connection long-term (like what statements it has prepared, for example).
 
 require 'time' # For Time.parse
 
@@ -25,15 +29,13 @@ module Que
         end
 
       params = convert_params(params) if params
-      start  = Time.now
       result = execute_sql(sql, params)
 
       Que.internal_log :connection_execute, self do
         {
-          backend_pid: wrapped_connection.backend_pid,
+          backend_pid: backend_pid,
           command:     command,
           params:      params,
-          elapsed:     Time.now - start,
           ntuples:     result.ntuples,
         }
       end
@@ -55,28 +57,24 @@ module Que
 
     private
 
-    def current_connection
-      Thread.current[@thread_key]
-    end
-
-    def current_connection=(c)
-      Thread.current[@thread_key] = c
-    end
-
     def convert_params(params)
       params.map do |param|
         case param
+        when Time
           # The pg gem unfortunately doesn't convert fractions of time
           # instances, so cast them to a string.
-          when Time then param.strftime('%Y-%m-%d %H:%M:%S.%6N %z')
-          when Array, Hash then JSON.dump(param)
-          else param
+          param.strftime('%Y-%m-%d %H:%M:%S.%6N %z')
+        when Array, Hash
+          # Handle JSON.
+          Que.serialize_json(param)
+        else
+          param
         end
       end
     end
 
     def execute_sql(sql, params)
-      # Some PG versions dislike being passed an empty or nil params argument.
+      # Some versions of the PG gem dislike an empty/nil params argument.
       if params && !params.empty?
         wrapped_connection.async_exec(sql, params)
       else
@@ -84,7 +82,7 @@ module Que
       end
     end
 
-    # Procs used to convert strings from PG into Ruby types.
+    # Procs used to convert strings from Postgres into Ruby types.
     CAST_PROCS = {
       # Boolean
       16   => 't'.method(:==),
