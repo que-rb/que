@@ -28,7 +28,7 @@ module Que
       end
 
       sync do
-        qsort_keys!(@array.push(*sort_keys))
+        sort_keys!(@array.push(*sort_keys))
 
         # Notify all waiting threads that they can try again to remove a item.
         # We could try to only wake up a subset of the waiting threads, to avoid
@@ -62,7 +62,7 @@ module Que
     end
 
     def accept?(sort_keys)
-      qsort_keys!(sort_keys)
+      sort_keys!(sort_keys)
 
       sync do
         start_index = space
@@ -110,16 +110,14 @@ module Que
 
     private
 
-    SORT_KEYS = [:priority, :run_at, :id].freeze
-
-    def qsort_keys!(sort_keys)
+    def sort_keys!(keys)
       # Benchmarked this out of curiosity, and turns out that this sort_by is
       # faster (and triggers fewer GC cycles) than using sort! and passing each
       # pair to compare_keys below.
-      sort_keys.sort_by! do |sort_key|
-        sort_key.values_at(:priority, :run_at, :id)
-      end
+      keys.sort_by! { |key| key.values_at(:priority, :run_at, :id) }
     end
+
+    SORT_KEYS = [:priority, :run_at, :id].freeze
 
     # Given two sort keys a and b, returns true if a < b and false if a > b.
     # Throws an error if they're the same - that shouldn't happen.
