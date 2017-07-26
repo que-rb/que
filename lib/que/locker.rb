@@ -58,10 +58,10 @@ module Que
 
     MESSAGE_RESOLVERS[:new_job] =
       -> (messages) {
-        # TODO: Check for acceptance in bulk, attempt locking in bulk, push jobs
-        # in bulk.
-        messages.each do |message|
-          if @job_queue.accept?(message) && lock_job?(message.fetch(:id))
+        # TODO: attempt locking in bulk, push jobs in bulk.
+        acceptable = @job_queue.accept?(messages)
+        acceptable.each do |message|
+          if lock_job?(message.fetch(:id))
             push_jobs([message])
           end
         end

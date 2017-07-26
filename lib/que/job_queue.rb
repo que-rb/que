@@ -75,12 +75,26 @@ module Que
       end
     end
 
-    def accept?(sort_key)
+    def accept?(sort_keys)
+      sort_keys.sort_by! { |sort_key| sort_key.values_at(:priority, :run_at, :id) }
+
       sync do
-        # Accept the job if there's space available...
-        space > 0 ||
-        # ...or if it's more important than the lowest item in the queue.
-        compare_keys(sort_key, @array.last)
+        start_index = space
+        final_index = sort_keys.length - 1
+
+        return sort_keys if start_index > final_index
+        index_to_lose = @array.length - 1
+
+        start_index.upto(final_index) do |index|
+          if index_to_lose >= 0 && compare_keys(sort_keys[index], @array[index_to_lose])
+            return sort_keys if index == final_index
+            index_to_lose -= 1
+          else
+            return sort_keys.slice(0...index)
+          end
+        end
+
+        []
       end
     end
 

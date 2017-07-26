@@ -162,29 +162,27 @@ describe Que::JobQueue do
   end
 
   describe "accept?" do
-    before do
-      job_queue.push *job_array
-    end
+    it "should return the array of sort keys that would be accepted to the queue" do
+      # This is a fuzz test, basically, so try bumping this iteration count up
+      # when we tweak the accept? logic.
+      5.times do
+        maximum_size = rand(8) + 1
+        job_queue = Que::JobQueue.new(maximum_size: maximum_size)
+        jobs_that_should_make_it_in = job_array.first(maximum_size)
 
-    it "should return true if there is sufficient room in the queue" do
-      assert_equal job_array.first, job_queue.shift
-      assert_equal 7, job_queue.size
-      assert job_queue.accept?(job_array.last)
-    end
+        job_array_copy = job_array.shuffle
 
-    it "should return true if the job can knock out a lower-priority job" do
-      assert job_queue.accept?(job_array.first)
-    end
+        partition = rand(maximum_size) + 1
+        jobs_in_queue = job_array_copy[0...partition]
+        jobs_to_test  = job_array_copy[partition..-1]
 
-    it "should return false if the job's priority is lower than any queued" do
-      refute job_queue.accept?(
-        {
-          queue: '',
-          priority: 100,
-          run_at: Time.now,
-          id: 45,
-        }
-      )
+        assert_nil job_queue.push(*jobs_in_queue)
+
+        assert_equal(
+          (jobs_that_should_make_it_in & jobs_to_test).sort_by{|k| k.values_at(:priority, :run_at, :id)},
+          job_queue.accept?(jobs_to_test),
+        )
+      end
     end
   end
 
