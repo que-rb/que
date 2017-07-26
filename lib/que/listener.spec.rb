@@ -73,6 +73,7 @@ describe Que::Listener do
             internal_event: 'listener_processed_messages',
             object_id: listener.object_id,
             backend_pid: connection.backend_pid,
+            channel: "que_listener_#{connection.backend_pid}",
             messages: {
               type_1: [{arg: 'blah'}]
             }

@@ -254,13 +254,16 @@ module Que
       # Poll at the start of a cycle, so that when the worker starts up we can
       # load up the queue with jobs immediately.
       poll
-      return if @stop # Short-circuit if we're stopping.
 
-      # The main sleeping part of the cycle. Either waits for notifications or
-      # just sleeps, depending.
-      wait
+      # If we got the stop call while we were polling, break before going to
+      # sleep.
       return if @stop
 
+      # The main sleeping part of the cycle. If this is a listening locker, this
+      # is where we wait for notifications.
+      wait
+
+      # Manage any job output we got while we were sleeping.
       handle_results
 
       # If we haven't gotten the stop signal, cycle again.
@@ -268,8 +271,9 @@ module Que
     end
 
     def poll
-      # Skip the polling phase if there's no pollers, or if the job queue is
-      # above the minimum size.
+      # Only poll when there are pollers to use (that is, when polling is
+      # enabled) and when the local queue has dropped below the configured
+      # minimum size.
       return unless pollers && @job_queue.size < @minimum_queue_size
 
       space_to_fill = @job_queue.space
@@ -291,17 +295,36 @@ module Que
     end
 
     def wait
-      if @listener.nil?
+      if @listener
+        @listener.wait_for_messages(@wait_period).each do |type, messages|
+          if resolver = MESSAGE_RESOLVERS[type]
+            instance_exec messages, &resolver
+          else
+            # TODO: Unexpected type - log something? Ignore it?
+          end
+        end
+      else
         sleep(@wait_period)
-        return
       end
+    end
 
-      @listener.wait_for_messages(@wait_period).each do |type, messages|
-        if resolver = MESSAGE_RESOLVERS[type]
+    def handle_results
+      messages_by_type =
+        @result_queue.clear.group_by{|r| r.fetch(:message_type)}
+
+      messages_by_type.each do |type, messages|
+        if resolver = RESULT_RESOLVERS[type]
           instance_exec messages, &resolver
         else
-          # TODO: Unexpected type - log something? Ignore it?
+          raise Error, "Unexpected result message type: #{type.inspect}"
         end
+      end
+    end
+
+    def push_jobs(sort_keys)
+      # Unlock any low-importance jobs the new ones may displace.
+      if ids = @job_queue.push(*sort_keys)
+        unlock_jobs(ids)
       end
     end
 
@@ -330,36 +353,6 @@ module Que
 
       locked_ids = locked_ids.to_set
       messages.keep_if { |m| locked_ids.include?(m.fetch(:id)) }
-    end
-
-    def try_advisory_lock(id)
-      r =
-        connection.
-        execute("SELECT pg_try_advisory_lock($1)", [id]).
-        first.
-        fetch(:pg_try_advisory_lock)
-
-      r
-    end
-
-    def handle_results
-      messages_by_type =
-        @result_queue.clear.group_by{|r| r.fetch(:message_type)}
-
-      messages_by_type.each do |type, messages|
-        if resolver = RESULT_RESOLVERS[type]
-          instance_exec messages, &resolver
-        else
-          raise Error, "Unexpected result message type: #{type.inspect}"
-        end
-      end
-    end
-
-    def push_jobs(sort_keys)
-      # Unlock any low-importance jobs the new ones may displace.
-      if ids = @job_queue.push(*sort_keys)
-        unlock_jobs(ids)
-      end
     end
 
     def unlock_jobs(ids)
