@@ -6,9 +6,6 @@
 
 module Que
   class JobQueue
-    # We can only use a binary search on Ruby 2.3+.
-    USE_BINARY_SEARCH = [].respond_to?(:bsearch_index)
-
     attr_reader :maximum_size
 
     def initialize(maximum_size:)
@@ -31,16 +28,7 @@ module Que
       end
 
       sync do
-        # TODO: There's probably a number of sort_keys at which the second
-        # method always makes more sense.
-        if USE_BINARY_SEARCH
-          sort_keys.each do |key|
-            i = @array.bsearch_index { |k| compare_keys(key, k) }
-            @array.insert(i || -1, key)
-          end
-        else
-          qsort_keys!(@array.push(*sort_keys))
-        end
+        qsort_keys!(@array.push(*sort_keys))
 
         # Notify all waiting threads that they can try again to remove a item.
         # We could try to only wake up a subset of the waiting threads, to avoid
@@ -125,6 +113,9 @@ module Que
     SORT_KEYS = [:priority, :run_at, :id].freeze
 
     def qsort_keys!(sort_keys)
+      # Benchmarked this out of curiosity, and turns out that this sort_by is
+      # faster (and triggers fewer GC cycles) than using sort! and passing each
+      # pair to compare_keys below.
       sort_keys.sort_by! do |sort_key|
         sort_key.values_at(:priority, :run_at, :id)
       end
