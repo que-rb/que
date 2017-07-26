@@ -19,6 +19,37 @@ module Que
       priority: Integer,
     }
 
+  SQL[:clean_lockers] =
+    %{
+      DELETE FROM public.que_lockers
+      WHERE pid = pg_backend_pid()
+      OR pid NOT IN (SELECT pid FROM pg_stat_activity)
+    }
+
+  SQL[:register_locker] =
+    %{
+      INSERT INTO public.que_lockers
+      (
+        pid,
+        worker_count,
+        worker_priorities,
+        ruby_pid,
+        ruby_hostname,
+        listening,
+        queues
+      )
+      VALUES
+      (
+        pg_backend_pid(),
+        $1::integer,
+        $2::integer[],
+        $3::integer,
+        $4::text,
+        $5::boolean,
+        $6::text[]
+      )
+    }
+
   class Locker
     attr_reader :thread, :workers, :job_queue, :locks, :pollers, :connection
 
@@ -39,37 +70,6 @@ module Que
     RESULT_RESOLVERS[:job_finished] =
       -> (messages) {
         unlock_jobs(messages.map{|m| m.fetch(:id)})
-      }
-
-    SQL[:clean_lockers] =
-      %{
-        DELETE FROM public.que_lockers
-        WHERE pid = pg_backend_pid()
-        OR pid NOT IN (SELECT pid FROM pg_stat_activity)
-      }
-
-    SQL[:register_locker] =
-      %{
-        INSERT INTO public.que_lockers
-        (
-          pid,
-          worker_count,
-          worker_priorities,
-          ruby_pid,
-          ruby_hostname,
-          listening,
-          queues
-        )
-        VALUES
-        (
-          pg_backend_pid(),
-          $1::integer,
-          $2::integer[],
-          $3::integer,
-          $4::text,
-          $5::boolean,
-          $6::text[]
-        );
       }
 
     DEFAULT_POLL_INTERVAL      = 5.0
@@ -131,12 +131,11 @@ module Que
 
       @queue_names        = queues.is_a?(Hash) ? queues.keys : queues
       @wait_period        = wait_period.to_f / 1000 # Milliseconds to seconds.
-      @poll_interval      = poll_interval
       @minimum_queue_size = minimum_queue_size
 
       # We use a JobQueue to track sorted identifiers (priority, run_at, id) of
-      # locked jobs and pass them to workers, and a ResultQueue to retrieve ids
-      # of finished jobs from workers.
+      # locked jobs and pass them to workers, and a ResultQueue to receive
+      # messages from workers.
       @job_queue    = JobQueue.new(maximum_size: maximum_queue_size)
       @result_queue = ResultQueue.new
 
