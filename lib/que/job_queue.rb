@@ -22,6 +22,14 @@ module Que
     end
 
     def push(*sort_keys)
+      Que.internal_log(:job_queue_push, self) do
+        {
+          maximum_size:  maximum_size,
+          sort_keys:     sort_keys,
+          current_queue: @array,
+        }
+      end
+
       sync do
         # TODO: There's probably a number of sort_keys at which the second
         # method always makes more sense.
