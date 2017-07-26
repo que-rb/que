@@ -51,7 +51,7 @@ module Que
     }
 
   class Locker
-    attr_reader :thread, :workers, :job_queue, :locks, :pollers, :connection
+    attr_reader :thread, :workers, :job_queue, :locks
 
     MESSAGE_RESOLVERS = Utils::Registrar.new
     RESULT_RESOLVERS  = Utils::Registrar.new
@@ -208,6 +208,8 @@ module Que
 
     private
 
+    attr_reader :connection, :pollers
+
     def work_loop
       Que.log(
         level: :debug,
@@ -228,8 +230,8 @@ module Que
 
         # A previous locker that didn't exit cleanly may have left behind
         # a bad locker record, so clean up before registering.
-        execute :clean_lockers
-        execute :register_locker, [
+        connection.execute :clean_lockers
+        connection.execute :register_locker, [
           @workers.count,
           "{#{@workers.map(&:priority).map{|p| p || 'NULL'}.join(',')}}",
           Process.pid,
@@ -260,14 +262,11 @@ module Que
 
         handle_results
       ensure
-        execute :clean_lockers
+        connection.execute :clean_lockers
 
         @listener.unlisten if @listener
       end
     end
-
-    extend Forwardable
-    def_delegators :connection, :execute
 
     def poll
       return unless pollers
@@ -315,7 +314,11 @@ module Que
     end
 
     def try_advisory_lock(id)
-      r = execute("SELECT pg_try_advisory_lock($1) AS l", [id]).first.fetch(:l)
+      r =
+        connection.
+        execute("SELECT pg_try_advisory_lock($1)", [id]).
+        first.
+        fetch(:pg_try_advisory_lock)
 
       Que.internal_log :locker_attempted_lock, self do
         {
@@ -357,15 +360,16 @@ module Que
 
       Que.internal_log :locker_unlocking, self do
         {
-          # TODO: backend_pid: connection.backend_pid,
-          ids: ids,
+          backend_pid: connection.backend_pid,
+          ids:         ids,
         }
       end
 
       values = ids.join('), (')
 
       results =
-        execute "SELECT pg_advisory_unlock(v.i) FROM (VALUES (#{values})) v (i)"
+        connection.execute \
+          "SELECT pg_advisory_unlock(v.i) FROM (VALUES (#{values})) v (i)"
 
       results.each do |result|
         Que.assert(result.fetch(:pg_advisory_unlock)) do
