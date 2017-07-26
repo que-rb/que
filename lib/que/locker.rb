@@ -230,15 +230,7 @@ module Que
           "{\"#{@queue_names.join('","')}\"}",
         ]
 
-        loop do
-          poll
-          break if @stop
-
-          wait
-          break if @stop
-
-          handle_results
-        end
+        {} while cycle
 
         Que.log(
           level: :debug,
@@ -258,24 +250,42 @@ module Que
       end
     end
 
+    def cycle
+      # Poll at the start of a cycle, so that when the worker starts up we can
+      # load up the queue with jobs immediately.
+      poll
+      return if @stop # Short-circuit if we're stopping.
+
+      # The main sleeping part of the cycle. Either waits for notifications or
+      # just sleeps, depending.
+      wait
+      return if @stop
+
+      handle_results
+
+      # If we haven't gotten the stop signal, cycle again.
+      !@stop
+    end
+
     def poll
-      return unless pollers
-      return unless @job_queue.size < @minimum_queue_size
+      # Skip the polling phase if there's no pollers, or if the job queue is
+      # above the minimum size.
+      return unless pollers && @job_queue.size < @minimum_queue_size
 
-      space = @job_queue.space
+      space_to_fill = @job_queue.space
 
-      Que.internal_log(:locker_polling, self) { {space: space} }
+      Que.internal_log(:locker_polling, self) { {space: space_to_fill} }
 
       pollers.each do |poller|
-        break if space <= 0
+        break if space_to_fill <= 0
 
-        if sort_keys = poller.poll(space, held_locks: @locks)
+        if sort_keys = poller.poll(space_to_fill, held_locks: @locks)
           sort_keys.each do |sort_key|
             mark_id_as_locked(sort_key.fetch(:id))
           end
 
           push_jobs(sort_keys)
-          space -= sort_keys.length
+          space_to_fill -= sort_keys.length
         end
       end
     end
