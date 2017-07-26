@@ -57,20 +57,10 @@ module Que
     RESULT_RESOLVERS  = Utils::Registrar.new
 
     MESSAGE_RESOLVERS[:new_job] =
-      -> (messages) {
-        # TODO: attempt locking in bulk, push jobs in bulk.
-        acceptable = @job_queue.accept?(messages)
-        acceptable.each do |message|
-          if lock_job?(message.fetch(:id))
-            push_jobs([message])
-          end
-        end
-      }
+      -> (messages) { push_jobs(lock_jobs(@job_queue.accept?(messages))) }
 
     RESULT_RESOLVERS[:job_finished] =
-      -> (messages) {
-        unlock_jobs(messages.map{|m| m.fetch(:id)})
-      }
+      -> (messages) { unlock_jobs(messages.map{|m| m.fetch(:id)}) }
 
     DEFAULT_POLL_INTERVAL      = 5.0
     DEFAULT_WAIT_PERIOD        = 50
@@ -305,12 +295,31 @@ module Que
       end
     end
 
-    def lock_job?(id)
-      return false if @locks.include?(id)
-      return false unless try_advisory_lock(id)
+    def lock_jobs(messages)
+      messages.reject! { |m| @locks.include?(m.fetch(:id)) }
+      return messages if messages.empty?
 
-      mark_id_as_locked(id)
-      true
+      ids    = messages.map{|m| m.fetch(:id).to_i}
+      values = ids.join('), (')
+
+      results =
+        connection.execute \
+          "SELECT v.i AS id FROM (VALUES (#{values})) v (i) WHERE pg_try_advisory_lock(v.i)"
+
+      locked_ids = results.map{|r| r.fetch(:id)}
+
+      Que.internal_log :locker_attempted_locks, self do
+        {
+          backend_pid: connection.backend_pid,
+          ids:         ids,
+          locked_ids:  locked_ids,
+        }
+      end
+
+      locked_ids.each { |id| mark_id_as_locked(id) }
+
+      locked_ids = locked_ids.to_set
+      messages.keep_if { |m| locked_ids.include?(m.fetch(:id)) }
     end
 
     def try_advisory_lock(id)
@@ -319,14 +328,6 @@ module Que
         execute("SELECT pg_try_advisory_lock($1)", [id]).
         first.
         fetch(:pg_try_advisory_lock)
-
-      Que.internal_log :locker_attempted_lock, self do
-        {
-          backend_pid: connection.backend_pid,
-          id:          id,
-          result:      r,
-        }
-      end
 
       r
     end
