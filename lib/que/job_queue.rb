@@ -39,9 +39,7 @@ module Que
             @array.insert(i || -1, key)
           end
         else
-          @array.push(*sort_keys).sort_by! do |sort_key|
-            sort_key.values_at(:priority, :run_at, :id)
-          end
+          qsort_keys!(@array.push(*sort_keys))
         end
 
         # Notify all waiting threads that they can try again to remove a item.
@@ -76,7 +74,7 @@ module Que
     end
 
     def accept?(sort_keys)
-      sort_keys.sort_by! { |sort_key| sort_key.values_at(:priority, :run_at, :id) }
+      qsort_keys!(sort_keys)
 
       sync do
         start_index = space
@@ -125,6 +123,12 @@ module Que
     private
 
     SORT_KEYS = [:priority, :run_at, :id].freeze
+
+    def qsort_keys!(sort_keys)
+      sort_keys.sort_by! do |sort_key|
+        sort_key.values_at(:priority, :run_at, :id)
+      end
+    end
 
     # Given two sort keys a and b, returns true if a < b and false if a > b.
     # Throws an error if they're the same - that shouldn't happen.
