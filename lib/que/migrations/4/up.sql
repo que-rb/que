@@ -126,7 +126,8 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
           'new_job'    AS message_type,
           NEW.queue    AS queue,
           NEW.priority AS priority,
-          NEW.run_at   AS run_at,
+          -- Make sure we output timestamps as UTC ISO 8601
+          to_char(NEW.run_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS run_at,
           NEW.id       AS id
       ) t;
 

@@ -13,7 +13,7 @@ describe Que::Listener do
     {
       queue: 'queue_name',
       priority: 90,
-      run_at: Time.iso8601("2017-06-30T18:33:33.402669Z"),
+      run_at: "2017-06-30T18:33:33.402669Z",
       id: 44,
     }
   end
@@ -22,7 +22,7 @@ describe Que::Listener do
     {
       queue: 'queue_name',
       priority: 90,
-      run_at: Time.iso8601("2017-06-30T18:33:35.425307Z"),
+      run_at: "2017-06-30T18:33:35.425307Z",
       id: 46,
     }
   end
@@ -57,7 +57,7 @@ describe Que::Listener do
     it "should return empty if there were no messages before the timeout" do
       # Use a short timeout, since we'll always hit it in this spec.
       assert_equal({}, listener.wait_for_messages(0.001))
-      assert_empty internal_messages(event: 'listener_processed_messages')
+      assert_empty internal_messages(event: 'listener_filtered_messages')
     end
 
     it "should return frozen messages" do
@@ -70,7 +70,7 @@ describe Que::Listener do
       assert_equal(
         [
           {
-            internal_event: 'listener_processed_messages',
+            internal_event: 'listener_filtered_messages',
             object_id: listener.object_id,
             backend_pid: connection.backend_pid,
             channel: "que_listener_#{connection.backend_pid}",
@@ -79,7 +79,7 @@ describe Que::Listener do
             }
           }
         ],
-        internal_messages(event: 'listener_processed_messages')
+        internal_messages(event: 'listener_filtered_messages')
       )
     end
 
@@ -185,40 +185,12 @@ describe Que::Listener do
   end
 
   describe "message processing" do
-    describe "for new_job messages" do
-      it "should convert run_at values to Times" do
-        timestamp = Time.now.iso8601(6)
-
-        notify(
-          message_type: 'new_job',
-          queue: 'queue_name',
-          priority: 90,
-          run_at: timestamp,
-          id: 45,
-        )
-
-        assert_equal(
-          {
-            new_job: [
-              {
-                queue: 'queue_name',
-                priority: 90,
-                run_at: Time.iso8601(timestamp),
-                id: 45,
-              }
-            ]
-          },
-          listener.wait_for_messages(10),
-        )
-      end
-    end
-
     describe "when the message is malformed" do
       let :message_to_malform do
         {
           queue: 'queue_name',
           priority: 90,
-          run_at: Time.iso8601("2017-06-30T18:33:35.425307Z"),
+          run_at: "2017-06-30T18:33:35.425307Z",
           id: 45,
         }
       end
@@ -233,17 +205,7 @@ describe Que::Listener do
 
       def assert_message_ignored
         DB.transaction do
-          all_messages.each { |m|
-            run_at = m[:run_at]
-            run_at = run_at.iso8601(6) if run_at.is_a?(Time)
-
-            notify(
-              m.merge(
-                message_type: 'new_job',
-                run_at: run_at,
-              )
-            )
-          }
+          all_messages.each { |m| notify(m.merge(message_type: 'new_job')) }
         end
 
         assert_equal(
@@ -283,22 +245,11 @@ describe Que::Listener do
 
         expected_message = [
           "Message of type 'new_job' doesn't match format!",
-          "Message: {:queue=>\"queue_name\", :priority=>90, :run_at=>2017-06-30 18:33:35 UTC}",
-          "Format: {:queue=>String, :id=>Integer, :run_at=>Time, :priority=>Integer}",
+          "Message: {:queue=>\"queue_name\", :priority=>90, :run_at=>\"2017-06-30T18:33:35.425307Z\"}",
+          "Format: {:queue=>String, :id=>Integer, :run_at=>/\\A\\d{4}\\-\\d{2}\\-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{6}Z\\z/, :priority=>Integer}",
         ].join("\n")
 
         assert_equal expected_message, error.message
-      end
-
-      it "should report callback errors as necessary" do
-        message_to_malform[:run_at] = 'blah'
-
-        error = nil
-        Que.error_notifier = proc { |e| error = e }
-
-        assert_message_ignored
-        sleep_until! { !error.nil? }
-        assert_instance_of ArgumentError, error
       end
     end
   end

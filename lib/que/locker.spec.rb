@@ -438,18 +438,16 @@ describe Que::Locker do
       payload =
         jobs_dataset.
           where(id: id).
-          select(:queue, :priority, :run_at, :id).
-          from_self(alias: :t).
-          get{row_to_json(:t)}
+          select(:queue, :priority, :run_at, :id).first
+
+      payload[:run_at] = payload[:run_at].utc.iso8601(6)
 
       pid = DB[:que_lockers].get(:pid)
       refute_nil pid
       DB.notify "que_listener_#{pid}",
         payload: JSON.dump(payload.merge(message_type: 'new_job'))
 
-      m = sleep_until! { internal_messages(event: 'listener_processed_messages').first }
-
-      payload[:run_at] = Time.iso8601(payload[:run_at]).to_s
+      m = sleep_until! { internal_messages(event: 'listener_filtered_messages').first }
 
       assert_equal(
         {

@@ -6,6 +6,7 @@ require 'socket' # For Socket.gethostname
 module Que
   CURRENT_HOSTNAME = Socket.gethostname.freeze
   DEFAULT_QUEUE    = 'default'.freeze
+  TIME_REGEX       = /\A\d{4}\-\d{2}\-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}Z\z/
 
   class Error < StandardError; end
 

@@ -2,8 +2,7 @@
 
 module Que
   class Listener
-    MESSAGE_CALLBACKS = Utils::Registrar.new(raise_on_missing: false)
-    MESSAGE_FORMATS   = Utils::Registrar.new(raise_on_missing: false, &:freeze)
+    MESSAGE_FORMATS = Utils::Registrar.new(raise_on_missing: false, &:freeze)
 
     attr_reader :connection, :channel
 
@@ -85,18 +84,6 @@ module Que
       end
 
       output.each do |type, messages|
-        if callback = MESSAGE_CALLBACKS[type]
-          messages.select! do |message|
-            begin
-              callback.call(message)
-              true
-            rescue => error
-              Que.notify_error_async(error)
-              false
-            end
-          end
-        end
-
         if format = MESSAGE_FORMATS[type]
           messages.select! do |m|
             if message_matches_format?(m, format)
@@ -119,7 +106,7 @@ module Que
 
       output.delete_if { |_, messages| messages.empty? }
 
-      Que.internal_log(:listener_processed_messages, self) do
+      Que.internal_log(:listener_filtered_messages, self) do
         {
           backend_pid: connection.backend_pid,
           channel:     channel,

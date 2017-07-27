@@ -7,15 +7,11 @@
 require 'set'
 
 module Que
-  Listener::MESSAGE_CALLBACKS[:new_job] = -> (message) {
-    message[:run_at] = Time.parse(message.fetch(:run_at))
-  }
-
   Listener::MESSAGE_FORMATS[:new_job] =
     {
       queue:    String,
       id:       Integer,
-      run_at:   Time,
+      run_at:   TIME_REGEX,
       priority: Integer,
     }
 
