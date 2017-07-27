@@ -48,7 +48,7 @@ describe Que::Migrations, "notification trigger" do
         assert_equal 'new_job', json['message_type']
         assert_equal job[:id], json['id']
         assert_equal 100, json['priority']
-        assert_in_delta Time.parse(json['run_at']), Time.now, 3
+        assert_in_delta Time.iso8601(json['run_at']), Time.now.utc, 3
       end
 
       assert_nil conn.wait_for_notify(0.01)
