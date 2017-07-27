@@ -60,7 +60,7 @@ module Que
       -> (messages) { push_jobs(lock_jobs(@job_queue.accept?(messages))) }
 
     RESULT_RESOLVERS[:job_finished] =
-      -> (messages) { unlock_jobs(messages.map{|m| m.fetch(:id)}) }
+      -> (messages) { finish_jobs(messages) }
 
     DEFAULT_POLL_INTERVAL      = 5.0
     DEFAULT_WAIT_PERIOD        = 50
@@ -353,6 +353,10 @@ module Que
 
       locked_ids = locked_ids.to_set
       messages.keep_if { |m| locked_ids.include?(m.fetch(:id)) }
+    end
+
+    def finish_jobs(messages)
+      unlock_jobs(messages.map{|m| m.fetch(:id)})
     end
 
     def unlock_jobs(ids)
