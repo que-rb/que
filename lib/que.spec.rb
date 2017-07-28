@@ -4,9 +4,17 @@ require 'spec_helper'
 
 describe Que do
   describe ".default_queue" do
-    it "should default to 'default'"
+    it "should default to 'default'" do
+      assert_equal 'default', Que.default_queue
+    end
 
-    it "should be overridable, and then revert to the default if set to nil"
+    it "should be overridable, and then revert to the default if set to nil" do
+      assert_equal 'default', Que.default_queue
+      Que.default_queue = 'my_queue'
+      assert_equal 'my_queue', Que.default_queue
+      Que.default_queue = nil
+      assert_equal 'default', Que.default_queue
+    end
   end
 
   describe ".pool" do
@@ -39,6 +47,12 @@ describe Que do
   end
 
   describe "connection_proc=" do
-    it "should define the logic that's used to retrieve a connection"
+    it "should define the logic that's used to retrieve a connection" do
+      Que.connection_proc = proc { |&block| block.call(EXTRA_PG_CONNECTION) }
+      Que.checkout do |c|
+        assert_instance_of Que::Connection, c
+        assert_equal EXTRA_PG_CONNECTION, c.wrapped_connection
+      end
+    end
   end
 end
