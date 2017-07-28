@@ -83,21 +83,23 @@ module Que
         }
       end
 
-      output.each do |type, messages|
-        if format = MESSAGE_FORMATS[type]
-          messages.select! do |m|
-            if message_matches_format?(m, format)
-              true
-            else
-              message = [
-                "Message of type '#{type}' doesn't match format!",
-                "Message: #{m.inspect}",
-                "Format: #{format.inspect}",
-              ].join("\n")
+      output.keep_if { |type, _| MESSAGE_FORMATS.has_key?(type) }
 
-              Que.notify_error_async(Error.new(message))
-              false
-            end
+      output.each do |type, messages|
+        format = MESSAGE_FORMATS[type]
+
+        messages.select! do |m|
+          if message_matches_format?(m, format)
+            true
+          else
+            message = [
+              "Message of type '#{type}' doesn't match format!",
+              "Message: #{m.inspect}",
+              "Format: #{format.inspect}",
+            ].join("\n")
+
+            Que.notify_error_async(Error.new(message))
+            false
           end
         end
 

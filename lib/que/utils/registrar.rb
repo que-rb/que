@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
 # A generic class for registering callbacks/rules/SQL statements/whatever else.
-# Basically a hash with a couple extra features for safety.
+# Hash-like but with a couple extra features for safety.
 
 module Que
   module Utils
     class Registrar
+      extend Forwardable
+
+      def_delegators :@objects, :has_key?
+
       def initialize(raise_on_missing: true, &block)
         @objects          = {}
         @block            = block
