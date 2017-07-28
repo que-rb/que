@@ -193,12 +193,6 @@ class QueSpec < Minitest::Spec
     DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid)
   end
 
-  def backend_pid(connection)
-    connection.
-      async_exec("select pg_backend_pid()").
-      to_a.first['pg_backend_pid'].to_i
-  end
-
   def current_spec_location
     location = self.class.instance_method(name).source_location.join(':')
     root_directory = File.expand_path('../..', __FILE__) << '/'

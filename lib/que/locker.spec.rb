@@ -68,12 +68,11 @@ describe Que::Locker do
 
     it "should allow a dedicated PG connection to be specified" do
       pg = EXTRA_PG_CONNECTION
-      pid = backend_pid(pg)
 
       locker_settings[:connection] = pg
       locker
 
-      sleep_until! { DB[:que_lockers].select_map(:pid) == [pid] }
+      sleep_until! { DB[:que_lockers].select_map(:pid) == [pg.backend_pid] }
       locker.stop!
     end
 
