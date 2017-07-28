@@ -27,6 +27,19 @@ describe Que::Listener do
     }
   end
 
+  before do
+    # Add a couple more message formats, for testing purposes only.
+    Que::Listener::MESSAGE_FORMATS[:type_1] = {value: Integer}
+    Que::Listener::MESSAGE_FORMATS[:type_2] = {value: Integer}
+  end
+
+  after do
+    # Clean out testing formats.
+    objects = Que::Listener::MESSAGE_FORMATS.instance_variable_get(:@objects)
+    assert_instance_of Hash, objects.delete(:type_1)
+    assert_instance_of Hash, objects.delete(:type_2)
+  end
+
   around do |&block|
     super() do
       QUE_POOL.checkout do |conn|
@@ -61,10 +74,10 @@ describe Que::Listener do
     end
 
     it "should return frozen messages" do
-      notify(message_type: 'type_1', arg: 'blah')
+      notify(message_type: 'type_1', value: 4)
 
       result = listener.wait_for_messages(10)[:type_1].first
-      assert_equal({arg: 'blah'}, result)
+      assert_equal({value: 4}, result)
       assert result.frozen?
 
       assert_equal(
@@ -75,7 +88,7 @@ describe Que::Listener do
             backend_pid: connection.backend_pid,
             channel: "que_listener_#{connection.backend_pid}",
             messages: {
-              type_1: [{arg: 'blah'}]
+              type_1: [{value: 4}]
             }
           }
         ],
@@ -132,10 +145,10 @@ describe Que::Listener do
       end
 
       it "should listen on that channel" do
-        notify({message_type: 'type_1', arg: 'blah'}, channel: 'test_channel')
+        notify({message_type: 'type_1', value: 4}, channel: 'test_channel')
 
         result = listener.wait_for_messages(10)[:type_1].first
-        assert_equal({arg: 'blah'}, result)
+        assert_equal({value: 4}, result)
       end
     end
 
@@ -161,11 +174,11 @@ describe Que::Listener do
 
   describe "unlisten" do
     it "should stop listening for new messages" do
-      notify(message_type: 'blah')
+      notify(message_type: 'type_1')
       connection.drain_notifications
 
       listener.unlisten
-      notify(message_type: 'blah')
+      notify(message_type: 'type_1')
 
       # Execute a new query to fetch any new notifications.
       connection.execute "SELECT 1"
@@ -173,7 +186,7 @@ describe Que::Listener do
     end
 
     it "when unlistening should not leave any residual messages" do
-      5.times { notify(message_type: 'blah') }
+      5.times { notify(message_type: 'type_1') }
 
       listener.unlisten
       assert_nil connection.next_notification
