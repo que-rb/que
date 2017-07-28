@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'optparse'
+require 'logger'
 
 module Que
   module CommandLineInterface

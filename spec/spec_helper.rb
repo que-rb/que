@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
 require 'que'
+
 require 'uri'
 require 'pg'
-require 'logger'
-require 'json'
 require 'pry'
 require 'pg_examiner'
 require 'timeout'
