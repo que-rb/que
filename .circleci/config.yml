@@ -86,13 +86,17 @@ defaults: &defaults
             (
               for GEMFILE_VERSION in $GEMFILE_VERSIONS
               do
-                # Use the template1 DB that comes with Postgres so we don't have
-                # to spend time creating a new one.
-                (
-                  DATABASE_URL="postgres://postgres:@localhost:$PORT/template1" \
-                  BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
-                  rvm $RUBY_VERSION do bundle exec rake >> $PORT.output 2>&1
-                ) || touch specs_failed
+                for USE_AR in true false
+                do
+                  # Use the template1 DB that comes with Postgres so we don't
+                  # have to spend time creating a new one.
+                  (
+                    DATABASE_URL="postgres://postgres:@localhost:$PORT/template1" \
+                    BUNDLE_GEMFILE="spec/gemfiles/Gemfile.$GEMFILE_VERSION" \
+                    USE_ACTIVERECORD="$USE_AR" \
+                    rvm $RUBY_VERSION do bundle exec rake >> $PORT.output 2>&1
+                  ) || touch specs_failed
+                done
               done
             ) &
           done

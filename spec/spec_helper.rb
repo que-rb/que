@@ -44,7 +44,7 @@ end
 EXTRA_PG_CONNECTION = NEW_PG_CONNECTION.call
 EXTRA_POOL = Que::ConnectionPool.new { |&block| block.call(EXTRA_PG_CONNECTION) }
 
-if ENV['USE_ACTIVERECORD']
+if ENV['USE_ACTIVERECORD'] == 'true'
   require 'active_record'
   ActiveRecord::Base.establish_connection(QUE_URL)
 end
@@ -73,6 +73,7 @@ if ENV['CI']
   puts "\n\n" + [
     "Ruby: #{RUBY_VERSION}",
     "PostgreSQL: #{DB["SHOW server_version"].get}",
+    "ActiveRecord: #{'not ' if !defined?(ActiveRecord)} loaded"
     "Gemfile: #{ENV['BUNDLE_GEMFILE']}",
   ].join('; ')
 end
