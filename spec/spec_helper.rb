@@ -59,15 +59,13 @@ end
 
 # Define connection pools of various types for testing purposes.
 
-QUE_POOLS = {}
-
-{
+QUE_POOLS = {
   sequel: DB,
   pond: Pond.new(&NEW_PG_CONNECTION),
   connection_pool: ConnectionPool.new(&NEW_PG_CONNECTION),
-}.each do |name, source|
+}.each_with_object({}) do |(name, source), hash|
   Que.connection = source
-  QUE_POOLS[name] = Que.pool
+  hash[name] = Que.pool
 end
 
 # ActiveRecord requires ActiveSupport, which affects a bunch of core classes and
@@ -82,7 +80,7 @@ end
 
 QUE_POOLS.freeze
 
-Que.pool = QUE_POOLS[:pond]
+Que.pool = DEFAULT_QUE_POOL = QUE_POOLS[:pond]
 
 
 
@@ -212,7 +210,7 @@ class QueSpec < Minitest::Spec
   def around
     puts "Running: #{current_spec_location}" if ENV['LOG_SPEC']
 
-    Que.pool            = QUE_POOLS[:pond]
+    Que.pool            = DEFAULT_QUE_POOL
     Que.logger          = QUE_LOGGER
     Que.internal_logger = QUE_INTERNAL_LOGGER
     Que.log_formatter   = nil

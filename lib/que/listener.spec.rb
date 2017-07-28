@@ -42,7 +42,7 @@ describe Que::Listener do
 
   around do |&block|
     super() do
-      QUE_POOLS[:pond].checkout do |conn|
+      DEFAULT_QUE_POOL.checkout do |conn|
         begin
           @connection = conn
           listener.listen

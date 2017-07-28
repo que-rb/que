@@ -61,17 +61,13 @@ describe Que::ConnectionPool do
 
   # Specs for theoretical, poorly-behaved pools
   describe ".checkout" do
-    let :pool do
-      QUE_POOLS[:pond]
-    end
-
     it "if the pool is not reentrant should raise an error" do
       # Borrow three PG connections from the pool.
 
       q1, q2 = Queue.new, Queue.new
       threads = Array.new(3) do
         Thread.new do
-          pool.checkout do |c|
+          DEFAULT_QUE_POOL.checkout do |c|
             q1.push(nil)
             q2.pop
             c

@@ -7,7 +7,7 @@ describe Que::Connection do
 
   around do |&block|
     super() do
-      QUE_POOLS[:pond].checkout do |conn|
+      DEFAULT_QUE_POOL.checkout do |conn|
         @connection = conn
         block.call
       end
@@ -16,7 +16,7 @@ describe Que::Connection do
 
   describe ".wrap()" do
     it "when given a Que connection should return it" do
-      QUE_POOLS[:pond].checkout do |conn|
+      DEFAULT_QUE_POOL.checkout do |conn|
         assert_equal conn.object_id, Que::Connection.wrap(conn).object_id
       end
     end

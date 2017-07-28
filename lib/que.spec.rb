@@ -19,7 +19,7 @@ describe Que do
 
   describe ".pool" do
     it "should provide access to the connection pool" do
-      assert_equal QUE_POOLS[:pond], Que.pool
+      assert_equal DEFAULT_QUE_POOL, Que.pool
     end
 
     it "when no connection has been established should raise an error" do
