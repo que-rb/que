@@ -24,10 +24,8 @@ module Que
         nil
       end
 
-      MAXIMUM_QUEUE_SIZE = 5
-      ASYNC_QUEUE  = Queue.new
-      ASYNC_THREAD = Thread.new { loop { Que.notify_error(*ASYNC_QUEUE.pop) } }
-      ASYNC_THREAD.abort_on_exception = true
+      ASYNC_QUEUE    = Queue.new
+      MAX_QUEUE_SIZE = 5
 
       # Helper method to notify errors asynchronously. For use in high-priority
       # code, where we don't want to be held up by whatever I/O the error
@@ -39,11 +37,25 @@ module Que
         # here to ensure that the error queue doesn't grow unboundedly large in
         # pathological cases.
 
-        if ASYNC_QUEUE.size < MAXIMUM_QUEUE_SIZE
+        if ASYNC_QUEUE.size < MAX_QUEUE_SIZE
           ASYNC_QUEUE.push(args)
+          # Puma raises some ugly warnings if you start up a new thread in the
+          # background during initialization, so start the async error-reporting
+          # thread lazily.
+          async_error_thread
           true
         else
           false
+        end
+      end
+
+      def async_error_thread
+        CONFIG_MUTEX.synchronize do
+          @async_error_thread ||=
+            Thread.new do
+              Thread.current.abort_on_exception = true
+              loop { Que.notify_error(*ASYNC_QUEUE.pop) }
+            end
         end
       end
     end
