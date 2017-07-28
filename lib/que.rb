@@ -67,8 +67,20 @@ module Que
       @default_queue || DEFAULT_QUEUE
     end
 
-    # The primary way of integrating Que with a connection pool - pass it a
-    # reentrant block that locks and yields a Postgres connection.
+    def connection=(connection)
+      self.connection_proc =
+        case connection.class.to_s
+        when 'Sequel::Postgres::Database'
+          connection.method(:synchronize)
+        when 'NilClass'
+          connection
+        else
+          raise Error, "Unsupported connection: #{connection.inspect}"
+        end
+    end
+
+    # Integrate Que with any connection pool by passing it a reentrant block
+    # that locks and yields a Postgres connection.
     def connection_proc=(connection_proc)
       @pool = connection_proc && ConnectionPool.new(&connection_proc)
     end

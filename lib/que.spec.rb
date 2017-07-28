@@ -35,7 +35,21 @@ describe Que do
   end
 
   describe "connection=" do
-    it "should accept a Sequel database"
+    it "should accept a Sequel database" do
+      Que.connection = DB
+
+      DB.synchronize do |conn1|
+        Que.checkout do |conn2|
+          assert_equal conn1, conn2.wrapped_connection
+        end
+      end
+
+      Que.checkout do |conn1|
+        DB.synchronize do |conn2|
+          assert_equal conn1.wrapped_connection, conn2
+        end
+      end
+    end
 
     it "should accept the ActiveRecord class"
 
@@ -43,7 +57,16 @@ describe Que do
 
     it "should accept a ConnectionPool instance"
 
-    it "should accept nil"
+    it "should accept nil" do
+      Que.connection = nil
+
+      error =
+        assert_raises Que::Error do
+          Que.pool
+        end
+
+      assert_match /Que connection not established!/, error.message
+    end
   end
 
   describe "connection_proc=" do
