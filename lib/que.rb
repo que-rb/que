@@ -72,10 +72,12 @@ module Que
         case connection.class.to_s
         when 'Sequel::Postgres::Database'
           connection.method(:synchronize)
+        when 'Pond', 'ConnectionPool'
+          connection.method(:checkout)
         when 'NilClass'
           connection
         else
-          raise Error, "Unsupported connection: #{connection.inspect}"
+          raise Error, "Unsupported connection: #{connection.class}"
         end
     end
 

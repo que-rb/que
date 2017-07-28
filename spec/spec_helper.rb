@@ -5,10 +5,14 @@ require 'uri'
 require 'pg'
 require 'logger'
 require 'json'
-require 'pond'
 require 'pry'
 require 'pg_examiner'
 require 'timeout'
+
+# Connection sources.
+require 'pond'
+require 'connection_pool'
+require 'activerecord' if ENV['USE_ACTIVERECORD']
 
 require 'minitest/autorun'
 require 'minitest/pride'
