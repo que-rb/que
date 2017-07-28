@@ -73,7 +73,7 @@ if ENV['CI']
   puts "\n\n" + [
     "Ruby: #{RUBY_VERSION}",
     "PostgreSQL: #{DB["SHOW server_version"].get}",
-    "ActiveRecord: #{'not ' if !defined?(ActiveRecord)} loaded"
+    "ActiveRecord: #{'not ' if !defined?(ActiveRecord)} loaded",
     "Gemfile: #{ENV['BUNDLE_GEMFILE']}",
   ].join('; ')
 end
