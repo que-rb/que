@@ -19,7 +19,7 @@ describe Que do
 
   describe ".pool" do
     it "should provide access to the connection pool" do
-      assert_equal QUE_POOL, Que.pool
+      assert_equal QUE_POOLS[:pond], Que.pool
     end
 
     it "when no connection has been established should raise an error" do
@@ -70,16 +70,17 @@ describe Que do
     end
 
     it "should accept a Pond instance" do
-      Que.connection = QUE_POND
+      pond = Pond.new &NEW_PG_CONNECTION
+      Que.connection = pond
 
-      QUE_POND.checkout do |conn1|
+      pond.checkout do |conn1|
         Que.checkout do |conn2|
           assert_equal conn1, conn2.wrapped_connection
         end
       end
 
       Que.checkout do |conn1|
-        QUE_POND.checkout do |conn2|
+        pond.checkout do |conn2|
           assert_equal conn1.wrapped_connection, conn2
         end
       end

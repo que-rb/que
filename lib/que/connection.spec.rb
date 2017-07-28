@@ -7,10 +7,32 @@ describe Que::Connection do
 
   around do |&block|
     super() do
-      QUE_POOL.checkout do |conn|
+      QUE_POOLS[:pond].checkout do |conn|
         @connection = conn
         block.call
       end
+    end
+  end
+
+  describe ".wrap()" do
+    it "when given a Que connection should return it" do
+      QUE_POOLS[:pond].checkout do |conn|
+        assert_equal conn.object_id, Que::Connection.wrap(conn).object_id
+      end
+    end
+
+    it "when given a PG connection should wrap it" do
+      c = Que::Connection.wrap(EXTRA_PG_CONNECTION)
+      assert_instance_of(Que::Connection, c)
+      assert_equal EXTRA_PG_CONNECTION, c.wrapped_connection
+    end
+
+    it "when given something else should raise an error" do
+      error = assert_raises(Que::Error) do
+        Que::Connection.wrap('no')
+      end
+
+      assert_equal "Unsupported input for Connection.wrap: String", error.message
     end
   end
 

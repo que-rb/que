@@ -30,12 +30,17 @@ describe Que::Migrations, "notification trigger" do
     listen_connection do |conn|
       DB[:que_lockers].insert(locker_attrs)
 
-      notify_pid =
-        Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
+      notify_pid = nil
 
-      conn.async_exec "LISTEN que_listener_1"
+      Que.checkout do
+        notify_pid =
+          Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid].to_i
 
-      Que::Job.enqueue
+        conn.async_exec "LISTEN que_listener_1"
+
+        Que::Job.enqueue
+      end
+
       job = jobs_dataset.first
 
       conn.wait_for_notify do |channel, pid, payload|

@@ -23,6 +23,16 @@ module Que
 
     def_delegators :wrapped_connection, :backend_pid, :wait_for_notify
 
+    class << self
+      def wrap(conn)
+        case conn
+        when self           then conn
+        when PG::Connection then new(conn)
+        else raise Error, "Unsupported input for Connection.wrap: #{conn.class}"
+        end
+      end
+    end
+
     def initialize(connection)
       @wrapped_connection = connection
     end

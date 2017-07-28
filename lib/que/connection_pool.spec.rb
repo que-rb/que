@@ -4,7 +4,7 @@ require 'spec_helper'
 
 describe Que::ConnectionPool do
   let :pool do
-    QUE_POOL
+    QUE_POOLS[:pond]
   end
 
   describe ".checkout" do
@@ -31,12 +31,12 @@ describe Que::ConnectionPool do
     end
 
     it "if the pool is not reentrant should raise an error" do
-      # Borrow three PG connections from QUE_POOL.
+      # Borrow three PG connections from the pool.
 
       q1, q2 = Queue.new, Queue.new
       threads = Array.new(3) do
         Thread.new do
-          QUE_POOL.checkout do |c|
+          pool.checkout do |c|
             q1.push(nil)
             q2.pop
             c

@@ -99,33 +99,36 @@ describe Que::Locker do
         listening:         true,
       )
 
-      # We want to spec that invalid lockers with the current backend's pid are
-      # also cleared out, so:
-      backend_pid =
-        Que.execute("select pg_backend_pid()").first[:pg_backend_pid]
+      Que.checkout do |conn|
+        # We want to spec that invalid lockers with the current backend's pid are
+        # also cleared out, so:
+        backend_pid =
+          Que.execute("select pg_backend_pid()").first[:pg_backend_pid]
 
-      DB[:que_lockers].insert(
-        pid:               backend_pid,
-        ruby_pid:          0,
-        ruby_hostname:     'blah1',
-        worker_count:      4,
-        worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
-        queues:            Sequel.pg_array(['']),
-        listening:         true,
-      )
+        DB[:que_lockers].insert(
+          pid:               backend_pid,
+          ruby_pid:          0,
+          ruby_hostname:     'blah1',
+          worker_count:      4,
+          worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
+          queues:            Sequel.pg_array(['']),
+          listening:         true,
+        )
 
-      assert_equal 2, DB[:que_lockers].count
+        assert_equal 2, DB[:que_lockers].count
 
-      locker
-      sleep_until! { DB[:que_lockers].count == 1 }
+        locker_settings[:connection] = conn
+        locker
+        sleep_until! { DB[:que_lockers].count == 1 }
 
-      record = DB[:que_lockers].first
-      assert_equal backend_pid, record[:pid]
-      assert_equal Process.pid, record[:ruby_pid]
+        record = DB[:que_lockers].first
+        assert_equal backend_pid, record[:pid]
+        assert_equal Process.pid, record[:ruby_pid]
 
-      locker.stop!
+        locker.stop!
 
-      assert_equal 0, DB[:que_lockers].count
+        assert_equal 0, DB[:que_lockers].count
+      end
     end
 
     it "should run the on_worker_start callback for each worker, if passed" do

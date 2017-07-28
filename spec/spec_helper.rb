@@ -43,17 +43,6 @@ end
 EXTRA_PG_CONNECTION = NEW_PG_CONNECTION.call
 EXTRA_POOL = Que::ConnectionPool.new { |&block| block.call(EXTRA_PG_CONNECTION) }
 
-if ENV['USE_ACTIVERECORD'] == 'true'
-  require 'active_record'
-  ActiveRecord::Base.establish_connection(QUE_URL)
-end
-
-
-
-QUE_POND = Pond.new(collection: :stack, &NEW_PG_CONNECTION)
-Que.connection_proc = QUE_POND.method(:checkout)
-QUE_POOL = Que.pool
-
 
 
 # We use Sequel to examine the database in specs.
@@ -68,12 +57,41 @@ end
 
 
 
+# Define connection pools of various types for testing purposes.
+
+QUE_POOLS = {}
+
+{
+  sequel: DB,
+  pond: Pond.new(&NEW_PG_CONNECTION),
+  connection_pool: ConnectionPool.new(&NEW_PG_CONNECTION),
+}.each do |name, source|
+  Que.connection = source
+  QUE_POOLS[name] = Que.pool
+end
+
+# ActiveRecord requires ActiveSupport, which affects a bunch of core classes and
+# may change some behavior that we rely on, so only bring it in sometimes.
+if ENV['USE_ACTIVERECORD'] == 'true'
+  require 'active_record'
+  ActiveRecord::Base.establish_connection(QUE_URL)
+
+  Que.connection = ActiveRecord
+  QUE_POOLS[:active_record] = Que.pool
+end
+
+QUE_POOLS.freeze
+
+Que.pool = QUE_POOLS[:pond]
+
+
+
 if ENV['CI']
   puts "\n\n" + [
     "Ruby: #{RUBY_VERSION}",
     "PostgreSQL: #{DB["SHOW server_version"].get}",
-    "ActiveRecord: #{'not ' if !defined?(ActiveRecord)}loaded",
     "Gemfile: #{ENV['BUNDLE_GEMFILE']}",
+    "ActiveRecord: #{'not ' if !defined?(ActiveRecord)}loaded",
   ].join("\n")
 end
 
@@ -194,7 +212,7 @@ class QueSpec < Minitest::Spec
   def around
     puts "Running: #{current_spec_location}" if ENV['LOG_SPEC']
 
-    Que.pool            = QUE_POOL
+    Que.pool            = QUE_POOLS[:pond]
     Que.logger          = QUE_LOGGER
     Que.internal_logger = QUE_INTERNAL_LOGGER
     Que.log_formatter   = nil

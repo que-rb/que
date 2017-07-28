@@ -33,7 +33,7 @@ module Que
               end
             end
 
-            self.current_connection = wrapped = Connection.new(conn)
+            self.current_connection = wrapped = Connection.wrap(conn)
           end
 
           yield(wrapped)
