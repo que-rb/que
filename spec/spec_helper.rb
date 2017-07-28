@@ -2,21 +2,24 @@
 
 require 'que'
 
+# Libraries necessary for tests.
 require 'uri'
 require 'pg'
 require 'pry'
 require 'pg_examiner'
 require 'timeout'
 
-# Connection sources.
+# Connection pool sources.
 require 'pond'
 require 'connection_pool'
 
+# Minitest stuff.
 require 'minitest/autorun'
 require 'minitest/pride'
 require 'minitest/hooks'
 require 'minitest/profile'
 
+# Other support stuff.
 Dir['./spec/support/**/*.rb'].sort.each &method(:require)
 
 
@@ -41,7 +44,6 @@ NEW_PG_CONNECTION = proc do
 end
 
 EXTRA_PG_CONNECTION = NEW_PG_CONNECTION.call
-EXTRA_POOL = Que::ConnectionPool.new { |&block| block.call(EXTRA_PG_CONNECTION) }
 
 
 
@@ -60,10 +62,11 @@ end
 # Define connection pools of various types for testing purposes.
 
 QUE_POOLS = {
-  sequel: DB,
-  pond: Pond.new(&NEW_PG_CONNECTION),
+  sequel:          DB,
+  pond:            Pond.new(&NEW_PG_CONNECTION),
   connection_pool: ConnectionPool.new(&NEW_PG_CONNECTION),
-}.each_with_object({}) do |(name, source), hash|
+}.
+each_with_object({}) do |(name, source), hash|
   Que.connection = source
   hash[name] = Que.pool
 end
@@ -111,6 +114,7 @@ class QueSpec < Minitest::Spec
   include Minitest::Hooks
 
   SPEC_TIMEOUT = (ENV['SPEC_TIMEOUT'] || (ENV['CI'] ? 10 : 600)).to_i
+  SLEEP_UNTIL_TIMEOUT = 2
 
   register_spec_type(//, self)
 
@@ -126,16 +130,12 @@ class QueSpec < Minitest::Spec
     locker.job_queue.to_a.map { |h| h.fetch(:id) }
   end
 
-  # Travis seems to freeze the VM the tests run in sometimes, so bump up the
-  # limit when running in CI.
-  QUE_SLEEP_UNTIL_TIMEOUT = ENV['CI'] ? 10 : 2
-
   # Helper for testing threaded code.
   def sleep_until!(*args, &block)
     sleep_until(*args, &block) || raise("sleep_until! timeout reached")
   end
 
-  def sleep_until(timeout = QUE_SLEEP_UNTIL_TIMEOUT)
+  def sleep_until(timeout = SLEEP_UNTIL_TIMEOUT)
     deadline = Time.now + timeout
     loop do
       if result = yield

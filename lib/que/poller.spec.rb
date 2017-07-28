@@ -4,16 +4,7 @@ require 'spec_helper'
 
 describe Que::Poller do
   let :connection do
-    @connection
-  end
-
-  around do |&block|
-    super() do
-      EXTRA_POOL.checkout do |conn|
-        @connection = conn
-        block.call
-      end
-    end
+    Que::Connection.wrap(EXTRA_PG_CONNECTION)
   end
 
   def held_advisory_locks(override_connection: nil)
