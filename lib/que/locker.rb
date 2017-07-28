@@ -296,7 +296,7 @@ module Que
           if resolver = MESSAGE_RESOLVERS[type]
             instance_exec messages, &resolver
           else
-            # TODO: Unexpected type - log something? Ignore it?
+            raise Error, "Unexpected message type: #{type.inspect}"
           end
         end
       else
@@ -312,7 +312,7 @@ module Que
         if resolver = RESULT_RESOLVERS[type]
           instance_exec messages, &resolver
         else
-          raise Error, "Unexpected result message type: #{type.inspect}"
+          raise Error, "Unexpected result type: #{type.inspect}"
         end
       end
     end
