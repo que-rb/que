@@ -11,11 +11,9 @@ module Que
 
   class Error < StandardError; end
 
-  # Need support for object registration early.
-  require_relative 'que/utils/registrar'
-
   # Store SQL strings frozen, with squashed whitespace so logs read better.
-  SQL = Utils::Registrar.new { |sql| sql.strip.gsub(/\s+/, ' ').freeze }
+  SQL = {}
+  def SQL.[]=(k,v); super(k, v.strip.gsub(/\s+/, ' ').freeze); end
 
   # Load up modules that allow registration before modules that use it.
   require_relative 'que/listener'

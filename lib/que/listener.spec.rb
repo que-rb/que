@@ -35,7 +35,7 @@ describe Que::Listener do
 
   after do
     # Clean out testing formats.
-    objects = Que::Listener::MESSAGE_FORMATS.instance_variable_get(:@objects)
+    objects = Que::Listener::MESSAGE_FORMATS
     assert_instance_of Hash, objects.delete(:type_1)
     assert_instance_of Hash, objects.delete(:type_2)
   end

@@ -49,8 +49,8 @@ module Que
   class Locker
     attr_reader :thread, :workers, :job_queue, :locks
 
-    MESSAGE_RESOLVERS = Utils::Registrar.new
-    RESULT_RESOLVERS  = Utils::Registrar.new
+    MESSAGE_RESOLVERS = {}
+    RESULT_RESOLVERS  = {}
 
     MESSAGE_RESOLVERS[:new_job] =
       -> (messages) { push_jobs(lock_jobs(@job_queue.accept?(messages))) }

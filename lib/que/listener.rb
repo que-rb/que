@@ -2,7 +2,7 @@
 
 module Que
   class Listener
-    MESSAGE_FORMATS = Utils::Registrar.new(raise_on_missing: false, &:freeze)
+    MESSAGE_FORMATS = {}
 
     attr_reader :connection, :channel
 
@@ -86,7 +86,7 @@ module Que
       output.keep_if { |type, _| MESSAGE_FORMATS.has_key?(type) }
 
       output.each do |type, messages|
-        format = MESSAGE_FORMATS[type]
+        format = MESSAGE_FORMATS.fetch(type)
 
         messages.select! do |m|
           if message_matches_format?(m, format)
