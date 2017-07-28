@@ -12,7 +12,6 @@ require 'timeout'
 # Connection sources.
 require 'pond'
 require 'connection_pool'
-require 'activerecord' if ENV['USE_ACTIVERECORD']
 
 require 'minitest/autorun'
 require 'minitest/pride'
@@ -44,6 +43,11 @@ end
 
 EXTRA_PG_CONNECTION = NEW_PG_CONNECTION.call
 EXTRA_POOL = Que::ConnectionPool.new { |&block| block.call(EXTRA_PG_CONNECTION) }
+
+if ENV['USE_ACTIVERECORD']
+  require 'active_record'
+  ActiveRecord::Base.establish_connection(QUE_URL)
+end
 
 
 

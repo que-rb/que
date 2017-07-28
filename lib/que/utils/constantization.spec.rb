@@ -9,23 +9,28 @@ describe Que::Utils::Constantization do
       assert_equal expected, actual
     end
 
-    it "should defer to String#constantize if it exists" do
-      refute ''.respond_to?(:constantize)
+    if !defined?(ActiveRecord)
+      # This spec, which defines and undefines String#constantize, might mess up
+      # ActiveRecord's internals, so let's skip it.
 
-      begin
-        class String
-          def constantize
-            Que::Utils
-          end
-        end
-
-        assert_constantization Que::Utils, ""
-      ensure
-        class String
-          remove_method :constantize
-        end
-
+      it "should defer to String#constantize if it exists" do
         refute ''.respond_to?(:constantize)
+
+        begin
+          class String
+            def constantize
+              Que::Utils
+            end
+          end
+
+          assert_constantization Que::Utils, ""
+        ensure
+          class String
+            remove_method :constantize
+          end
+
+          refute ''.respond_to?(:constantize)
+        end
       end
     end
 

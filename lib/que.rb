@@ -67,17 +67,27 @@ module Que
       @default_queue || DEFAULT_QUEUE
     end
 
+    ACTIVE_RECORD_PROC = proc do |&block|
+      ActiveRecord::Base.connection_pool.with_connection do |c|
+        block.call(c.raw_connection)
+      end
+    end
+
     def connection=(connection)
       self.connection_proc =
-        case connection.class.to_s
-        when 'Sequel::Postgres::Database'
-          connection.method(:synchronize)
-        when 'Pond', 'ConnectionPool'
-          connection.method(:checkout)
-        when 'NilClass'
-          connection
+        if connection.to_s == 'ActiveRecord'
+          ACTIVE_RECORD_PROC
         else
-          raise Error, "Unsupported connection: #{connection.class}"
+          case connection.class.to_s
+          when 'Sequel::Postgres::Database'
+            connection.method(:synchronize)
+          when 'Pond', 'ConnectionPool'
+            connection.method(:checkout)
+          when 'NilClass'
+            connection
+          else
+            raise Error, "Unsupported connection: #{connection.class}"
+          end
         end
     end
 

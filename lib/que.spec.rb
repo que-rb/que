@@ -55,6 +55,18 @@ describe Que do
       skip "ActiveRecord not loaded!" unless defined?(ActiveRecord)
 
       Que.connection = ActiveRecord
+
+      ActiveRecord::Base.connection_pool.with_connection do |conn1|
+        Que.checkout do |conn2|
+          assert_equal conn1.raw_connection, conn2.wrapped_connection
+        end
+      end
+
+      Que.checkout do |conn1|
+        ActiveRecord::Base.connection_pool.with_connection do |conn2|
+          assert_equal conn1.wrapped_connection, conn2.raw_connection
+        end
+      end
     end
 
     it "should accept a Pond instance" do
