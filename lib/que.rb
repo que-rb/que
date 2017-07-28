@@ -31,7 +31,6 @@ module Que
   require_relative 'que/utils/queue_management'
   require_relative 'que/utils/transactions'
 
-  require_relative 'que/config'
   require_relative 'que/connection'
   require_relative 'que/connection_pool'
   require_relative 'que/job'
@@ -61,10 +60,26 @@ module Que
     def_delegators Job, :enqueue, :run_synchronously, :run_synchronously=
     def_delegators Migrations, :db_version, :migrate!
 
+    # Global configuration logic.
     attr_writer :default_queue
 
     def default_queue
       @default_queue || DEFAULT_QUEUE
     end
+
+    # The primary way of integrating Que with a connection pool - pass it a
+    # reentrant block that locks and yields a Postgres connection.
+    def connection_proc=(connection_proc)
+      @pool = connection_proc && ConnectionPool.new(&connection_proc)
+    end
+
+    # How to actually access Que's established connection pool.
+    def pool
+      @pool || raise(Error, "Que connection not established!")
+    end
+
+    # Set the current pool. Helpful for specs, but probably shouldn't be used
+    # generally.
+    attr_writer :pool
   end
 end
