@@ -81,8 +81,10 @@ module Que
           case connection.class.to_s
           when 'Sequel::Postgres::Database'
             connection.method(:synchronize)
-          when 'Pond', 'ConnectionPool'
+          when 'Pond'
             connection.method(:checkout)
+          when 'ConnectionPool'
+            connection.method(:with)
           when 'NilClass'
             connection
           else
