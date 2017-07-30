@@ -4,7 +4,6 @@ default_environment: &default_environment
   PG_PORTS: "5432 5433 5434"
 
 defaults: &defaults
-  working_directory: ~/que
   docker:
     - image: chanks/que-circleci:0.0.4
   steps:
