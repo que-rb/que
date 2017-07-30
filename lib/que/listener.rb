@@ -21,6 +21,36 @@ module Que
       connection.execute "LISTEN #{channel}"
     end
 
+    def wait_for_grouped_messages(timeout)
+      messages = wait_for_messages(timeout)
+
+      output = {}
+
+      messages.each do |message|
+        message_type = message.delete(:message_type)
+
+        (output[message_type.to_sym] ||= []) << message.freeze
+      end
+
+      output
+    end
+
+    def unlisten
+      # Be sure to drain all notifications so that any code that uses this
+      # connection later doesn't receive any nasty surprises.
+      connection.execute "UNLISTEN *"
+      connection.drain_notifications
+
+      Que.internal_log :listener_unlisten, self do
+        {
+          backend_pid: connection.backend_pid,
+          channel:     channel,
+        }
+      end
+    end
+
+    private
+
     def wait_for_messages(timeout)
       # Make sure we never pass nil to this method, so we don't hang the thread.
       Que.assert(Numeric, timeout)
@@ -33,7 +63,7 @@ module Que
         }
       end
 
-      output = {}
+      accumulated_messages = []
 
       # Notifications often come in batches (especially when a transaction that
       # inserted many jobs commits), so we want to loop and pick up all the
@@ -58,82 +88,58 @@ module Que
 
             # Be very defensive about the message we receive - it may not be
             # valid JSON or have the structure we expect.
-            next unless messages = parse_payload(payload)
+            next unless message = parse_payload(payload)
 
-            messages = [messages] unless messages.is_a?(Array)
-
-            messages.each do |message|
-              message_type = message && message.delete(:message_type)
-              next unless message_type.is_a?(String)
-
-              (output[message_type.to_sym] ||= []) << message
+            case message
+            when Array then accumulated_messages.concat(message)
+            when Hash  then accumulated_messages << message
+            else raise Error, "Unexpected parse_payload output: #{message.class}"
             end
           end
 
         break unless notification_received
       end
 
-      return output if output.empty?
+      return accumulated_messages if accumulated_messages.empty?
 
       Que.internal_log(:listener_received_messages, self) do
         {
           backend_pid: connection.backend_pid,
           channel:     channel,
-          messages:    output,
+          messages:    accumulated_messages,
         }
       end
 
-      output.keep_if { |type, _| MESSAGE_FORMATS.has_key?(type) }
+      accumulated_messages.keep_if do |message|
+        next unless message.is_a?(Hash)
+        next unless type = message[:message_type]
+        next unless type.is_a?(String)
+        next unless format = MESSAGE_FORMATS[type.to_sym]
 
-      output.each do |type, messages|
-        format = MESSAGE_FORMATS.fetch(type)
+        if message_matches_format?(message, format)
+          true
+        else
+          error_message = [
+            "Message of type '#{type}' doesn't match format!",
+            "Message: #{message.inspect}",
+            "Format: #{format.inspect}",
+          ].join("\n")
 
-        messages.select! do |m|
-          if message_matches_format?(m, format)
-            true
-          else
-            message = [
-              "Message of type '#{type}' doesn't match format!",
-              "Message: #{m.inspect}",
-              "Format: #{format.inspect}",
-            ].join("\n")
-
-            Que.notify_error_async(Error.new(message))
-            false
-          end
+          Que.notify_error_async(Error.new(error_message))
+          false
         end
-
-        messages.each(&:freeze)
       end
-
-      output.delete_if { |_, messages| messages.empty? }
 
       Que.internal_log(:listener_filtered_messages, self) do
         {
           backend_pid: connection.backend_pid,
           channel:     channel,
-          messages:    output,
+          messages:    accumulated_messages,
         }
       end
 
-      output
+      accumulated_messages
     end
-
-    def unlisten
-      # Be sure to drain all notifications so that any code that uses this
-      # connection later doesn't receive any nasty surprises.
-      connection.execute "UNLISTEN *"
-      connection.drain_notifications
-
-      Que.internal_log :listener_unlisten, self do
-        {
-          backend_pid: connection.backend_pid,
-          channel:     channel,
-        }
-      end
-    end
-
-    private
 
     def parse_payload(payload)
       Que.deserialize_json(payload)
@@ -142,7 +148,8 @@ module Que
     end
 
     def message_matches_format?(message, format)
-      return false unless message.length == format.length
+      # Add one to account for message_type key, which we've confirmed exists.
+      return false unless message.length == format.length + 1
 
       format.all? do |key, type|
         value = message.fetch(key) { return false }

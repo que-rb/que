@@ -452,9 +452,7 @@ describe Que::Locker do
       m = sleep_until! { internal_messages(event: 'listener_filtered_messages').first }
 
       assert_equal(
-        {
-          new_job: [payload],
-        },
+        [payload.merge(message_type: 'new_job')],
         m[:messages],
       )
 

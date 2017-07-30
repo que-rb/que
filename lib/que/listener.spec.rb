@@ -66,17 +66,17 @@ describe Que::Listener do
     DB.transaction { notifications.each { |n| notify(n) } }
   end
 
-  describe "wait_for_messages" do
+  describe "wait_for_grouped_messages" do
     it "should return empty if there were no messages before the timeout" do
       # Use a short timeout, since we'll always hit it in this spec.
-      assert_equal({}, listener.wait_for_messages(0.001))
+      assert_equal({}, listener.wait_for_grouped_messages(0.001))
       assert_empty internal_messages(event: 'listener_filtered_messages')
     end
 
     it "should return frozen messages" do
       notify(message_type: 'type_1', value: 4)
 
-      result = listener.wait_for_messages(10)[:type_1].first
+      result = listener.wait_for_grouped_messages(10)[:type_1].first
       assert_equal({value: 4}, result)
       assert result.frozen?
 
@@ -87,9 +87,7 @@ describe Que::Listener do
             object_id: listener.object_id,
             backend_pid: connection.backend_pid,
             channel: "que_listener_#{connection.backend_pid}",
-            messages: {
-              type_1: [{value: 4}]
-            }
+            messages: [{message_type: 'type_1', value: 4}],
           }
         ],
         internal_messages(event: 'listener_filtered_messages')
@@ -111,13 +109,13 @@ describe Que::Listener do
           type_1: 5.times.map{|i| {value: i}},
           type_2: 5.times.map{|i| {value: i}},
         },
-        listener.wait_for_messages(10),
+        listener.wait_for_grouped_messages(10),
       )
     end
 
     it "should not return a message type entry if none of the messages were well-formed" do
       notify(message_type: 'new_job', priority: 2, id: 4)
-      assert_equal({}, listener.wait_for_messages(10))
+      assert_equal({}, listener.wait_for_grouped_messages(10))
     end
 
     it "should accept arrays of messages" do
@@ -135,7 +133,7 @@ describe Que::Listener do
           type_1: (1..10).map{|i| {value: i}},
           type_2: (1..10).map{|i| {value: i}},
         },
-        listener.wait_for_messages(10),
+        listener.wait_for_grouped_messages(10),
       )
     end
 
@@ -147,7 +145,7 @@ describe Que::Listener do
       it "should listen on that channel" do
         notify({message_type: 'type_1', value: 4}, channel: 'test_channel')
 
-        result = listener.wait_for_messages(10)[:type_1].first
+        result = listener.wait_for_grouped_messages(10)[:type_1].first
         assert_equal({value: 4}, result)
       end
     end
@@ -155,7 +153,7 @@ describe Que::Listener do
     describe "when the messages aren't valid JSON of the format we expect" do
       def assert_ignored_notification(payload)
         notify payload
-        assert_equal({}, listener.wait_for_messages(10))
+        assert_equal({}, listener.wait_for_grouped_messages(10))
       end
 
       it "should be resilient to messages that aren't valid JSON" do
@@ -228,7 +226,7 @@ describe Que::Listener do
               message_2,
             ]
           },
-          listener.wait_for_messages(10),
+          listener.wait_for_grouped_messages(10),
         )
       end
 
@@ -258,7 +256,7 @@ describe Que::Listener do
 
         expected_message = [
           "Message of type 'new_job' doesn't match format!",
-          "Message: {:queue=>\"queue_name\", :priority=>90, :run_at=>\"2017-06-30T18:33:35.425307Z\"}",
+          "Message: {:queue=>\"queue_name\", :priority=>90, :run_at=>\"2017-06-30T18:33:35.425307Z\", :message_type=>\"new_job\"}",
           "Format: {:queue=>String, :id=>Integer, :run_at=>/\\A\\d{4}\\-\\d{2}\\-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{6}Z\\z/, :priority=>Integer}",
         ].join("\n")
 

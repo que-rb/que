@@ -292,7 +292,7 @@ module Que
 
     def wait
       if @listener
-        @listener.wait_for_messages(@wait_period).each do |type, messages|
+        @listener.wait_for_grouped_messages(@wait_period).each do |type, messages|
           if resolver = MESSAGE_RESOLVERS[type]
             instance_exec messages, &resolver
           else
