@@ -319,8 +319,8 @@ module Que
 
     def push_jobs(sort_keys)
       # Unlock any low-importance jobs the new ones may displace.
-      if ids = @job_queue.push(*sort_keys)
-        unlock_jobs(ids)
+      if keys = @job_queue.push(*sort_keys)
+        unlock_jobs(keys)
       end
     end
 
@@ -352,15 +352,15 @@ module Que
     end
 
     def finish_jobs(messages)
-      unlock_jobs(messages.map{|m| m.fetch(:id)})
+      unlock_jobs(messages)
     end
 
-    def unlock_jobs(ids)
-      return if ids.empty?
+    def unlock_jobs(keys)
+      return if keys.empty?
 
       # Unclear how untrusted input would get passed to this method, but since
       # we need string interpolation here, make sure we only have integers.
-      ids.map!(&:to_i)
+      ids = keys.map{|key| key.fetch(:id).to_i}
 
       Que.internal_log :locker_unlocking, self do
         {

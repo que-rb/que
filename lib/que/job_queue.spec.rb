@@ -52,12 +52,12 @@ describe Que::JobQueue do
 
       it "should pop the least important jobs and return their pks" do
         assert_equal \
-          job_array[7..7].map{|j| j[:id]},
+          job_array[7..7],
           job_queue.push(important_values[0])
 
         assert_equal \
-          job_array[5..6].map{|j| j[:id]},
-          job_queue.push(*important_values[1..2]).sort
+          job_array[5..6],
+          job_queue.push(*important_values[1..2])
 
         assert_equal 8, job_queue.size
       end
@@ -68,7 +68,7 @@ describe Que::JobQueue do
           job_queue.shift
 
         assert_equal \
-          job_array[7..7].map{|pk| pk[:id]},
+          job_array[7..7],
           job_queue.push(*important_values[0..1])
 
         assert_equal 8, job_queue.size
@@ -78,7 +78,7 @@ describe Que::JobQueue do
       # #accept? to prevent unnecessary locking, but just in case:
       it "should work when the jobs wouldn't make the cut" do
         v = {priority: 100, run_at: Time.now, id: 45}
-        assert_equal [45], job_queue.push(v)
+        assert_equal [v], job_queue.push(v)
         refute_includes job_queue.to_a, v
         assert_equal 8, job_queue.size
       end
@@ -235,14 +235,14 @@ describe Que::JobQueue do
   describe "clear" do
     it "should remove and return all items" do
       job_queue.push *job_array
-      assert_equal job_array.map{|job| job[:id]}, job_queue.clear.sort
+      assert_equal job_array, job_queue.clear
       assert_equal [], job_queue.to_a
     end
 
     it "should return an empty array if there are no items to clear" do
       assert_equal [], job_queue.clear
       job_queue.push *job_array
-      assert_equal job_array.map{|job| job[:id]}, job_queue.clear.sort
+      assert_equal job_array, job_queue.clear
       assert_equal [], job_queue.clear
     end
   end

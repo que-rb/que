@@ -42,7 +42,7 @@ module Que
         # If we passed the maximum queue size, drop the lowest sort keys and
         # return their ids to be unlocked.
         overage = size - maximum_size
-        pop_ids(overage) if overage > 0
+        pop(overage) if overage > 0
       end
     end
 
@@ -101,7 +101,7 @@ module Que
     end
 
     def clear
-      sync { pop_ids(size) }
+      sync { pop(size) }
     end
 
     def stopping?
@@ -134,8 +134,8 @@ module Que
       raise Error, "Compared a job's sort key to itself!"
     end
 
-    def pop_ids(count)
-      @array.pop(count).map! { |job| job.fetch(:id) }
+    def pop(count)
+      @array.pop(count)
     end
 
     def sync(&block)
