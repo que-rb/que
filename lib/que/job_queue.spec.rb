@@ -209,6 +209,9 @@ describe Que::JobQueue do
         jobs.sort_by{|j| j.values_at(:priority, :run_at, :id)},
         job_queue.to_a,
       )
+
+      # Make sure that calls produce different array objects.
+      refute_equal(job_queue.to_a.object_id, job_queue.to_a.object_id)
     end
   end
 
