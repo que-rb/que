@@ -114,8 +114,15 @@ describe Que::Listener do
     end
 
     it "should not return a message type entry if none of the messages were well-formed" do
+      q = Queue.new
+      Que.error_notifier = proc { |e| q.push(e) }
+
       notify(message_type: 'new_job', priority: 2, id: 4)
       assert_equal({}, listener.wait_for_grouped_messages(10))
+
+      error = q.pop
+      assert_instance_of Que::Error, error
+      assert_match(/doesn't match format!/, error.message)
     end
 
     it "should accept arrays of messages" do
@@ -229,6 +236,9 @@ describe Que::Listener do
           listener.wait_for_grouped_messages(10),
         )
       end
+
+      # Avoid spec noise:
+      before { Que.error_notifier = nil }
 
       it "should ignore it if a field is the wrong type" do
         message_to_malform[:id] = message_to_malform[:id].to_s

@@ -201,6 +201,10 @@ class QueSpec < Minitest::Spec
     "#{desc} @ #{spec_line}"
   end
 
+  DEFAULT_ERROR_NOTIFIER = proc do |*args|
+    puts "Error Notifier called: #{args.inspect}"
+  end
+
   def around
     puts "Running: #{current_spec_location}" if ENV['LOG_SPEC']
 
@@ -208,6 +212,7 @@ class QueSpec < Minitest::Spec
     Que.logger          = QUE_LOGGER
     Que.internal_logger = QUE_INTERNAL_LOGGER
     Que.log_formatter   = nil
+    Que.error_notifier  = DEFAULT_ERROR_NOTIFIER
 
     QUE_LOGGER.messages.clear
     QUE_INTERNAL_LOGGER.messages.clear

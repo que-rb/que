@@ -133,6 +133,9 @@ describe Que::Worker do
   end
 
   describe "when an error is raised" do
+    # Avoid spec noise:
+    before { Que.error_notifier = nil }
+
     it "should not crash the worker" do
       ErrorJob.enqueue priority: 1
       Que::Job.enqueue priority: 2

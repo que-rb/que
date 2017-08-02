@@ -256,6 +256,9 @@ describe Que::Job do
       end
 
       it "should be passed the error object and expose the correct error_count" do
+        error = nil
+        Que.error_notifier = proc { |e| error = e }
+
         TestJobClass.class_eval do
           def handle_error(error)
             $args = [error_count, error]
@@ -264,9 +267,11 @@ describe Que::Job do
 
         execute
 
-        count, error = $args
-        assert_equal 1, count
         assert_equal "Uh-oh!", error.message
+
+        count, error_2 = $args
+        assert_equal 1, count
+        assert_equal error, error_2
       end
 
       it "should make it easy to signal that the error should be notified" do
