@@ -83,7 +83,8 @@ module Que
             ) AS t1
           )
         )
-        SELECT queue, priority, run_at, id
+        SELECT queue, priority, id,
+          to_char(run_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS run_at
         FROM jobs
         WHERE locked
         LIMIT $3::integer
@@ -128,6 +129,8 @@ module Que
             limit,
           ]
         )
+
+      jobs.map! &:freeze
 
       @last_polled_at      = Time.now
       @last_poll_satisfied = limit == jobs.count
