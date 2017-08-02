@@ -35,22 +35,6 @@ module Que
       output
     end
 
-    def unlisten
-      # Be sure to drain all notifications so that any code that uses this
-      # connection later doesn't receive any nasty surprises.
-      connection.execute "UNLISTEN *"
-      connection.drain_notifications
-
-      Que.internal_log :listener_unlisten, self do
-        {
-          backend_pid: connection.backend_pid,
-          channel:     channel,
-        }
-      end
-    end
-
-    private
-
     def wait_for_messages(timeout)
       # Make sure we never pass nil to this method, so we don't hang the thread.
       Que.assert(Numeric, timeout)
@@ -140,6 +124,22 @@ module Que
 
       accumulated_messages
     end
+
+    def unlisten
+      # Be sure to drain all notifications so that any code that uses this
+      # connection later doesn't receive any nasty surprises.
+      connection.execute "UNLISTEN *"
+      connection.drain_notifications
+
+      Que.internal_log :listener_unlisten, self do
+        {
+          backend_pid: connection.backend_pid,
+          channel:     channel,
+        }
+      end
+    end
+
+    private
 
     def parse_payload(payload)
       Que.deserialize_json(payload)
