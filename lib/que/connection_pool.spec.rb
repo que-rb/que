@@ -171,7 +171,7 @@ if defined?(ActiveRecord)
       pid1 = pid2 = nil
 
       ActiveRecord::Base.connection_pool.with_connection do
-        pid1 = ActiveRecord::Base.connection.select_value("select pg_backend_pid()")
+        pid1 = ActiveRecord::Base.connection.select_value("select pg_backend_pid()").to_i
         pid2 = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
       end
 
@@ -180,7 +180,7 @@ if defined?(ActiveRecord)
       pid1 = pid2 = nil
 
       Que.checkout do
-        pid1 = ActiveRecord::Base.connection.select_value("select pg_backend_pid()")
+        pid1 = ActiveRecord::Base.connection.select_value("select pg_backend_pid()").to_i
         pid2 = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
       end
 
