@@ -14,7 +14,7 @@ require 'pond'
 require 'connection_pool'
 # ActiveRecord requires ActiveSupport, which affects a bunch of core classes and
 # may change some behavior that we rely on, so only bring it in sometimes.
-require 'active_record' if ENV['USE_ACTIVERECORD'] == 'true'
+require 'active_record' if ENV['USE_RAILS'] == 'true'
 
 # Minitest stuff.
 require 'minitest/autorun'
@@ -76,7 +76,7 @@ end
 
 # ActiveRecord requires ActiveSupport, which affects a bunch of core classes and
 # may change some behavior that we rely on, so only bring it in sometimes.
-if ENV['USE_ACTIVERECORD'] == 'true'
+if ENV['USE_RAILS'] == 'true'
   ActiveRecord::Base.establish_connection(QUE_URL)
 
   Que.connection = ActiveRecord
