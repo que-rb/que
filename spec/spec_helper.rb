@@ -18,7 +18,12 @@ require 'connection_pool'
 # in some spec runs.
 if ENV['USE_RAILS'] == 'true'
   require 'active_record'
-  require 'active_job' rescue nil # Won't always be available.
+
+  begin
+    require 'active_job'
+  rescue LoadError
+    # We're on an old Gemfile where ActiveJob isn't available - no biggie.
+  end
 end
 
 # Minitest stuff.
