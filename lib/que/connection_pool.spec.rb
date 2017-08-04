@@ -134,3 +134,57 @@ describe Que::ConnectionPool do
     end
   end
 end
+
+describe "when wrapping a Sequel connection pool" do
+  before do
+    Que.pool = QUE_POOLS[:sequel]
+  end
+
+  it "should use the same connection that Sequel does" do
+    pid1 = pid2 = nil
+
+    DB.synchronize do
+      pid1 = DB["SELECT pg_backend_pid()"].get
+      pid2 = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
+    end
+
+    assert_equal pid1, pid2
+
+    pid1 = pid2 = nil
+
+    Que.checkout do
+      pid1 = DB["SELECT pg_backend_pid()"].get
+      pid2 = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
+    end
+
+    assert_equal pid1, pid2
+  end
+end
+
+if defined?(ActiveRecord)
+  describe "when wrapping an ActiveRecord connection pool" do
+    before do
+      Que.pool = QUE_POOLS[:active_record]
+    end
+
+    it "should use the same connection that ActiveRecord does" do
+      pid1 = pid2 = nil
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        pid1 = ActiveRecord::Base.connection.select_value("select pg_backend_pid()")
+        pid2 = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
+      end
+
+      assert_equal pid1, pid2
+
+      pid1 = pid2 = nil
+
+      Que.checkout do
+        pid1 = ActiveRecord::Base.connection.select_value("select pg_backend_pid()")
+        pid2 = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
+      end
+
+      assert_equal pid1, pid2
+    end
+  end
+end
