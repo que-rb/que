@@ -84,7 +84,7 @@ describe Que::Locker do
       locker_settings[:connection] = pg
       locker
 
-      sleep_until!(6000) { DB[:que_lockers].select_map(:pid) == [pg.backend_pid] }
+      sleep_until! { DB[:que_lockers].select_map(:pid) == [pg.backend_pid] }
 
       assert_equal(
         DB[:pg_stat_activity].where(pid: pg.backend_pid).get(:application_name),
