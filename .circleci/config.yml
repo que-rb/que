@@ -83,9 +83,9 @@ defaults: &defaults
           for PORT in $PG_PORTS
           do
             (
-              for GEMFILE_VERSION in $GEMFILE_VERSIONS
+              for USE_RAILS in true false
               do
-                for USE_RAILS in true false
+                for GEMFILE_VERSION in $GEMFILE_VERSIONS
                 do
                   # Use the template1 DB that comes with Postgres so we don't
                   # have to spend time creating a new one.
