@@ -109,7 +109,7 @@ if ENV['CI']
     "Ruby: #{RUBY_VERSION}",
     "PostgreSQL: #{DB["SHOW server_version"].get}",
     "Gemfile: #{ENV['BUNDLE_GEMFILE']}",
-    "ActiveRecord: #{'not ' if !defined?(ActiveRecord)}loaded",
+    "ActiveRecord: #{defined?(ActiveRecord) ? ActiveRecord.version.to_s : 'not loaded'}",
   ].join("\n")
 end
 
