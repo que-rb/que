@@ -3,24 +3,22 @@
 module Que
   module Rails
     module ActiveRecord
-      module ConnectionPoolWrapper
-        def call
-          checkout_activerecord_adapter do |conn|
-            yield conn.raw_connection
-          end
-        end
-
-        def checkout_activerecord_adapter(&block)
-          # Use Rails' executor (if present) to make sure that the connection
-          # we're using isn't taken from us while the block runs. See
-          # https://github.com/chanks/que/issues/166#issuecomment-274218910
-          if defined?(Rails.application.executor)
-            Rails.application.executor.wrap do
-              ::ActiveRecord::Base.connection_pool.with_connection(&block)
-            end
-          else
+      checkout_activerecord_adapter = -> (&block) do
+        # Use Rails' executor (if present) to make sure that the connection
+        # we're using isn't taken from us while the block runs. See
+        # https://github.com/chanks/que/issues/166#issuecomment-274218910
+        if defined?(Rails.application.executor)
+          Rails.application.executor.wrap do
             ::ActiveRecord::Base.connection_pool.with_connection(&block)
           end
+        else
+          ::ActiveRecord::Base.connection_pool.with_connection(&block)
+        end
+      end
+
+      CONNECTION_POOL_WRAPPER = -> (&block) do
+        checkout_activerecord_adapter.call do |conn|
+          block.call(conn.raw_connection)
         end
       end
 
