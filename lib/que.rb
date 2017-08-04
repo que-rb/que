@@ -26,6 +26,7 @@ module Que
   require_relative 'que/utils/introspection'
   require_relative 'que/utils/json_serialization'
   require_relative 'que/utils/logging'
+  require_relative 'que/utils/middleware'
   require_relative 'que/utils/queue_management'
   require_relative 'que/utils/transactions'
 
@@ -48,6 +49,7 @@ module Que
     include Utils::Introspection
     include Utils::JSONSerialization
     include Utils::Logging
+    include Utils::Middleware
     include Utils::QueueManagement
     include Utils::Transactions
 

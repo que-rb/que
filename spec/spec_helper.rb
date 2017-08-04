@@ -213,6 +213,7 @@ class QueSpec < Minitest::Spec
     Que.internal_logger = QUE_INTERNAL_LOGGER
     Que.log_formatter   = nil
     Que.error_notifier  = DEFAULT_ERROR_NOTIFIER
+    Que.middleware.clear
 
     QUE_LOGGER.messages.clear
     QUE_INTERNAL_LOGGER.messages.clear

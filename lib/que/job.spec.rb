@@ -117,6 +117,33 @@ describe Que::Job do
           execute
           assert_empty jobs_dataset
         end
+
+        it "should wrap the run method in whatever middleware are defined" do
+          passed_1 = passed_2 = nil
+
+          Que.middleware.push(
+            -> (job, &block) {
+              passed_1 = job
+              block.call
+              nil # Shouldn't matter what's returned.
+            }
+          )
+
+          Que.middleware.push(
+            -> (job, &block) {
+              passed_2 = job
+              block.call
+              nil # Shouldn't matter what's returned.
+            }
+          )
+
+          execute(5, 6)
+
+          assert_instance_of TestJobClass, passed_1
+          assert_equal({args: [5, 6]}, passed_1.que_attrs[:data])
+
+          assert_equal passed_1.object_id, passed_2.object_id
+        end
       end
     end
   end
@@ -203,7 +230,8 @@ describe Que::Job do
     def execute(*args)
       worker # Make sure worker is initialized.
 
-      attrs = TestJobClass.enqueue(*args).que_attrs
+      job = TestJobClass.enqueue(*args)
+      attrs = job.que_attrs
 
       job_queue.push(
         queue:    attrs[:queue],
@@ -213,6 +241,7 @@ describe Que::Job do
       )
 
       sleep_until! { result_queue.clear.map{|m| m.fetch(:id)} == [attrs[:id]] }
+      job
     end
 
     it "should make it easy to override the finishing action" do

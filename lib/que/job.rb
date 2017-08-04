@@ -202,7 +202,9 @@ module Que
       def _run_attrs(attrs)
         attrs[:error_count] = 0
         Que.recursively_freeze(attrs)
-        new(attrs).tap(&:_run)
+        job = new(attrs)
+        Que.run_middleware(job) { job.tap(&:_run) }
+        job
       end
     end
   end
