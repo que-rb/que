@@ -72,7 +72,7 @@ module Que
       self.connection_proc =
         if conn.to_s == 'ActiveRecord'
           require_relative 'que/rails/active_record'
-          Rails::ActiveRecord::CONNECTION_POOL_PROC
+          Que::Rails::ActiveRecord::ConnectionPoolWrapper
         else
           case conn.class.to_s
           when 'Sequel::Postgres::Database' then conn.method(:synchronize)

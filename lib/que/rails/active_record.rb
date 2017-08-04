@@ -3,9 +3,24 @@
 module Que
   module Rails
     module ActiveRecord
-      CONNECTION_POOL_PROC = -> (&block) do
-        ::ActiveRecord::Base.connection_pool.with_connection do |c|
-          block.call(c.raw_connection)
+      module ConnectionPoolWrapper
+        def call
+          checkout_activerecord_adapter do |conn|
+            yield conn.raw_connection
+          end
+        end
+
+        def checkout_activerecord_adapter(&block)
+          # Use Rails' executor (if present) to make sure that the connection
+          # we're using isn't taken from us while the block runs. See
+          # https://github.com/chanks/que/issues/166#issuecomment-274218910
+          if defined?(Rails.application.executor)
+            Rails.application.executor.wrap do
+              ::ActiveRecord::Base.connection_pool.with_connection(&block)
+            end
+          else
+            ::ActiveRecord::Base.connection_pool.with_connection(&block)
+          end
         end
       end
 
