@@ -41,7 +41,9 @@ if defined?(::ActiveJob)
       worker # Make sure worker is initialized.
 
       wrapper = TestJobClass.perform_later(*args)
-      attrs = jobs_dataset.first!(id: wrapper.provider_job_id)
+
+      assert_equal 1, jobs_dataset.count
+      attrs = jobs_dataset.first!
 
       job_queue.push(
         queue:    attrs[:queue],
