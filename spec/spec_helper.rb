@@ -21,6 +21,11 @@ if ENV['USE_RAILS'] == 'true'
 
   begin
     require 'active_job'
+
+    ActiveJob::Base.queue_adapter = :que
+    ActiveJob::Base.logger = nil
+
+    require 'que/rails/active_job'
   rescue LoadError
     # We're on an old Gemfile where ActiveJob isn't available - no biggie.
   end
