@@ -80,13 +80,6 @@ if ENV['USE_RAILS'] == 'true'
   ActiveRecord::Base.establish_connection(QUE_URL)
 
   Que.connection = ActiveRecord
-
-  # This middleware assignment will only happen when the ActiveRecord
-  # compatibility code is first loaded, so assert that it happens.
-  unless Que.middleware == [Que::Rails::ActiveRecord::ConnectionMiddleware]
-    raise "Unexpected Que.middleware! #{Que.middleware.inspect}"
-  end
-
   QUE_POOLS[:active_record] = Que.pool
 end
 

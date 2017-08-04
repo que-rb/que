@@ -71,7 +71,10 @@ module Que
     def connection=(conn)
       self.connection_proc =
         if conn.to_s == 'ActiveRecord'
+          # Load and setup AR compatibility.
           require_relative 'que/rails/active_record'
+          m = Que::Rails::ActiveRecord::ConnectionMiddleware
+          middleware << m unless middleware.include?(m)
           Que::Rails::ActiveRecord::CONNECTION_POOL_WRAPPER
         else
           case conn.class.to_s

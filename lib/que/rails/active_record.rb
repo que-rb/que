@@ -43,6 +43,4 @@ module Que
       end
     end
   end
-
-  middleware << Rails::ActiveRecord::ConnectionMiddleware
 end

@@ -51,20 +51,30 @@ describe Que do
       end
     end
 
-    it "should accept the ActiveRecord class" do
-      skip "ActiveRecord not loaded!" unless defined?(ActiveRecord)
+    if defined?(::ActiveRecord)
+      it "should accept the ActiveRecord class" do
+        Que.connection = ActiveRecord
 
-      Que.connection = ActiveRecord
+        ActiveRecord::Base.connection_pool.with_connection do |conn1|
+          Que.checkout do |conn2|
+            assert_equal conn1.raw_connection, conn2.wrapped_connection
+          end
+        end
 
-      ActiveRecord::Base.connection_pool.with_connection do |conn1|
-        Que.checkout do |conn2|
-          assert_equal conn1.raw_connection, conn2.wrapped_connection
+        Que.checkout do |conn1|
+          ActiveRecord::Base.connection_pool.with_connection do |conn2|
+            assert_equal conn1.wrapped_connection, conn2.raw_connection
+          end
         end
       end
 
-      Que.checkout do |conn1|
-        ActiveRecord::Base.connection_pool.with_connection do |conn2|
-          assert_equal conn1.wrapped_connection, conn2.raw_connection
+      describe "when accepting the ActiveRecord class" do
+        it "should start using the ConnectionMiddleware iff it wasn't already used" do
+          assert_empty Que.middleware
+          Que.connection = ActiveRecord
+          assert_equal [Que::Rails::ActiveRecord::ConnectionMiddleware], Que.middleware
+          Que.connection = ActiveRecord
+          assert_equal [Que::Rails::ActiveRecord::ConnectionMiddleware], Que.middleware
         end
       end
     end
