@@ -76,6 +76,29 @@ describe Que::Locker do
       locker.stop!
     end
 
+    it "should set the application_name while the locker has the connection" do
+      pg = EXTRA_PG_CONNECTION
+
+      original_application_name = pg.async_exec("SHOW application_name").to_a.first["application_name"]
+
+      locker_settings[:connection] = pg
+      locker
+
+      sleep_until!(6000) { DB[:que_lockers].select_map(:pid) == [pg.backend_pid] }
+
+      assert_equal(
+        DB[:pg_stat_activity].where(pid: pg.backend_pid).get(:application_name),
+        "Que Locker: #{pg.backend_pid}",
+      )
+
+      locker.stop!
+
+      assert_equal(
+        DB[:pg_stat_activity].where(pid: pg.backend_pid).get(:application_name),
+        original_application_name,
+      )
+    end
+
     it "should have a high-priority work thread" do
       sleep_until! { locker.thread.priority == 1 }
 

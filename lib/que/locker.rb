@@ -158,24 +158,42 @@ module Que
           Thread.current.priority = 1
 
           pool.checkout do |connection|
-            @connection = connection
+            original_application_name =
+              connection.
+              execute("SHOW application_name").
+              first.
+              fetch(:application_name)
 
-            if listen
-              @listener = Listener.new(connection: connection)
+            begin
+              @connection = connection
+
+              connection.execute(
+                "SELECT set_config('application_name', $1, false)",
+                ["Que Locker: #{connection.backend_pid}"]
+              )
+
+              if listen
+                @listener = Listener.new(connection: connection)
+              end
+
+              if poll
+                @pollers =
+                  queues.map do |queue, interval|
+                    Poller.new(
+                      connection:    connection,
+                      queue:         queue,
+                      poll_interval: interval || poll_interval,
+                    )
+                  end
+              end
+
+              work_loop
+            ensure
+              connection.execute(
+                "SELECT set_config('application_name', $1, false)",
+                [original_application_name]
+              )
             end
-
-            if poll
-              @pollers =
-                queues.map do |queue, interval|
-                  Poller.new(
-                    connection:    connection,
-                    queue:         queue,
-                    poll_interval: interval || poll_interval,
-                  )
-                end
-            end
-
-            work_loop
           end
         end
     end
