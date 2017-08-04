@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Tools for logging from Que.
+# Logic for middleware to wrap jobs.
 
 module Que
   module Utils
