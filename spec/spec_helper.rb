@@ -12,6 +12,9 @@ require 'timeout'
 # Connection pool sources.
 require 'pond'
 require 'connection_pool'
+# ActiveRecord requires ActiveSupport, which affects a bunch of core classes and
+# may change some behavior that we rely on, so only bring it in sometimes.
+require 'active_record' if ENV['USE_ACTIVERECORD'] == 'true'
 
 # Minitest stuff.
 require 'minitest/autorun'
@@ -74,10 +77,14 @@ end
 # ActiveRecord requires ActiveSupport, which affects a bunch of core classes and
 # may change some behavior that we rely on, so only bring it in sometimes.
 if ENV['USE_ACTIVERECORD'] == 'true'
-  require 'active_record'
   ActiveRecord::Base.establish_connection(QUE_URL)
 
   Que.connection = ActiveRecord
+
+  unless Que.middleware == [Que::Rails::ActiveRecord::ConnectionMiddleware]
+    raise "Unexpected Que.middleware! #{Que.middleware.inspect}"
+  end
+
   QUE_POOLS[:active_record] = Que.pool
 end
 

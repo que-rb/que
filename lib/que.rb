@@ -67,17 +67,12 @@ module Que
       @default_queue || DEFAULT_QUEUE
     end
 
-    ACTIVE_RECORD_PROC = -> (&block) do
-      ActiveRecord::Base.connection_pool.with_connection do |c|
-        block.call(c.raw_connection)
-      end
-    end
-
     # Support simple integration with many common connection pools.
     def connection=(conn)
       self.connection_proc =
         if conn.to_s == 'ActiveRecord'
-          ACTIVE_RECORD_PROC
+          require_relative 'que/rails/active_record'
+          Rails::ActiveRecord::CONNECTION_POOL_PROC
         else
           case conn.class.to_s
           when 'Sequel::Postgres::Database' then conn.method(:synchronize)
@@ -105,3 +100,6 @@ module Que
     attr_writer :pool
   end
 end
+
+# Load Railtie if necessary.
+require_relative 'rails/railtie' if defined? Rails::Railtie
