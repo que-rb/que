@@ -64,5 +64,40 @@ describe Que::Utils::Middleware do
         :middleware_1_b,
       ], order
     end
+
+    it "should support any callable object" do
+      $order = []
+
+      module MiddlewareTestModule
+        def self.call(job)
+          $order << :module_1
+          yield
+          $order << :module_2
+        end
+      end
+
+      o = Object.new
+      def o.call(job)
+        $order << :object_1
+        yield
+        $order << :object_2
+      end
+
+      Que.middleware << MiddlewareTestModule << o
+
+      assert_equal [], $order
+
+      Que.run_middleware(5) { $order << :called_block }
+
+      assert_equal [
+        :module_1,
+        :object_1,
+        :called_block,
+        :object_2,
+        :module_2,
+      ], $order
+
+      $order = nil
+    end
   end
 end
