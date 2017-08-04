@@ -6,6 +6,7 @@ group :development, :test do
   gem 'rake', '< 11.0'
 
   gem 'activerecord',    '~> 4.1.0',  require: nil
+  # activejob wasn't a thing in 4.1
   gem 'sequel',          '~> 4.0',    require: nil
   gem 'connection_pool', require: nil
   gem 'pond',            require: nil

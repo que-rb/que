@@ -7,6 +7,7 @@ group :development, :test do
   gem 'rake', '< 11.0'
 
   gem 'activerecord',    require: nil
+  gem 'activejob',       require: nil
   gem 'sequel',          require: nil
   gem 'connection_pool', require: nil
   gem 'pond',            require: nil

@@ -12,9 +12,14 @@ require 'timeout'
 # Connection pool sources.
 require 'pond'
 require 'connection_pool'
-# ActiveRecord requires ActiveSupport, which affects a bunch of core classes and
-# may change some behavior that we rely on, so only bring it in sometimes.
-require 'active_record' if ENV['USE_RAILS'] == 'true'
+
+# ActiveRecord and ActiveJob require ActiveSupport, which affects a bunch of
+# core classes and may change some behavior that we rely on, so only bring it in
+# in some spec runs.
+if ENV['USE_RAILS'] == 'true'
+  require 'active_record'
+  require 'active_job' rescue nil # Won't always be available.
+end
 
 # Minitest stuff.
 require 'minitest/autorun'
