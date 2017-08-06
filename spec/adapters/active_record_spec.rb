@@ -103,6 +103,38 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
       sleep_until { DB[:que_jobs].empty? }
     end
 
+    it "should wake up a Worker after queueing a job in async mode, waiting for a transaction to commit if necessary" do
+      Que.mode = :async
+      Que.worker_count = 4
+      sleep_until { Que::Worker.workers.all? &:sleeping? }
+
+      # Wakes a worker immediately when not in a transaction.
+      Que::Job.enqueue
+      sleep_until { Que::Worker.workers.all?(&:sleeping?) && DB[:que_jobs].empty? }
+
+      # Wakes a worker on transaction commit when in a transaction.
+      ActiveRecord::Base.transaction do
+        Que::Job.enqueue
+        Que::Worker.workers.each { |worker| worker.should be_sleeping }
+      end
+      sleep_until { Que::Worker.workers.all?(&:sleeping?) && DB[:que_jobs].empty? }
+
+      # Does nothing when in a nested transaction.
+      # TODO: ideally this would wake after the outer transaction commits
+      if ActiveRecord.version.release >= Gem::Version.new('5.0')
+        ActiveRecord::Base.transaction do
+          ActiveRecord::Base.transaction(requires_new: true) do
+            Que::Job.enqueue
+            Que::Worker.workers.each { |worker| worker.should be_sleeping }
+          end
+        end
+      end
+
+      # Do nothing when queueing with a specific :run_at.
+      BlockJob.enqueue :run_at => Time.now
+      Que::Worker.workers.each { |worker| worker.should be_sleeping }
+    end
+
     it "should be able to survive an ActiveRecord::Rollback without raising an error" do
       ActiveRecord::Base.transaction do
         Que::Job.enqueue
