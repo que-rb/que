@@ -104,6 +104,8 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
     end
 
     it "should wake up a Worker after queueing a job in async mode, waiting for a transaction to commit if necessary" do
+      pending
+
       Que.mode = :async
       Que.worker_count = 4
       sleep_until { Que::Worker.workers.all? &:sleeping? }
