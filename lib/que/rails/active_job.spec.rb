@@ -61,19 +61,9 @@ if defined?(::ActiveJob)
       assert_equal [1, 2], $args
     end
 
-    it "should make it easy to destroy the job"
-
-    it "should make it easy to finish the job"
-
     it "should wrap the run method in whatever middleware are defined"
 
-    it "calling retry_in when there's no error shouldn't be problematic"
-
     it "raising an unrecoverable error shouldn't delete the job record"
-
-    describe "should support handle_error" do # Maybe?
-      it "should do things"
-    end
 
     describe "when running synchronously" do
       it "shouldn't fail if there's no DB connection"
