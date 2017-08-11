@@ -6,6 +6,9 @@ ALTER TABLE que_jobs SET (
 );
 
 ALTER TABLE que_jobs
+  DROP CONSTRAINT que_jobs_pkey;
+
+ALTER TABLE que_jobs
   RENAME COLUMN job_id TO id;
 
 ALTER SEQUENCE que_jobs_job_id_seq RENAME TO que_jobs_id_seq;
@@ -15,12 +18,14 @@ ALTER TABLE que_jobs
 
 ALTER TABLE que_jobs
   ADD COLUMN last_error_backtrace text,
+  ADD COLUMN is_processed boolean,
   ADD COLUMN data JSONB,
   ADD CONSTRAINT queue_length CHECK (char_length(queue) <= 60),
   ADD CONSTRAINT run_at_valid CHECK (isfinite(run_at));
 
 UPDATE que_jobs
 SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
+    is_processed = false,
     -- Some old error fields are missing the backtrace, so try to provide a
     -- reasonable default.
     last_error_backtrace =
@@ -45,6 +50,7 @@ SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
 
 ALTER TABLE que_jobs
   ALTER COLUMN queue SET DEFAULT 'default',
+  ALTER COLUMN is_processed SET DEFAULT false,
   ALTER COLUMN data SET DEFAULT '{"args":[]}',
   ALTER COLUMN data SET NOT NULL,
   DROP COLUMN args,
@@ -54,7 +60,10 @@ ALTER TABLE que_jobs
     ((data->'args') IS NOT NULL)
     AND
     (jsonb_typeof(data->'args') = 'array')
-  );
+  ),
+  ADD PRIMARY KEY (id);
+
+CREATE INDEX que_poll_idx ON que_jobs (queue, priority, run_at, id) WHERE NOT is_processed;
 
 CREATE INDEX que_jobs_data_gin_idx ON que_jobs USING gin (data jsonb_path_ops);
 
