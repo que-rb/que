@@ -22,10 +22,7 @@ module Que
     SQL[:destroy_job] =
       %{
         DELETE FROM public.que_jobs
-        WHERE queue    = $1::text
-          AND priority = $2::smallint
-          AND run_at   = $3::timestamptz
-          AND id       = $4::bigint
+        WHERE id = $1::bigint
       }
 
     SQL[:set_error] =
@@ -37,10 +34,7 @@ module Que
             last_error_message   = $2::text,
             last_error_backtrace = $3::text
 
-        WHERE queue    = $4::text
-          AND priority = $5::smallint
-          AND run_at   = $6::timestamptz
-          AND id       = $7::bigint
+        WHERE id = $4::bigint
       }
 
     attr_reader :que_attrs, :que_error
@@ -102,7 +96,7 @@ module Que
     # Explicitly check for the job id in these helpers, because it won't exist
     # if we're doing JobClass.run().
     def retry_in(period)
-      if key = job_key
+      if id = que_attrs[:id]
         values = [period]
 
         if e = que_error
@@ -111,23 +105,18 @@ module Que
           values << nil << nil
         end
 
-        Que.execute :set_error, values.concat(key)
+        Que.execute :set_error, values << id
       end
 
       @que_resolved = true
     end
 
     def destroy
-      if key = job_key
-        Que.execute :destroy_job, key
+      if id = que_attrs[:id]
+        Que.execute :destroy_job, [id]
       end
 
       @que_resolved = true
-    end
-
-    def job_key
-      key = que_attrs.values_at(:queue, :priority, :run_at, :id)
-      key if key.all? { |v| !v.nil? }
     end
 
     def resolve_que_setting(*args)

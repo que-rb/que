@@ -11,10 +11,7 @@ module Que
       %{
         SELECT *
         FROM public.que_jobs
-        WHERE queue    = $1::text
-          AND priority = $2::smallint
-          AND run_at   = $3::timestamptz
-          AND id       = $4::bigint
+        WHERE id = $1::bigint
       }
 
     def initialize(
@@ -59,9 +56,7 @@ module Que
       while pk = @job_queue.shift(*priority)
         Que.internal_log(:worker_received_job, self) { {pk: pk} }
 
-        pk_values = pk.values_at(:queue, :priority, :run_at, :id)
-
-        if job = Que.execute(:get_job, pk_values).first
+        if job = Que.execute(:get_job, [pk.fetch(:id)]).first
           Que.recursively_freeze(job)
           Que.internal_log(:worker_fetched_job, self) { {job: job} }
 
@@ -132,7 +127,8 @@ module Que
           delay,
           error.message,
           error.backtrace.join("\n"),
-        ] + job.values_at(:queue, :priority, :run_at, :id)
+          job.fetch(:id),
+        ]
       rescue
         # If we can't reach the database for some reason, too bad, but
         # don't let it crash the work loop.
