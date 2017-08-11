@@ -64,7 +64,7 @@ module Que
     # running in a worker. This method is skipped when running synchronously.
     def _run_asynchronously
       _run
-      finish unless @que_resolved
+      default_finish_action unless @que_resolved
     rescue => error
       @que_error = error
 
@@ -77,10 +77,14 @@ module Que
         end
 
       Que.notify_error(error, que_attrs) if run_error_notifier
-      finish unless @que_resolved
+      default_finish_action unless @que_resolved
     end
 
     private
+
+    def default_finish_action
+      finish
+    end
 
     def finish
       if id = que_attrs[:id]

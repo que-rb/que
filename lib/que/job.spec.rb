@@ -118,6 +118,20 @@ describe Que::Job do
           assert_empty active_jobs_dataset
         end
 
+        it "should make it easy to override the default finishing action" do
+          TestJobClass.class_eval do
+            def run
+            end
+
+            def default_finish_action
+              destroy
+            end
+          end
+
+          execute
+          assert_empty jobs_dataset
+        end
+
         it "should wrap the run method in whatever middleware are defined" do
           passed_1 = passed_2 = nil
 
