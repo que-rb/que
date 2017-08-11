@@ -391,7 +391,8 @@ describe Que::Worker do
 
         assert_equal 1, jobs_dataset.count
         run_jobs
-        assert_equal 0, jobs_dataset.count
+        assert_equal 1, jobs_dataset.count
+        assert_equal 0, active_jobs_dataset.count
 
         assert_nil error
       end

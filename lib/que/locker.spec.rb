@@ -183,10 +183,10 @@ describe Que::Locker do
     locker
 
     Que::Job.enqueue
-    sleep_until! { jobs_dataset.empty? }
+    sleep_until! { active_jobs_dataset.empty? }
 
     Que::Job.enqueue
-    sleep_until! { jobs_dataset.empty? }
+    sleep_until! { active_jobs_dataset.empty? }
 
     locker.stop!
   end
@@ -199,10 +199,10 @@ describe Que::Locker do
     sleep_until! { !listening_lockers.empty? }
 
     Que::Job.enqueue
-    sleep_until! { jobs_dataset.empty? }
+    sleep_until! { active_jobs_dataset.empty? }
 
     Que::Job.enqueue
-    sleep_until! { jobs_dataset.empty? }
+    sleep_until! { active_jobs_dataset.empty? }
 
     locker.stop!
   end
@@ -222,7 +222,7 @@ describe Que::Locker do
       locker.stop!
       assert_equal(
         [job3.que_attrs[:id]],
-        jobs_dataset.select_map(:id),
+        active_jobs_dataset.select_map(:id),
       )
     end
 
@@ -242,7 +242,7 @@ describe Que::Locker do
       locker.stop!
       assert_equal(
         [job3.que_attrs[:id]],
-        jobs_dataset.select_map(:id),
+        active_jobs_dataset.select_map(:id),
       )
     end
 
@@ -270,7 +270,7 @@ describe Que::Locker do
 
       locker_settings[:poll] = true
       locker
-      sleep_until! { jobs_dataset.empty? }
+      sleep_until! { active_jobs_dataset.empty? }
       locker.stop!
     end
   end
@@ -390,7 +390,7 @@ describe Que::Locker do
       assert_equal [job.que_attrs[:id]], locked_ids
 
       $q2.push nil
-      sleep_until! { jobs_dataset.count == 0 }
+      sleep_until! { active_jobs_dataset.count == 0 }
       sleep_until! { locked_ids.empty? }
 
       locker.stop!
@@ -412,7 +412,7 @@ describe Que::Locker do
 
       $q2.push(nil); $q2.push(nil)
 
-      sleep_until! { jobs_dataset.count == 0 }
+      sleep_until! { active_jobs_dataset.count == 0 }
       locker.stop!
     end
 
@@ -446,7 +446,7 @@ describe Que::Locker do
       q2.push nil
       t.join
 
-      assert_equal [id], jobs_dataset.select_map(:id)
+      assert_equal [id], active_jobs_dataset.select_map(:id)
     end
 
     it "should not try to lock and work jobs it has already locked" do
@@ -585,7 +585,7 @@ describe Que::Locker do
       $q2.push :nil
       t.join
 
-      assert_equal 0, jobs_dataset.count
+      assert_equal 0, active_jobs_dataset.count
     end
 
     it "should clear its own record from the que_lockers table" do

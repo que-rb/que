@@ -19,6 +19,13 @@ module Que
         RETURNING *
       }
 
+    SQL[:finish_job] =
+      %{
+        UPDATE public.que_jobs
+        SET finished_at = now()
+        WHERE id = $1::bigint
+      }
+
     SQL[:destroy_job] =
       %{
         DELETE FROM public.que_jobs
@@ -76,7 +83,11 @@ module Que
     private
 
     def finish
-      destroy
+      if id = que_attrs[:id]
+        Que.execute :finish_job, [id]
+      end
+
+      @que_resolved = true
     end
 
     def error_count

@@ -115,7 +115,7 @@ describe Que::Job do
           end
 
           execute
-          assert_empty jobs_dataset
+          assert_empty active_jobs_dataset
         end
 
         it "should wrap the run method in whatever middleware are defined" do

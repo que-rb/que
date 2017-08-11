@@ -178,6 +178,10 @@ class QueSpec < Minitest::Spec
     DB[:que_jobs]
   end
 
+  def active_jobs_dataset
+    jobs_dataset.where(finished_at: nil)
+  end
+
   def listening_lockers
     DB[:que_lockers].where(:listening)
   end
