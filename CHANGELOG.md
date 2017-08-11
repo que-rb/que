@@ -1,3 +1,9 @@
+### 0.14.0 (2017-08-11)
+
+*   Fix incompatibility with Rails 5.1.
+
+*   Drop support for waking an in-process worker when an ActiveRecord transaction commits.
+
 ### 0.13.1 (2017-07-05)
 
 *   Fix issue that caused error stacktraces to not be persisted in most cases.

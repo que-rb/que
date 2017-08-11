@@ -1,5 +1,5 @@
 # frozen_string_literal: true
 
 module Que
-  Version = '0.13.1'
+  Version = '0.14.0'
 end
