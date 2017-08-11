@@ -32,7 +32,7 @@ UPDATE que_jobs
 ALTER TABLE que_jobs
   DROP COLUMN last_error_backtrace,
   DROP COLUMN data,
-  DROP COLUMN is_processed,
+  DROP COLUMN finished_at,
   ALTER COLUMN args SET NOT NULL,
   ALTER COLUMN args SET DEFAULT '[]',
   ALTER COLUMN queue SET DEFAULT '';
