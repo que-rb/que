@@ -73,6 +73,15 @@ describe Que::Poller do
     assert_equal [one], poll(5, queue_name: 'one')
   end
 
+  it "should skip jobs that are finished" do
+    one = Que::Job.enqueue.que_attrs[:id]
+    two = Que::Job.enqueue.que_attrs[:id]
+
+    jobs_dataset.where(id: two).update(finished_at: Time.now)
+
+    assert_equal [one], poll(5)
+  end
+
   it "should only work a job whose scheduled time to run has passed" do
     future1 = Que::Job.enqueue(run_at: Time.now + 30).que_attrs[:id]
     past    = Que::Job.enqueue(run_at: Time.now - 30).que_attrs[:id]
