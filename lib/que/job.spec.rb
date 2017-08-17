@@ -175,12 +175,14 @@ describe Que::Job do
             assert_raises(PG::InFailedSqlTransaction) { Que.execute "SELECT 1" }
 
             TestJobClass.class_eval do
-              def run
+              def run(*args)
+                $args = args
                 destroy
               end
             end
 
-            execute
+            execute(3, 4)
+            assert_equal [3, 4], $args
 
             Que.execute "ROLLBACK"
           end

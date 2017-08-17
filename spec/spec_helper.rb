@@ -236,6 +236,8 @@ class QueSpec < Minitest::Spec
     Que.error_notifier  = DEFAULT_ERROR_NOTIFIER
     Que.middleware.clear
 
+    Que.run_synchronously = false
+
     QUE_LOGGER.messages.clear
     QUE_INTERNAL_LOGGER.messages.clear
 
