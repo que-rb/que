@@ -29,25 +29,30 @@ if defined?(::ActiveRecord)
       Object.send :remove_const, :Rails
       refute defined?(::Rails)
     end
+  end
 
-    it "should clear connections to secondary DBs between jobs" # do
-    #   class SecondDatabaseModel < ActiveRecord::Base
-    #     establish_connection(QUE_URL)
-    #   end
+  describe Que::Rails::ActiveRecord::ConnectionMiddleware do
+    before do
+      Que.connection = ::ActiveRecord
+    end
 
-    #   SecondDatabaseModel.clear_active_connections!
-    #   SecondDatabaseModel.connection_handler.active_connections?.should == false
+    it "should clear connections to secondary DBs between jobs" do
+      class SecondDatabaseModel < ActiveRecord::Base
+        establish_connection(QUE_URL)
+      end
 
-    #   class SecondDatabaseModelJob < Que::Job
-    #     def run(*args)
-    #       SecondDatabaseModel.connection.execute("SELECT 1")
-    #     end
-    #   end
+      SecondDatabaseModel.clear_active_connections!
+      refute SecondDatabaseModel.connection_handler.active_connections?
 
-    #   SecondDatabaseModelJob.enqueue
-    #   Que::Job.work
+      class SecondDatabaseModelJob < Que::Job
+        def run(*args)
+          SecondDatabaseModel.connection.execute("SELECT 1")
+        end
+      end
 
-    #   SecondDatabaseModel.connection_handler.active_connections?.should == false
-    # end
+      SecondDatabaseModelJob.run
+
+      refute SecondDatabaseModel.connection_handler.active_connections?
+    end
   end
 end
