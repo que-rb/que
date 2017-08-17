@@ -4,7 +4,31 @@ require 'spec_helper'
 
 if defined?(::ActiveRecord)
   describe Que::Rails::ActiveRecord do
-    it "should use Rails.application.executor, if it exists, when checking out connections"
+    it "should use Rails.application.executor.wrap, if it exists, when checking out connections" do
+      # This is a hacky spec, but it's better than requiring Rails.
+      called = false
+      rails, application, executor = 3.times.map { Object.new }
+
+      executor.define_singleton_method(:wrap) do |&block|
+        called = true
+        block.call
+      end
+
+      application.define_singleton_method(:executor) { executor }
+      rails.define_singleton_method(:application) { application }
+
+      refute defined?(::Rails)
+      ::Rails = rails
+
+      Que.connection = ::ActiveRecord
+
+      assert_equal false, called
+      Que.checkout {}
+      assert_equal true, called
+
+      Object.send :remove_const, :Rails
+      refute defined?(::Rails)
+    end
 
     it "should clear connections to secondary DBs between jobs" # do
     #   class SecondDatabaseModel < ActiveRecord::Base
