@@ -3,22 +3,27 @@
 module Que
   module Rails
     module ActiveRecord
-      checkout_activerecord_adapter = -> (&block) do
+      class << self
+        private
+
+        # Check out a PG::Connection object from ActiveRecord's pool.
+        def checkout
+          wrap_in_rails_executor do
+            ::ActiveRecord::Base.connection_pool.with_connection do |conn|
+               yield conn.raw_connection
+            end
+          end
+        end
+
         # Use Rails' executor (if present) to make sure that the connection
         # we're using isn't taken from us while the block runs. See
         # https://github.com/chanks/que/issues/166#issuecomment-274218910
-        if defined?(::Rails.application.executor)
-          ::Rails.application.executor.wrap do
-            ::ActiveRecord::Base.connection_pool.with_connection(&block)
+        def wrap_in_rails_executor
+          if defined?(::Rails.application.executor)
+            ::Rails.application.executor.wrap { yield }
+          else
+            yield
           end
-        else
-          ::ActiveRecord::Base.connection_pool.with_connection(&block)
-        end
-      end
-
-      CONNECTION_POOL_WRAPPER = -> (&block) do
-        checkout_activerecord_adapter.call do |conn|
-          block.call(conn.raw_connection)
         end
       end
 

@@ -75,7 +75,7 @@ module Que
           require_relative 'que/rails/active_record'
           m = Que::Rails::ActiveRecord::ConnectionMiddleware
           middleware << m unless middleware.include?(m)
-          Que::Rails::ActiveRecord::CONNECTION_POOL_WRAPPER
+          Que::Rails::ActiveRecord.method(:checkout)
         else
           case conn.class.to_s
           when 'Sequel::Postgres::Database' then conn.method(:synchronize)
