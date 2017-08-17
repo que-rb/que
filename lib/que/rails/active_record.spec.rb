@@ -25,12 +25,5 @@ if defined?(::ActiveRecord)
 
     #   SecondDatabaseModel.connection_handler.active_connections?.should == false
     # end
-
-    it "should support Rails' special extensions for times" do
-      Que::Job.enqueue run_at: 1.minute.ago
-      assert_in_delta DB[:que_jobs].get(:run_at), Time.now - 60, 5
-
-      skip "there are probably other cases"
-    end
   end
 end

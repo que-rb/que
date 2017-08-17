@@ -196,76 +196,117 @@ describe Que::Worker do
       assert_in_delta job[:run_at], Time.now + 1299, 3
     end
 
-    it "should respect a custom retry interval" do
-      class RetryIntervalJob < ErrorJob
-        @retry_interval = 5
+    describe "when a retry_interval is set" do
+      it "that is an integer" do
+        class RetryIntervalJob < ErrorJob
+          @retry_interval = 5
+        end
+
+        RetryIntervalJob.enqueue
+
+        run_jobs
+
+        assert_equal 1, jobs_dataset.count
+        job = jobs_dataset.first
+
+        assert_equal 1, job[:error_count]
+        assert_equal "ErrorJob!", job[:last_error_message]
+        assert_match(
+          /support\/jobs\/error_job/,
+          job[:last_error_backtrace].split("\n").first,
+        )
+        assert_in_delta job[:run_at], Time.now + 5, 3
+
+        jobs_dataset.update error_count: 5,
+                            run_at:      Time.now - 60
+
+        run_jobs
+
+        assert_equal 1, jobs_dataset.count
+        job = jobs_dataset.first
+
+        assert_equal 6, job[:error_count]
+        assert_equal "ErrorJob!", job[:last_error_message]
+        assert_match(
+          /support\/jobs\/error_job/,
+          job[:last_error_backtrace].split("\n").first,
+        )
+        assert_in_delta job[:run_at], Time.now + 5, 3
       end
 
-      RetryIntervalJob.enqueue
+      it "that is a callable" do
+        class RetryIntervalCallableJob < ErrorJob
+          @retry_interval = proc { |count| count * 10 }
+        end
 
-      run_jobs
+        RetryIntervalCallableJob.enqueue
 
-      assert_equal 1, jobs_dataset.count
-      job = jobs_dataset.first
+        run_jobs
 
-      assert_equal 1, job[:error_count]
-      assert_equal "ErrorJob!", job[:last_error_message]
-      assert_match(
-        /support\/jobs\/error_job/,
-        job[:last_error_backtrace].split("\n").first,
-      )
-      assert_in_delta job[:run_at], Time.now + 5, 3
+        assert_equal 1, jobs_dataset.count
+        job = jobs_dataset.first
+        assert_equal 1, job[:error_count]
+        assert_equal "ErrorJob!", job[:last_error_message]
+        assert_match(
+          /support\/jobs\/error_job/,
+          job[:last_error_backtrace].split("\n").first,
+        )
+        assert_in_delta job[:run_at], Time.now + 10, 3
 
-      jobs_dataset.update error_count: 5,
-                          run_at:      Time.now - 60
+        jobs_dataset.update error_count: 5,
+                            run_at:      Time.now - 60
 
-      run_jobs
+        run_jobs
 
-      assert_equal 1, jobs_dataset.count
-      job = jobs_dataset.first
-
-      assert_equal 6, job[:error_count]
-      assert_equal "ErrorJob!", job[:last_error_message]
-      assert_match(
-        /support\/jobs\/error_job/,
-        job[:last_error_backtrace].split("\n").first,
-      )
-      assert_in_delta job[:run_at], Time.now + 5, 3
-    end
-
-    it "should respect a custom retry interval formula" do
-      class RetryIntervalFormulaJob < ErrorJob
-        @retry_interval = proc { |count| count * 10 }
+        assert_equal 1, jobs_dataset.count
+        job = jobs_dataset.first
+        assert_equal 6, job[:error_count]
+        assert_equal "ErrorJob!", job[:last_error_message]
+        assert_match(
+          /support\/jobs\/error_job/,
+          job[:last_error_backtrace].split("\n").first,
+        )
+        assert_in_delta job[:run_at], Time.now + 60, 3
       end
 
-      RetryIntervalFormulaJob.enqueue
+      if defined?(ActiveSupport)
+        it "that is an ActiveSupport::Duration" do
+          class RetryIntervalDurationJob < ErrorJob
+            @retry_interval = 5.minutes
+          end
 
-      run_jobs
+          RetryIntervalDurationJob.enqueue
 
-      assert_equal 1, jobs_dataset.count
-      job = jobs_dataset.first
-      assert_equal 1, job[:error_count]
-      assert_equal "ErrorJob!", job[:last_error_message]
-      assert_match(
-        /support\/jobs\/error_job/,
-        job[:last_error_backtrace].split("\n").first,
-      )
-      assert_in_delta job[:run_at], Time.now + 10, 3
+          run_jobs
 
-      jobs_dataset.update error_count: 5,
-                          run_at:      Time.now - 60
+          assert_equal 1, jobs_dataset.count
+          job = jobs_dataset.first
 
-      run_jobs
+          assert_equal 1, job[:error_count]
+          assert_equal "ErrorJob!", job[:last_error_message]
+          assert_match(
+            /support\/jobs\/error_job/,
+            job[:last_error_backtrace].split("\n").first,
+          )
+          assert_in_delta job[:run_at], Time.now + 300, 3
 
-      assert_equal 1, jobs_dataset.count
-      job = jobs_dataset.first
-      assert_equal 6, job[:error_count]
-      assert_equal "ErrorJob!", job[:last_error_message]
-      assert_match(
-        /support\/jobs\/error_job/,
-        job[:last_error_backtrace].split("\n").first,
-      )
-      assert_in_delta job[:run_at], Time.now + 60, 3
+          jobs_dataset.update error_count: 5,
+                              run_at:      Time.now - 60
+
+          run_jobs
+
+          assert_equal 1, jobs_dataset.count
+          job = jobs_dataset.first
+
+          assert_equal 6, job[:error_count]
+          assert_equal "ErrorJob!", job[:last_error_message]
+          assert_match(
+            /support\/jobs\/error_job/,
+            job[:last_error_backtrace].split("\n").first,
+          )
+          assert_in_delta job[:run_at], Time.now + 300, 3
+        end
+      end
     end
 
     it "should throw an error properly if there's no corresponding job class" do
@@ -343,6 +384,42 @@ describe Que::Worker do
 
         assert_instance_of RuntimeError, error
         assert_equal "Blah!", error.message
+      end
+
+      if defined?(ActiveSupport)
+        it "should allow retrying_in an ActiveSupport::Duration" do
+          error = nil
+          Que.error_notifier = proc { |e| error = e }
+
+          class CustomRetryDurationJob < Que::Job
+            def run(*args)
+              raise "Blah!"
+            end
+
+            private
+
+            def handle_error(error)
+              retry_in(5.minutes)
+            end
+          end
+
+          CustomRetryDurationJob.enqueue
+
+          run_jobs
+
+          assert_equal 1, jobs_dataset.count
+          job = jobs_dataset.first
+          assert_equal 1, job[:error_count]
+          assert_match /\ABlah!/, job[:last_error_message]
+          assert_match(
+            /worker\.spec\.rb/,
+            job[:last_error_backtrace].split("\n").first,
+          )
+          assert_in_delta job[:run_at], Time.now + 300, 3
+
+          assert_instance_of RuntimeError, error
+          assert_equal "Blah!", error.message
+        end
       end
 
       it "should allow it to destroy the job" do
