@@ -230,6 +230,43 @@ describe Que::Worker do
         assert_in_delta job[:run_at], Time.now + 5, 3
       end
 
+      it "that is a float" do
+        class RetryFloatIntervalJob < ErrorJob
+          @retry_interval = 4.5
+        end
+
+        RetryFloatIntervalJob.enqueue
+
+        run_jobs
+
+        assert_equal 1, jobs_dataset.count
+        job = jobs_dataset.first
+
+        assert_equal 1, job[:error_count]
+        assert_equal "ErrorJob!", job[:last_error_message]
+        assert_match(
+          /support\/jobs\/error_job/,
+          job[:last_error_backtrace].split("\n").first,
+        )
+        assert_in_delta job[:run_at], Time.now + 4.5, 3
+
+        jobs_dataset.update error_count: 5,
+                            run_at:      Time.now - 60
+
+        run_jobs
+
+        assert_equal 1, jobs_dataset.count
+        job = jobs_dataset.first
+
+        assert_equal 6, job[:error_count]
+        assert_equal "ErrorJob!", job[:last_error_message]
+        assert_match(
+          /support\/jobs\/error_job/,
+          job[:last_error_backtrace].split("\n").first,
+        )
+        assert_in_delta job[:run_at], Time.now + 4.5, 3
+      end
+
       it "that is a callable" do
         class RetryIntervalCallableJob < ErrorJob
           @retry_interval = proc { |count| count * 10 }
@@ -377,6 +414,40 @@ describe Que::Worker do
           job[:last_error_backtrace].split("\n").first,
         )
         assert_in_delta job[:run_at], Time.now + 42, 3
+
+        assert_instance_of RuntimeError, error
+        assert_equal "Blah!", error.message
+      end
+
+      it "should allow it to schedule a retry after a float interval" do
+        error = nil
+        Que.error_notifier = proc { |e| error = e }
+
+        class CustomRetryFloatJob < Que::Job
+          def run(*args)
+            raise "Blah!"
+          end
+
+          private
+
+          def handle_error(error)
+            retry_in(106.9 + (rand / 10))
+          end
+        end
+
+        CustomRetryFloatJob.enqueue
+
+        run_jobs
+
+        assert_equal 1, jobs_dataset.count
+        job = jobs_dataset.first
+        assert_equal 1, job[:error_count]
+        assert_match /\ABlah!/, job[:last_error_message]
+        assert_match(
+          /worker\.spec\.rb/,
+          job[:last_error_backtrace].split("\n").first,
+        )
+        assert_in_delta job[:run_at], Time.now + 106.9, 3
 
         assert_instance_of RuntimeError, error
         assert_equal "Blah!", error.message
