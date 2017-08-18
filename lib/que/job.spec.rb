@@ -459,6 +459,20 @@ describe Que::Job do
         sleep_until! { result_queue.clear.map{|m| m.fetch(:id)} == [attrs[:id]] }
         ActiveJob::QueueAdapters::QueAdapter::JobWrapper.new(attrs)
       end
+
+      it "should still support using the perform method" do
+        TestJobClass.send :undef_method, :run
+
+        TestJobClass.class_eval do
+          def perform(*args)
+            $args = args
+            destroy
+          end
+        end
+
+        execute("arg1" => 1, "arg2" => 2)
+        assert_equal([{'arg1' => 1, 'arg2' => 2}], $args)
+      end
     end
   end
 end

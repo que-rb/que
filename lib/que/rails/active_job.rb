@@ -37,7 +37,18 @@ module Que
           def perform(*args)
             if respond_to?(:run)
               _run_asynchronously(
-                args: Que.recursively_freeze(que_filter_args(args))
+                args: \
+                  Que.recursively_freeze(
+                    que_filter_args(
+                      args.map { |a|
+                        if a.is_a?(Hash)
+                          a.deep_symbolize_keys
+                        else
+                          a
+                        end
+                      }
+                    )
+                  )
               )
             else
               super
@@ -54,21 +65,7 @@ module Que
           {"job_id" => que_attrs[:id]}
         end
 
-        # We cast args to symbols, but ActiveJob expects to be able to index
-        # into the args with strings, so support that.
-        ATTRS_DEFAULT_PROC = -> (hash, key) do
-          return unless String === key
-          symbol_key = key.to_sym
-          # Check for the key's presence first, because if it doesn't exist this
-          # proc will just get called again and we'll get a stack overflow.
-          hash[symbol_key] if hash.has_key?(symbol_key)
-        end
-
         def run(args)
-          # Fix the args hash before it's passed to ActiveJob.
-          args = args.dup
-          args.default_proc = ATTRS_DEFAULT_PROC
-
           # Our ActiveJob extensions expect to be able to operate on the actual
           # job object, but there's no way to access it through ActiveJob. So,
           # scope it to the current thread. It's a bit messy, but it's the best
@@ -82,7 +79,9 @@ module Que
 
           begin
             Thread.current[:que_current_job] = self
-            super(args)
+
+            # We symbolize the args hash but ActiveJob doesn't like that :/
+            super(args.deep_stringify_keys)
           ensure
             # Also assert that the current job state was only removed now, but
             # unset the job first so that an assertion failure doesn't mess up
