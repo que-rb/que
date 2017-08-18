@@ -257,12 +257,12 @@ describe Que::Locker do
     it "should request only enough jobs to fill the queue" do
       # Three BlockJobs will tie up the low-priority workers.
       ids  = 3.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
-      ids += 6.times.map { Que::Job.enqueue(priority: 101).que_attrs[:id] }
+      ids += 9.times.map { Que::Job.enqueue(priority: 101).que_attrs[:id] }
 
       locker
       3.times { $q1.pop }
 
-      # The default queue size is 8, so it shouldn't lock the 9th job.
+      # The default queue size is 8, with 3 open workers, so it shouldn't lock the 12th job.
       assert_equal ids[0..-2], locked_ids
 
       3.times { $q2.push nil }
@@ -351,8 +351,8 @@ describe Que::Locker do
       # First big batch lock, tried to fill the queue and didn't quite get
       # there.
       event = locker_polled_events.shift
-      assert_equal 8, event[:limit]
-      assert_equal 4, event[:locked]
+      assert_equal 11, event[:limit]
+      assert_equal 4,  event[:locked]
 
       # Second big batch lock, filled the queue.
       second_mass_lock =
@@ -367,17 +367,17 @@ describe Que::Locker do
     end
 
     it "should trigger a new poll when the queue drops to the minimum size" do
-      ids = 9.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
+      ids = 12.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
 
       locker_settings[:poll] = true
       locker
       3.times { $q1.pop }
 
-      # Should have locked first 8 only.
-      assert_equal ids[0..7], locked_ids
+      # Should have locked first 11 only.
+      assert_equal ids[0...11], locked_ids
 
       # Get the queue size down to 1, and it should lock the final one.
-      6.times { $q2.push nil }
+      9.times { $q2.push nil }
       sleep_until! { locked_ids.include?(ids[-1]) }
       3.times { $q2.push nil }
 

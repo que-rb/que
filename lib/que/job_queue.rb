@@ -14,6 +14,7 @@ module Que
       @maximum_size = Que.assert(Integer, maximum_size)
       Que.assert(maximum_size > 0)
 
+      @waiting_count = 0
       @monitor = Monitor.new
       @cv      = Monitor::ConditionVariable.new(@monitor)
     end
@@ -41,21 +42,27 @@ module Que
 
         # If we passed the maximum queue size, drop the lowest sort keys and
         # return their ids to be unlocked.
-        overage = size - maximum_size
+        overage = -space
         pop(overage) if overage > 0
       end
     end
 
     # Looping/ConditionVariable technique borrowed from the rubysl-thread gem.
-    def shift(priority = Float::INFINITY)
+    def shift(priority = nil)
       loop do
         sync do
           if stopping?
             return
-          elsif (key = @array.first) && key.fetch(:priority) <= priority
+          elsif (key = @array.first) && (priority.nil? || key.fetch(:priority) <= priority)
             return @array.shift
           else
-            @cv.wait
+            if priority.nil?
+              @waiting_count += 1
+              @cv.wait
+              @waiting_count -= 1
+            else
+              @cv.wait
+            end
           end
         end
       end
@@ -85,7 +92,9 @@ module Que
     end
 
     def space
-      sync { maximum_size - size }
+      sync do
+        maximum_size + @waiting_count - size
+      end
     end
 
     def size

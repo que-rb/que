@@ -191,6 +191,18 @@ describe Que::JobQueue do
       job_queue.push(*job_array.sample(3))
       assert_equal 5, job_queue.space
     end
+
+    it "should increase by one for each any-priority worker waiting for a job" do
+      assert_equal 8, job_queue.space
+
+      thread  = Thread.new { job_queue.shift(5) }
+      threads = 2.times.map { Thread.new { job_queue.shift } }
+
+      sleep_until! { job_queue.space == 10 }
+
+      thread.kill
+      threads.each &:kill
+    end
   end
 
   describe "size" do
