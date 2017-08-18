@@ -69,11 +69,11 @@ EXTRA_PG_CONNECTION = NEW_PG_CONNECTION.call
 require 'sequel'
 DB = Sequel.connect(QUE_URL)
 DB.extension :pg_array
-DB.extension :pg_json
 
-def Sequel.parse_json(json)
-  JSON.parse(json, symbolize_names: true, create_additions: false)
-end
+# Make it a bit easier to manage JSON when we're inspecting the DB in specs.
+parse_json = -> (json) { JSON.parse(json, symbolize_names: true) }
+DB.add_named_conversion_proc(:jsonb, &parse_json)
+DB.add_named_conversion_proc(:json,  &parse_json)
 
 
 
