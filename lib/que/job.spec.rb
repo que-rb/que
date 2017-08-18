@@ -36,6 +36,18 @@ describe Que::Job do
           assert hash[:string].frozen?
         end
 
+        it "should symbolize argument hashes" do
+          execute(a: 1, b: 2)
+          assert_equal([{a: 1, b: 2}], $args)
+        end
+
+        it "should symbolize argument hashes even if they were originally passed as strings" do
+          # The run() helper should convert these to symbols, just as if they'd
+          # been passed through the DB.
+          execute('a' => 1, 'b' => 2)
+          assert_equal([{a: 1, b: 2}], $args)
+        end
+
         it "should handle keyword arguments just fine" do
           TestJobClass.class_eval do
             def run(a:, b: 4, c: 3)
@@ -45,43 +57,18 @@ describe Que::Job do
 
           execute(a: 1, b: 2)
           assert_equal [1, 2, 3], $args
-
-          # The run() helper should convert these to symbols, just as if they'd
-          # been passed through the DB.
-          execute('a' => 1, 'b' => 2)
-          assert_equal [1, 2, 3], $args
         end
 
-        it "should symbolize argument hashes" do
-          execute(a: 1, b: 2)
-          assert_equal([{a: 1, b: 2}], $args)
-
-          # The run() helper should convert these to symbols, just as if they'd
-          # been passed through the DB.
-          execute('a' => 1, 'b' => 2)
-          assert_equal([{a: 1, b: 2}], $args)
-        end
-
-        it "should handle subclassed jobs" do
-          Object.send :remove_const, :TestJobClass
-
-          superclass = Class.new(Que::Job) do
-            def run
-              $args << 2
+        it "should handle keyword arguments even if they were originally passed as strings" do
+          TestJobClass.class_eval do
+            def run(a:, b: 4, c: 3)
+              $args = [a, b, c]
             end
           end
 
-          Object.const_set(:TestJobClass, Class.new(superclass) {
-            def run
-              $args << 1
-              super
-              $args << 3
-            end
-          })
-
-          $args = []
-          execute
-
+          # The run() helper should convert these to symbols, just as if they'd
+          # been passed through the DB.
+          execute('a' => 1, 'b' => 2)
           assert_equal [1, 2, 3], $args
         end
 
@@ -153,8 +140,13 @@ describe Que::Job do
 
           execute(5, 6)
 
-          assert_instance_of TestJobClass, passed_1
-          assert_equal({args: [5, 6]}, passed_1.que_attrs[:data])
+          if defined?(ApplicationJob)
+            assert_instance_of ActiveJob::QueueAdapters::QueAdapter::JobWrapper, passed_1
+            assert_equal([5, 6], passed_1.que_attrs[:data][:args].first[:arguments])
+          else
+            assert_instance_of TestJobClass, passed_1
+            assert_equal({args: [5, 6]}, passed_1.que_attrs[:data])
+          end
 
           assert_equal passed_1.object_id, passed_2.object_id
         end
@@ -247,6 +239,7 @@ describe Que::Job do
             end
 
             execute
+
             assert_equal "Uh-oh!", error.message
           end
 
@@ -277,7 +270,6 @@ describe Que::Job do
             execute
 
             assert_equal 1, jobs_dataset.count
-
             assert_equal ["Uh-oh again!", "Uh-oh!"], errors.map(&:message)
           end
         end
@@ -382,6 +374,91 @@ describe Que::Job do
 
       sleep_until! { result_queue.clear.map{|m| m.fetch(:id)} == [attrs[:id]] }
       job
+    end
+
+    it "should handle subclassed jobs" do
+      Object.send :remove_const, :TestJobClass
+
+      superclass = Class.new(Que::Job) do
+        def run
+          $args << 2
+        end
+      end
+
+      Object.const_set(:TestJobClass, Class.new(superclass) {
+        def run
+          $args << 1
+          super
+          $args << 3
+        end
+      })
+
+      $args = []
+      execute
+
+      assert_equal [1, 2, 3], $args
+    end
+  end
+
+  if defined?(::ActiveJob)
+    describe "running jobs through ActiveJob when a subclass has our helpers included" do
+      include ActsLikeAJob
+      include ActsLikeAnAsynchronousJob
+
+      let :job_queue do
+        Que::JobQueue.new(maximum_size: 20)
+      end
+
+      let :result_queue do
+        Que::ResultQueue.new
+      end
+
+      let :worker do
+        Que::Worker.new \
+          job_queue:    job_queue,
+          result_queue: result_queue
+      end
+
+      before do
+        $active_job_spec = true
+
+        Object.send :remove_const, :TestJobClass
+
+        class ApplicationJob < ActiveJob::Base
+          include Que::Rails::ActiveJob::JobExtensions
+        end
+
+        class TestJobClass < ApplicationJob
+          def run(*args)
+            $args = args
+          end
+        end
+      end
+
+      after do
+        $active_job_spec = nil
+
+        Object.send :remove_const, :ApplicationJob
+      end
+
+      def execute(*args)
+        worker # Make sure worker is initialized.
+
+        job = TestJobClass.perform_later(*args)
+
+        assert_equal 1, jobs_dataset.count
+        attrs = jobs_dataset.first!
+
+        job_queue.push(
+          queue:    attrs[:queue],
+          priority: attrs[:priority],
+          run_at:   attrs[:run_at],
+          id:       attrs[:id],
+        )
+
+        sleep_until! { result_queue.clear.map{|m| m.fetch(:id)} == [attrs[:id]] }
+        ActiveJob::QueueAdapters::QueAdapter::JobWrapper.new(attrs)
+      end
     end
   end
 end
