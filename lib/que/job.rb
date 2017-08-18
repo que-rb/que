@@ -59,11 +59,11 @@ module Que
     def run(*args)
     end
 
+    private
+
     def que_target
       self
     end
-
-    private
 
     @retry_interval = proc { |count| count ** 4 + 3 }
 

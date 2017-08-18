@@ -6,15 +6,20 @@ module Que
       module JobExtensions
         include JobMethods
 
-        def self.included(base)
-          base.prepend(PrependedMethods)
+        def perform(*args)
+          args =
+            Que.recursively_freeze(que_filter_args(
+              args.map { |a| a.is_a?(Hash) ? a.deep_symbolize_keys : a }
+            ))
+
+          _run_asynchronously(args: args)
         end
+
+        private
 
         def que_target
           Thread.current[:que_current_job]
         end
-
-        private
 
         # Filter out :_aj_symbol_keys constructs so that keywords work as
         # expected.
@@ -23,36 +28,11 @@ module Que
           when Array
             thing.map { |t| que_filter_args(t) }
           when Hash
-            h = {}
-            thing.each do |k, v|
-              h[k] = que_filter_args(v) unless k == :_aj_symbol_keys
+            thing.each_with_object({}) do |(k, v), hash|
+              hash[k] = que_filter_args(v) unless k == :_aj_symbol_keys
             end
-            h
           else
             thing
-          end
-        end
-
-        module PrependedMethods
-          def perform(*args)
-            if respond_to?(:run)
-              _run_asynchronously(
-                args: \
-                  Que.recursively_freeze(
-                    que_filter_args(
-                      args.map { |a|
-                        if a.is_a?(Hash)
-                          a.deep_symbolize_keys
-                        else
-                          a
-                        end
-                      }
-                    )
-                  )
-              )
-            else
-              super
-            end
           end
         end
       end
