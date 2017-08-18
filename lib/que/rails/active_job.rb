@@ -6,6 +6,10 @@ module Que
       module JobExtensions
         include JobMethods
 
+        def run(*args)
+          raise Error, "Job class #{self.class} didn't define a run() method!"
+        end
+
         def perform(*args)
           args =
             Que.recursively_freeze(que_filter_args(

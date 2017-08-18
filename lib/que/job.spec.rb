@@ -473,6 +473,19 @@ describe Que::Job do
         execute("arg1" => 1, "arg2" => 2)
         assert_equal([{'arg1' => 1, 'arg2' => 2}], $args)
       end
+
+      it "when there is no run method shouldn't cause a problem" do
+        error = nil
+        Que.error_notifier = proc { |e| error = e }
+
+        Object.send :remove_const, :TestJobClass
+
+        class TestJobClass < ApplicationJob; end
+
+        execute(1, 2)
+        assert_instance_of Que::Error, error
+        assert_equal "Job class TestJobClass didn't define a run() method!", error.message
+      end
     end
   end
 end
