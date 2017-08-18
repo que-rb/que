@@ -21,31 +21,6 @@ module Que
         RETURNING *
       }
 
-    SQL[:finish_job] =
-      %{
-        UPDATE public.que_jobs
-        SET finished_at = now()
-        WHERE id = $1::bigint
-      }
-
-    SQL[:destroy_job] =
-      %{
-        DELETE FROM public.que_jobs
-        WHERE id = $1::bigint
-      }
-
-    SQL[:set_error] =
-      %{
-        UPDATE public.que_jobs
-
-        SET error_count          = error_count + 1,
-            run_at               = now() + $1::float * '1 second'::interval,
-            last_error_message   = $2::text,
-            last_error_backtrace = $3::text
-
-        WHERE id = $4::bigint
-      }
-
     attr_reader :que_attrs
     attr_accessor :que_error, :que_resolved
 
