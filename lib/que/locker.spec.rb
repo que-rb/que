@@ -76,6 +76,14 @@ describe Que::Locker do
       locker.stop!
     end
 
+    it "should support an on_worker_start callback" do
+      called = 0
+      locker_settings[:on_worker_start] = proc { called += 1 }
+      locker
+      locker.stop!
+      assert_equal 6, called
+    end
+
     it "should set the application_name while the locker has the connection" do
       pg = EXTRA_PG_CONNECTION
 

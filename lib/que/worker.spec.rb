@@ -128,10 +128,6 @@ describe Que::Worker do
     end
   end
 
-  it "should run the start_callback if passed one" do
-    skip "Probably want to implement full-fledged callbacks around worker start and working jobs"
-  end
-
   describe "when an error is raised" do
     # Avoid spec noise:
     before { Que.error_notifier = nil }
