@@ -229,6 +229,12 @@ class QueSpec < Minitest::Spec
   def around
     puts "Running: #{current_spec_location}" if ENV['LOG_SPEC']
 
+    # Don't let async error notifications hang around until the next spec.
+    sleep_until do
+      Que::Utils::ErrorNotification::ASYNC_QUEUE.empty? &&
+        Que.async_error_thread.status == 'sleep'
+    end
+
     Que.pool            = DEFAULT_QUE_POOL
     Que.logger          = QUE_LOGGER
     Que.internal_logger = QUE_INTERNAL_LOGGER
