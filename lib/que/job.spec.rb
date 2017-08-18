@@ -162,6 +162,129 @@ describe Que::Job do
     end
   end
 
+  module ActsLikeAnAsynchronousJob
+    def self.included(base)
+      base.class_eval do
+        it "should make it easy to override the finishing action" do
+          TestJobClass.class_eval do
+            def finish
+              $args = []
+              $args << :before_destroy
+              destroy
+              $args << :after_destroy
+            end
+          end
+
+          execute
+          assert_equal [:before_destroy, :after_destroy], $args
+          assert_empty jobs_dataset
+        end
+
+        it "calling retry_in when there's no error shouldn't be problematic" do
+          TestJobClass.class_eval do
+            def run
+              retry_in(50)
+            end
+          end
+
+          job = execute
+
+          assert_equal 1, active_jobs_dataset.count
+          assert_in_delta active_jobs_dataset.get(:run_at), Time.now + 50, 3
+          assert_equal [job.que_attrs[:id]], active_jobs_dataset.select_map(:id)
+        end
+
+        it "raising an unrecoverable error shouldn't delete the job record" do
+          error_class = Class.new(Exception)
+
+          TestJobClass.class_eval do
+            define_method :run do
+              raise error_class
+            end
+          end
+
+          assert_empty jobs_dataset
+          assert_raises(error_class) { execute }
+          refute_empty jobs_dataset
+        end
+
+        describe "#handle_error" do
+          before do
+            TestJobClass.class_eval do
+              def run
+                raise "Uh-oh!"
+              end
+            end
+          end
+
+          it "should be passed the error object and expose the correct error_count" do
+            error = nil
+            Que.error_notifier = proc { |e| error = e }
+
+            TestJobClass.class_eval do
+              def handle_error(error)
+                $args = [error_count, error]
+              end
+            end
+
+            execute
+
+            assert_equal "Uh-oh!", error.message
+
+            count, error_2 = $args
+            assert_equal 1, count
+            assert_equal error, error_2
+          end
+
+          it "should make it easy to signal that the error should be notified" do
+            error = nil
+            Que.error_notifier = proc { |e| error = e }
+
+            TestJobClass.class_eval do
+              def handle_error(error)
+                true # Notify error
+              end
+            end
+
+            execute
+            assert_equal "Uh-oh!", error.message
+          end
+
+          it "should make it easy to signal that the error should not be notified" do
+            error = nil
+            Que.error_notifier = proc { |e| error = e }
+
+            TestJobClass.class_eval do
+              def handle_error(error)
+                false # Do not notify error
+              end
+            end
+
+            execute
+            assert_nil error
+          end
+
+          it "when it raises an error of its own should notify it as well" do
+            errors = []
+            Que.error_notifier = proc { |e| errors << e }
+
+            TestJobClass.class_eval do
+              def handle_error(error)
+                raise "Uh-oh again!"
+              end
+            end
+
+            execute
+
+            assert_equal 1, jobs_dataset.count
+
+            assert_equal ["Uh-oh again!", "Uh-oh!"], errors.map(&:message)
+          end
+        end
+      end
+    end
+  end
+
   module ActsLikeASynchronousJob
     def self.included(base)
       base.class_eval do
@@ -228,6 +351,7 @@ describe Que::Job do
 
   describe "running jobs from the DB" do
     include ActsLikeAJob
+    include ActsLikeAnAsynchronousJob
 
     let :job_queue do
       Que::JobQueue.new(maximum_size: 20)
@@ -258,123 +382,6 @@ describe Que::Job do
 
       sleep_until! { result_queue.clear.map{|m| m.fetch(:id)} == [attrs[:id]] }
       job
-    end
-
-    it "should make it easy to override the finishing action" do
-      TestJobClass.class_eval do
-        def finish
-          $args = []
-          $args << :before_destroy
-          destroy
-          $args << :after_destroy
-        end
-      end
-
-      execute
-      assert_equal [:before_destroy, :after_destroy], $args
-      assert_empty jobs_dataset
-    end
-
-    it "calling retry_in when there's no error shouldn't be problematic" do
-      TestJobClass.class_eval do
-        def run
-          retry_in(50)
-        end
-      end
-
-      job = execute
-
-      assert_equal 1, active_jobs_dataset.count
-      assert_in_delta active_jobs_dataset.get(:run_at), Time.now + 50, 3
-      assert_equal [job.que_attrs[:id]], active_jobs_dataset.select_map(:id)
-    end
-
-    it "raising an unrecoverable error shouldn't delete the job record" do
-      class BigBadError < Exception; end
-
-      TestJobClass.class_eval do
-        def run
-          raise BigBadError
-        end
-      end
-
-      assert_empty jobs_dataset
-      assert_raises(BigBadError) { execute }
-      refute_empty jobs_dataset
-    end
-
-    describe "#handle_error" do
-      before do
-        TestJobClass.class_eval do
-          def run
-            raise "Uh-oh!"
-          end
-        end
-      end
-
-      it "should be passed the error object and expose the correct error_count" do
-        error = nil
-        Que.error_notifier = proc { |e| error = e }
-
-        TestJobClass.class_eval do
-          def handle_error(error)
-            $args = [error_count, error]
-          end
-        end
-
-        execute
-
-        assert_equal "Uh-oh!", error.message
-
-        count, error_2 = $args
-        assert_equal 1, count
-        assert_equal error, error_2
-      end
-
-      it "should make it easy to signal that the error should be notified" do
-        error = nil
-        Que.error_notifier = proc { |e| error = e }
-
-        TestJobClass.class_eval do
-          def handle_error(error)
-            true # Notify error
-          end
-        end
-
-        execute
-        assert_equal "Uh-oh!", error.message
-      end
-
-      it "should make it easy to signal that the error should not be notified" do
-        error = nil
-        Que.error_notifier = proc { |e| error = e }
-
-        TestJobClass.class_eval do
-          def handle_error(error)
-            false # Do not notify error
-          end
-        end
-
-        execute
-        assert_nil error
-      end
-
-      it "when it raises an error of its own should notify it as well" do
-        errors = []
-        Que.error_notifier = proc { |e| errors << e }
-
-        TestJobClass.class_eval do
-          def handle_error(error)
-            raise "Uh-oh again!"
-          end
-        end
-
-        execute
-
-        assert_equal 1, jobs_dataset.count
-
-        assert_equal ["Uh-oh again!", "Uh-oh!"], errors.map(&:message)
-      end
     end
   end
 end
