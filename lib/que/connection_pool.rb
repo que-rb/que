@@ -23,7 +23,7 @@ module Que
           if preexisting
             # If so, check that the connection we just got is the one we expect.
             if preexisting.wrapped_connection.object_id != conn.object_id
-              raise Error, "Connection pool is not reentrant!"
+              raise Error, "Connection pool is not reentrant! previous: #{preexisting.wrapped_connection.inspect} now: #{conn.inspect}"
             end
           else
             # If not, make sure that it wasn't promised to any other threads.
