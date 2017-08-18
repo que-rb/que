@@ -16,7 +16,7 @@ module Que
               args.map { |a| a.is_a?(Hash) ? a.deep_symbolize_keys : a }
             ))
 
-          _run_asynchronously(args: args)
+          _run_with_handling(args: args)
         end
 
         private

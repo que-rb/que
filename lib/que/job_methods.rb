@@ -37,7 +37,7 @@ module Que
 
     # Run the job with the error handling and cleaning up that we need when
     # running in a worker. This method is skipped when running synchronously.
-    def _run_asynchronously(args: nil)
+    def _run_with_handling(args: nil)
       _run(args: args)
       default_finish_action unless que_target.que_resolved
     rescue => error
@@ -88,7 +88,7 @@ module Que
     end
 
     # Explicitly check for the job id in these helpers, because it won't exist
-    # if we're doing JobClass.run().
+    # if we're running synchronously.
     def retry_in(period)
       if id = que_target.que_attrs[:id]
         values = [period]
