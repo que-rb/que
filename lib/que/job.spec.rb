@@ -275,7 +275,19 @@ describe Que::Job do
       assert_empty jobs_dataset
     end
 
-    it "calling retry_in when there's no error shouldn't be problematic"
+    it "calling retry_in when there's no error shouldn't be problematic" do
+      TestJobClass.class_eval do
+        def run
+          retry_in(50)
+        end
+      end
+
+      job = execute
+
+      assert_equal 1, active_jobs_dataset.count
+      assert_in_delta active_jobs_dataset.get(:run_at), Time.now + 50, 3
+      assert_equal [job.que_attrs[:id]], active_jobs_dataset.select_map(:id)
+    end
 
     it "raising an unrecoverable error shouldn't delete the job record" do
       class BigBadError < Exception; end
