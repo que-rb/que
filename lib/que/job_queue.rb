@@ -29,7 +29,7 @@ module Que
       end
 
       sync do
-        sort_jobs!(@array.push(*metajobs))
+        @array.push(*metajobs).sort!
 
         # Notify all waiting threads that they can try again to remove a item.
         # We could try to only wake up a subset of the waiting threads, to avoid
@@ -69,7 +69,7 @@ module Que
     end
 
     def accept?(metajobs)
-      sort_jobs!(metajobs)
+      metajobs.sort!
 
       sync do
         start_index = space
@@ -79,7 +79,7 @@ module Que
         index_to_lose = @array.length - 1
 
         start_index.upto(final_index) do |index|
-          if index_to_lose >= 0 && compare_jobs(metajobs[index], @array[index_to_lose])
+          if index_to_lose >= 0 && (metajobs[index] <=> @array[index_to_lose]) < 0
             return metajobs if index == final_index
             index_to_lose -= 1
           else
@@ -118,35 +118,6 @@ module Que
     end
 
     private
-
-    def sort_jobs!(metajobs)
-      # Benchmarked this out of curiosity, and turns out that this sort_by is
-      # faster (and triggers fewer GC cycles) than using sort! and passing each
-      # pair to compare_jobs below.
-      metajobs.sort_by! do |metajob|
-        metajob.sort_key.values_at(:priority, :run_at, :id)
-      end
-    end
-
-    SORT_KEYS = [:priority, :run_at, :id].freeze
-
-    # Given two sort keys a and b, returns true if a < b and false if a > b.
-    # Throws an error if they're the same - that shouldn't happen.
-    def compare_jobs(j1, j2)
-      k1 = j1.sort_key
-      k2 = j2.sort_key
-
-      SORT_KEYS.each do |key|
-        value1 = k1.fetch(key)
-        value2 = k2.fetch(key)
-
-        return true  if value1 < value2
-        return false if value1 > value2
-      end
-
-      # Comparing a job's sort key against itself - this shouldn't happen.
-      raise Error, "Compared a job's sort key to itself!"
-    end
 
     def pop(count)
       @array.pop(count)
