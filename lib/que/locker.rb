@@ -54,8 +54,15 @@ module Que
 
     MESSAGE_RESOLVERS[:new_job] =
       -> (messages) {
-        metajobs = messages.map{|key| Metajob.new(sort_key: key, is_locked: false, source: :new_job_message)}
-        push_jobs(lock_jobs(@job_queue.accept?(metajobs)))
+        metajobs = messages.map do |sort_key|
+          Metajob.new(
+            sort_key: sort_key,
+            is_locked: false,
+            source: :new_job_message,
+          )
+        end
+
+        push_jobs(lock_jobs(job_queue.accept?(metajobs)))
       }
 
     RESULT_RESOLVERS[:job_finished] =
