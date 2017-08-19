@@ -57,7 +57,6 @@ module Que
         metajobs = messages.map do |sort_key|
           Metajob.new(
             sort_key: sort_key,
-            is_locked: false,
             source: :new_job_message,
           )
         end

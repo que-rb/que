@@ -58,7 +58,6 @@ if defined?(::ActiveJob)
             run_at:   attrs[:run_at],
             id:       attrs[:id],
           },
-          is_locked: true,
           source: :test,
           job: attrs,
         )

@@ -28,7 +28,7 @@ describe Que::JobQueue do
 
   def new_metajob(key)
     key[:queue] ||= ''
-    Que::Metajob.new(sort_key: key, is_locked: true, source: :test)
+    Que::Metajob.new(sort_key: key, source: :test)
   end
 
   describe "during instantiation" do
