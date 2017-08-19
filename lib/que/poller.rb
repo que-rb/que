@@ -122,7 +122,7 @@ module Que
     def poll(limit, held_locks:)
       return unless should_poll?
 
-      jobs =
+      sort_keys =
         connection.execute(
           :poll_jobs,
           [
@@ -132,22 +132,28 @@ module Que
           ]
         )
 
-      jobs.map! &:freeze
+      sort_keys.each &:freeze
 
       @last_polled_at      = Time.now
-      @last_poll_satisfied = limit == jobs.count
+      @last_poll_satisfied = limit == sort_keys.count
 
       Que.internal_log :poller_polled, self do
         {
           queue:        @queue,
           limit:        limit,
-          locked:       jobs.count,
+          locked:       sort_keys.count,
           held_locks:   held_locks.to_a,
-          newly_locked: jobs.map { |job| job.fetch(:id) },
+          newly_locked: sort_keys.map { |key| key.fetch(:id) },
         }
       end
 
-      jobs
+      sort_keys.map! do |sort_key|
+        Metajob.new(
+          sort_key: sort_key,
+          is_locked: true,
+          source: :poller,
+        )
+      end
     end
 
     def should_poll?

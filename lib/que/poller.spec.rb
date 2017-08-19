@@ -31,15 +31,15 @@ describe Que::Poller do
         poll_interval: 5,
       )
 
-    jobs = poller.poll(count, held_locks: job_ids)
+    metajobs = poller.poll(count, held_locks: job_ids)
 
-    jobs.each do |job|
+    metajobs.each do |metajob|
       # Make sure we pull in run_at timestamps in iso8601 format.
-      assert_match(Que::TIME_REGEX, job[:run_at])
-      assert job.frozen?
+      assert_match(Que::TIME_REGEX, metajob.sort_key[:run_at])
+      assert metajob.sort_key.frozen?
     end
 
-    returned_job_ids = jobs.map { |j| j[:id] }
+    returned_job_ids = metajobs.map(&:id)
 
     assert_equal held_advisory_locks(override_connection: override_connection), returned_job_ids.sort
 

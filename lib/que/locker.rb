@@ -297,13 +297,13 @@ module Que
       pollers.each do |poller|
         break if space_to_fill <= 0
 
-        if sort_keys = poller.poll(space_to_fill, held_locks: @locks)
-          sort_keys.each do |sort_key|
-            mark_id_as_locked(sort_key.fetch(:id))
+        if metajobs = poller.poll(space_to_fill, held_locks: @locks)
+          metajobs.each do |metajob|
+            mark_id_as_locked(metajob.id)
           end
 
-          push_jobs(sort_keys)
-          space_to_fill -= sort_keys.length
+          push_jobs(metajobs)
+          space_to_fill -= metajobs.length
         end
       end
     end
@@ -335,9 +335,9 @@ module Que
       end
     end
 
-    def push_jobs(sort_keys)
+    def push_jobs(metajobs)
       # Unlock any low-importance jobs the new ones may displace.
-      if keys = @job_queue.push(*sort_keys)
+      if keys = @job_queue.push(*metajobs.map(&:sort_key))
         unlock_jobs(keys)
       end
     end
@@ -367,6 +367,14 @@ module Que
 
       locked_ids = locked_ids.to_set
       messages.keep_if { |m| locked_ids.include?(m.fetch(:id)) }
+
+      messages.map! do |sort_key|
+        Metajob.new(
+          sort_key: sort_key,
+          is_locked: true,
+          source: :listener,
+        )
+      end
     end
 
     def finish_jobs(messages)

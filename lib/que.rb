@@ -36,6 +36,7 @@ module Que
   require_relative 'que/job'
   require_relative 'que/job_queue'
   require_relative 'que/locker'
+  require_relative 'que/metajob'
   require_relative 'que/migrations'
   require_relative 'que/poller'
   require_relative 'que/result_queue'
