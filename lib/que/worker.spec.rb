@@ -32,15 +32,19 @@ describe Que::Worker do
     result_queue.clear
 
     jobs.map! do |job|
-      {
-        queue:    job[:queue],
-        priority: job[:priority],
-        run_at:   job[:run_at],
-        id:       job[:id],
-      }
+      Que::Metajob.new(
+        sort_key: {
+          queue:    job[:queue],
+          priority: job[:priority],
+          run_at:   job[:run_at],
+          id:       job[:id],
+        },
+        is_locked: true,
+        source: :test,
+      )
     end
 
-    job_ids = jobs.map{|j| j[:id]}.sort
+    job_ids = jobs.map(&:id).sort
 
     job_queue.push(*jobs)
 
@@ -53,7 +57,7 @@ describe Que::Worker do
   def finished_job_ids
     messages = result_queue.to_a
     messages.each { |m| assert_equal :job_finished, m.fetch(:message_type) }
-    messages.map{|m| m.fetch(:id)}.sort
+    messages.map{|m| m.fetch(:metajob).id}.sort
   end
 
   it "should repeatedly work jobs that are passed to it via its job_queue" do
@@ -118,7 +122,7 @@ describe Que::Worker do
     let(:priority) { 10 }
 
     it "should only take jobs that meet it priority requirement" do
-      jobs = (1..20).map { |i| {priority: i, run_at: Time.now, id: i} }
+      jobs = (1..20).map { |i| Que::Metajob.new(sort_key: {priority: i, run_at: Time.now, id: i}, is_locked: true, source: :test) }
 
       job_queue.push *jobs
 

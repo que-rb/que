@@ -53,26 +53,29 @@ module Que
       # Blocks until a job of the appropriate priority is available. If the
       # queue is shutting down this will return nil, which breaks the loop and
       # lets the thread finish.
-      while pk = @job_queue.shift(*priority)
-        Que.internal_log(:worker_received_job, self) { {pk: pk} }
+      while metajob = @job_queue.shift(*priority)
+        id = metajob.id
 
-        if job = Que.execute(:get_job, [pk.fetch(:id)]).first
+        Que.internal_log(:worker_received_job, self) { {id: id} }
+
+        if job = Que.execute(:get_job, [id]).first
           Que.recursively_freeze(job)
-          Que.internal_log(:worker_fetched_job, self) { {job: job} }
+          Que.internal_log(:worker_fetched_job, self) { {id: id} }
 
           work_job(job)
         else
           # The job was locked but doesn't exist anymore, due to a race
           # condition that exists because advisory locks don't obey MVCC. Not
           # necessarily a problem, but if it happens a lot it may be meaningful.
-          Que.internal_log(:worker_job_lock_race_condition, self) { {pk: pk} }
+          Que.internal_log(:worker_job_lock_race_condition, self) { {id: id} }
         end
 
-        Que.internal_log(:worker_pushing_finished_job, self) { {pk: pk} }
+        Que.internal_log(:worker_pushing_finished_job, self) { {id: id} }
 
-        result = pk.dup
-        result[:message_type] = :job_finished
-        @result_queue.push(result)
+        @result_queue.push(
+          metajob: metajob,
+          message_type: :job_finished,
+        )
       end
     end
 

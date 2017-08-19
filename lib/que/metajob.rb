@@ -6,6 +6,7 @@
 module Que
   class Metajob
     attr_reader :sort_key
+    attr_accessor :is_locked
 
     def initialize(sort_key:, is_locked:, source:)
       @sort_key  = sort_key

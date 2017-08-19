@@ -53,10 +53,13 @@ module Que
     RESULT_RESOLVERS  = {}
 
     MESSAGE_RESOLVERS[:new_job] =
-      -> (messages) { push_jobs(lock_jobs(@job_queue.accept?(messages))) }
+      -> (messages) {
+        metajobs = messages.map{|key| Metajob.new(sort_key: key, is_locked: false, source: :new_job_message)}
+        push_jobs(lock_jobs(@job_queue.accept?(metajobs)))
+      }
 
     RESULT_RESOLVERS[:job_finished] =
-      -> (messages) { finish_jobs(messages) }
+      -> (messages) { finish_jobs(messages.map{|m| m.fetch(:metajob)}) }
 
     DEFAULT_POLL_INTERVAL      = 5.0
     DEFAULT_WAIT_PERIOD        = 50
@@ -337,16 +340,16 @@ module Que
 
     def push_jobs(metajobs)
       # Unlock any low-importance jobs the new ones may displace.
-      if keys = @job_queue.push(*metajobs.map(&:sort_key))
-        unlock_jobs(keys)
+      if displaced = @job_queue.push(*metajobs)
+        unlock_jobs(displaced)
       end
     end
 
-    def lock_jobs(messages)
-      messages.reject! { |m| @locks.include?(m.fetch(:id)) }
-      return messages if messages.empty?
+    def lock_jobs(metajobs)
+      metajobs.reject! { |m| @locks.include?(m.id) }
+      return metajobs if metajobs.empty?
 
-      ids    = messages.map{|m| m.fetch(:id).to_i}
+      ids    = metajobs.map { |m| m.id.to_i }
       values = ids.join('), (')
 
       results =
@@ -366,27 +369,21 @@ module Que
       locked_ids.each { |id| mark_id_as_locked(id) }
 
       locked_ids = locked_ids.to_set
-      messages.keep_if { |m| locked_ids.include?(m.fetch(:id)) }
-
-      messages.map! do |sort_key|
-        Metajob.new(
-          sort_key: sort_key,
-          is_locked: true,
-          source: :listener,
-        )
+      metajobs.keep_if do |metajob|
+        metajob.is_locked = locked_ids.include?(metajob.id)
       end
     end
 
-    def finish_jobs(messages)
-      unlock_jobs(messages)
+    def finish_jobs(metajobs)
+      unlock_jobs(metajobs)
     end
 
-    def unlock_jobs(keys)
-      return if keys.empty?
+    def unlock_jobs(metajobs)
+      return if metajobs.empty?
 
       # Unclear how untrusted input would get passed to this method, but since
       # we need string interpolation here, make sure we only have integers.
-      ids = keys.map{|key| key.fetch(:id).to_i}
+      ids = metajobs.map { |job| job.id.to_i }
 
       Que.internal_log :locker_unlocking, self do
         {

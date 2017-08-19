@@ -144,7 +144,7 @@ class QueSpec < Minitest::Spec
   end
 
   def ids_in_local_queue
-    locker.job_queue.to_a.map { |h| h.fetch(:id) }
+    locker.job_queue.to_a.map(&:id)
   end
 
   # Helper for testing threaded code.

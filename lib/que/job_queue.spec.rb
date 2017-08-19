@@ -12,15 +12,20 @@ describe Que::JobQueue do
 
   let :job_array do
     [
-      {queue: '', priority: 1, run_at: old, id: 1},
-      {queue: '', priority: 1, run_at: old, id: 2},
-      {queue: '', priority: 1, run_at: now, id: 3},
-      {queue: '', priority: 1, run_at: now, id: 4},
-      {queue: '', priority: 2, run_at: old, id: 5},
-      {queue: '', priority: 2, run_at: old, id: 6},
-      {queue: '', priority: 2, run_at: now, id: 7},
-      {queue: '', priority: 2, run_at: now, id: 8},
-    ]
+      {priority: 1, run_at: old, id: 1},
+      {priority: 1, run_at: old, id: 2},
+      {priority: 1, run_at: now, id: 3},
+      {priority: 1, run_at: now, id: 4},
+      {priority: 2, run_at: old, id: 5},
+      {priority: 2, run_at: old, id: 6},
+      {priority: 2, run_at: now, id: 7},
+      {priority: 2, run_at: now, id: 8},
+    ].map { |sort_key| new_metajob(sort_key) }
+  end
+
+  def new_metajob(key)
+    key[:queue] ||= ''
+    Que::Metajob.new(sort_key: key, is_locked: true, source: :test)
   end
 
   describe "push" do
@@ -29,8 +34,8 @@ describe Que::JobQueue do
 
       job_array.shuffle.each do |job|
         assert_nil job_queue.push(job)
-        ids << job[:id]
-        assert_equal ids.sort, job_queue.to_a.map{|j| j[:id]}
+        ids << job.id
+        assert_equal ids.sort, job_queue.to_a.map(&:id)
       end
 
       assert_equal job_array, job_queue.to_a
@@ -43,7 +48,7 @@ describe Que::JobQueue do
 
     describe "when the maximum size has been reached" do
       let :important_values do
-        (1..3).map { |id| {queue: '', priority: 0, run_at: old, id: id} }
+        (1..3).map { |id| new_metajob(priority: 0, run_at: old, id: id) }
       end
 
       before do
@@ -77,7 +82,7 @@ describe Que::JobQueue do
       # Pushing very low priority jobs shouldn't happen, since we use
       # #accept? to prevent unnecessary locking, but just in case:
       it "should work when the jobs wouldn't make the cut" do
-        v = {priority: 100, run_at: Time.now, id: 45}
+        v = new_metajob(priority: 100, run_at: Time.now, id: 45)
         assert_equal [v], job_queue.push(v)
         refute_includes job_queue.to_a, v
         assert_equal 8, job_queue.size
@@ -114,15 +119,15 @@ describe Que::JobQueue do
         job_array[0..3],
         threads.
           map{|t| t[:job]}.
-          sort_by{|pk| pk.values_at(:priority, :run_at, :id)}
+          sort_by{|pk| pk.sort_key.values_at(:priority, :run_at, :id)}
 
       assert_equal job_array[4..7], job_queue.to_a
     end
 
     it "should respect a minimum priority argument" do
-      a = {priority: 10, run_at: Time.now, id: 1}
-      b = {priority: 10, run_at: Time.now, id: 2}
-      c = {priority:  5, run_at: Time.now, id: 3}
+      a = new_metajob(priority: 10, run_at: Time.now, id: 1)
+      b = new_metajob(priority: 10, run_at: Time.now, id: 2)
+      c = new_metajob(priority:  5, run_at: Time.now, id: 3)
 
       job_queue.push(a)
       t = Thread.new { Thread.current[:job] = job_queue.shift(5) }
@@ -152,7 +157,7 @@ describe Que::JobQueue do
 
       threads.sort_by! { |t| t[:priority] }
 
-      value = {queue: '', priority: 17, run_at: Time.now, id: 1}
+      value = new_metajob(priority: 17, run_at: Time.now, id: 1)
       job_queue.push value
 
       sleep_until! { threads[3].status == false }
@@ -179,7 +184,7 @@ describe Que::JobQueue do
         assert_nil job_queue.push(*jobs_in_queue)
 
         assert_equal(
-          (jobs_that_should_make_it_in & jobs_to_test).sort_by{|k| k.values_at(:priority, :run_at, :id)},
+          (jobs_that_should_make_it_in & jobs_to_test).sort_by{|j| j.sort_key.values_at(:priority, :run_at, :id)},
           job_queue.accept?(jobs_to_test),
         )
       end
@@ -218,7 +223,7 @@ describe Que::JobQueue do
       job_queue.push(*jobs)
 
       assert_equal(
-        jobs.sort_by{|j| j.values_at(:priority, :run_at, :id)},
+        jobs.sort_by{|j| j.sort_key.values_at(:priority, :run_at, :id)},
         job_queue.to_a,
       )
 

@@ -51,13 +51,19 @@ if defined?(::ActiveJob)
       attrs = jobs_dataset.first!
 
       job_queue.push(
-        queue:    attrs[:queue],
-        priority: attrs[:priority],
-        run_at:   attrs[:run_at],
-        id:       attrs[:id],
+        Que::Metajob.new(
+          sort_key: {
+            queue:    attrs[:queue],
+            priority: attrs[:priority],
+            run_at:   attrs[:run_at],
+            id:       attrs[:id],
+          },
+          is_locked: true,
+          source: :test,
+        )
       )
 
-      sleep_until! { result_queue.clear.map{|m| m.fetch(:id)} == [attrs[:id]] }
+      sleep_until! { result_queue.clear.map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
       attrs
     end
 
