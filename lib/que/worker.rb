@@ -9,7 +9,7 @@ module Que
 
     SQL[:check_job] =
       %{
-        SELECT count(*)
+        SELECT 1 AS one
         FROM public.que_jobs
         WHERE id = $1::bigint
       }
@@ -59,7 +59,7 @@ module Que
 
         Que.internal_log(:worker_received_job, self) { {id: id} }
 
-        if Que.execute(:check_job, [id]).first[:count] == 1
+        if Que.execute(:check_job, [id]).first
           Que.recursively_freeze(job)
           Que.internal_log(:worker_fetched_job, self) { {id: id} }
 
