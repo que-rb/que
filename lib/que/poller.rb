@@ -155,7 +155,6 @@ module Que
             run_at:   job[:run_at],
             id:       job[:id],
           }.freeze,
-          source: :poller,
           job: job,
         )
       end

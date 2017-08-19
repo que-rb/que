@@ -10,10 +10,9 @@ module Que
 
     SORT_KEYS = [:priority, :run_at, :id].freeze
 
-    def initialize(sort_key:, source:, job: nil)
-      @sort_key  = sort_key
-      @source    = source
-      @job       = job
+    def initialize(sort_key:, job: nil)
+      @sort_key = sort_key
+      @job      = job
     end
 
     def id
