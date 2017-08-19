@@ -371,9 +371,7 @@ module Que
       locked_ids.each { |id| mark_id_as_locked(id) }
 
       locked_ids = locked_ids.to_set
-      metajobs.keep_if do |metajob|
-        metajob.is_locked = locked_ids.include?(metajob.id)
-      end
+      metajobs.keep_if { |m| m.is_locked = locked_ids.include?(m.id) }
     end
 
     def finish_jobs(metajobs)
