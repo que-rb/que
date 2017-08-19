@@ -31,6 +31,14 @@ describe Que::JobQueue do
     Que::Metajob.new(sort_key: key, is_locked: true, source: :test)
   end
 
+  describe "during instantiation" do
+    it "should raise an error if passed a maximum queue size of zero or less"
+
+    it "should raise an error if passed a minimum queue size less than zero"
+
+    it "should raise an error if passed a minimum queue size larger than its maximum"
+  end
+
   describe "push" do
     it "should add an item and retain the sort order" do
       ids = []
