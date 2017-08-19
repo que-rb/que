@@ -37,6 +37,7 @@ describe Que::Poller do
       # Make sure we pull in run_at timestamps in iso8601 format.
       assert_match(Que::TIME_REGEX, metajob.sort_key[:run_at])
       assert metajob.sort_key.frozen?
+      assert metajob.job
     end
 
     returned_job_ids = metajobs.map(&:id)

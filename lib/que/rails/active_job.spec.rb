@@ -60,6 +60,7 @@ if defined?(::ActiveJob)
           },
           is_locked: true,
           source: :test,
+          job: attrs,
         )
       )
 

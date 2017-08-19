@@ -7,9 +7,9 @@ module Que
   class Worker
     attr_reader :thread, :priority
 
-    SQL[:get_job] =
+    SQL[:check_job] =
       %{
-        SELECT *
+        SELECT count(*)
         FROM public.que_jobs
         WHERE id = $1::bigint
       }
@@ -54,11 +54,12 @@ module Que
       # queue is shutting down this will return nil, which breaks the loop and
       # lets the thread finish.
       while metajob = @job_queue.shift(*priority)
-        id = metajob.id
+        id  = metajob.id
+        job = metajob.job
 
         Que.internal_log(:worker_received_job, self) { {id: id} }
 
-        if job = Que.execute(:get_job, [id]).first
+        if Que.execute(:check_job, [id]).first[:count] == 1
           Que.recursively_freeze(job)
           Que.internal_log(:worker_fetched_job, self) { {id: id} }
 

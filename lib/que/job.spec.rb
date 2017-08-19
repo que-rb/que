@@ -375,6 +375,7 @@ describe Que::Job do
           },
           is_locked: true,
           source: :test,
+          job: attrs,
         )
       )
 
@@ -465,6 +466,7 @@ describe Que::Job do
             },
             is_locked: true,
             source: :test,
+            job: attrs,
           )
         )
 

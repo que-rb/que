@@ -6,14 +6,15 @@
 module Que
   class Metajob
     attr_reader :sort_key
-    attr_accessor :is_locked
+    attr_accessor :is_locked, :job
 
     SORT_KEYS = [:priority, :run_at, :id].freeze
 
-    def initialize(sort_key:, is_locked:, source:)
+    def initialize(sort_key:, is_locked:, source:, job: nil)
       @sort_key  = sort_key
       @is_locked = is_locked
       @source    = source
+      @job       = job
     end
 
     def id

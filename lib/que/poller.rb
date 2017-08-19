@@ -85,8 +85,7 @@ module Que
             ) AS t1
           )
         )
-        SELECT queue, priority, id,
-          to_char(run_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS run_at
+        SELECT *
         FROM jobs
         WHERE locked
         LIMIT $3::integer
@@ -122,7 +121,7 @@ module Que
     def poll(limit, held_locks:)
       return unless should_poll?
 
-      sort_keys =
+      jobs =
         connection.execute(
           :poll_jobs,
           [
@@ -132,26 +131,33 @@ module Que
           ]
         )
 
-      sort_keys.each &:freeze
+      jobs.each{|j| j[:run_at] = j[:run_at].utc.iso8601(6)}
+      jobs.each &:freeze
 
       @last_polled_at      = Time.now
-      @last_poll_satisfied = limit == sort_keys.count
+      @last_poll_satisfied = limit == jobs.count
 
       Que.internal_log :poller_polled, self do
         {
           queue:        @queue,
           limit:        limit,
-          locked:       sort_keys.count,
+          locked:       jobs.count,
           held_locks:   held_locks.to_a,
-          newly_locked: sort_keys.map { |key| key.fetch(:id) },
+          newly_locked: jobs.map { |key| key.fetch(:id) },
         }
       end
 
-      sort_keys.map! do |sort_key|
+      jobs.map! do |job|
         Metajob.new(
-          sort_key: sort_key,
+          sort_key: {
+            queue:    job[:queue],
+            priority: job[:priority],
+            run_at:   job[:run_at],
+            id:       job[:id],
+          }.freeze,
           is_locked: true,
           source: :poller,
+          job: job,
         )
       end
     end

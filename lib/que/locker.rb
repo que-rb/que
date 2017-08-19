@@ -351,27 +351,28 @@ module Que
       metajobs.reject! { |m| @locks.include?(m.id) }
       return metajobs if metajobs.empty?
 
-      ids    = metajobs.map { |m| m.id.to_i }
-      values = ids.join('), (')
-
-      results =
+      jobs =
         connection.execute \
-          "SELECT v.i AS id FROM (VALUES (#{values})) v (i) WHERE pg_try_advisory_lock(v.i)"
+          <<-SQL
+            WITH locks AS (
+              SELECT v.i AS id
+              FROM (VALUES (#{metajobs.map{|m| m.id.to_i}.join('), (')})) v (i)
+              WHERE pg_try_advisory_lock(v.i)
+            )
+            SELECT * FROM que_jobs WHERE id IN (SELECT id FROM locks)
+          SQL
 
-      locked_ids = results.map{|r| r.fetch(:id)}
+      jobs_by_id = {}
 
-      Que.internal_log :locker_attempted_locks, self do
-        {
-          backend_pid: connection.backend_pid,
-          ids:         ids,
-          locked_ids:  locked_ids,
-        }
+      jobs.each do |job|
+        id = job.fetch(:id)
+        mark_id_as_locked(id)
+        jobs_by_id[id] = job
       end
 
-      locked_ids.each { |id| mark_id_as_locked(id) }
-
-      locked_ids = locked_ids.to_set
-      metajobs.keep_if { |m| m.is_locked = locked_ids.include?(m.id) }
+      metajobs.keep_if do |metajob|
+        metajob.job = jobs_by_id[metajob.id]
+      end
     end
 
     def finish_jobs(metajobs)

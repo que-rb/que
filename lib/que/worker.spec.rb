@@ -41,6 +41,7 @@ describe Que::Worker do
         },
         is_locked: true,
         source: :test,
+        job: job,
       )
     end
 
