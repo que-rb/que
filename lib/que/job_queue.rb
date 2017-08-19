@@ -6,13 +6,22 @@
 
 module Que
   class JobQueue
-    attr_reader :maximum_size
+    attr_reader :maximum_size, :minimum_size
 
-    def initialize(maximum_size:)
+    def initialize(maximum_size:, minimum_size:)
       @stop         = false
       @array        = []
+
       @maximum_size = Que.assert(Integer, maximum_size)
       Que.assert(maximum_size > 0)
+
+      @minimum_size = Que.assert(Integer, minimum_size)
+      Que.assert(minimum_size >= 0)
+
+      Que.assert(minimum_size <= maximum_size) do
+        "minimum queue size (#{minimum_size}) is " \
+          "greater than the maximum queue size (#{maximum_size})!"
+      end
 
       @waiting_count = 0
       @monitor = Monitor.new

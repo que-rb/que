@@ -96,17 +96,19 @@ module Que
 
       Que.assert Numeric, poll_interval
       Que.assert Numeric, wait_period
-      Que.assert Integer, maximum_queue_size
-      Que.assert Integer, minimum_queue_size
       Que.assert Integer, worker_count
 
       Que.assert Array, worker_priorities
       worker_priorities.each { |p| Que.assert(Integer, p) }
 
-      Que.assert(minimum_queue_size <= maximum_queue_size) do
-        "minimum_queue_size (#{minimum_queue_size}) is " \
-          "greater than the maximum_queue_size (#{maximum_queue_size})!"
-      end
+      # We use a JobQueue to track jobs and pass them to workers, and a
+      # ResultQueue to receive messages from workers.
+      @job_queue = JobQueue.new(
+        maximum_size: maximum_queue_size,
+        minimum_size: minimum_queue_size,
+      )
+
+      @result_queue = ResultQueue.new
 
       Que.internal_log :locker_instantiate, self do
         {
@@ -125,15 +127,8 @@ module Que
       # Local cache of which advisory locks are held by this connection.
       @locks = Set.new
 
-      @queue_names        = queues.is_a?(Hash) ? queues.keys : queues
-      @wait_period        = wait_period.to_f / 1000 # Milliseconds to seconds.
-      @minimum_queue_size = minimum_queue_size
-
-      # We use a JobQueue to track sorted identifiers (priority, run_at, id) of
-      # locked jobs and pass them to workers, and a ResultQueue to receive
-      # messages from workers.
-      @job_queue    = JobQueue.new(maximum_size: maximum_queue_size)
-      @result_queue = ResultQueue.new
+      @queue_names = queues.is_a?(Hash) ? queues.keys : queues
+      @wait_period = wait_period.to_f / 1000 # Milliseconds to seconds.
 
       # If the worker_count exceeds the array of priorities it'll result in
       # extra workers that will work jobs of any priority. For example, the
@@ -298,7 +293,7 @@ module Que
       # Only poll when there are pollers to use (that is, when polling is
       # enabled) and when the local queue has dropped below the configured
       # minimum size.
-      return unless pollers && @job_queue.size < @minimum_queue_size
+      return unless pollers && @job_queue.size < @job_queue.minimum_size
 
       space_to_fill = @job_queue.space
 

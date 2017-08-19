@@ -7,7 +7,10 @@ describe Que::JobQueue do
   let(:old) { now - 50 }
 
   let :job_queue do
-    Que::JobQueue.new(maximum_size: 8)
+    Que::JobQueue.new(
+      maximum_size: 8,
+      minimum_size: 0,
+    )
   end
 
   let :job_array do
@@ -172,7 +175,12 @@ describe Que::JobQueue do
       # when we tweak the accept? logic.
       5.times do
         maximum_size = rand(8) + 1
-        job_queue = Que::JobQueue.new(maximum_size: maximum_size)
+        job_queue =
+          Que::JobQueue.new(
+            maximum_size: maximum_size,
+            minimum_size: 0,
+          )
+
         jobs_that_should_make_it_in = job_array.first(maximum_size)
 
         job_array_copy = job_array.shuffle

@@ -301,7 +301,7 @@ MSG
       assert_equal 1, code
       assert_equal 1, output.messages.length
       assert_equal \
-        "minimum_queue_size (10) is greater than the maximum_queue_size (8)!",
+        "minimum queue size (10) is greater than the maximum queue size (8)!",
         output.messages.first.to_s
     end
 
