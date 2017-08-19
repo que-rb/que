@@ -34,5 +34,9 @@ module Que
 
       0
     end
+
+    def priority_sufficient?(priority)
+      priority.nil? || sort_key.fetch(:priority) <= priority
+    end
   end
 end

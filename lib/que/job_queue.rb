@@ -53,7 +53,7 @@ module Que
         sync do
           if stopping?
             return
-          elsif (job = @array.first) && (priority.nil? || job.sort_key.fetch(:priority) <= priority)
+          elsif (job = @array.first) && job.priority_sufficient?(priority)
             return @array.shift
           else
             if priority.nil?
