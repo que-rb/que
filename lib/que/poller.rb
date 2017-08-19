@@ -147,17 +147,7 @@ module Que
         }
       end
 
-      jobs.map! do |job|
-        Metajob.new(
-          sort_key: {
-            queue:    job[:queue],
-            priority: job[:priority],
-            run_at:   job[:run_at],
-            id:       job[:id],
-          }.freeze,
-          job: job,
-        )
-      end
+      jobs.map! { |job| Metajob.new(job) }
     end
 
     def should_poll?

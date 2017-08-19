@@ -32,7 +32,7 @@ module Que
       Que.internal_log(:job_queue_push, self) do
         {
           maximum_size:  maximum_size,
-          sort_keys:     metajobs.map(&:sort_key),
+          ids:           metajobs.map(&:id),
           current_queue: @array,
         }
       end

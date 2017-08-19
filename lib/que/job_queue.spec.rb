@@ -28,7 +28,7 @@ describe Que::JobQueue do
 
   def new_metajob(key)
     key[:queue] ||= ''
-    Que::Metajob.new(sort_key: key)
+    Que::Metajob.new(key)
   end
 
   describe "during instantiation" do
@@ -134,7 +134,7 @@ describe Que::JobQueue do
         job_array[0..3],
         threads.
           map{|t| t[:job]}.
-          sort_by{|pk| pk.sort_key.values_at(:priority, :run_at, :id)}
+          sort_by{|pk| pk.job.values_at(:priority, :run_at, :id)}
 
       assert_equal job_array[4..7], job_queue.to_a
     end
@@ -204,7 +204,7 @@ describe Que::JobQueue do
         assert_nil job_queue.push(*jobs_in_queue)
 
         assert_equal(
-          (jobs_that_should_make_it_in & jobs_to_test).sort_by{|j| j.sort_key.values_at(:priority, :run_at, :id)},
+          (jobs_that_should_make_it_in & jobs_to_test).sort_by{|j| j.job.values_at(:priority, :run_at, :id)},
           job_queue.accept?(jobs_to_test),
         )
       end
@@ -243,7 +243,7 @@ describe Que::JobQueue do
       job_queue.push(*jobs)
 
       assert_equal(
-        jobs.sort_by{|j| j.sort_key.values_at(:priority, :run_at, :id)},
+        jobs.sort_by{|j| j.job.values_at(:priority, :run_at, :id)},
         job_queue.to_a,
       )
 

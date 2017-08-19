@@ -31,17 +31,7 @@ describe Que::Worker do
 
     result_queue.clear
 
-    jobs.map! do |job|
-      Que::Metajob.new(
-        sort_key: {
-          queue:    job[:queue],
-          priority: job[:priority],
-          run_at:   job[:run_at],
-          id:       job[:id],
-        },
-        job: job,
-      )
-    end
+    jobs.map! { |job| Que::Metajob.new(job) }
 
     job_ids = jobs.map(&:id).sort
 
@@ -121,7 +111,7 @@ describe Que::Worker do
     let(:priority) { 10 }
 
     it "should only take jobs that meet it priority requirement" do
-      jobs = (1..20).map { |i| Que::Metajob.new(sort_key: {priority: i, run_at: Time.now, id: i}) }
+      jobs = (1..20).map { |i| Que::Metajob.new(priority: i, run_at: Time.now, id: i) }
 
       job_queue.push *jobs
 

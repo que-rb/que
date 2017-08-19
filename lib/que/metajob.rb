@@ -5,23 +5,21 @@
 
 module Que
   class Metajob
-    attr_reader :sort_key
-    attr_accessor :job
-
     SORT_KEYS = [:priority, :run_at, :id].freeze
 
-    def initialize(sort_key:, job: nil)
-      @sort_key = sort_key
-      @job      = job
+    attr_accessor :job
+
+    def initialize(job)
+      @job = job
     end
 
     def id
-      sort_key.fetch(:id)
+      job.fetch(:id)
     end
 
     def <=>(other)
-      k1 = sort_key
-      k2 = other.sort_key
+      k1 = job
+      k2 = other.job
 
       SORT_KEYS.each do |key|
         value1 = k1.fetch(key)
@@ -35,7 +33,7 @@ module Que
     end
 
     def priority_sufficient?(priority)
-      priority.nil? || sort_key.fetch(:priority) <= priority
+      priority.nil? || job.fetch(:priority) <= priority
     end
   end
 end

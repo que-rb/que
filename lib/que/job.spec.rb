@@ -365,17 +365,7 @@ describe Que::Job do
       job = TestJobClass.enqueue(*args)
       attrs = job.que_attrs
 
-      job_queue.push(
-        Que::Metajob.new(
-          sort_key: {
-            queue:    attrs[:queue],
-            priority: attrs[:priority],
-            run_at:   attrs[:run_at],
-            id:       attrs[:id],
-          },
-          job: attrs,
-        )
-      )
+      job_queue.push(Que::Metajob.new(attrs))
 
       sleep_until! { result_queue.clear.map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
       job
@@ -454,17 +444,7 @@ describe Que::Job do
         assert_equal 1, jobs_dataset.count
         attrs = jobs_dataset.first!
 
-        job_queue.push(
-          Que::Metajob.new(
-            sort_key: {
-              queue:    attrs[:queue],
-              priority: attrs[:priority],
-              run_at:   attrs[:run_at],
-              id:       attrs[:id],
-            },
-            job: attrs,
-          )
-        )
+        job_queue.push(Que::Metajob.new(attrs))
 
         sleep_until! { result_queue.clear.map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
         ActiveJob::QueueAdapters::QueAdapter::JobWrapper.new(attrs)
