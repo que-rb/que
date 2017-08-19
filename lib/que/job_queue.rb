@@ -100,6 +100,10 @@ module Que
       end
     end
 
+    def jobs_needed?
+      minimum_size > size
+    end
+
     def space
       sync do
         maximum_size + @waiting_count - size

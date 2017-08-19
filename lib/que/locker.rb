@@ -293,9 +293,9 @@ module Que
       # Only poll when there are pollers to use (that is, when polling is
       # enabled) and when the local queue has dropped below the configured
       # minimum size.
-      return unless pollers && @job_queue.size < @job_queue.minimum_size
+      return unless pollers && job_queue.jobs_needed?
 
-      space_to_fill = @job_queue.space
+      space_to_fill = job_queue.space
 
       Que.internal_log(:locker_polling, self) { {space: space_to_fill} }
 

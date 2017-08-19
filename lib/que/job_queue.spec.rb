@@ -39,6 +39,10 @@ describe Que::JobQueue do
     it "should raise an error if passed a minimum queue size larger than its maximum"
   end
 
+  describe "jobs_needed?" do
+    it "should return true iff the current size is less than the minimum"
+  end
+
   describe "push" do
     it "should add an item and retain the sort order" do
       ids = []
