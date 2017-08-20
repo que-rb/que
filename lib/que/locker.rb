@@ -365,7 +365,7 @@ module Que
 
       metajobs.keep_if do |metajob|
         if job = jobs_by_id[metajob.id]
-          metajob.job = job
+          metajob.set_job(job)
           true
         else
           false

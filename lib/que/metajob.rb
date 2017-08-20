@@ -7,14 +7,18 @@ module Que
   class Metajob
     SORT_KEYS = [:priority, :run_at, :id].freeze
 
-    attr_accessor :job
+    attr_reader :job
 
     def initialize(job)
-      @job = job
+      set_job(job)
+    end
 
+    def set_job(job)
       if (run_at = job.fetch(:run_at)).is_a?(Time)
         job[:run_at] = run_at.utc.iso8601(6)
       end
+
+      @job = job
     end
 
     def id
