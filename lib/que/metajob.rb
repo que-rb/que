@@ -11,6 +11,10 @@ module Que
 
     def initialize(job)
       @job = job
+
+      if (run_at = job.fetch(:run_at)).is_a?(Time)
+        job[:run_at] = run_at.utc.iso8601(6)
+      end
     end
 
     def id

@@ -131,9 +131,6 @@ module Que
           ]
         )
 
-      jobs.each{|j| j[:run_at] = j[:run_at].utc.iso8601(6)}
-      jobs.each &:freeze
-
       @last_polled_at      = Time.now
       @last_poll_satisfied = limit == jobs.count
 
