@@ -266,8 +266,8 @@ describe Que::Listener do
 
         expected_message = [
           "Message of type 'new_job' doesn't match format!",
-          "Message: {:queue=>\"queue_name\", :priority=>90, :run_at=>\"2017-06-30T18:33:35.425307Z\", :message_type=>\"new_job\"}",
-          "Format: {:queue=>String, :id=>Integer, :run_at=>/\\A\\d{4}\\-\\d{2}\\-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{6}Z\\z/, :priority=>Integer}",
+          "Message: {:priority=>90, :queue=>\"queue_name\", :run_at=>\"2017-06-30T18:33:35.425307Z\"}",
+          "Format: {:id=>Integer, :priority=>Integer, :queue=>String, :run_at=>/\\A\\d{4}\\-\\d{2}\\-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{6}Z\\z/}",
         ].join("\n")
 
         assert_equal expected_message, error.message

@@ -105,8 +105,9 @@ module Que
         else
           error_message = [
             "Message of type '#{type}' doesn't match format!",
-            "Message: #{message.inspect}",
-            "Format: #{format.inspect}",
+            # Massage message and format a bit to make these errors more readable.
+            "Message: #{Hash[message.reject{|k,v| k == :message_type}.sort_by{|k,v| k}].inspect}",
+            "Format: #{Hash[format.sort_by{|k,v| k}].inspect}",
           ].join("\n")
 
           Que.notify_error_async(Error.new(error_message))
