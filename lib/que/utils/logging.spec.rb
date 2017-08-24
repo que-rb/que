@@ -94,6 +94,9 @@ describe Que::Utils::Logging do
 
       assert_equal 5, Que.get_logger
       assert_equal 5, Que.get_logger(internal: true)
+
+      Que.logger          = nil
+      Que.internal_logger = nil
     end
 
     it "should return the results of a callable" do
@@ -102,6 +105,9 @@ describe Que::Utils::Logging do
 
       assert_equal 'blah1', Que.get_logger
       assert_equal 'blah2', Que.get_logger(internal: true)
+
+      Que.logger          = nil
+      Que.internal_logger = nil
     end
   end
 
