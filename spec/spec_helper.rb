@@ -157,6 +157,10 @@ class QueSpec < Minitest::Spec
       result_queue: result_queue
   end
 
+  def results(message_type:)
+    result_queue.to_a.select{|m| m[:message_type] == message_type}
+  end
+
   def ids_in_local_queue
     locker.job_queue.to_a.map(&:id)
   end

@@ -38,7 +38,7 @@ if defined?(::ActiveJob)
 
       job_queue.push(Que::Metajob.new(attrs))
 
-      sleep_until! { result_queue.clear.map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
+      sleep_until! { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
       attrs
     end
 
