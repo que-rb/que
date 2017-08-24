@@ -7,14 +7,6 @@ describe Que::Worker do
     nil
   end
 
-  let :job_queue do
-    Que::JobQueue.new(maximum_size: 20, minimum_size: 0)
-  end
-
-  let :result_queue do
-    Que::ResultQueue.new
-  end
-
   let :worker do
     Que::Worker.new(
       priority:     priority,

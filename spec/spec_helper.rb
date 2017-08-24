@@ -143,6 +143,20 @@ class QueSpec < Minitest::Spec
     Que::Locker.new(locker_settings)
   end
 
+  let :job_queue do
+    Que::JobQueue.new(maximum_size: 20, minimum_size: 0)
+  end
+
+  let :result_queue do
+    Que::ResultQueue.new
+  end
+
+  let :worker do
+    Que::Worker.new \
+      job_queue:    job_queue,
+      result_queue: result_queue
+  end
+
   def ids_in_local_queue
     locker.job_queue.to_a.map(&:id)
   end

@@ -345,20 +345,6 @@ describe Que::Job do
     include ActsLikeAJob
     include ActsLikeAnAsynchronousJob
 
-    let :job_queue do
-      Que::JobQueue.new(maximum_size: 20, minimum_size: 0)
-    end
-
-    let :result_queue do
-      Que::ResultQueue.new
-    end
-
-    let :worker do
-      Que::Worker.new \
-        job_queue:    job_queue,
-        result_queue: result_queue
-    end
-
     def execute(*args)
       worker # Make sure worker is initialized.
 
@@ -399,20 +385,6 @@ describe Que::Job do
     describe "running jobs through ActiveJob when a subclass has our helpers included" do
       include ActsLikeAJob
       include ActsLikeAnAsynchronousJob
-
-      let :job_queue do
-        Que::JobQueue.new(maximum_size: 20, minimum_size: 0)
-      end
-
-      let :result_queue do
-        Que::ResultQueue.new
-      end
-
-      let :worker do
-        Que::Worker.new \
-          job_queue:    job_queue,
-          result_queue: result_queue
-      end
 
       before do
         $active_job_spec = true
