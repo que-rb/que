@@ -30,7 +30,6 @@ describe Que::Worker do
     job_queue.push(*jobs)
 
     sleep_until! do
-      result_queue.length == job_ids.length &&
       finished_job_ids == job_ids
     end
   end
