@@ -20,8 +20,8 @@ module Que
 
       SET error_count          = error_count + 1,
           run_at               = now() + $1::float * '1 second'::interval,
-          last_error_message   = $2::text,
-          last_error_backtrace = $3::text
+          last_error_message   = left($2::text, 500),
+          last_error_backtrace = left($3::text, 10000)
 
       WHERE id = $4::bigint
     }

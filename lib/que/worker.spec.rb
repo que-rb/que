@@ -143,6 +143,25 @@ describe Que::Worker do
       assert_equal "ErrorJob!", error.message
     end
 
+    describe "when the job throws an error" do
+      it "should truncate the error message if necessary" do
+        class ExcessiveErrorMessageJob < Que::Job
+          def run(*args)
+            raise "a" * 501
+          end
+        end
+
+        ExcessiveErrorMessageJob.enqueue
+
+        run_jobs
+
+        assert_equal 1, jobs_dataset.count
+        job = jobs_dataset.first
+        assert_equal 1, job[:error_count]
+        assert_equal "a" * 500, job[:last_error_message]
+      end
+    end
+
     it "should exponentially back off the job" do
       ErrorJob.enqueue
 
