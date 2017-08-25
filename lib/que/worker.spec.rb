@@ -355,7 +355,7 @@ describe Que::Worker do
         assert_retry_cadence 4, 19, 84, 259
         assert_equal 8, notified_errors.length
         assert_instance_of ArgumentError, notified_errors[0]
-        assert_equal "wrong number of arguments (given 1, expected 0)", notified_errors[0].message
+        assert_match /wrong number of arguments/, notified_errors[0].message
 
         assert_instance_of RuntimeError, notified_errors[1]
         assert_equal "Error!", notified_errors[1].message
