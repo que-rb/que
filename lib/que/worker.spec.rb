@@ -206,20 +206,30 @@ describe Que::Worker do
         assert_retry_cadence 5, 5, 5, 5
       end
 
+      it "when the retry_interval is a callable returning an integer" do
+        WorkerJob.class_eval { @retry_interval = proc { |count| count * 10 } }
+        assert_retry_cadence 10, 20, 30, 40
+      end
+
       it "when the retry_interval is a float" do
         WorkerJob.class_eval { @retry_interval = 4.5 }
         assert_retry_cadence 4.5, 4.5, 4.5, 4.5
       end
 
-      it "when the retry_interval is a callable" do
-        WorkerJob.class_eval { @retry_interval = proc { |count| count * 10 } }
-        assert_retry_cadence 10, 20, 30, 40
+      it "when the retry_interval is a callable returning a float" do
+        WorkerJob.class_eval { @retry_interval = proc { |count| count * 2.5 } }
+        assert_retry_cadence 2.5, 5.0, 7.5, 10.0
       end
 
       if defined?(ActiveSupport)
-        it "that is an ActiveSupport::Duration" do
+        it "when the retry_interval is an ActiveSupport::Duration" do
           WorkerJob.class_eval { @retry_interval = 5.minutes }
           assert_retry_cadence 300, 300, 300, 300
+        end
+
+        it "when the retry_interval is a callable returning an ActiveSupport::Duration" do
+          WorkerJob.class_eval { @retry_interval = proc { |count| count.minutes } }
+          assert_retry_cadence 60, 120, 180, 240
         end
       end
     end
