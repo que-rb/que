@@ -129,8 +129,8 @@ module Que
 
         Que.execute :set_error, [
           delay,
-          error.message,
-          error.backtrace.join("\n"),
+          error.message.slice(0, 500),
+          error.backtrace.join("\n").slice(0, 10000),
           job.fetch(:id),
         ]
       rescue

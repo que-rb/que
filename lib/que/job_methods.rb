@@ -94,7 +94,7 @@ module Que
         values = [period]
 
         if e = que_target.que_error
-          values << e.message << e.backtrace.join("\n")
+          values << e.message.slice(0, 500) << e.backtrace.join("\n").slice(0, 10000)
         else
           values << nil << nil
         end
