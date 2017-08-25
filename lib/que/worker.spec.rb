@@ -252,7 +252,7 @@ describe Que::Worker do
           4, 19, 84, 259,
           job_class: "NonexistentClass",
           expected_error_message: /uninitialized constant:? .*NonexistentClass/,
-          expected_backtrace: /que\/utils\/constantization\.rb/
+          expected_backtrace: /in `const_get'/
 
         assert_instance_of NameError, error
       end
