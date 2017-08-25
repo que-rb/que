@@ -21,7 +21,11 @@ ALTER TABLE que_jobs
   ADD COLUMN finished_at timestamptz,
   ADD COLUMN data JSONB,
   ADD CONSTRAINT queue_length CHECK (char_length(queue) <= 60),
-  ADD CONSTRAINT run_at_valid CHECK (isfinite(run_at));
+  ADD CONSTRAINT run_at_valid CHECK (isfinite(run_at)),
+  ADD CONSTRAINT error_length CHECK (
+    (char_length(last_error_message) <= 500) AND
+    (char_length(last_error_backtrace) <= 10000)
+  );
 
 UPDATE que_jobs
 SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
