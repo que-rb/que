@@ -123,6 +123,40 @@ describe Que::Worker do
       end
     end
 
+    def assert_retry_cadence(
+      *delays,
+      job_class: "WorkerJob",
+      expected_error_message: "Error!",
+      expected_backtrace: /\A#{__FILE__}/
+    )
+      jobs_dataset.insert(job_class: job_class)
+
+      error_count = 0
+      delays.each do |delay|
+        run_jobs
+        error_count += 1
+
+        assert_equal 1, jobs_dataset.count
+        job = jobs_dataset.first
+        assert_equal error_count, job[:error_count]
+
+        if expected_error_message.is_a?(Regexp)
+          assert_match expected_error_message, job[:last_error_message]
+        else
+          assert_equal expected_error_message, job[:last_error_message]
+        end
+
+        assert_match(
+          expected_backtrace,
+          job[:last_error_backtrace].split("\n").first,
+        )
+
+        assert_in_delta job[:run_at], Time.now + delay, 3
+
+        jobs_dataset.update(run_at: Time.now - 60)
+      end
+    end
+
     it "should record/report the error and not crash the worker" do
       # First job should error, second job should still be worked.
       job_ids = [
@@ -170,32 +204,7 @@ describe Que::Worker do
       assert_equal "a" * 500, job[:last_error_message]
     end
 
-    describe "when retrying" do
-      FILE_REGEX = /\A#{__FILE__}/
-
-      def assert_retry_cadence(*delays)
-        WorkerJob.enqueue
-
-        error_count = 0
-        delays.each do |delay|
-          run_jobs
-          error_count += 1
-
-          assert_equal 1, jobs_dataset.count
-          job = jobs_dataset.first
-          assert_equal error_count, job[:error_count]
-          assert_equal "Error!", job[:last_error_message]
-
-          assert_match(
-            FILE_REGEX,
-            job[:last_error_backtrace].split("\n").first,
-          )
-          assert_in_delta job[:run_at], Time.now + delay, 3
-
-          jobs_dataset.update(run_at: Time.now - 60)
-        end
-      end
-
+    describe "when retrying because the job logic raised an error" do
       it "should exponentially back off the job, by default" do
         # Default formula is (count^4) + 3
         assert_retry_cadence 4, 19, 84, 259
@@ -234,46 +243,40 @@ describe Que::Worker do
       end
     end
 
-    it "should throw an appropriate error if there's no corresponding job class" do
-      error = nil
-      Que.error_notifier = proc { |e| error = e }
+    describe "when retrying because the job couldn't even be run" do
+      it "when there's no corresponding job class" do
+        error = nil
+        Que.error_notifier = proc { |e| error = e }
 
-      jobs_dataset.insert job_class: "NonexistentClass"
+        assert_retry_cadence \
+          4, 19, 84, 259,
+          job_class: "NonexistentClass",
+          expected_error_message: /uninitialized constant:? .*NonexistentClass/,
+          expected_backtrace: /que\/utils\/constantization\.rb/
 
-      run_jobs
-
-      assert_equal 1, jobs_dataset.count
-      job = jobs_dataset.first
-      assert_equal 1, job[:error_count]
-      assert_match /uninitialized constant:? .*NonexistentClass/,
-        job[:last_error_message]
-      assert_in_delta job[:run_at], Time.now + 4, 3
-
-      assert_instance_of NameError, error
-    end
-
-    it "should throw an error if the job class doesn't descend from Que::Job" do
-      error = nil
-      Que.error_notifier = proc { |e| error = e }
-
-      class J
-        def initialize(*args)
-        end
-
-        def run(*args)
-        end
+        assert_instance_of NameError, error
       end
 
-      Que.enqueue job_class: "J"
+      it "when the job class doesn't descend from Que::Job" do
+        error = nil
+        Que.error_notifier = proc { |e| error = e }
 
-      run_jobs
+        class J
+          def initialize(*args)
+          end
 
-      assert_equal 1, jobs_dataset.count
-      job = jobs_dataset.first
-      assert_equal 1, job[:error_count]
-      assert_in_delta job[:run_at], Time.now + 4, 3
+          def run(*args)
+          end
+        end
 
-      assert_instance_of NoMethodError, error
+        assert_retry_cadence \
+          4, 19, 84, 259,
+          job_class: "J",
+          expected_error_message: /undefined method/,
+          expected_backtrace: /que\/worker\.rb/
+
+        assert_instance_of NoMethodError, error
+      end
     end
 
     describe "in a job class that has a custom error handler" do
