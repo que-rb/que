@@ -278,8 +278,6 @@ describe Que::Worker do
     describe "when the job class has a custom error handler" do
       it "should allow it to schedule a retry after an integer interval" do
         WorkerJob.class_eval do
-          private
-
           def handle_error(error)
             retry_in(42)
           end
@@ -293,8 +291,6 @@ describe Que::Worker do
 
       it "should allow it to schedule a retry after a float interval" do
         WorkerJob.class_eval do
-          private
-
           def handle_error(error)
             retry_in(35.3226247635)
           end
@@ -309,8 +305,6 @@ describe Que::Worker do
       if defined?(ActiveSupport)
         it "should allow it to schedule a retry after a ActiveSupport::Duration" do
           WorkerJob.class_eval do
-            private
-
             def handle_error(error)
               retry_in(5.minutes)
             end
@@ -328,8 +322,6 @@ describe Que::Worker do
           def run(*args)
             raise "Blah!"
           end
-
-          private
 
           def handle_error(error)
             destroy
@@ -352,8 +344,6 @@ describe Que::Worker do
             raise "Blah!"
           end
 
-          private
-
           def handle_error(error)
             false
           end
@@ -374,8 +364,6 @@ describe Que::Worker do
           def run(*args)
             raise "Blah!"
           end
-
-          private
 
           def handle_error(error)
             case error
