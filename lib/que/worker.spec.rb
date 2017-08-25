@@ -318,80 +318,76 @@ describe Que::Worker do
       end
 
       it "should allow it to destroy the job" do
-        class CustomRetryIntervalJob < Que::Job
-          def run(*args)
-            raise "Blah!"
-          end
-
+        WorkerJob.class_eval do
           def handle_error(error)
             destroy
           end
         end
 
-        CustomRetryIntervalJob.enqueue
+        WorkerJob.enqueue
 
         assert_equal 1, jobs_dataset.count
         run_jobs
         assert_equal 0, jobs_dataset.count
 
         assert_instance_of RuntimeError, notified_errors.first
-        assert_equal "Blah!", notified_errors.first.message
+        assert_equal "Error!", notified_errors.first.message
       end
 
       it "should allow it to return false to skip the error notification" do
-        class CustomRetryIntervalJob < Que::Job
-          def run(*args)
-            raise "Blah!"
-          end
-
+        WorkerJob.class_eval do
           def handle_error(error)
+            retry_in_default_interval
             false
           end
         end
 
-        CustomRetryIntervalJob.enqueue
-
-        assert_equal 1, jobs_dataset.count
-        run_jobs
-        assert_equal 1, jobs_dataset.count
-        assert_equal 0, active_jobs_dataset.count
-
+        assert_retry_cadence 4, 19, 84, 259
         assert_empty notified_errors
       end
 
-      it "should allow it to call super to get the default behavior" do
-        class CustomRetryIntervalJob < Que::Job
-          def run(*args)
-            raise "Blah!"
-          end
-
-          def handle_error(error)
-            case error
-            when RuntimeError
-              super
-            else
-              $error_handler_failed = true
-              raise "Bad!"
-            end
+      it "when the handle_error method is defined incorrectly" do
+        WorkerJob.class_eval do
+          def handle_error
           end
         end
 
-        CustomRetryIntervalJob.enqueue
-        run_jobs
-        assert_nil $error_handler_failed
+        assert_retry_cadence 4, 19, 84, 259
+        assert_equal 8, notified_errors.length
+        assert_instance_of ArgumentError, notified_errors[0]
+        assert_equal "wrong number of arguments (given 1, expected 0)", notified_errors[0].message
 
-        assert_equal 1, jobs_dataset.count
-        job = jobs_dataset.first
-        assert_equal 1, job[:error_count]
-        assert_match /\ABlah!/, job[:last_error_message]
-        assert_match(
-          /worker\.spec\.rb/,
-          job[:last_error_backtrace].split("\n").first,
-        )
-        assert_in_delta job[:run_at], Time.now + 4, 3
+        assert_instance_of RuntimeError, notified_errors[1]
+        assert_equal "Error!", notified_errors[1].message
+      end
+
+      it "when the handle_error method raises an error" do
+        WorkerJob.class_eval do
+          def handle_error(error)
+            raise "handle_error error!"
+          end
+        end
+
+        assert_retry_cadence 4, 19, 84, 259
+        assert_equal 8, notified_errors.length
+        assert_instance_of RuntimeError, notified_errors[0]
+        assert_equal "handle_error error!", notified_errors[0].message
+
+        assert_instance_of RuntimeError, notified_errors[1]
+        assert_equal "Error!", notified_errors[1].message
+      end
+
+      it "should allow it to call super to get the default behavior" do
+        WorkerJob.class_eval do
+          def handle_error(error)
+            super
+          end
+        end
+
+        assert_retry_cadence 4, 19, 84, 259
 
         assert_instance_of RuntimeError, notified_errors.first
-        assert_equal "Blah!", notified_errors.first.message
+        assert_equal "Error!", notified_errors.first.message
       end
     end
   end
