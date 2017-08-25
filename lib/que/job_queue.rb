@@ -104,6 +104,10 @@ module Que
       minimum_size > size
     end
 
+    def waiting_count
+      sync { @waiting_count }
+    end
+
     def space
       sync do
         maximum_size + @waiting_count - size

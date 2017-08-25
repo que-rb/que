@@ -138,6 +138,13 @@ module Que
           )
         end
 
+      # To prevent race conditions, let every worker get into a ready state
+      # before starting up the locker thread.
+      loop do
+        break if job_queue.waiting_count == workers.count{|w| w.priority.nil?}
+        sleep 0.001
+      end
+
       pool =
         if connection
           # Wrap the given connection in a dummy connection pool.
