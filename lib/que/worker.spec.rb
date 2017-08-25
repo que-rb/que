@@ -15,7 +15,20 @@ describe Que::Worker do
     )
   end
 
-  before { worker }
+  before do
+    worker
+
+    class WorkerJob < Que::Job
+      def run(*args)
+        $args = args
+      end
+    end
+  end
+
+  after do
+    Object.send :remove_const, :WorkerJob
+    $args = nil
+  end
 
   def run_jobs(*jobs)
     jobs.flatten!
@@ -39,311 +52,179 @@ describe Que::Worker do
   end
 
   it "should repeatedly work jobs that are passed to it via its job_queue" do
-    begin
-      $results = []
+    results = []
 
-      class WorkerJob < Que::Job
-        def run(number)
-          $results << number
-        end
+    WorkerJob.class_eval do
+      define_method :run do |number|
+        results << number
       end
-
-      [1, 2, 3].each { |i| WorkerJob.enqueue i, priority: i }
-      job_ids = jobs_dataset.order_by(:priority).select_map(:id)
-      run_jobs
-
-      assert_equal [1, 2, 3], $results
-      assert_equal job_ids, finished_job_ids
-
-      events = logged_messages.select{|m| m[:event] == 'job_worked'}
-      assert_equal 3, events.count
-      assert_equal [1, 2, 3], events.map{|m| m[:job][:priority]}
-    ensure
-      $results = nil
     end
+
+    [1, 2, 3].each { |i| WorkerJob.enqueue i, priority: i }
+    job_ids = jobs_dataset.order_by(:priority).select_map(:id)
+    run_jobs
+
+    assert_equal [1, 2, 3], results
+    assert_equal job_ids, finished_job_ids
+
+    events = logged_messages.select{|m| m[:event] == 'job_worked'}
+    assert_equal 3, events.count
+    assert_equal [1, 2, 3], events.map{|m| m[:job][:priority]}
   end
 
   it "should handle namespaced job subclasses" do
-    begin
-      $run = false
+    NamespacedJobNamespace::NamespacedJob.enqueue
+    assert_equal "NamespacedJobNamespace::NamespacedJob", jobs_dataset.get(:job_class)
 
-      # TODO: Use the namespaced job in the support folder for this?
-      module ModuleJobModule
-        class ModuleJob < Que::Job
-          def run
-            $run = true
-          end
-        end
-      end
-
-      ModuleJobModule::ModuleJob.enqueue
-      assert_equal "ModuleJobModule::ModuleJob", jobs_dataset.get(:job_class)
-
-      run_jobs
-      assert_equal true, $run
-    ensure
-      $run = nil
-    end
+    run_jobs
+    assert_empty active_jobs_dataset
   end
 
   it "should skip a job if passed a nonexistent sort key" do
     assert_equal 0, jobs_dataset.count
-    run_jobs queue:    'default',
-             priority: 1,
-             run_at:   Time.now,
-             id:       587648
+    attrs = Que::Job.enqueue.que_attrs
+    assert_equal 1, jobs_dataset.where(id: attrs.fetch(:id)).delete
 
-    assert_equal [587648], finished_job_ids
+    assert_equal 0, jobs_dataset.count
+    run_jobs(attrs)
+    assert_equal 0, jobs_dataset.count
+
+    assert_equal [attrs.fetch(:id)], finished_job_ids
   end
 
   describe "when given a priority requirement" do
     let(:priority) { 10 }
 
     it "should only take jobs that meet it priority requirement" do
-      jobs = (1..20).map { |i| Que::Metajob.new(priority: i, run_at: Time.now, id: i) }
+      jobs =
+        (1..20).map do |i|
+          Que::Job.enqueue(i, priority: i).que_attrs
+        end
 
-      job_queue.push *jobs
+      job_ids = jobs.map { |j| j[:id] }
 
-      sleep_until! { finished_job_ids == (1..10).to_a }
+      job_queue.push *jobs.map{|j| Que::Metajob.new(j)}
 
-      assert_equal jobs[10..19], job_queue.to_a
+      sleep_until! { finished_job_ids == job_ids[0..9] }
+
+      assert_equal job_ids[10..19], job_queue.to_a.map(&:id)
     end
   end
 
   describe "when an error is raised" do
-    # Avoid spec noise:
-    before { Que.error_notifier = nil }
+    before do
+      # Avoid spec noise:
+      Que.error_notifier = nil
 
-    it "should not crash the worker" do
-      ErrorJob.enqueue priority: 1
-      Que::Job.enqueue priority: 2
+      WorkerJob.class_eval do
+        def run(*args)
+          raise "Error!"
+        end
+      end
+    end
 
-      job_ids = jobs_dataset.order_by(:priority).select_map(:id)
+    it "should record/report the error and not crash the worker" do
+      # First job should error, second job should still be worked.
+      job_ids = [
+        WorkerJob.enqueue(priority: 1),
+        Que::Job.enqueue(priority: 2),
+      ].map{|j| j.que_attrs[:id]}
+
+      notified_error = nil
+      Que.error_notifier = proc { |e| notified_error = e }
+
       run_jobs
       assert_equal job_ids, finished_job_ids
 
       events = logged_messages.select{|m| m[:event] == 'job_errored'}
       assert_equal 1, events.count
 
+      # Error should be logged.
       event = events.first
       assert_equal 1, event[:job][:priority]
-      assert_kind_of Integer, event[:job][:id]
-      assert_equal "ErrorJob!", event[:error]
+      assert_equal job_ids.first, event[:job][:id]
+      assert_equal "Error!", event[:error]
+
+      # Errored job should still be in the DB.
+      assert_equal [job_ids.first], active_jobs_dataset.select_map(:id)
+      assert_equal ["Error!"], active_jobs_dataset.select_map(:last_error_message)
+
+      # error_notifier proc should have been called.
+      assert_instance_of RuntimeError, notified_error
+      assert_equal "Error!", notified_error.message
     end
 
-    it "should pass it to the error notifier" do
-      error = nil
-      Que.error_notifier = proc { |e| error = e }
-
-      ErrorJob.enqueue priority: 1
-
-      run_jobs
-
-      assert_instance_of RuntimeError, error
-      assert_equal "ErrorJob!", error.message
-    end
-
-    describe "when the job throws an error" do
-      it "should truncate the error message if necessary" do
-        class ExcessiveErrorMessageJob < Que::Job
-          def run(*args)
-            raise "a" * 501
-          end
+    it "should truncate the error message if necessary" do
+      WorkerJob.class_eval do
+        def run(*args)
+          raise "a" * 501
         end
-
-        ExcessiveErrorMessageJob.enqueue
-
-        run_jobs
-
-        assert_equal 1, jobs_dataset.count
-        job = jobs_dataset.first
-        assert_equal 1, job[:error_count]
-        assert_equal "a" * 500, job[:last_error_message]
       end
-    end
 
-    it "should exponentially back off the job" do
-      ErrorJob.enqueue
-
+      WorkerJob.enqueue
       run_jobs
 
       assert_equal 1, jobs_dataset.count
       job = jobs_dataset.first
       assert_equal 1, job[:error_count]
-      assert_equal "ErrorJob!", job[:last_error_message]
-      assert_match(
-        /support\/jobs\/error_job/,
-        job[:last_error_backtrace].split("\n").first,
-      )
-      assert_in_delta job[:run_at], Time.now + 4, 3
-
-      jobs_dataset.update error_count: 5,
-                          run_at:      Time.now - 60
-
-      run_jobs
-
-      assert_equal 1, jobs_dataset.count
-      job = jobs_dataset.first
-      assert_equal 6, job[:error_count]
-      assert_equal "ErrorJob!", job[:last_error_message]
-      assert_match(
-        /support\/jobs\/error_job/,
-        job[:last_error_backtrace].split("\n").first,
-      )
-      assert_in_delta job[:run_at], Time.now + 1299, 3
+      assert_equal "a" * 500, job[:last_error_message]
     end
 
-    describe "when a retry_interval is set" do
-      it "that is an integer" do
-        class RetryIntervalJob < ErrorJob
-          @retry_interval = 5
+    describe "when retrying" do
+      FILE_REGEX = /\A#{__FILE__}/
+
+      def assert_retry_cadence(*delays)
+        WorkerJob.enqueue
+
+        error_count = 0
+        delays.each do |delay|
+          run_jobs
+          error_count += 1
+
+          assert_equal 1, jobs_dataset.count
+          job = jobs_dataset.first
+          assert_equal error_count, job[:error_count]
+          assert_equal "Error!", job[:last_error_message]
+
+          assert_match(
+            FILE_REGEX,
+            job[:last_error_backtrace].split("\n").first,
+          )
+          assert_in_delta job[:run_at], Time.now + delay, 3
+
+          jobs_dataset.update(run_at: Time.now - 60)
         end
-
-        RetryIntervalJob.enqueue
-
-        run_jobs
-
-        assert_equal 1, jobs_dataset.count
-        job = jobs_dataset.first
-
-        assert_equal 1, job[:error_count]
-        assert_equal "ErrorJob!", job[:last_error_message]
-        assert_match(
-          /support\/jobs\/error_job/,
-          job[:last_error_backtrace].split("\n").first,
-        )
-        assert_in_delta job[:run_at], Time.now + 5, 3
-
-        jobs_dataset.update error_count: 5,
-                            run_at:      Time.now - 60
-
-        run_jobs
-
-        assert_equal 1, jobs_dataset.count
-        job = jobs_dataset.first
-
-        assert_equal 6, job[:error_count]
-        assert_equal "ErrorJob!", job[:last_error_message]
-        assert_match(
-          /support\/jobs\/error_job/,
-          job[:last_error_backtrace].split("\n").first,
-        )
-        assert_in_delta job[:run_at], Time.now + 5, 3
       end
 
-      it "that is a float" do
-        class RetryFloatIntervalJob < ErrorJob
-          @retry_interval = 4.5
-        end
-
-        RetryFloatIntervalJob.enqueue
-
-        run_jobs
-
-        assert_equal 1, jobs_dataset.count
-        job = jobs_dataset.first
-
-        assert_equal 1, job[:error_count]
-        assert_equal "ErrorJob!", job[:last_error_message]
-        assert_match(
-          /support\/jobs\/error_job/,
-          job[:last_error_backtrace].split("\n").first,
-        )
-        assert_in_delta job[:run_at], Time.now + 4.5, 3
-
-        jobs_dataset.update error_count: 5,
-                            run_at:      Time.now - 60
-
-        run_jobs
-
-        assert_equal 1, jobs_dataset.count
-        job = jobs_dataset.first
-
-        assert_equal 6, job[:error_count]
-        assert_equal "ErrorJob!", job[:last_error_message]
-        assert_match(
-          /support\/jobs\/error_job/,
-          job[:last_error_backtrace].split("\n").first,
-        )
-        assert_in_delta job[:run_at], Time.now + 4.5, 3
+      it "should exponentially back off the job, by default" do
+        # Default formula is (count^4) + 3
+        assert_retry_cadence 4, 19, 84, 259
       end
 
-      it "that is a callable" do
-        class RetryIntervalCallableJob < ErrorJob
-          @retry_interval = proc { |count| count * 10 }
-        end
+      it "when the retry_interval is an integer" do
+        WorkerJob.class_eval { @retry_interval = 5 }
+        assert_retry_cadence 5, 5, 5, 5
+      end
 
-        RetryIntervalCallableJob.enqueue
+      it "when the retry_interval is a float" do
+        WorkerJob.class_eval { @retry_interval = 4.5 }
+        assert_retry_cadence 4.5, 4.5, 4.5, 4.5
+      end
 
-        run_jobs
-
-        assert_equal 1, jobs_dataset.count
-        job = jobs_dataset.first
-        assert_equal 1, job[:error_count]
-        assert_equal "ErrorJob!", job[:last_error_message]
-        assert_match(
-          /support\/jobs\/error_job/,
-          job[:last_error_backtrace].split("\n").first,
-        )
-        assert_in_delta job[:run_at], Time.now + 10, 3
-
-        jobs_dataset.update error_count: 5,
-                            run_at:      Time.now - 60
-
-        run_jobs
-
-        assert_equal 1, jobs_dataset.count
-        job = jobs_dataset.first
-        assert_equal 6, job[:error_count]
-        assert_equal "ErrorJob!", job[:last_error_message]
-        assert_match(
-          /support\/jobs\/error_job/,
-          job[:last_error_backtrace].split("\n").first,
-        )
-        assert_in_delta job[:run_at], Time.now + 60, 3
+      it "when the retry_interval is a callable" do
+        WorkerJob.class_eval { @retry_interval = proc { |count| count * 10 } }
+        assert_retry_cadence 10, 20, 30, 40
       end
 
       if defined?(ActiveSupport)
         it "that is an ActiveSupport::Duration" do
-          class RetryIntervalDurationJob < ErrorJob
-            @retry_interval = 5.minutes
-          end
-
-          RetryIntervalDurationJob.enqueue
-
-          run_jobs
-
-          assert_equal 1, jobs_dataset.count
-          job = jobs_dataset.first
-
-          assert_equal 1, job[:error_count]
-          assert_equal "ErrorJob!", job[:last_error_message]
-          assert_match(
-            /support\/jobs\/error_job/,
-            job[:last_error_backtrace].split("\n").first,
-          )
-          assert_in_delta job[:run_at], Time.now + 300, 3
-
-          jobs_dataset.update error_count: 5,
-                              run_at:      Time.now - 60
-
-          run_jobs
-
-          assert_equal 1, jobs_dataset.count
-          job = jobs_dataset.first
-
-          assert_equal 6, job[:error_count]
-          assert_equal "ErrorJob!", job[:last_error_message]
-          assert_match(
-            /support\/jobs\/error_job/,
-            job[:last_error_backtrace].split("\n").first,
-          )
-          assert_in_delta job[:run_at], Time.now + 300, 3
+          WorkerJob.class_eval { @retry_interval = 5.minutes }
+          assert_retry_cadence 300, 300, 300, 300
         end
       end
     end
 
-    it "should throw an error properly if there's no corresponding job class" do
+    it "should throw an appropriate error if there's no corresponding job class" do
       error = nil
       Que.error_notifier = proc { |e| error = e }
 
