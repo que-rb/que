@@ -148,10 +148,12 @@ describe Que::Worker do
           assert_equal expected_error_message, job[:last_error_message]
         end
 
-        assert_match(
-          expected_backtrace,
-          job[:last_error_backtrace].split("\n").first,
-        )
+        if expected_backtrace
+          assert_match(
+            expected_backtrace,
+            job[:last_error_backtrace].split("\n").first,
+          )
+        end
 
         assert_in_delta job[:run_at], Time.now + delay, 3
 
@@ -249,7 +251,7 @@ describe Que::Worker do
           4, 19, 84, 259,
           job_class: "NonexistentClass",
           expected_error_message: /uninitialized constant:? .*NonexistentClass/,
-          expected_backtrace: /in `const_get'/
+          expected_backtrace: false
 
         assert_instance_of NameError, notified_errors.first
       end
@@ -317,7 +319,7 @@ describe Que::Worker do
           assert_retry_cadence 300, 300, 300, 300
 
           assert_instance_of RuntimeError, notified_errors.first
-          assert_equal "Blah!", notified_errors.first.message
+          assert_equal "Error!", notified_errors.first.message
         end
       end
 
