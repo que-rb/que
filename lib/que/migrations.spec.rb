@@ -104,104 +104,95 @@ describe Que::Migrations do
   end
 
   describe "migration #4" do
-    it "should correctly migrate data down and up" do
-      DB[:que_jobs].insert(
-        id: 1,
-        job_class: 'Que::Job',
-        queue: 'default',
-        data: JSON.dump(args: [78, {arg1: true, arg2: 'a'}]),
-      )
-
-      DB[:que_jobs].insert(
-        id: 2,
-        job_class: 'Que::Job',
-        queue: 'other_queue',
-        data: JSON.dump(args: [89, {arg1: true, arg2: 'b'}]),
-        last_error_message: "Error: an error message",
-        last_error_backtrace: "line 1\nline 2\nline 3",
-      )
-
+    def version_3
       Que::Migrations.migrate! version: 3
-
-      assert_equal(
-        [
-          {
-            job_id: 1,
-            args: [78, {arg1: true, arg2: 'a'}],
-            queue: '',
-            last_error: nil,
-          },
-          {
-            job_id: 2,
-            args: [89, {arg1: true, arg2: 'b'}],
-            queue: 'other_queue',
-            last_error: "Error: an error message\nline 1\nline 2\nline 3",
-          },
-        ],
-        DB[:que_jobs].
-          order(:job_id).
-          select(:job_id, :args, :queue, :last_error).
-          all
-      )
-
-      # Add a few rows where args is not an array, to make sure the migration
-      # handles those. This behavior was never supported, so it shouldn't
-      # happen, but better safe than sorry.
-
-      # The table primary key is different at this schema version, so provide a
-      # returning clause so that Sequel doesn't get confused.
-      DB[:que_jobs].returning(:job_id).insert(
-        job_id: 3,
-        job_class: 'Que::Job',
-        args: JSON.dump({arg1: true, arg2: 'a'}),
-        last_error: "Error without a backtrace!",
-      )
-
-      DB[:que_jobs].returning(:job_id).insert(
-        job_id: 4,
-        job_class: 'Que::Job',
-        args: '5',
-      )
-
+      yield
       Que::Migrations.migrate! version: 4
+    end
+
+    def assert_round_trip_migration(v3: {}, v4: {})
+      v4_default = {id: 1, job_class: 'Que::Job', queue: 'default', data: {args: []}, last_error_message: nil, last_error_backtrace: nil}
+      v3_default = {job_id: 1, job_class: 'Que::Job', queue: '', args: [], last_error: nil}
+
+      DB[:que_jobs].insert(v4_default.merge(v4).tap{|j| j[:data] = JSON.dump(j[:data])})
+
+      version_3 do
+        assert_equal(
+          v3_default.merge(v3),
+          DB[:que_jobs].
+            where(job_id: 1).
+            select(:job_class, :job_id, :args, :queue, :last_error).
+            first
+        )
+      end
 
       assert_equal(
-        [
-          {
-            id: 1,
-            data: {args: [78, {arg1: true, arg2: 'a'}]},
-            queue: 'default',
-            last_error_message: nil,
-            last_error_backtrace: nil,
-          },
-          {
-            id: 2,
-            data: {args: [89, {arg1: true, arg2: 'b'}]},
-            queue: 'other_queue',
-            last_error_message: "Error: an error message",
-            last_error_backtrace: "line 1\nline 2\nline 3",
-          },
-          {
-            id: 3,
-            data: {args: [{arg1: true, arg2: 'a'}]},
-            queue: 'default',
-            last_error_message: "Error without a backtrace!",
-            last_error_backtrace: "",
-          },
-          {
-            id: 4,
-            data: {args: [5]},
-            queue: 'default',
-            last_error_message: nil,
-            last_error_backtrace: nil,
-          },
-        ],
+        v4_default.merge(v4),
         DB[:que_jobs].
-          order(:id).
-          select(
-            :id, :data, :queue, :last_error_message, :last_error_backtrace
-          ).
-          all
+          where(id: 1).
+          select(:id, :job_class, :data, :queue, :last_error_message, :last_error_backtrace).
+          first
+      )
+    end
+
+    def assert_up_migration(v3: {}, v4: {})
+      v4_default = {id: 1, job_class: 'Que::Job', queue: 'default', data: {args: []}, last_error_message: nil, last_error_backtrace: nil}
+      v3_default = {job_id: 1, job_class: 'Que::Job', queue: '', args: [], last_error: nil}
+
+      version_3 do
+        # The table primary key is different at this schema version, so provide a
+        # returning clause so that Sequel doesn't get confused.
+        DB[:que_jobs].returning(:job_id).insert(v3_default.merge(v3).tap{|j| j[:args] = JSON.dump(j[:args])})
+      end
+
+      assert_equal(
+        v4_default.merge(v4),
+        DB[:que_jobs].
+          where(id: 1).
+          select(:id, :job_class, :data, :queue, :last_error_message, :last_error_backtrace).
+          first
+      )
+    end
+
+    it "should correctly migrate data down and up" do
+      assert_round_trip_migration
+    end
+
+    it "should correctly migrate error data down and up" do
+      assert_round_trip_migration(
+        v3: {last_error: "Error: an error message\nline 1\nline 2\nline 3"},
+        v4: {last_error_message: "Error: an error message", last_error_backtrace: "line 1\nline 2\nline 3"},
+      )
+    end
+
+    it "should correctly migrate up jobs with an error message but no backtrace" do
+      assert_up_migration(
+        v3: {last_error: "Error without a backtrace!"},
+        v4: {
+          last_error_message: "Error without a backtrace!",
+          last_error_backtrace: "",
+        }
+      )
+    end
+
+    it "should correctly migrate up jobs whose args are hashes instead of arrays" do
+      assert_up_migration(
+        v3: {args: {arg1: true, arg2: 'a'}},
+        v4: {data: {args: [{arg1: true, arg2: 'a'}]}}
+      )
+    end
+
+    it "should correctly migrate up jobs whose args are scalar strings instead of arrays" do
+      assert_up_migration(
+        v3: {args: "arg1"},
+        v4: {data: {args: ["arg1"]}}
+      )
+    end
+
+    it "should correctly migrate up jobs whose args are scalar integers instead of arrays" do
+      assert_up_migration(
+        v3: {args: 5},
+        v4: {data: {args: [5]}}
       )
     end
   end
