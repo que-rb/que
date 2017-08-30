@@ -1,20 +1,14 @@
 ALTER TABLE que_jobs SET (fillfactor = 90);
-
-ALTER TABLE que_jobs
-  DROP CONSTRAINT que_jobs_pkey;
-
-ALTER TABLE que_jobs
-  RENAME COLUMN job_id TO id;
-
+ALTER TABLE que_jobs RENAME COLUMN last_error TO last_error_message;
+ALTER TABLE que_jobs RENAME COLUMN job_id TO id;
 ALTER SEQUENCE que_jobs_job_id_seq RENAME TO que_jobs_id_seq;
-
-ALTER TABLE que_jobs
-  RENAME COLUMN last_error TO last_error_message;
 
 ALTER TABLE que_jobs
   ADD COLUMN last_error_backtrace text,
   ADD COLUMN finished_at timestamptz,
   ADD COLUMN data JSONB;
+
+ALTER TABLE que_jobs DROP CONSTRAINT que_jobs_pkey;
 
 UPDATE que_jobs
 SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
@@ -40,7 +34,11 @@ SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
       )
     )::jsonb;
 
+CREATE INDEX que_poll_idx ON que_jobs (queue, priority, run_at, id) WHERE finished_at IS NULL;
+CREATE INDEX que_jobs_data_gin_idx ON que_jobs USING gin (data jsonb_path_ops);
+
 ALTER TABLE que_jobs
+  ADD PRIMARY KEY (id),
   ALTER COLUMN queue SET DEFAULT 'default',
   ALTER COLUMN data SET DEFAULT '{"args":[]}',
   ALTER COLUMN data SET NOT NULL,
@@ -55,12 +53,7 @@ ALTER TABLE que_jobs
   ADD CONSTRAINT error_length CHECK (
     (char_length(last_error_message) <= 500) AND
     (char_length(last_error_backtrace) <= 10000)
-  ),
-  ADD PRIMARY KEY (id);
-
-CREATE INDEX que_poll_idx ON que_jobs (queue, priority, run_at, id) WHERE finished_at IS NULL;
-
-CREATE INDEX que_jobs_data_gin_idx ON que_jobs USING gin (data jsonb_path_ops);
+  );
 
 CREATE UNLOGGED TABLE que_lockers (
   pid               integer NOT NULL CONSTRAINT que_lockers_pkey PRIMARY KEY,
