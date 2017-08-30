@@ -1,22 +1,21 @@
 ALTER TABLE que_jobs RESET (fillfactor);
 
-ALTER TABLE que_jobs
-  DROP CONSTRAINT que_jobs_pkey;
+ALTER TABLE que_jobs DROP CONSTRAINT que_jobs_pkey;
+DROP INDEX que_poll_idx;
+DROP INDEX que_jobs_data_gin_idx;
 
 DROP TRIGGER que_job_notify ON que_jobs;
 DROP FUNCTION que_job_notify();
 DROP TABLE que_lockers;
 
-ALTER TABLE que_jobs
-  RENAME COLUMN id TO job_id;
-
+ALTER TABLE que_jobs RENAME COLUMN id TO job_id;
 ALTER SEQUENCE que_jobs_id_seq RENAME TO que_jobs_job_id_seq;
 
-ALTER TABLE que_jobs
-  RENAME COLUMN last_error_message TO last_error;
+ALTER TABLE que_jobs RENAME COLUMN last_error_message TO last_error;
 
 ALTER TABLE que_jobs
   DROP CONSTRAINT error_length,
+  DROP COLUMN finished_at,
   ADD COLUMN args JSON;
 
 UPDATE que_jobs
@@ -25,9 +24,8 @@ UPDATE que_jobs
   last_error = last_error || E'\n' || last_error_backtrace;
 
 ALTER TABLE que_jobs
-  DROP COLUMN last_error_backtrace,
   DROP COLUMN data,
-  DROP COLUMN finished_at,
+  DROP COLUMN last_error_backtrace,
   ALTER COLUMN args SET NOT NULL,
   ALTER COLUMN args SET DEFAULT '[]',
   ALTER COLUMN queue SET DEFAULT '';
