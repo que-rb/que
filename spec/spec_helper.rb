@@ -268,8 +268,13 @@ class QueSpec < Minitest::Spec
     $q1, $q2 = Queue.new, Queue.new
     $passed_args = nil
 
-    DB[:que_jobs].delete
-    DB[:que_lockers].delete
+    begin
+      DB[:que_jobs].delete
+      DB[:que_lockers].delete
+    rescue Sequel::DatabaseError
+      puts "\n\nPrevious spec left DB in unexpected state, run aborted\n\n"
+      abort
+    end
 
     # Timeout is a problematic module in general, since it leaves things in an
     # unknown and unsafe state. It should be avoided in library code, but in
