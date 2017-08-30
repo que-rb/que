@@ -1,6 +1,6 @@
 ALTER TABLE que_jobs SET (
   fillfactor = 90,
-  -- TODO: Try tweaking these values under benchmarks.
+  -- TODO: Try tweaking these values during benchmarking.
   autovacuum_vacuum_scale_factor = 0.1,
   autovacuum_vacuum_threshold = 50
 );
@@ -127,9 +127,9 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
     IF locker_pid IS NOT NULL THEN
       -- There's a size limit to what can be broadcast via LISTEN/NOTIFY, so
       -- rather than throw errors when someone enqueues a big job, just
-      -- broadcast the sort key, and let the locker query for the record. The
-      -- worker will have to hit the DB in order to make sure the job is still
-      -- visible anyway.
+      -- broadcast the most pertinent information, and let the locker query for
+      -- the record after it's taken the lock. The worker will have to hit the
+      -- DB in order to make sure the job is still visible anyway.
       SELECT row_to_json(t)
       INTO sort_key
       FROM (
