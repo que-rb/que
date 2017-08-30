@@ -166,11 +166,11 @@ describe Que::Migrations do
     end
 
     it "should correctly migrate up jobs with an error message but no backtrace" do
-      assert_up_migration(
+      assert_round_trip_migration(
         v3: {last_error: "Error without a backtrace!"},
         v4: {
           last_error_message: "Error without a backtrace!",
-          last_error_backtrace: "",
+          last_error_backtrace: nil,
         },
       )
     end
@@ -200,8 +200,8 @@ describe Que::Migrations do
 
     it "when the last_error_message is longer than 500 characters" do
       assert_up_migration(
-        v3: {last_error: "a" * 501},
-        v4: {last_error_message: "a" * 500, last_error_backtrace: ""},
+        v3: {last_error: "a" * 501 + "\na"},
+        v4: {last_error_message: "a" * 500, last_error_backtrace: "a"},
       )
     end
 

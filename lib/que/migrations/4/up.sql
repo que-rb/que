@@ -16,12 +16,10 @@ SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
     -- reasonable default.
     last_error_backtrace =
       CASE
-      WHEN last_error_message IS NULL
-        THEN NULL
       WHEN last_error_message ~ '\n'
         THEN left(regexp_replace(last_error_message, '^[^\n]+\n', ''), 10000)
       ELSE
-        ''
+        NULL
       END,
     last_error_message = left(substring(last_error_message from '^[^\n]+'), 500),
     data = json_build_object(

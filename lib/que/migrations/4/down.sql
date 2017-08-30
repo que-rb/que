@@ -21,7 +21,7 @@ ALTER TABLE que_jobs
 UPDATE que_jobs
   SET args = (data->'args')::json,
   queue = CASE queue WHEN 'default' THEN '' ELSE queue END,
-  last_error = last_error || E'\n' || last_error_backtrace;
+  last_error = last_error || coalesce(E'\n' || last_error_backtrace, '');
 
 ALTER TABLE que_jobs
   DROP COLUMN data,
