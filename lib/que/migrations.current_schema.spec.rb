@@ -36,13 +36,6 @@ describe Que::Migrations, "current schema" do
       end
     end
 
-    it "should make sure that a job queue name does not exceed 60 characters" do
-      assert_constraint_error 'queue_length' do
-        DB[:que_jobs].
-          insert(job_class: 'Que::Job', queue: 'a' * 61)
-      end
-    end
-
     it "should make sure that a job error message does not exceed 500 characters" do
       assert_constraint_error 'error_length' do
         DB[:que_jobs].
@@ -54,18 +47,6 @@ describe Que::Migrations, "current schema" do
       assert_constraint_error 'error_length' do
         DB[:que_jobs].
           insert(job_class: 'Que::Job', last_error_backtrace: 'a' * 10001)
-      end
-    end
-
-    it "should make sure that a job has a finite run_at" do
-      assert_constraint_error 'run_at_valid' do
-        DB[:que_jobs].
-          insert(job_class: 'Que::Job', run_at: 'infinity')
-      end
-
-      assert_constraint_error 'run_at_valid' do
-        DB[:que_jobs].
-          insert(job_class: 'Que::Job', run_at: '-infinity')
       end
     end
   end
