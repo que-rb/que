@@ -21,11 +21,7 @@ ALTER TABLE que_jobs
   ADD COLUMN finished_at timestamptz,
   ADD COLUMN data JSONB,
   ADD CONSTRAINT queue_length CHECK (char_length(queue) <= 60),
-  ADD CONSTRAINT run_at_valid CHECK (isfinite(run_at)),
-  ADD CONSTRAINT error_length CHECK (
-    (char_length(last_error_message) <= 500) AND
-    (char_length(last_error_backtrace) <= 10000)
-  );
+  ADD CONSTRAINT run_at_valid CHECK (isfinite(run_at));
 
 UPDATE que_jobs
 SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
@@ -36,11 +32,11 @@ SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
       WHEN last_error_message IS NULL
         THEN NULL
       WHEN last_error_message ~ '\n'
-        THEN regexp_replace(last_error_message, '^[^\n]+\n', '')
+        THEN left(regexp_replace(last_error_message, '^[^\n]+\n', ''), 10000)
       ELSE
         ''
       END,
-    last_error_message   = substring(last_error_message from '^[^\n]+'),
+    last_error_message = left(substring(last_error_message from '^[^\n]+'), 500),
     data = json_build_object(
       'args',
       (
@@ -62,6 +58,10 @@ ALTER TABLE que_jobs
     ((data->'args') IS NOT NULL)
     AND
     (jsonb_typeof(data->'args') = 'array')
+  ),
+  ADD CONSTRAINT error_length CHECK (
+    (char_length(last_error_message) <= 500) AND
+    (char_length(last_error_backtrace) <= 10000)
   ),
   ADD PRIMARY KEY (id);
 

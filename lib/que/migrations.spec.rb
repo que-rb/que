@@ -171,28 +171,44 @@ describe Que::Migrations do
         v4: {
           last_error_message: "Error without a backtrace!",
           last_error_backtrace: "",
-        }
+        },
       )
     end
 
-    it "should correctly migrate up jobs whose args are hashes instead of arrays" do
+    describe "when the args column has unusual values" do
+      it "should correctly migrate up jobs whose args are hashes instead of arrays" do
+        assert_up_migration(
+          v3: {args: {arg1: true, arg2: 'a'}},
+          v4: {data: {args: [{arg1: true, arg2: 'a'}]}},
+        )
+      end
+
+      it "should correctly migrate up jobs whose args are scalar strings instead of arrays" do
+        assert_up_migration(
+          v3: {args: "arg1"},
+          v4: {data: {args: ["arg1"]}},
+        )
+      end
+
+      it "should correctly migrate up jobs whose args are scalar integers instead of arrays" do
+        assert_up_migration(
+          v3: {args: 5},
+          v4: {data: {args: [5]}},
+        )
+      end
+    end
+
+    it "when the last_error_message is longer than 500 characters" do
       assert_up_migration(
-        v3: {args: {arg1: true, arg2: 'a'}},
-        v4: {data: {args: [{arg1: true, arg2: 'a'}]}}
+        v3: {last_error: "a" * 501},
+        v4: {last_error_message: "a" * 500, last_error_backtrace: ""},
       )
     end
 
-    it "should correctly migrate up jobs whose args are scalar strings instead of arrays" do
+    it "when the last_error_backtrace is longer than 10,000 characters" do
       assert_up_migration(
-        v3: {args: "arg1"},
-        v4: {data: {args: ["arg1"]}}
-      )
-    end
-
-    it "should correctly migrate up jobs whose args are scalar integers instead of arrays" do
-      assert_up_migration(
-        v3: {args: 5},
-        v4: {data: {args: [5]}}
+        v3: {last_error: "a\n" + "a" * 10_001},
+        v4: {last_error_message: "a", last_error_backtrace: "a" * 10_000},
       )
     end
   end
