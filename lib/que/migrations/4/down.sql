@@ -1,8 +1,4 @@
-ALTER TABLE que_jobs RESET (
-  fillfactor,
-  autovacuum_vacuum_scale_factor,
-  autovacuum_vacuum_threshold
-);
+ALTER TABLE que_jobs RESET (fillfactor);
 
 ALTER TABLE que_jobs
   DROP CONSTRAINT que_jobs_pkey;

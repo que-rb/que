@@ -1,9 +1,4 @@
-ALTER TABLE que_jobs SET (
-  fillfactor = 90,
-  -- TODO: Try tweaking these values during benchmarking.
-  autovacuum_vacuum_scale_factor = 0.1,
-  autovacuum_vacuum_threshold = 50
-);
+ALTER TABLE que_jobs SET (fillfactor = 90);
 
 ALTER TABLE que_jobs
   DROP CONSTRAINT que_jobs_pkey;
@@ -23,7 +18,7 @@ ALTER TABLE que_jobs
 
 UPDATE que_jobs
 SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
-    -- Some old error fields are missing the backtrace, so try to provide a
+    -- Some old error fields might be missing the backtrace, so try to provide a
     -- reasonable default.
     last_error_backtrace =
       CASE
