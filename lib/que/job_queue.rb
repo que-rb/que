@@ -13,10 +13,10 @@ module Que
       @array        = []
 
       @maximum_size = Que.assert(Integer, maximum_size)
-      Que.assert(maximum_size > 0)
+      Que.assert(maximum_size > 0) { "maximum_size for a JobQueue must be greater than zero!" }
 
       @minimum_size = Que.assert(Integer, minimum_size)
-      Que.assert(minimum_size >= 0)
+      Que.assert(minimum_size >= 0) { "minimum_size for a JobQueue must be at least zero!" }
 
       Que.assert(minimum_size <= maximum_size) do
         "minimum queue size (#{minimum_size}) is " \

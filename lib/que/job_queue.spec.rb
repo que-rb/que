@@ -32,15 +32,43 @@ describe Que::JobQueue do
   end
 
   describe "during instantiation" do
-    it "should raise an error if passed a maximum queue size of zero or less"
+    it "should raise an error if passed a maximum queue size of zero or less" do
+      error = assert_raises(Que::Error) do
+        Que::JobQueue.new(minimum_size: 0, maximum_size: 0)
+      end
 
-    it "should raise an error if passed a minimum queue size less than zero"
+      assert_equal "maximum_size for a JobQueue must be greater than zero!", error.message
+    end
 
-    it "should raise an error if passed a minimum queue size larger than its maximum"
+    it "should raise an error if passed a minimum queue size less than zero" do
+      error = assert_raises(Que::Error) do
+        Que::JobQueue.new(minimum_size: -1, maximum_size: 8)
+      end
+
+      assert_equal "minimum_size for a JobQueue must be at least zero!", error.message
+    end
+
+    it "should raise an error if passed a minimum queue size larger than its maximum" do
+      error = assert_raises(Que::Error) do
+        Que::JobQueue.new(minimum_size: 10, maximum_size: 8)
+      end
+
+      assert_equal "minimum queue size (10) is greater than the maximum queue size (8)!", error.message
+    end
   end
 
   describe "jobs_needed?" do
-    it "should return true iff the current size is less than the minimum"
+    it "should return true iff the current size is less than the minimum" do
+      queue = Que::JobQueue.new(minimum_size: 2, maximum_size: 8)
+
+      assert_equal true, queue.jobs_needed?
+      queue.push job_array.pop
+      assert_equal true, queue.jobs_needed?
+      queue.push job_array.pop
+      assert_equal false, queue.jobs_needed?
+      queue.push job_array.pop
+      assert_equal false, queue.jobs_needed?
+    end
   end
 
   describe "push" do
