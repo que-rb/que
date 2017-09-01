@@ -40,8 +40,8 @@ module Que
       0
     end
 
-    def priority_sufficient?(priority)
-      priority.nil? || job.fetch(:priority) <= priority
+    def priority_sufficient?(threshold)
+      threshold.nil? || job.fetch(:priority) <= threshold
     end
   end
 end
