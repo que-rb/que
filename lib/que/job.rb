@@ -109,7 +109,7 @@ module Que
         attrs[:error_count] = 0
         Que.recursively_freeze(attrs)
         job = new(attrs)
-        Que.run_middleware(job) { job.tap(&:_run) }
+        Que.run_middleware(job) { job.tap { |j| j._run_with_handling(reraise_errors: true) } }
         job
       end
     end

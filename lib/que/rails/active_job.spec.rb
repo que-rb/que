@@ -115,6 +115,9 @@ if defined?(::ActiveJob)
       end
 
       it "should propagate errors raised during the job" do
+        notified_error = nil
+        Que.error_notifier = proc { |e| notified_error = e }
+
         TestJobClass.class_eval do
           def run(*args)
             raise "Oopsie!"
@@ -123,6 +126,7 @@ if defined?(::ActiveJob)
 
         error = assert_raises(RuntimeError) { execute_raw(3, 4) }
         assert_equal "Oopsie!", error.message
+        assert_equal error, notified_error
       end
     end
   end

@@ -37,7 +37,7 @@ module Que
 
     # Run the job with the error handling and cleaning up that we need when
     # running in a worker. This method is skipped when running synchronously.
-    def _run_with_handling(args: nil)
+    def _run_with_handling(args: nil, reraise_errors: false)
       _run(args: args)
       default_finish_action unless que_target.que_resolved
     rescue => error
@@ -52,7 +52,9 @@ module Que
         end
 
       Que.notify_error(error, que_target.que_attrs) if run_error_notifier
-      default_finish_action unless que_target.que_resolved
+      retry_in_default_interval unless que_target.que_resolved
+
+      raise error if reraise_errors
     end
 
     private
@@ -94,7 +96,7 @@ module Que
         values = [period]
 
         if e = que_target.que_error
-          values << e.message.slice(0, 500) << e.backtrace.join("\n").slice(0, 10000)
+          values << "#{e.class}: #{e.message}".slice(0, 500) << e.backtrace.join("\n").slice(0, 10000)
         else
           values << nil << nil
         end

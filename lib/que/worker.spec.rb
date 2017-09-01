@@ -128,7 +128,7 @@ describe Que::Worker do
     def assert_retry_cadence(
       *delays,
       job_class: "WorkerJob",
-      expected_error_message: "Error!",
+      expected_error_message: "RuntimeError: Error!",
       expected_backtrace: /\A#{__FILE__}/
     )
       jobs_dataset.insert(job_class: job_class)
@@ -182,7 +182,7 @@ describe Que::Worker do
 
       # Errored job should still be in the DB.
       assert_equal [job_ids.first], active_jobs_dataset.select_map(:id)
-      assert_equal ["Error!"], active_jobs_dataset.select_map(:last_error_message)
+      assert_equal ["RuntimeError: Error!"], active_jobs_dataset.select_map(:last_error_message)
 
       # error_notifier proc should have been called.
       assert_equal 1, notified_errors.length
@@ -203,7 +203,7 @@ describe Que::Worker do
       assert_equal 1, jobs_dataset.count
       job = jobs_dataset.first
       assert_equal 1, job[:error_count]
-      assert_equal "a" * 500, job[:last_error_message]
+      assert_equal "RuntimeError: " + "a" * 486, job[:last_error_message]
     end
 
     describe "when retrying because the job logic raised an error" do

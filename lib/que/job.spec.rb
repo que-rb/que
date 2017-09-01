@@ -3,7 +3,11 @@
 require 'spec_helper'
 
 describe Que::Job do
+  let(:notified_errors) { [] }
+
   before do
+    Que.error_notifier = proc { |e| notified_errors << e }
+
     class TestJobClass < Que::Job
       def run(*args)
         $args = args
@@ -19,6 +23,10 @@ describe Que::Job do
   module ActsLikeAJob
     def self.included(base)
       base.class_eval do
+        def expected_job_count
+          should_persist_job ? 1 : 0
+        end
+
         it "should pass its arguments to the run method" do
           execute(1, 2)
           assert_equal [1, 2], $args
@@ -150,13 +158,7 @@ describe Que::Job do
 
           assert_equal passed_1.object_id, passed_2.object_id
         end
-      end
-    end
-  end
 
-  module ActsLikeAnAsynchronousJob
-    def self.included(base)
-      base.class_eval do
         it "should make it easy to override the finishing action" do
           TestJobClass.class_eval do
             def finish
@@ -181,9 +183,12 @@ describe Que::Job do
 
           job = execute
 
-          assert_equal 1, active_jobs_dataset.count
-          assert_in_delta active_jobs_dataset.get(:run_at), Time.now + 50, 3
-          assert_equal [job.que_attrs[:id]], active_jobs_dataset.select_map(:id)
+          assert_equal expected_job_count, active_jobs_dataset.count
+
+          if should_persist_job
+            assert_in_delta active_jobs_dataset.get(:run_at), Time.now + 50, 3
+            assert_equal [job.que_attrs[:id]], active_jobs_dataset.select_map(:id)
+          end
         end
 
         it "raising an unrecoverable error shouldn't delete the job record" do
@@ -197,7 +202,7 @@ describe Que::Job do
 
           assert_empty jobs_dataset
           assert_raises(error_class) { execute }
-          refute_empty jobs_dataset
+          assert_equal expected_job_count, jobs_dataset.count
         end
 
         describe "#handle_error" do
@@ -210,67 +215,59 @@ describe Que::Job do
           end
 
           it "should be passed the error object and expose the correct error_count" do
-            error = nil
-            Que.error_notifier = proc { |e| error = e }
-
             TestJobClass.class_eval do
               def handle_error(error)
                 $args = [error_count, error]
               end
             end
 
-            execute
-
+            error = assert_raises(RuntimeError) { execute }
             assert_equal "Uh-oh!", error.message
 
             count, error_2 = $args
             assert_equal 1, count
-            assert_equal error, error_2
+
+            assert_equal 1, notified_errors.count
+            assert_equal error_2, notified_errors.first
           end
 
           it "should make it easy to signal that the error should be notified" do
-            error = nil
-            Que.error_notifier = proc { |e| error = e }
-
             TestJobClass.class_eval do
               def handle_error(error)
                 true # Notify error
               end
             end
 
-            execute
+            error = assert_raises(RuntimeError) { execute }
 
             assert_equal "Uh-oh!", error.message
+            assert_equal "Uh-oh!", notified_errors.first.message
           end
 
           it "should make it easy to signal that the error should not be notified" do
-            error = nil
-            Que.error_notifier = proc { |e| error = e }
-
             TestJobClass.class_eval do
               def handle_error(error)
                 false # Do not notify error
               end
             end
 
-            execute
-            assert_nil error
+            error = assert_raises(RuntimeError) { execute }
+
+            assert_empty notified_errors
           end
 
           it "when it raises an error of its own should notify it as well" do
-            errors = []
-            Que.error_notifier = proc { |e| errors << e }
-
             TestJobClass.class_eval do
               def handle_error(error)
                 raise "Uh-oh again!"
               end
             end
 
-            execute
+            error = assert_raises(RuntimeError) { execute }
+            assert_equal "Uh-oh!", error.message
 
-            assert_equal 1, jobs_dataset.count
-            assert_equal ["Uh-oh again!", "Uh-oh!"], errors.map(&:message)
+            assert_equal expected_job_count, jobs_dataset.count
+            assert_equal ["Uh-oh again!", "Uh-oh!"], notified_errors.map(&:message)
           end
         end
       end
@@ -302,22 +299,6 @@ describe Que::Job do
             Que.execute "ROLLBACK"
           end
         end
-
-        it "should propagate errors raised during the job, and not invoke handle_error" do
-          TestJobClass.class_eval do
-            def run
-              raise "Uh-oh!"
-            end
-
-            def handle_error
-              $args = true
-            end
-          end
-
-          error = assert_raises { execute }
-          assert_equal "Uh-oh!", error.message
-          assert_nil $args
-        end
       end
     end
   end
@@ -325,6 +306,8 @@ describe Que::Job do
   describe "the JobClass.run() method" do
     include ActsLikeAJob
     include ActsLikeASynchronousJob
+
+    let(:should_persist_job) { false }
 
     def execute(*args)
       TestJobClass.run(*args)
@@ -335,6 +318,8 @@ describe Que::Job do
     include ActsLikeAJob
     include ActsLikeASynchronousJob
 
+    let(:should_persist_job) { false }
+
     def execute(*args)
       TestJobClass.run_synchronously = true
       TestJobClass.enqueue(*args)
@@ -343,7 +328,8 @@ describe Que::Job do
 
   describe "running jobs from the DB" do
     include ActsLikeAJob
-    include ActsLikeAnAsynchronousJob
+
+    let(:should_persist_job) { true }
 
     def execute(*args)
       worker # Make sure worker is initialized.
@@ -353,7 +339,13 @@ describe Que::Job do
 
       job_queue.push(Que::Metajob.new(attrs))
 
-      sleep_until! { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
+      sleep_until!(6000) { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
+
+      if m = jobs_dataset.where(id: job.que_attrs[:id]).get(:last_error_message)
+        klass, message = m.split(": ", 2)
+        raise Que.constantize(klass), message
+      end
+
       job
     end
 
@@ -384,7 +376,8 @@ describe Que::Job do
   if defined?(::ActiveJob)
     describe "running jobs through ActiveJob when a subclass has our helpers included" do
       include ActsLikeAJob
-      include ActsLikeAnAsynchronousJob
+
+      let(:should_persist_job) { true }
 
       before do
         $active_job_spec = true
@@ -419,6 +412,12 @@ describe Que::Job do
         job_queue.push(Que::Metajob.new(attrs))
 
         sleep_until! { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
+
+        if m = jobs_dataset.where(id: attrs[:id]).get(:last_error_message)
+          klass, message = m.split(": ", 2)
+          raise Que.constantize(klass), message
+        end
+
         ActiveJob::QueueAdapters::QueAdapter::JobWrapper.new(attrs)
       end
 
@@ -437,16 +436,13 @@ describe Que::Job do
       end
 
       it "when there is no run method shouldn't cause a problem" do
-        error = nil
-        Que.error_notifier = proc { |e| error = e }
-
         Object.send :remove_const, :TestJobClass
 
         class TestJobClass < ApplicationJob; end
 
-        execute(1, 2)
-        assert_instance_of Que::Error, error
+        error = assert_raises(Que::Error) { execute(1, 2) }
         assert_equal "Job class TestJobClass didn't define a run() method!", error.message
+        assert_equal expected_job_count, jobs_dataset.count
       end
     end
   end
