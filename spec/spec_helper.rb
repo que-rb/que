@@ -229,7 +229,7 @@ class QueSpec < Minitest::Spec
   end
 
   def locked_ids
-    DB[:pg_locks].where(locktype: 'advisory').select_order_map(:objid)
+    DB[:pg_locks].where(locktype: 'advisory').select_order_map(Sequel.lit("(classid::bigint << 32) + objid::bigint"))
   end
 
   def current_spec_location
@@ -271,6 +271,20 @@ class QueSpec < Minitest::Spec
     $passed_args = nil
 
     begin
+      # We want to make sure that none of our code assumes that job ids are in
+      # the integer or bigint range. So, before every spec, reset the job id
+      # sequence to a random value in one of those two ranges.
+      max =
+        if rand > 0.5
+          2**63 - 1 # Postgres' maximum bigint.
+        else
+          2**31 - 1 # Postgres' maximum integer.
+        end
+
+      new_id = rand(max)
+
+      DB.get{setval(Sequel.cast('que_jobs_id_seq', :regclass), new_id)}
+
       DB[:que_jobs].delete
       DB[:que_lockers].delete
     rescue Sequel::DatabaseError

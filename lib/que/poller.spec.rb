@@ -10,13 +10,13 @@ describe Que::Poller do
   def held_advisory_locks(override_connection: nil)
     ids =
       (override_connection || connection).execute <<-SQL
-        SELECT objid
+        SELECT ((classid::bigint << 32) + objid::bigint) AS id
         FROM pg_locks
         WHERE locktype = 'advisory'
         AND pid = pg_backend_pid()
       SQL
 
-    ids.map!{|h| h[:objid].to_i}.sort
+    ids.map!{|h| h[:id].to_i}.sort
   end
 
   def poll(count, queue_name: 'default', job_ids: [], override_connection: nil)

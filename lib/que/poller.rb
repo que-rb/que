@@ -58,7 +58,7 @@ module Que
             SELECT j
             FROM public.que_jobs AS j
             WHERE queue = $1::text
-              AND NOT id = ANY($2::integer[])
+              AND NOT id = ANY($2::bigint[])
               AND run_at <= now()
               AND finished_at IS NULL
             ORDER BY priority, run_at, id
@@ -71,7 +71,7 @@ module Que
                 SELECT j
                 FROM public.que_jobs AS j
                 WHERE queue = $1::text
-                  AND NOT id = ANY($2::integer[])
+                  AND NOT id = ANY($2::bigint[])
                   AND run_at <= now()
                   AND finished_at IS NULL
                   AND (priority, run_at, id) >
