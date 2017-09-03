@@ -339,7 +339,7 @@ describe Que::Job do
 
       job_queue.push(Que::Metajob.new(attrs))
 
-      sleep_until!(6000) { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
+      sleep_until! { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
 
       if m = jobs_dataset.where(id: job.que_attrs[:id]).get(:last_error_message)
         klass, message = m.split(": ", 2)
