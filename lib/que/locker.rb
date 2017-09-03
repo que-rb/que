@@ -211,6 +211,10 @@ module Que
       @stop = true
     end
 
+    def stopping?
+      @stop
+    end
+
     def wait_for_stop
       @thread.join
     end

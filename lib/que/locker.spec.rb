@@ -548,6 +548,8 @@ describe Que::Locker do
 
       $q2.push nil
 
+      assert locker.stopping?
+
       locker.wait_for_stop
       workers.each { |worker| assert_equal false, worker.thread.status }
     end

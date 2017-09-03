@@ -196,7 +196,7 @@ OUTPUT
 
         loop do
           sleep 0.01
-          break if $stop_que_executable
+          break if $stop_que_executable || locker.stopping?
         end
 
         output.puts ''
