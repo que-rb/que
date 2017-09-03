@@ -101,6 +101,8 @@ module Que
       end
 
       Que.log(log_message)
+
+      instance
     rescue => error
       Que.log(
         level: :debug,
@@ -137,6 +139,8 @@ module Que
         # If we can't reach the database for some reason, too bad, but
         # don't let it crash the work loop.
       end
+
+      error
     end
   end
 end
