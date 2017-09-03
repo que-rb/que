@@ -380,8 +380,6 @@ describe Que::Job do
       let(:should_persist_job) { true }
 
       before do
-        $active_job_spec = true
-
         Object.send :remove_const, :TestJobClass
 
         class ApplicationJob < ActiveJob::Base
@@ -396,8 +394,6 @@ describe Que::Job do
       end
 
       after do
-        $active_job_spec = nil
-
         Object.send :remove_const, :ApplicationJob
       end
 
