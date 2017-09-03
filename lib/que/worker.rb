@@ -54,16 +54,15 @@ module Que
       # queue is shutting down this will return nil, which breaks the loop and
       # lets the thread finish.
       while metajob = @job_queue.shift(*priority)
-        id  = metajob.id
-        job = metajob.job
+        id = metajob.id
 
         Que.internal_log(:worker_received_job, self) { {id: id} }
 
         if Que.execute(:check_job, [id]).first
-          Que.recursively_freeze(job)
+          Que.recursively_freeze(metajob.job)
           Que.internal_log(:worker_fetched_job, self) { {id: id} }
 
-          work_job(job)
+          work_job(metajob)
         else
           # The job was locked but doesn't exist anymore, due to a race
           # condition that exists because advisory locks don't obey MVCC. Not
@@ -80,7 +79,8 @@ module Que
       end
     end
 
-    def work_job(job)
+    def work_job(metajob)
+      job      = metajob.job
       start    = Time.now
       klass    = Que.constantize(job.fetch(:job_class))
       instance = klass.new(job)
