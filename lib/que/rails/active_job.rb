@@ -11,16 +11,22 @@ module Que
         end
 
         def perform(*args)
+          Que.internal_log(:active_job_perform, self) do
+            {args: args}
+          end
+
           args =
             Que.recursively_freeze(que_filter_args(
               args.map { |a| a.is_a?(Hash) ? a.deep_symbolize_keys : a }
             ))
 
-          _run_with_handling(args: args)
+          _run(args: args)
         end
 
         private
 
+        # Have helper methods like `destroy` and `retry_in` delegate to the
+        # actual job object.
         def que_target
           Thread.current[:que_current_job]
         end

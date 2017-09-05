@@ -36,10 +36,6 @@ module Que
 
     private
 
-    def que_target
-      self
-    end
-
     @retry_interval = proc { |count| count ** 4 + 3 }
 
     class << self
@@ -109,7 +105,7 @@ module Que
         attrs[:error_count] = 0
         Que.recursively_freeze(attrs)
         job = new(attrs)
-        Que.run_middleware(job) { job.tap { |j| j._run_with_handling(reraise_errors: true) } }
+        Que.run_middleware(job) { job.tap { |j| j._run(reraise_errors: true) } }
         job
       end
     end

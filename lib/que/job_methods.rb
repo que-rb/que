@@ -27,18 +27,14 @@ module Que
     }
 
   module JobMethods
-    def _run(args: nil)
+    # Run the job with the error handling and cleaning up that we need when
+    # running in a worker.
+    def _run(args: nil, reraise_errors: false)
       if args.nil?
         args = que_target.que_attrs.fetch(:data).fetch(:args)
       end
 
       run(*args)
-    end
-
-    # Run the job with the error handling and cleaning up that we need when
-    # running in a worker. This method is skipped when running synchronously.
-    def _run_with_handling(args: nil, reraise_errors: false)
-      _run(args: args)
       default_finish_action unless que_target.que_resolved
     rescue => error
       que_target.que_error = error
@@ -58,6 +54,14 @@ module Que
     end
 
     private
+
+    # This method defines the object on which the various job helper methods
+    # act. When using Que in the default configuration this is just the job, but
+    # when using a wrapper (like ActiveJob) we want to be able to delegate to
+    # the actual job object.
+    def que_target
+      self
+    end
 
     def resolve_que_setting(*args)
       que_target.class.resolve_que_setting(*args)

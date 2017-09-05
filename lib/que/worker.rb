@@ -84,7 +84,8 @@ module Que
       start    = Time.now
       klass    = Que.constantize(job.fetch(:job_class))
       instance = klass.new(job)
-      Que.run_middleware(instance) { instance.tap(&:_run_with_handling) }
+
+      Que.run_middleware(instance) { instance.tap(&:_run) }
 
       log_message = {
         level: :debug,
