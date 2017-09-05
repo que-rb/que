@@ -383,7 +383,7 @@ describe Que::Job do
         Object.send :remove_const, :TestJobClass
 
         class ApplicationJob < ActiveJob::Base
-          include Que::Rails::ActiveJob::JobExtensions
+          include Que::ActiveJob::JobExtensions
         end
 
         class TestJobClass < ApplicationJob

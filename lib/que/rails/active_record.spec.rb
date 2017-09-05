@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 if defined?(::ActiveRecord)
-  describe Que::Rails::ActiveRecord do
+  describe Que::ActiveRecord do
     it "should use Rails.application.executor.wrap, if it exists, when checking out connections" do
       # This is a hacky spec, but it's better than requiring Rails.
       called = false
@@ -31,7 +31,7 @@ if defined?(::ActiveRecord)
     end
   end
 
-  describe Que::Rails::ActiveRecord::ConnectionMiddleware do
+  describe Que::ActiveRecord::ConnectionMiddleware do
     before do
       Que.connection = ::ActiveRecord
     end
