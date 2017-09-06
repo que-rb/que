@@ -140,8 +140,8 @@ module Que
       @array.pop(count)
     end
 
-    def sync(&block)
-      @monitor.synchronize(&block)
+    def sync
+      @monitor.synchronize { yield }
     end
   end
 end

@@ -9,7 +9,7 @@ module Que
     module Assertions
       class AssertionFailed < Error; end
 
-      def assert(*args, &block)
+      def assert(*args)
         comparison, object, pass = _check_assertion_args(*args)
         return object if pass
 

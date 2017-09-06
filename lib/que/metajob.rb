@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# Various pieces of metadata about a job, including its sort key, whether it's
-# currently locked, and the full job data if we have it.
+# A thin wrapper around a job's data that lets us do things like sort easily and
+# make sure that run_at is in the format we want.
 
 module Que
   class Metajob

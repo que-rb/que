@@ -16,9 +16,7 @@ describe Que::Connection do
 
   describe ".wrap()" do
     it "when given a Que connection should return it" do
-      DEFAULT_QUE_POOL.checkout do |conn|
-        assert_equal conn.object_id, Que::Connection.wrap(conn).object_id
-      end
+      assert_equal connection.object_id, Que::Connection.wrap(connection).object_id
     end
 
     it "when given a PG connection should wrap it" do
@@ -42,6 +40,10 @@ describe Que::Connection do
       connection.execute "BEGIN"
       assert connection.in_transaction?
       connection.execute "COMMIT"
+      refute connection.in_transaction?
+      connection.execute "BEGIN"
+      assert connection.in_transaction?
+      connection.execute "ROLLBACK"
       refute connection.in_transaction?
     end
   end

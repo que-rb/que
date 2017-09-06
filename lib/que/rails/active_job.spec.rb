@@ -6,14 +6,8 @@ if defined?(::ActiveJob)
   describe "running jobs via ActiveJob" do
     before do
       class TestJobClass < ActiveJob::Base
-        def run(*args)
-          $args = args
-        end
-
-        # ActiveJob uses #perform but we use #run - to make sure that all the
-        # spec cases that redefine #run still work, just make it an alias.
         def perform(*args)
-          run(*args)
+          $args = args
         end
       end
     end
@@ -29,11 +23,9 @@ if defined?(::ActiveJob)
 
     def execute(*args)
       worker # Make sure worker is initialized.
-
       wrapper = execute_raw(*args)
 
       assert_equal 1, jobs_dataset.count
-
       attrs = jobs_dataset.first!
 
       job_queue.push(Que::Metajob.new(attrs))
@@ -45,6 +37,14 @@ if defined?(::ActiveJob)
     it "should pass its arguments to the run method" do
       execute(1, 2)
       assert_equal [1, 2], $args
+    end
+
+    it "should handle argument types appropriately" do
+      execute(symbol_arg: 1, "string_arg" => 2)
+      assert_equal(
+        [{symbol_arg: 1, "string_arg" => 2}],
+        $args,
+      )
     end
 
     it "should wrap the run method in whatever middleware are defined" do
@@ -79,7 +79,7 @@ if defined?(::ActiveJob)
       CustomExceptionSubclass = Class.new(Exception)
 
       TestJobClass.class_eval do
-        def run(*args)
+        def perform(*args)
           raise CustomExceptionSubclass
         end
       end
@@ -102,13 +102,15 @@ if defined?(::ActiveJob)
           assert_raises(PG::InFailedSqlTransaction) { Que.execute "SELECT 1" }
 
           TestJobClass.class_eval do
-            def run(*args)
+            def perform(*args)
               $args = args
             end
           end
 
           execute_raw(3, 4)
           assert_equal [3, 4], $args
+
+          assert_raises(PG::InFailedSqlTransaction) { Que.execute "SELECT 1" }
 
           Que.execute "ROLLBACK"
         end
@@ -119,7 +121,7 @@ if defined?(::ActiveJob)
         Que.error_notifier = proc { |e| notified_error = e }
 
         TestJobClass.class_eval do
-          def run(*args)
+          def perform(*args)
             raise "Oopsie!"
           end
         end

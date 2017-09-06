@@ -27,8 +27,9 @@ module Que
     }
 
   module JobMethods
-    # Run the job with the error handling and cleaning up that we need when
-    # running in a worker.
+    # Run the job with error handling and cleanup logic. Optionally support
+    # overriding the args, because it's necessary when jobs are invoked from
+    # ActiveJob.
     def _run(args: nil, reraise_errors: false)
       if args.nil?
         args = que_target.que_attrs.fetch(:data).fetch(:args)

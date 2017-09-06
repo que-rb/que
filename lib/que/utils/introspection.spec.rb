@@ -4,20 +4,19 @@ require 'spec_helper'
 
 describe Que::Utils::Introspection do
   describe 'job_stats' do
-    it "should return a list of the job types in the queue" do
+    it "should return a list of the unfinished job types in the queue" do
       BlockJob.enqueue
-      Que::Job.enqueue
+      3.times { Que::Job.enqueue }
 
-      # Have to tweak the id to ensure that the portion of the SQL query
-      # that accounts for bigint ids functions correctly.
+      # Mark one job as finished, it shouldn't show up in the aggregates.
+      ids = DB[:que_jobs].where(job_class: "Que::Job").select_map(:id)
+      DB[:que_jobs].where(id: ids[0]).update(finished_at: Time.now)
+
       old = Time.now - 3600
-      jobs_dataset.where(job_class: "Que::Job").
-        update(id: 2**33, error_count: 5, run_at: old)
-
-      Que::Job.enqueue
+      DB[:que_jobs].where(id: ids[1]).update(error_count: 5, run_at: old)
 
       begin
-        DB.get{pg_advisory_lock(2**33)}
+        DB.get{pg_advisory_lock(ids[2])}
 
         stats = Que.job_stats
         assert_equal 2, stats.length

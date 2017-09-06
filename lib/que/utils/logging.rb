@@ -7,7 +7,7 @@ module Que
     module Logging
       attr_accessor :logger, :log_formatter, :internal_logger
 
-      def log(level: :info, event:, **extra)
+      def log(event:, level: :info, **extra)
         data = _default_log_data
         data[:event] = Que.assert(Symbol, event)
         data.merge!(extra)

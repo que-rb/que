@@ -12,7 +12,7 @@ module Que
         (queue, priority, run_at, job_class, data)
         VALUES
         (
-          coalesce($1, '')::text,
+          coalesce($1, 'default')::text,
           coalesce($2, 100)::smallint,
           coalesce($3, now())::timestamptz,
           $4::text,
@@ -104,9 +104,12 @@ module Que
       def _run_attrs(attrs)
         attrs[:error_count] = 0
         Que.recursively_freeze(attrs)
-        job = new(attrs)
-        Que.run_middleware(job) { job.tap { |j| j._run(reraise_errors: true) } }
-        job
+
+        new(attrs).tap do |job|
+          Que.run_middleware(job) do
+            job._run(reraise_errors: true)
+          end
+        end
       end
     end
   end
