@@ -38,6 +38,8 @@ module Que
       end
 
       sync do
+        return metajobs if stopping?
+
         @array.push(*metajobs).sort!
 
         # Notify all waiting threads that they can try again to remove a item.
@@ -78,6 +80,8 @@ module Que
     end
 
     def accept?(metajobs)
+      return [] if stopping?
+
       metajobs.sort!
 
       sync do

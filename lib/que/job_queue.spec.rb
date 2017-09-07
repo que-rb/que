@@ -130,6 +130,11 @@ describe Que::JobQueue do
         refute_includes job_queue.to_a, v
         assert_equal 8, job_queue.size
       end
+
+      it "should reject all jobs when the queue is stopping" do
+        job_queue.stop
+        assert_equal(job_array.sort, job_queue.push(*job_array.shuffle).sort)
+      end
     end
   end
 
@@ -236,6 +241,15 @@ describe Que::JobQueue do
           job_queue.accept?(jobs_to_test),
         )
       end
+    end
+
+    it "should return an empty array when the queue is stopping" do
+      assert_equal job_array, job_queue.accept?(job_array)
+      assert_equal job_array, job_queue.accept?(job_array)
+
+      job_queue.stop
+
+      assert_equal [], job_queue.accept?(job_array)
     end
   end
 

@@ -208,6 +208,7 @@ module Que
     end
 
     def stop
+      @job_queue.stop
       @stop = true
     end
 
@@ -262,7 +263,6 @@ module Que
 
         unlock_jobs(@job_queue.clear)
 
-        @job_queue.stop
         @workers.each(&:wait_until_stopped)
 
         handle_results
