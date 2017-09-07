@@ -53,7 +53,7 @@ module Que
       # Blocks until a job of the appropriate priority is available. If the
       # queue is shutting down this will return nil, which breaks the loop and
       # lets the thread finish.
-      while metajob = @job_queue.shift(*priority)
+      while metajob = fetch_next_metajob
         id = metajob.id
 
         Que.internal_log(:worker_received_job, self) { {id: id} }
@@ -77,6 +77,10 @@ module Que
           message_type: :job_finished,
         )
       end
+    end
+
+    def fetch_next_metajob
+      @job_queue.shift(*priority)
     end
 
     def work_job(metajob)
