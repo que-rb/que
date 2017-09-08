@@ -21,7 +21,7 @@ describe Que::Worker do
 
   before do
     worker
-    Que.error_notifier = proc { |e| notified_errors << e }
+    Que.error_notifier = proc { |e, j| notified_errors.push(error: e, job: j) }
 
     class WorkerJob < Que::Job
       def run(*args)
@@ -185,8 +185,13 @@ describe Que::Worker do
 
       # error_notifier proc should have been called.
       assert_equal 1, notified_errors.length
-      assert_instance_of RuntimeError, notified_errors.first
-      assert_equal "Error!", notified_errors.first.message
+      assert_instance_of RuntimeError, notified_errors.first[:error]
+      assert_equal "Error!", notified_errors.first[:error].message
+
+      job = notified_errors.first[:job]
+      assert_instance_of Hash, job
+      assert_equal job_ids.first, job[:id]
+      assert_equal "WorkerJob", job[:job_class]
     end
 
     it "should truncate the error message if necessary" do
@@ -252,7 +257,7 @@ describe Que::Worker do
           expected_error_message: /uninitialized constant:? .*NonexistentClass/,
           expected_backtrace: false
 
-        assert_instance_of NameError, notified_errors.first
+        assert_instance_of NameError, notified_errors.first[:error]
       end
 
       it "when the job class doesn't descend from Que::Job" do
@@ -270,7 +275,7 @@ describe Que::Worker do
           expected_error_message: /undefined method/,
           expected_backtrace: /que\/worker\.rb/
 
-        assert_instance_of NoMethodError, notified_errors.first
+        assert_instance_of NoMethodError, notified_errors.first[:error]
       end
     end
 
@@ -284,8 +289,8 @@ describe Que::Worker do
 
         assert_retry_cadence 42, 42, 42, 42
 
-        assert_instance_of RuntimeError, notified_errors.first
-        assert_equal "Error!", notified_errors.first.message
+        assert_instance_of RuntimeError, notified_errors.first[:error]
+        assert_equal "Error!", notified_errors.first[:error].message
       end
 
       it "should allow it to schedule a retry after a float interval" do
@@ -297,8 +302,8 @@ describe Que::Worker do
 
         assert_retry_cadence 35.3226247635, 35.3226247635, 35.3226247635, 35.3226247635
 
-        assert_instance_of RuntimeError, notified_errors.first
-        assert_equal "Error!", notified_errors.first.message
+        assert_instance_of RuntimeError, notified_errors.first[:error]
+        assert_equal "Error!", notified_errors.first[:error].message
       end
 
       if defined?(ActiveSupport)
@@ -329,8 +334,8 @@ describe Que::Worker do
         run_jobs
         assert_equal 0, jobs_dataset.count
 
-        assert_instance_of RuntimeError, notified_errors.first
-        assert_equal "Error!", notified_errors.first.message
+        assert_instance_of RuntimeError, notified_errors.first[:error]
+        assert_equal "Error!", notified_errors.first[:error].message
       end
 
       it "should allow it to return false to skip the error notification" do
@@ -353,11 +358,11 @@ describe Que::Worker do
 
         assert_retry_cadence 4, 19, 84, 259
         assert_equal 8, notified_errors.length
-        assert_instance_of ArgumentError, notified_errors[0]
-        assert_match /wrong number of arguments/, notified_errors[0].message
+        assert_instance_of ArgumentError, notified_errors[0][:error]
+        assert_match /wrong number of arguments/, notified_errors[0][:error].message
 
-        assert_instance_of RuntimeError, notified_errors[1]
-        assert_equal "Error!", notified_errors[1].message
+        assert_instance_of RuntimeError, notified_errors[1][:error]
+        assert_equal "Error!", notified_errors[1][:error].message
       end
 
       it "when the handle_error method raises an error" do
@@ -369,11 +374,11 @@ describe Que::Worker do
 
         assert_retry_cadence 4, 19, 84, 259
         assert_equal 8, notified_errors.length
-        assert_instance_of RuntimeError, notified_errors[0]
-        assert_equal "handle_error error!", notified_errors[0].message
+        assert_instance_of RuntimeError, notified_errors[0][:error]
+        assert_equal "handle_error error!", notified_errors[0][:error].message
 
-        assert_instance_of RuntimeError, notified_errors[1]
-        assert_equal "Error!", notified_errors[1].message
+        assert_instance_of RuntimeError, notified_errors[1][:error]
+        assert_equal "Error!", notified_errors[1][:error].message
       end
 
       it "should allow it to call super to get the default behavior" do
@@ -385,8 +390,8 @@ describe Que::Worker do
 
         assert_retry_cadence 4, 19, 84, 259
 
-        assert_instance_of RuntimeError, notified_errors.first
-        assert_equal "Error!", notified_errors.first.message
+        assert_instance_of RuntimeError, notified_errors.first[:error]
+        assert_equal "Error!", notified_errors.first[:error].message
       end
     end
   end
