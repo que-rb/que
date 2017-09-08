@@ -47,6 +47,34 @@ describe Que::Utils::ErrorNotification do
         assert_instance_of Array, m[:error_backtrace]
       end
     end
+
+    describe "when the error notification callable is a lambda" do
+      it "with a specific argument count should only pass the appropriate number of arguments" do
+        passed = nil
+
+        Que.error_notifier = -> (a) { passed = [a]; nil }
+        assert_nil Que.notify_error(1, 2)
+        assert_equal [1], passed
+        assert_nil Que.notify_error(3, 4, 5)
+        assert_equal [3], passed
+
+        Que.error_notifier = -> (a, b) { passed = [a, b]; nil }
+        assert_nil Que.notify_error(1, 2)
+        assert_equal [1, 2], passed
+        assert_nil Que.notify_error(3, 4, 5)
+        assert_equal [3, 4], passed
+      end
+
+      it "with a variable argument count should pass everything" do
+        passed = nil
+
+        Que.error_notifier = -> (*args) { passed = args; nil }
+        assert_nil Que.notify_error(1, 2)
+        assert_equal [1, 2], passed
+        assert_nil Que.notify_error(3, 4, 5)
+        assert_equal [3, 4, 5], passed
+      end
+    end
   end
 
   describe "notify_error_async" do

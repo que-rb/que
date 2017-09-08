@@ -11,6 +11,9 @@ module Que
         end
 
         if notifier = error_notifier
+          arity = notifier.arity
+          args = args.first(arity) if arity >= 0
+
           notifier.call(*args)
         end
       rescue => error
