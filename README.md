@@ -1,11 +1,11 @@
 # Que
 
-**TL;DR: Que is a high-performance alternative to DelayedJob or QueueClassic that improves the reliability of your application by protecting your jobs with the same [ACID guarantees](https://en.wikipedia.org/wiki/ACID) as the rest of your data.**
+**TL;DR: Que is a high-performance job queue that improves the reliability of your application by protecting your jobs with the same [ACID guarantees](https://en.wikipedia.org/wiki/ACID) as the rest of your data.**
 
 Que ("keɪ", or "kay") is a queue for Ruby and PostgreSQL that manages jobs using [advisory locks](http://www.postgresql.org/docs/current/static/explicit-locking.html#ADVISORY-LOCKS), which gives it several advantages over other RDBMS-backed queues:
 
   * **Concurrency** - Workers don't block each other when trying to lock jobs, as often occurs with "SELECT FOR UPDATE"-style locking. This allows for very high throughput with a large number of workers.
-  * **Efficiency** - Locks are held in memory, so locking a job doesn't incur a disk write. These first two points are what limit performance with other queues - all workers trying to lock jobs have to wait behind one that's persisting its UPDATE on a locked_at column to disk (and the disks of however many other servers your database is synchronously replicating to). Under heavy load, Que's bottleneck is CPU, not I/O.
+  * **Efficiency** - Locks are held in memory, so locking a job doesn't incur a disk write. These first two points are what limit performance with other queues. Under heavy load, Que's bottleneck is CPU, not I/O.
   * **Safety** - If a Ruby process dies, the jobs it's working won't be lost, or left in a locked or ambiguous state - they immediately become available for any other worker to pick up.
 
 Additionally, there are the general benefits of storing jobs in Postgres, alongside the rest of your data, rather than in Redis or a dedicated queue:
@@ -17,11 +17,12 @@ Additionally, there are the general benefits of storing jobs in Postgres, alongs
 
 Que's primary goal is reliability. You should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que does everything it can to ensure that jobs you queue are performed exactly once (though the occasional repetition of a job can be impossible to avoid - see the docs on [how to write a reliable job](https://github.com/chanks/que/blob/master/docs/writing_reliable_jobs.md)).
 
-Que's secondary goal is performance. It won't be able to match the speed or throughput of a dedicated queue, or maybe even a Redis-backed queue, but it should be fast enough for most use cases. In [benchmarks of RDBMS queues](https://github.com/chanks/queue-shootout) using PostgreSQL 9.3 on a AWS c3.8xlarge instance, Que approaches 10,000 jobs per second, or about twenty times the throughput of DelayedJob or QueueClassic. You are encouraged to try things out on your own production hardware, though.
+Que's secondary goal is performance. The worker process is multithreaded, so that a single process can run many jobs simultaneously. In [benchmarks of RDBMS queues](https://github.com/chanks/queue-shootout) using PostgreSQL 9.3 on a AWS c3.8xlarge instance, Que approaches 10,000 jobs per second, or about twenty times the throughput of DelayedJob or QueueClassic. You are encouraged to try things out on your own production hardware, though. (TODO: Run new benchmarks)
 
-Que also includes a worker pool, so that multiple threads can process jobs in the same process. It can even do this in the background of your web process - if you're running on Heroku, for example, you don't need to run a separate worker dyno.
-
-Que is tested on Ruby 2.0, Rubinius and JRuby (with the `jruby-pg` gem, which is [not yet functional with ActiveRecord](https://github.com/chanks/que/issues/4#issuecomment-29561356)). It requires Postgres 9.2+ for the JSON datatype.
+Compatibility:
+- Ruby 2.2+
+- PostgreSQL 9.4+ (JSONB required)
+- Rails 4.1+ (optional)
 
 **Please note** - Que's job table undergoes a lot of churn when it is under high load, and like any heavily-written table, is susceptible to bloat and slowness if Postgres isn't able to clean it up. The most common cause of this is long-running transactions, so it's recommended to try to keep all transactions against the database housing Que's job table as short as possible. This is good advice to remember for any high-activity database, but bears emphasizing when using tables that undergo a lot of writes.
 
@@ -43,7 +44,8 @@ Or install it yourself as:
 
 ## Usage
 
-The following assumes you're using Rails 4.0 and ActiveRecord. *Que hasn't been tested with versions of Rails before 4.0, and may or may not work with them.* See the [/docs directory](https://github.com/chanks/que/blob/master/docs) for instructions on using Que [outside of Rails](https://github.com/chanks/que/blob/master/docs/advanced_setup.md), and with [Sequel](https://github.com/chanks/que/blob/master/docs/using_sequel.md) or [no ORM](https://github.com/chanks/que/blob/master/docs/using_plain_connections.md), among other things.
+# TODO: Update Rails version
+The following assumes you're using Rails 4.0 and ActiveRecord. See the [/docs directory](https://github.com/chanks/que/blob/master/docs) for instructions on using Que [outside of Rails](https://github.com/chanks/que/blob/master/docs/advanced_setup.md), with [Sequel](https://github.com/chanks/que/blob/master/docs/using_sequel.md) or with [no ORM](https://github.com/chanks/que/blob/master/docs/using_plain_connections.md).
 
 First, generate and run a migration for the job table.
 
@@ -58,24 +60,30 @@ Create a class for each type of job you want to run:
 class ChargeCreditCard < Que::Job
   # Default settings for this job. These are optional - without them, jobs
   # will default to priority 100 and run immediately.
-  @priority = 10
   @run_at = proc { 1.minute.from_now }
 
-  def run(user_id, options)
+  # We use the Linux priority scale - a lower number is more important.
+  @priority = 10
+
+  def run(credit_card_id, user_id:)
     # Do stuff.
-    user = User[user_id]
-    card = CreditCard[options[:credit_card_id]]
+    user = User.find(user_id)
+    card = CreditCard.find(credit_card_id)
 
-    ActiveRecord::Base.transaction do
+    User.transaction do
       # Write any changes you'd like to the database.
-      user.update_attributes charged_at: Time.now
+      user.update charged_at: Time.now
 
-      # It's best to destroy the job in the same transaction as any other
-      # changes you make. Que will destroy the job for you after the run
-      # method if you don't do it yourself, but if your job writes to the
-      # DB but doesn't destroy the job in the same transaction, it's
-      # possible that the job could be repeated in the event of a crash.
-      destroy
+      # It's best to finish the job in the same transaction as any other changes
+      # you make. Que will mark the job as finished for you after the run method
+      # if you don't do it yourself, but if your job writes to the DB but
+      # doesn't finish the job in the same transaction, it's possible that the
+      # job could be repeated in the event of a crash.
+      finish
+
+      # This will leave the job record in the database, so it can be available
+      # for historical inspection. To delete the job entirely, simply replace
+      # the `finish` call with a `destroy` call.
     end
   end
 end
@@ -84,25 +92,22 @@ end
 Queue your job. Again, it's best to do this in a transaction with other changes you're making. Also note that any arguments you pass will be serialized to JSON and back again, so stick to simple types (strings, integers, floats, hashes, and arrays).
 
 ``` ruby
-ActiveRecord::Base.transaction do
+CreditCard.transaction do
   # Persist credit card information
   card = CreditCard.create(params[:credit_card])
-  ChargeCreditCard.enqueue(current_user.id, credit_card_id: card.id)
+  ChargeCreditCard.enqueue(card.id, user_id: current_user.id)
 end
 ```
 
 You can also add options to run the job after a specific time, or with a specific priority:
 
 ``` ruby
-# The default priority is 100, and a lower number means a higher priority. 5 would be very important.
-ChargeCreditCard.enqueue current_user.id, credit_card_id: card.id, run_at: 1.day.from_now, priority: 5
+ChargeCreditCard.enqueue card.id, user_id: current_user.id, run_at: 1.day.from_now, priority: 5
 ```
 
-To determine what happens when a job is queued, you can set Que's mode. There are a few options for the mode:
+## Testing
 
-  * `Que.mode = :off` - In this mode, queueing a job will simply insert it into the database - the current process will make no effort to run it. You should use this if you want to use a dedicated process to work tasks (there's an executable included that will do this, `que`). This is the default when running `bin/rails console`.
-  * `Que.mode = :async` - In this mode, a pool of background workers is spun up, each running in their own thread. See the docs for [more information on managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md).
-  * `Que.mode = :sync` - In this mode, any jobs you queue will be run in the same thread, synchronously (that is, `MyJob.enqueue` runs the job and won't return until it's completed). This makes your application's behavior easier to test, so it's the default in the test environment.
+There are a couple ways to do testing. You may want to set `Que::Job.run_synchronously = true`, which will cause JobClass.enqueue to simply execute the job's logic synchronously, as if you'd run JobClass.run(*your_args). Or, you may want to leave it disabled so you can assert on the job state once they are stored in the database.
 
 **If you're using ActiveRecord to dump your database's schema, [set your schema_format to :sql](http://guides.rubyonrails.org/migrations.html#types-of-schema-dumps) so that Que's table structure is managed correctly.** (You can use schema_format as :ruby if you want but keep in mind this is highly advised against, as some parts of Que will not work.)
 
@@ -128,12 +133,14 @@ Regarding contributions, one of the project's priorities is to keep Que as simpl
 
 ### Specs
 
-A note on running specs - Que's worker system is multithreaded and therefore prone to race conditions (especially on interpreters without a global lock, like Rubinius or JRuby). As such, if you've touched that code, a single spec run passing isn't a guarantee that any changes you've made haven't introduced bugs. One thing I like to do before pushing changes is rerun the specs many times and watching for hangs. You can do this from the command line with something like:
+A note on running specs - Que's worker system is multithreaded and therefore prone to race conditions. As such, if you've touched that code, a single spec run passing isn't a guarantee that any changes you've made haven't introduced bugs. One thing I like to do before pushing changes is rerun the specs many times and watching for hangs. You can do this from the command line with something like:
 
-    for i in {1..1000}; do bundle exec rspec -b --seed $i; done
+    for i in {1..1000}; do SEED=$i bundle exec rake; done
 
 This will iterate the specs one thousand times, each with a different ordering. If the specs hang, note what the seed number was on that iteration. For example, if the previous specs finished with a "Randomized with seed 328", you know that there's a hang with seed 329, and you can narrow it down to a specific spec with:
 
-    for i in {1..1000}; do LOG_SPEC=true bundle exec rspec -b --seed 329; done
+    for i in {1..1000}; do LOG_SPEC=true SEED=328 bundle exec rake; done
 
 Note that we iterate because there's no guarantee that the hang would reappear with a single additional run, so we need to rerun the specs until it reappears. The LOG_SPEC parameter will output the name and file location of each spec before it is run, so you can easily tell which spec is hanging, and you can continue narrowing things down from there.
+
+Another helpful technique is to replace an `it` spec declaration with `hit` - this will run that particular spec 100 times during the run.

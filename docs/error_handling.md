@@ -18,7 +18,13 @@ class MyJob < Que::Job
 end
 ```
 
+TODO: Note that you can use handle_error to finish/destroy the job, or to manually set the retry delay depending on whatever conditions.
+
+<!--
 Unlike DelayedJob, however, there is currently no maximum number of failures after which jobs will be deleted. Que's assumption is that if a job is erroring perpetually (and not just transiently), you will want to take action to get the job working properly rather than simply losing it silently.
+ -->
+
+## Error Notifications
 
 If you're using an error notification system (highly recommended, of course), you can hook Que into it by setting a callable as the error notifier:
 
@@ -29,6 +35,7 @@ Que.error_notifier = proc do |error, job|
   # Note that the job passed is not the actual job object, but the hash
   # representing the job row in the database, which looks like:
 
+  # TODO: Update this job representation.
   # {
   #   "queue" => "my_queue",
   #   "priority" => 100,

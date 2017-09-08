@@ -11,14 +11,14 @@ Then you can safely use the same database object to transactionally protect your
 
 ```ruby
 class MyJob < Que::Job
-  def run
+  def run(user_id:)
     # Do stuff.
 
     DB.transaction do
       # Make changes to the database.
 
-      # Destroying this job will be protected by the same transaction.
-      destroy
+      # Finishing this job will be protected by the same transaction.
+      finish
     end
   end
 end
