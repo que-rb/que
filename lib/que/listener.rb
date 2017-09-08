@@ -144,8 +144,9 @@ module Que
 
     def parse_payload(payload)
       Que.deserialize_json(payload)
-    rescue JSON::ParserError
-      nil # TODO: Maybe log? Or notify the error?
+    rescue JSON::ParserError => e
+      Que.notify_error_async(e)
+      nil
     end
 
     def message_matches_format?(message, format)

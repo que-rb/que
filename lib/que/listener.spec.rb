@@ -158,6 +158,12 @@ describe Que::Listener do
     end
 
     describe "when the messages aren't valid JSON of the format we expect" do
+      let(:notified_errors) { [] }
+
+      before do
+        Que.error_notifier = proc { |e| notified_errors << e }
+      end
+
       def assert_ignored_notification(payload)
         notify payload
         assert_equal({}, listener.wait_for_grouped_messages(10))
@@ -167,6 +173,9 @@ describe Que::Listener do
         assert_ignored_notification "nil"
         assert_ignored_notification 'blah'
         assert_ignored_notification '{"blah:"}'
+
+        sleep_until! { notified_errors.count == 3 }
+        notified_errors.each{|e| assert_instance_of(JSON::ParserError, e)}
       end
 
       it "should be resilient to JSON messages with unexpected structures" do
