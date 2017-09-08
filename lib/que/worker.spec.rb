@@ -177,7 +177,7 @@ describe Que::Worker do
       # Error should be logged.
       event = events.first
       assert_equal job_ids.first, event[:job_id]
-      assert_equal "Error!", event[:error]
+      assert_equal "RuntimeError: Error!", event[:error]
 
       # Errored job should still be in the DB.
       assert_equal [job_ids.first], active_jobs_dataset.select_map(:id)

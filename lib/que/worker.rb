@@ -97,10 +97,9 @@ module Que
         elapsed: (Time.now - start),
       }
 
-      if e = instance.que_error
+      if error = instance.que_error
         log_message[:event] = :job_errored
-        # TODO: Convert this to a string manually?
-        log_message[:error] = e
+        log_message[:error] = "#{error.class}: #{error.message}".slice(0, 500)
       else
         log_message[:event] = :job_worked
       end
