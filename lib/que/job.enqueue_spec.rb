@@ -9,6 +9,7 @@ describe Que::Job, '.enqueue' do
     expected_priority: 100,
     expected_run_at: Time.now,
     expected_job_class: Que::Job,
+    expected_result_class: nil,
     expected_args: []
   )
 
@@ -24,10 +25,7 @@ describe Que::Job, '.enqueue' do
     assert_equal 1, jobs_dataset.count
 
     assert_kind_of Que::Job, result
-
-    # TODO:
-    # assert_instance_of expected_job_class, result
-    # (unless job_class doesn't exist in this process...)
+    assert_instance_of (expected_result_class || expected_job_class), result
 
     assert_equal expected_priority, result.que_attrs[:priority]
     assert_equal expected_args, result.que_attrs[:data][:args]
@@ -123,7 +121,8 @@ describe Que::Job, '.enqueue' do
     assert_enqueue \
       ['argument', {other_arg: "other_arg", job_class: 'MyJobClass'}],
       expected_args: ['argument', {other_arg: "other_arg"}],
-      expected_job_class: MyJobClass
+      expected_job_class: MyJobClass,
+      expected_result_class: Que::Job
   end
 
   describe "when there's a hierarchy of job classes" do
