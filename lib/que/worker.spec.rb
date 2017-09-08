@@ -316,8 +316,8 @@ describe Que::Worker do
 
           assert_retry_cadence 300, 300, 300, 300
 
-          assert_instance_of RuntimeError, notified_errors.first
-          assert_equal "Error!", notified_errors.first.message
+          assert_instance_of RuntimeError, notified_errors.first[:error]
+          assert_equal "Error!", notified_errors.first[:error].message
         end
       end
 
