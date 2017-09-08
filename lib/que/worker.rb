@@ -93,7 +93,7 @@ module Que
 
       log_message = {
         level: :debug,
-        job: job,
+        job_id: metajob.id,
         elapsed: (Time.now - start),
       }
 
@@ -112,8 +112,7 @@ module Que
       Que.log(
         level: :debug,
         event: :job_errored,
-        id: job.fetch(:id),
-        job: job,
+        job_id: metajob.id,
         error: {
           class:   error.class.to_s,
           message: error.message,
