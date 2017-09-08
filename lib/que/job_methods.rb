@@ -36,7 +36,7 @@ module Que
       end
 
       run(*args)
-      default_finish_action unless que_target.que_resolved
+      default_resolve_action unless que_target.que_resolved
     rescue => error
       que_target.que_error = error
 
@@ -68,7 +68,7 @@ module Que
       que_target.class.resolve_que_setting(*args)
     end
 
-    def default_finish_action
+    def default_resolve_action
       finish
     end
 

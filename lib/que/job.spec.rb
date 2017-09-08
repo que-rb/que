@@ -113,12 +113,12 @@ describe Que::Job do
           assert_empty active_jobs_dataset
         end
 
-        it "should make it easy to override the default finishing action" do
+        it "should make it easy to override the default resolution action" do
           TestJobClass.class_eval do
             def run
             end
 
-            def default_finish_action
+            def default_resolve_action
               destroy
             end
           end
