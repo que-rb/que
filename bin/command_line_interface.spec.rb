@@ -324,7 +324,7 @@ MSG
 
     describe "--connection-url" do
       it "should specify a database url for the locker" do
-        assert_successful_invocation("./#{filename} --connection-url postgres://postgres:@localhost/que-test") do
+        assert_successful_invocation("./#{filename} --connection-url #{QUE_URL}") do
           refute_includes DEFAULT_QUE_POOL.instance_variable_get(:@checked_out), @que_locker[:pid]
         end
       end
