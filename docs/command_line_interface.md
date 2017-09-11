@@ -8,6 +8,7 @@ usage: que [options] [file/to/require] ...
     -q, --queue-name [NAME]          Set a queue name to work jobs from. Can be passed multiple times. (default: the default queue only)
     -v, --version                    Print Que version and exit.
     -w, --worker-count [COUNT]       Set number of workers in process (default: 6)
+        --connection-url [URL]       Set a custom database url to connect to for locking purposes.
         --log-internals              Log verbosely about Que's internal state. Only recommended for debugging issues
         --maximum-queue-size [SIZE]  Set maximum number of jobs to be cached in this process awaiting a worker (default: 8)
         --minimum-queue-size [SIZE]  Set minimum number of jobs to be cached in this process awaiting a worker (default: 2)
