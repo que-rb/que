@@ -322,6 +322,20 @@ MSG
         output.messages.first.to_s
     end
 
+    describe "--connection-url" do
+      it "should specify a database url for the locker" do
+        assert_successful_invocation("./#{filename} --connection-url postgres://postgres:@localhost/que-test") do
+          refute_includes DEFAULT_QUE_POOL.instance_variable_get(:@checked_out), @que_locker[:pid]
+        end
+      end
+
+      it "when omitted should use a connection from the connection pool" do
+        assert_successful_invocation("./#{filename}") do
+          assert_includes DEFAULT_QUE_POOL.instance_variable_get(:@checked_out), @que_locker[:pid]
+        end
+      end
+    end
+
     it "when passing --log-internals should output Que's internal logs" do
       Que.internal_logger = nil
 

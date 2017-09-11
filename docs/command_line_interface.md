@@ -15,7 +15,9 @@ usage: que [options] [file/to/require] ...
         --worker-priorities [LIST]   List of priorities to assign to workers, unspecified workers take jobs of any priority (default: 10,30,50)
 ```
 
-Some explanation of tuning options:
+Some explanation of options:
+
+### connection-url
 
 ### poll-interval
 

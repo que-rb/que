@@ -2,6 +2,7 @@
 
 require 'optparse'
 require 'logger'
+require 'uri'
 
 module Que
   module CommandLineInterface
@@ -17,119 +18,130 @@ module Que
         default_require_file: RAILS_ENVIRONMENT_FILE
       )
 
-        options       = {}
-        queues        = []
-        log_level     = 'info'
-        log_internals = false
-        poll_interval = 5
+        options        = {}
+        queues         = []
+        log_level      = 'info'
+        log_internals  = false
+        poll_interval  = 5
+        connection_url = nil
 
-        OptionParser.new do |opts|
-          opts.banner = 'usage: que [options] [file/to/require] ...'
+        parser =
+          OptionParser.new do |opts|
+            opts.banner = 'usage: que [options] [file/to/require] ...'
 
-          opts.on(
-            '-h',
-            '--help',
-            "Show this help text.",
-          ) do
-            output.puts opts.help
-            return 0
+            opts.on(
+              '-h',
+              '--help',
+              "Show this help text.",
+            ) do
+              output.puts opts.help
+              return 0
+            end
+
+            opts.on(
+              '-i',
+              '--poll-interval [INTERVAL]',
+              Float,
+              "Set maximum interval between polls for available jobs, " \
+                "in seconds (default: 5)",
+            ) do |i|
+              poll_interval = i
+            end
+
+            opts.on(
+              '-l',
+              '--log-level [LEVEL]',
+              String,
+              "Set level at which to log to STDOUT " \
+                "(debug, info, warn, error, fatal) (default: info)",
+            ) do |l|
+              log_level = l
+            end
+
+            opts.on(
+              '-q',
+              '--queue-name [NAME]',
+              String,
+              "Set a queue name to work jobs from. " \
+                "Can be passed multiple times. " \
+                "(default: the default queue only)",
+            ) do |queue_name|
+              queues << queue_name
+            end
+
+            opts.on(
+              '-v',
+              '--version',
+              "Print Que version and exit.",
+            ) do
+              require 'que'
+              output.puts "Que version #{Que::VERSION}"
+              return 0
+            end
+
+            opts.on(
+              '-w',
+              '--worker-count [COUNT]',
+              Integer,
+              "Set number of workers in process (default: 6)",
+            ) do |w|
+              options[:worker_count] = w
+            end
+
+            opts.on(
+              '--connection-url [URL]',
+              String,
+              "Set a custom database url to connect to for locking purposes.",
+            ) do |url|
+              connection_url = url
+            end
+
+            opts.on(
+              '--log-internals',
+              "Log verbosely about Que's internal state. " \
+                "Only recommended for debugging issues",
+            ) do |l|
+              log_internals = true
+            end
+
+            opts.on(
+              '--maximum-queue-size [SIZE]',
+              Integer,
+              "Set maximum number of jobs to be cached in this process " \
+                "awaiting a worker (default: 8)",
+            ) do |s|
+              options[:maximum_queue_size] = s
+            end
+
+            opts.on(
+              '--minimum-queue-size [SIZE]',
+              Integer,
+              "Set minimum number of jobs to be cached in this process " \
+                "awaiting a worker (default: 2)",
+            ) do |s|
+              options[:minimum_queue_size] = s
+            end
+
+            opts.on(
+              '--wait-period [PERIOD]',
+              Float,
+              "Set maximum interval between checks of the in-memory job queue, " \
+                "in milliseconds (default: 50)",
+            ) do |p|
+              options[:wait_period] = p
+            end
+
+            opts.on(
+              '--worker-priorities [LIST]',
+              Array,
+              "List of priorities to assign to workers, " \
+                "unspecified workers take jobs of any priority (default: 10,30,50)",
+            ) do |p|
+              options[:worker_priorities] = p.map(&:to_i)
+            end
           end
 
-          opts.on(
-            '-i',
-            '--poll-interval [INTERVAL]',
-            Float,
-            "Set maximum interval between polls for available jobs, " \
-              "in seconds (default: 5)",
-          ) do |i|
-            poll_interval = i
-          end
-
-          opts.on(
-            '-l',
-            '--log-level [LEVEL]',
-            String,
-            "Set level at which to log to STDOUT " \
-              "(debug, info, warn, error, fatal) (default: info)",
-          ) do |l|
-            log_level = l
-          end
-
-          opts.on(
-            '-q',
-            '--queue-name [NAME]',
-            String,
-            "Set a queue name to work jobs from. " \
-              "Can be passed multiple times. " \
-              "(default: the default queue only)",
-          ) do |queue_name|
-            queues << queue_name
-          end
-
-          opts.on(
-            '-v',
-            '--version',
-            "Print Que version and exit.",
-          ) do
-            require 'que'
-            output.puts "Que version #{Que::VERSION}"
-            return 0
-          end
-
-          opts.on(
-            '-w',
-            '--worker-count [COUNT]',
-            Integer,
-            "Set number of workers in process (default: 6)",
-          ) do |w|
-            options[:worker_count] = w
-          end
-
-          opts.on(
-            '--log-internals',
-            Integer,
-            "Log verbosely about Que's internal state. " \
-              "Only recommended for debugging issues",
-          ) do |l|
-            log_internals = true
-          end
-
-          opts.on(
-            '--maximum-queue-size [SIZE]',
-            Integer,
-            "Set maximum number of jobs to be cached in this process " \
-              "awaiting a worker (default: 8)",
-          ) do |s|
-            options[:maximum_queue_size] = s
-          end
-
-          opts.on(
-            '--minimum-queue-size [SIZE]',
-            Integer,
-            "Set minimum number of jobs to be cached in this process " \
-              "awaiting a worker (default: 2)",
-          ) do |s|
-            options[:minimum_queue_size] = s
-          end
-
-          opts.on(
-            '--wait-period [PERIOD]',
-            Float,
-            "Set maximum interval between checks of the in-memory job queue, " \
-              "in milliseconds (default: 50)",
-          ) do |p|
-            options[:wait_period] = p
-          end
-
-          opts.on(
-            '--worker-priorities [LIST]',
-            Array,
-            "List of priorities to assign to workers, " \
-              "unspecified workers take jobs of any priority (default: 10,30,50)",
-          ) do |p|
-            options[:worker_priorities] = p.map(&:to_i)
-          end
-        end.parse!(args)
+        parser.parse!(args)
 
         if args.length.zero?
           if File.exist?(default_require_file)
@@ -182,6 +194,19 @@ OUTPUT
         end
 
         options[:poll_interval] = poll_interval
+
+        if connection_url
+          uri = URI.parse(connection_url)
+
+          options[:connection] =
+            PG::Connection.open(
+              host:     uri.host,
+              user:     uri.user,
+              password: uri.password,
+              port:     uri.port || 5432,
+              dbname:   uri.path[1..-1],
+            )
+        end
 
         locker =
           begin
