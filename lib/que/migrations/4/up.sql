@@ -53,6 +53,13 @@ ALTER TABLE que_jobs
     (char_length(last_error_backtrace) <= 10000)
   );
 
+-- This is somewhat heretical, but we're going to need some more flexible
+-- storage to support various features without requiring a ton of migrations,
+-- which would be a lot of hassle for users. Hopefully this will be used smartly
+-- and sparingly (famous last words).
+CREATE TABLE que_values (key text PRIMARY KEY, value jsonb)
+WITH (FILLFACTOR=90);
+
 CREATE UNLOGGED TABLE que_lockers (
   pid               integer NOT NULL CONSTRAINT que_lockers_pkey PRIMARY KEY,
   worker_count      integer NOT NULL,

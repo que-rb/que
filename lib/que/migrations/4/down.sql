@@ -8,6 +8,8 @@ DROP TRIGGER que_job_notify ON que_jobs;
 DROP FUNCTION que_job_notify();
 DROP TABLE que_lockers;
 
+DROP TABLE que_values;
+
 ALTER TABLE que_jobs RENAME COLUMN id TO job_id;
 ALTER SEQUENCE que_jobs_id_seq RENAME TO que_jobs_job_id_seq;
 
