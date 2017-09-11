@@ -25,8 +25,8 @@ if defined?(::ActiveJob)
       worker # Make sure worker is initialized.
       wrapper = execute_raw(*args)
 
-      assert_equal 1, jobs_dataset.count
-      attrs = jobs_dataset.first!
+      assert_equal 1, active_jobs_dataset.count
+      attrs = active_jobs_dataset.first!
 
       job_queue.push(Que::Metajob.new(attrs))
 
@@ -43,6 +43,33 @@ if defined?(::ActiveJob)
       execute(symbol_arg: 1, "string_arg" => 2)
       assert_equal(
         [{symbol_arg: 1, "string_arg" => 2}],
+        $args,
+      )
+    end
+
+    it "shouldn't disrupt the use of GlobalId arguments" do
+      class QueJob < ActiveRecord::Base
+        include GlobalID::Identification
+      end
+
+      class TestLocator
+        def locate(gid)
+          gid.model_name.constantize.find(gid.model_id)
+        end
+      end
+
+      GlobalID::Locator.use :test, TestLocator.new
+
+      Que::Job.enqueue # Test job object
+
+      job = QueJob.first
+      job.update(finished_at: Time.now)
+      gid = job.to_global_id(app: :test)
+
+      execute(job_object: gid.to_s)
+
+      assert_equal(
+        [{job_object: job}],
         $args,
       )
     end
