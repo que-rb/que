@@ -27,8 +27,9 @@ module Que
 
       private
 
-      # Have helper methods like `destroy` and `retry_in` delegate to the
-      # actual job object.
+      # Have helper methods like `destroy` and `retry_in` delegate to the actual
+      # job object. If the current job is being run through an ActiveJob adapter
+      # other than Que's, this will return nil, which is fine.
       def que_target
         Thread.current[:que_current_job]
       end

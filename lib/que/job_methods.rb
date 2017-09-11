@@ -27,17 +27,22 @@ module Que
     }
 
   module JobMethods
+    # Note that we delegate almost all methods to the result of the que_target
+    # method, which could be one of a few things, depending on the circumstance.
+
     # Run the job with error handling and cleanup logic. Optionally support
     # overriding the args, because it's necessary when jobs are invoked from
     # ActiveJob.
     def _run(args: nil, reraise_errors: false)
-      if args.nil?
+      if args.nil? && que_target
         args = que_target.que_attrs.fetch(:data).fetch(:args)
       end
 
       run(*args)
-      default_resolve_action unless que_target.que_resolved
+      default_resolve_action if que_target && !que_target.que_resolved
     rescue => error
+      raise error unless que_target
+
       que_target.que_error = error
 
       run_error_notifier =
@@ -56,23 +61,31 @@ module Que
 
     private
 
-    # This method defines the object on which the various job helper methods
-    # act. When using Que in the default configuration this is just the job, but
-    # when using a wrapper (like ActiveJob) we want to be able to delegate to
-    # the actual job object.
+    # This method defines the object on which the various job helper methods are
+    # acting. When using Que in the default configuration this will just be
+    # self, but when using the Que adapter for ActiveJob it'll be the actual
+    # underlying job object. When running an ActiveJob::Base subclass that
+    # includes this module through a separate adapter this will be nil - hence,
+    # the defensive coding in every method that no-ops if que_target is falsy.
     def que_target
-      self
+      raise NotImplementedError
     end
 
     def resolve_que_setting(*args)
+      return unless que_target
+
       que_target.class.resolve_que_setting(*args)
     end
 
     def default_resolve_action
+      return unless que_target
+
       finish
     end
 
     def finish
+      return unless que_target
+
       if id = que_target.que_attrs[:id]
         Que.execute :finish_job, [id]
       end
@@ -81,22 +94,30 @@ module Que
     end
 
     def error_count
+      return 0 unless que_target
+
       count = que_target.que_attrs.fetch(:error_count)
       que_target.que_error ? count + 1 : count
     end
 
     # To be overridden in subclasses.
     def handle_error(error)
+      return unless que_target
+
       retry_in_default_interval
     end
 
     def retry_in_default_interval
+      return unless que_target
+
       retry_in(resolve_que_setting(:retry_interval, error_count))
     end
 
     # Explicitly check for the job id in these helpers, because it won't exist
     # if we're running synchronously.
     def retry_in(period)
+      return unless que_target
+
       if id = que_target.que_attrs[:id]
         values = [period]
 
@@ -113,6 +134,8 @@ module Que
     end
 
     def destroy
+      return unless que_target
+
       if id = que_target.que_attrs[:id]
         Que.execute :destroy_job, [id]
       end

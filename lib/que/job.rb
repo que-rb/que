@@ -36,6 +36,11 @@ module Que
 
     private
 
+    # Have the job helper methods act on this object.
+    def que_target
+      self
+    end
+
     @retry_interval = proc { |count| count ** 4 + 3 }
 
     class << self
