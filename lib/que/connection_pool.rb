@@ -22,14 +22,14 @@ module Que
         begin
           if preexisting
             # If so, check that the connection we just got is the one we expect.
-            if preexisting.wrapped_connection.object_id != conn.object_id
+            if preexisting.wrapped_connection.backend_pid != conn.backend_pid
               raise Error, "Connection pool is not reentrant! previous: #{preexisting.wrapped_connection.inspect} now: #{conn.inspect}"
             end
           else
             # If not, make sure that it wasn't promised to any other threads.
             sync do
-              Que.assert(@checked_out.add?(conn.object_id)) do
-                "Connection pool didn't synchronize access properly! (entrance)"
+              Que.assert(@checked_out.add?(conn.backend_pid)) do
+                "Connection pool didn't synchronize access properly! (entrance: #{conn.backend_pid})"
               end
             end
 
@@ -44,8 +44,8 @@ module Que
             self.current_connection = nil
 
             sync do
-              Que.assert(@checked_out.delete?(conn.object_id)) do
-                "Connection pool didn't synchronize access properly! (exit)"
+              Que.assert(@checked_out.delete?(conn.backend_pid)) do
+                "Connection pool didn't synchronize access properly! (exit: #{conn.backend_pid})"
               end
             end
           end

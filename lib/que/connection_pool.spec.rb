@@ -121,14 +121,14 @@ describe Que::ConnectionPool do
 
       error = assert_raises(Que::Error) { test_pool.checkout {} }
       assert_match(
-        /didn't synchronize access properly! \(entrance\)/,
+        /didn't synchronize access properly! \(entrance: #{EXTRA_PG_CONNECTION.backend_pid}\)/,
         error.message
       )
 
       q2.push(nil)
       error = assert_raises(Que::Error) { t.join }
       assert_match(
-        /didn't synchronize access properly! \(exit\)/,
+        /didn't synchronize access properly! \(exit: #{EXTRA_PG_CONNECTION.backend_pid}\)/,
         error.message
       )
     end
