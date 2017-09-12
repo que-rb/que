@@ -57,7 +57,11 @@ ALTER TABLE que_jobs
 -- storage to support various features without requiring a ton of migrations,
 -- which would be a lot of hassle for users. Hopefully this will be used smartly
 -- and sparingly (famous last words).
-CREATE TABLE que_values (key text PRIMARY KEY, value jsonb)
+CREATE TABLE que_values (
+  key text PRIMARY KEY,
+  value jsonb NOT NULL,
+  CONSTRAINT valid_value CHECK (jsonb_typeof(value) = 'object')
+)
 WITH (FILLFACTOR=90);
 
 CREATE UNLOGGED TABLE que_lockers (

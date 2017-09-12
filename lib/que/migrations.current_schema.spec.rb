@@ -102,4 +102,34 @@ describe Que::Migrations, "current schema" do
       end
     end
   end
+
+  describe "que_values table constraints" do
+    let :value_attrs do
+      {
+        key: "string",
+        value: JSON.dump(jsonb_key: "jsonb_value"),
+      }
+    end
+
+    it "should allow a valid record" do
+      DB[:que_values].insert(value_attrs)
+    end
+
+    it "should make sure that value is an object" do
+      assert_constraint_error 'valid_value' do
+        value_attrs[:value] = JSON.dump([])
+        DB[:que_values].insert(value_attrs)
+      end
+
+      assert_constraint_error 'valid_value' do
+        value_attrs[:value] = JSON.dump(5)
+        DB[:que_values].insert(value_attrs)
+      end
+
+      assert_constraint_error 'valid_value' do
+        value_attrs[:value] = JSON.dump("string")
+        DB[:que_values].insert(value_attrs)
+      end
+    end
+  end
 end
