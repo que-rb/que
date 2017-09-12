@@ -1,7 +1,7 @@
 default_environment: &default_environment
   GEMFILE_VERSIONS: "current old older oldest"
-  PG_VERSIONS: "9.4 9.5 9.6"
-  PG_PORTS: "5432 5433 5434"
+  PG_VERSIONS: "9.5 9.6"
+  PG_PORTS: "5433 5434"
 
 defaults: &defaults
   docker:

@@ -22,15 +22,15 @@ SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
         NULL
       END,
     last_error_message = left(substring(last_error_message from '^[^\n]+'), 500),
-    data = json_build_object(
+    data = jsonb_build_object(
       'args',
       (
         CASE json_typeof(args)
-        WHEN 'array' THEN args
-        ELSE json_build_array(args)
+        WHEN 'array' THEN args::jsonb
+        ELSE jsonb_build_array(args)
         END
       )
-    )::jsonb;
+    );
 
 CREATE INDEX que_poll_idx ON que_jobs (queue, priority, run_at, id) WHERE finished_at IS NULL;
 CREATE INDEX que_jobs_data_gin_idx ON que_jobs USING gin (data jsonb_path_ops);

@@ -40,7 +40,7 @@
 
     *   Support for MRI Rubies before 2.2 has been dropped.
 
-    *   Support for Postgres versions before 9.4 has been dropped (JSONB is required).
+    *   Support for Postgres versions before 9.5 has been dropped (JSONB and upsert support is required).
 
     *   JRuby support has been dropped. It will be reintroduced whenever the jruby-pg gem is production-ready.
 
