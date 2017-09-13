@@ -149,3 +149,38 @@ CREATE TRIGGER que_job_notify
   AFTER INSERT ON que_jobs
   FOR EACH ROW
   EXECUTE PROCEDURE que_job_notify();
+
+CREATE FUNCTION que_state_notify() RETURNS trigger AS $$
+  DECLARE
+    row record;
+    message json;
+  BEGIN
+    IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
+      row := NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+      row := OLD;
+    ELSE
+      RAISE EXCEPTION 'Unrecognized TG_OP: %', TG_OP;
+    END IF;
+
+    SELECT row_to_json(t)
+    INTO message
+    FROM (
+      SELECT
+        'job_change'  AS message_type,
+        lower(TG_OP)  AS action,
+        row.queue     AS queue,
+        row.job_class AS job_class
+    ) t;
+
+    PERFORM pg_notify('que_state', message::text);
+
+    RETURN null;
+  END
+$$
+LANGUAGE plpgsql;
+
+CREATE TRIGGER que_state_notify
+  AFTER INSERT OR UPDATE OR DELETE ON que_jobs
+  FOR EACH ROW
+  EXECUTE PROCEDURE que_state_notify();

@@ -120,6 +120,7 @@ QUE_TABLES = [:que_jobs, :que_lockers, :que_values]
 # Reset the schema to the most up-to-date version.
 DB.drop_table? *QUE_TABLES
 DB.drop_function :que_job_notify, if_exists: true
+DB.drop_function :que_state_notify, if_exists: true
 Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
 
 
@@ -287,8 +288,9 @@ class QueSpec < Minitest::Spec
       DB.get{setval(Sequel.cast('que_jobs_id_seq', :regclass), new_id)}
 
       QUE_TABLES.each { |t| DB[t].delete }
-    rescue Sequel::DatabaseError
+    rescue Sequel::DatabaseError => e
       puts "\n\nPrevious spec left DB in unexpected state, run aborted\n\n"
+      puts "\n\n#{e.class}: #{e.message}\n\n"
       abort
     end
 

@@ -6,6 +6,8 @@ DROP INDEX que_jobs_data_gin_idx;
 
 DROP TRIGGER que_job_notify ON que_jobs;
 DROP FUNCTION que_job_notify();
+DROP TRIGGER que_state_notify ON que_jobs;
+DROP FUNCTION que_state_notify();
 DROP TABLE que_lockers;
 
 DROP TABLE que_values;
