@@ -478,12 +478,12 @@ describe Que::Locker do
       pid = DB[:que_lockers].get(:pid)
       refute_nil pid
       DB.notify "que_listener_#{pid}",
-        payload: JSON.dump(payload.merge(message_type: 'new_job'))
+        payload: JSON.dump(payload.merge(message_type: 'work_job'))
 
       m = sleep_until! { internal_messages(event: 'listener_filtered_messages').first }
 
       assert_equal(
-        [payload.merge(message_type: 'new_job')],
+        [payload.merge(message_type: 'work_job')],
         m[:messages],
       )
 

@@ -50,7 +50,7 @@ describe Que::Migrations, "notification trigger" do
         json = JSON.load(payload)
         assert_equal %w(id message_type priority queue run_at), json.keys.sort
         assert_equal 'default', json['queue']
-        assert_equal 'new_job', json['message_type']
+        assert_equal 'work_job', json['message_type']
         assert_equal job[:id], json['id']
         assert_equal 100, json['priority']
         assert_in_delta Time.iso8601(json['run_at']), Time.now.utc, 3

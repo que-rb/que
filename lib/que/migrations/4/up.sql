@@ -129,7 +129,7 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
       INTO sort_key
       FROM (
         SELECT
-          'new_job'    AS message_type,
+          'work_job'   AS message_type,
           NEW.queue    AS queue,
           NEW.priority AS priority,
           -- Make sure we output timestamps as UTC ISO 8601

@@ -117,7 +117,7 @@ describe Que::Listener do
       q = Queue.new
       Que.error_notifier = proc { |e| q.push(e) }
 
-      notify(message_type: 'new_job', priority: 2, id: 4)
+      notify(message_type: 'work_job', priority: 2, id: 4)
       assert_equal({}, listener.wait_for_grouped_messages(10))
 
       error = q.pop
@@ -232,12 +232,12 @@ describe Que::Listener do
 
       def assert_message_ignored
         DB.transaction do
-          all_messages.each { |m| notify(m.merge(message_type: 'new_job')) }
+          all_messages.each { |m| notify(m.merge(message_type: 'work_job')) }
         end
 
         assert_equal(
           {
-            new_job: [
+            work_job: [
               message_1,
               message_2,
             ]
@@ -274,7 +274,7 @@ describe Que::Listener do
         assert_instance_of Que::Error, error
 
         expected_message = [
-          "Message of type 'new_job' doesn't match format!",
+          "Message of type 'work_job' doesn't match format!",
           "Message: {:priority=>90, :queue=>\"queue_name\", :run_at=>\"2017-06-30T18:33:35.425307Z\"}",
           "Format: {:id=>Integer, :priority=>Integer, :queue=>String, :run_at=>/\\A\\d{4}\\-\\d{2}\\-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{6}Z\\z/}",
         ].join("\n")
