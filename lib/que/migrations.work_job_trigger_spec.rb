@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-describe Que::Migrations, "notification trigger" do
+describe Que::Migrations, "work_job trigger" do
   let :locker_attrs do
     {
       pid:               1,
