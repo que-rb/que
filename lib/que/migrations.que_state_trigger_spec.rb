@@ -77,7 +77,13 @@ describe Que::Migrations, "que_state trigger" do
   end
 
   describe "when updating a job" do
-    it "should issue a notification containing the job's class, error count, etc."
+    it "and marking it as finished should issue a notification containing the job's class, error count, etc."
+
+    it "and marking it as errored"
+
+    it "and marking it as scheduled for the future"
+
+    it "and not changing the state should not emit a message"
   end
 
   describe "when deleting a job" do
