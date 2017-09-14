@@ -21,13 +21,13 @@ describe Que::Migrations, "que_state trigger" do
     end
   end
 
-  def get_message(timeout: 5)
+  def get_message(timeout: 5, expect_nothing: false)
     connection.wait_for_notify(timeout) do |channel, pid, payload|
       json = JSON.parse(payload, symbolize_names: true)
       assert_equal "job_change", json.delete(:message_type)
       return json
     end
-    raise "No message!"
+    raise "No message!" unless expect_nothing
   end
 
   describe "the notification metadata" do
@@ -138,7 +138,15 @@ describe Que::Migrations, "que_state trigger" do
       )
     end
 
-    it "and not changing the state should not emit a message"
+    it "and not changing the state should not emit a message" do
+      id = DB[:que_jobs].insert(job_class: "MyJobClass", run_at: Time.now + 36000)
+
+      assert get_message
+
+      assert_equal 1, DB[:que_jobs].where(id: id).update(run_at: Time.now + 72000)
+
+      assert_nil get_message(timeout: 0.1, expect_nothing: true)
+    end
   end
 
   describe "when deleting a job" do

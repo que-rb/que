@@ -172,14 +172,20 @@ CREATE FUNCTION que_state_notify() RETURNS trigger AS $$
       previous_state := 'nonexistent';
       current_state  := que_determine_job_state(NEW);
       row            := NEW;
-    ELSIF TG_OP = 'UPDATE' THEN
-      previous_state := que_determine_job_state(OLD);
-      current_state  := que_determine_job_state(NEW);
-      row            := NEW;
     ELSIF TG_OP = 'DELETE' THEN
       previous_state := que_determine_job_state(OLD);
       current_state  := 'nonexistent';
       row            := OLD;
+    ELSIF TG_OP = 'UPDATE' THEN
+      previous_state := que_determine_job_state(OLD);
+      current_state  := que_determine_job_state(NEW);
+
+      -- If the state didn't change, short-circuit.
+      IF previous_state = current_state THEN
+        RETURN null;
+      END IF;
+
+      row := NEW;
     ELSE
       RAISE EXCEPTION 'Unrecognized TG_OP: %', TG_OP;
     END IF;
