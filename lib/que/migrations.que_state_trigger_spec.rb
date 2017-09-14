@@ -41,9 +41,38 @@ describe Que::Migrations, "que_state trigger" do
     end
 
     describe "that is wrapped by ActiveJob" do
-      it "should report the wrapped job class"
+      it "should report the wrapped job class" do
+        DB[:que_jobs].insert(
+          job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
+          data: JSON.dump(args: [{job_class: "WrappedJobClass"}]),
+        )
 
-      it "when the wrapped job class cannot be found should do the best it can"
+        assert_equal(
+          {action: "insert", job_class: "WrappedJobClass", queue: "default"},
+          get_message,
+        )
+      end
+
+      it "when the wrapped job class cannot be found should do the best it can" do
+        [
+          [4],
+          [[]],
+          [nil],
+          [{}],
+          [{other_key: 'value'}],
+          ['string'],
+        ].each do |args|
+          DB[:que_jobs].insert(
+            job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
+            data: JSON.dump(args: args),
+          )
+
+          assert_equal(
+            {action: "insert", job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper", queue: "default"},
+            get_message,
+          )
+        end
+      end
     end
   end
 

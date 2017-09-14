@@ -170,7 +170,12 @@ CREATE FUNCTION que_state_notify() RETURNS trigger AS $$
         'job_change'  AS message_type,
         lower(TG_OP)  AS action,
         row.queue     AS queue,
-        row.job_class AS job_class
+        CASE row.job_class
+        WHEN 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper' THEN
+          coalesce(row.data->'args'->0->>'job_class', 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper')
+        ELSE
+          row.job_class
+        END AS job_class
     ) t;
 
     PERFORM pg_notify('que_state', message::text);
