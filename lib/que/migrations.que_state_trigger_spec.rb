@@ -31,9 +31,14 @@ describe Que::Migrations, "que_state trigger" do
   end
 
   describe "the notification metadata" do
-    it "should report the job's queue"
+    it "should report the job's class and queue" do
+      DB[:que_jobs].insert(job_class: "CustomJobClass", queue: "custom_queue")
 
-    it "should report the job's class"
+      assert_equal(
+        {queue: "custom_queue", job_class: "CustomJobClass", previous_state: "nonexistent", current_state: "ready"},
+        get_message,
+      )
+    end
 
     describe "when the job is wrapped by ActiveJob" do
       it "should report the wrapped job class" do
@@ -99,7 +104,7 @@ describe Que::Migrations, "que_state trigger" do
 
       assert get_message
 
-      DB[:que_jobs].where(id: id).update(finished_at: Time.now)
+      assert_equal 1, DB[:que_jobs].where(id: id).update(finished_at: Time.now)
 
       assert_equal(
         {queue: "default", job_class: "MyJobClass", previous_state: "ready", current_state: "finished"},
@@ -112,7 +117,7 @@ describe Que::Migrations, "que_state trigger" do
 
       assert get_message
 
-      DB[:que_jobs].where(id: id).update(error_count: 1)
+      assert_equal 1, DB[:que_jobs].where(id: id).update(error_count: 1)
 
       assert_equal(
         {queue: "default", job_class: "MyJobClass", previous_state: "ready", current_state: "errored"},
@@ -125,7 +130,7 @@ describe Que::Migrations, "que_state trigger" do
 
       assert get_message
 
-      DB[:que_jobs].where(id: id).update(run_at: Time.now + 36000)
+      assert_equal 1, DB[:que_jobs].where(id: id).update(run_at: Time.now + 36000)
 
       assert_equal(
         {queue: "default", job_class: "MyJobClass", previous_state: "ready", current_state: "scheduled"},
@@ -137,6 +142,17 @@ describe Que::Migrations, "que_state trigger" do
   end
 
   describe "when deleting a job" do
-    it "should issue a notification containing the job's class, queue, etc."
+    it "should issue a notification containing the job's class, queue, etc." do
+      id = DB[:que_jobs].insert(job_class: "MyJobClass")
+
+      assert get_message
+
+      assert_equal 1, DB[:que_jobs].where(id: id).delete
+
+      assert_equal(
+        {queue: "default", job_class: "MyJobClass", previous_state: "ready", current_state: "nonexistent"},
+        get_message,
+      )
+    end
   end
 end
