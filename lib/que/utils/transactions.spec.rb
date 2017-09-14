@@ -32,7 +32,7 @@ describe Que::Utils::Transactions do
 
     t = Thread.new do
       Que.transaction do
-        Que.execute "DROP TABLE que_jobs"
+        Que.execute "DROP TABLE que_jobs CASCADE"
         q.push :go!
         sleep
       end

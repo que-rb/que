@@ -35,7 +35,7 @@ describe Que::Migrations, "que_state trigger" do
       DB[:que_jobs].insert(job_class: "MyJobClass")
 
       assert_equal(
-        {action: "insert", job_class: "MyJobClass", queue: "default"},
+        {queue: "default", job_class: "MyJobClass", previous_state: "nonexistent", current_state: "ready"},
         get_message,
       )
     end
@@ -48,7 +48,7 @@ describe Que::Migrations, "que_state trigger" do
         )
 
         assert_equal(
-          {action: "insert", job_class: "WrappedJobClass", queue: "default"},
+          {queue: "default", job_class: "WrappedJobClass", previous_state: "nonexistent", current_state: "ready"},
           get_message,
         )
       end
@@ -68,7 +68,7 @@ describe Que::Migrations, "que_state trigger" do
           )
 
           assert_equal(
-            {action: "insert", job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper", queue: "default"},
+            {queue: "default", job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper", previous_state: "nonexistent", current_state: "ready"},
             get_message,
           )
         end

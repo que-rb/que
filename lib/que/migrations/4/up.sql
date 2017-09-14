@@ -150,15 +150,40 @@ CREATE TRIGGER que_job_notify
   FOR EACH ROW
   EXECUTE PROCEDURE que_job_notify();
 
+CREATE FUNCTION que_determine_job_state(job que_jobs) RETURNS text AS $$
+  BEGIN
+    IF job.finished_at IS NOT NULL THEN
+      RETURN 'finished';
+    ELSIF job.error_count > 0 THEN
+      RETURN 'errored';
+    ELSIF job.run_at > CURRENT_TIMESTAMP THEN
+      RETURN 'scheduled';
+    ELSE
+      RETURN 'ready';
+    END IF;
+  END
+$$
+LANGUAGE plpgsql;
+
 CREATE FUNCTION que_state_notify() RETURNS trigger AS $$
   DECLARE
     row record;
     message json;
+    previous_state text;
+    current_state text;
   BEGIN
-    IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
-      row := NEW;
+    IF TG_OP = 'INSERT' THEN
+      previous_state := 'nonexistent';
+      current_state  := que_determine_job_state(NEW);
+      row            := NEW;
+    ELSIF TG_OP = 'UPDATE' THEN
+      previous_state := que_determine_job_state(OLD);
+      current_state  := que_determine_job_state(NEW);
+      row            := NEW;
     ELSIF TG_OP = 'DELETE' THEN
-      row := OLD;
+      previous_state := que_determine_job_state(OLD);
+      current_state  := 'nonexistent';
+      row            := OLD;
     ELSE
       RAISE EXCEPTION 'Unrecognized TG_OP: %', TG_OP;
     END IF;
@@ -167,9 +192,11 @@ CREATE FUNCTION que_state_notify() RETURNS trigger AS $$
     INTO message
     FROM (
       SELECT
-        'job_change'  AS message_type,
-        lower(TG_OP)  AS action,
-        row.queue     AS queue,
+        'job_change'   AS message_type,
+        row.queue      AS queue,
+        previous_state AS previous_state,
+        current_state  AS current_state,
+
         CASE row.job_class
         WHEN 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper' THEN
           coalesce(row.data->'args'->0->>'job_class', 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper')

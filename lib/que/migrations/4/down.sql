@@ -8,6 +8,7 @@ DROP TRIGGER que_job_notify ON que_jobs;
 DROP FUNCTION que_job_notify();
 DROP TRIGGER que_state_notify ON que_jobs;
 DROP FUNCTION que_state_notify();
+DROP FUNCTION que_determine_job_state(que_jobs);
 DROP TABLE que_lockers;
 
 DROP TABLE que_values;
