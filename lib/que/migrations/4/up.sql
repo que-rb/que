@@ -151,19 +151,15 @@ CREATE TRIGGER que_job_notify
   EXECUTE PROCEDURE que_job_notify();
 
 CREATE FUNCTION que_determine_job_state(job que_jobs) RETURNS text AS $$
-  BEGIN
-    IF job.finished_at IS NOT NULL THEN
-      RETURN 'finished';
-    ELSIF job.error_count > 0 THEN
-      RETURN 'errored';
-    ELSIF job.run_at > CURRENT_TIMESTAMP THEN
-      RETURN 'scheduled';
-    ELSE
-      RETURN 'ready';
-    END IF;
-  END
+  SELECT
+    CASE
+    WHEN job.finished_at IS NOT NULL    THEN 'finished'
+    WHEN job.error_count > 0            THEN 'errored'
+    WHEN job.run_at > CURRENT_TIMESTAMP THEN 'scheduled'
+    ELSE                                     'ready'
+    END
 $$
-LANGUAGE plpgsql;
+LANGUAGE SQL;
 
 CREATE FUNCTION que_state_notify() RETURNS trigger AS $$
   DECLARE
