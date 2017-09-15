@@ -6,6 +6,9 @@ module Que
   class Job
     include JobMethods
 
+    MAXIMUM_TAGS_COUNT = 5
+    MAXIMUM_TAG_LENGTH = 100
+
     SQL[:insert_job] =
       %{
         INSERT INTO public.que_jobs
@@ -57,6 +60,16 @@ module Que
       )
 
         args << arg_opts if arg_opts.any?
+
+        if tags.length > MAXIMUM_TAGS_COUNT
+          raise Que::Error, "Can't enqueue a job with more than #{MAXIMUM_TAGS_COUNT} tags! (passed #{tags.length})"
+        end
+
+        tags.each do |tag|
+          if tag.length > MAXIMUM_TAG_LENGTH
+            raise Que::Error, "Can't enqueue a job with a tag longer than 100 characters! (\"#{tag}\")"
+          end
+        end
 
         attrs = {
           queue:    queue    || resolve_que_setting(:queue) || Que.default_queue,

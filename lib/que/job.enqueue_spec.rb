@@ -132,9 +132,27 @@ describe Que::Job, '.enqueue' do
         expected_tags: []
     end
 
-    it "should raise an error if passing too many tags"
+    it "should raise an error if passing too many tags" do
+      error =
+        assert_raises(Que::Error) do
+          Que::Job.enqueue 1, string: "string", tags: %w[a b c d e f]
+        end
 
-    it "should raise an error if any of the tags are too long"
+      assert_equal \
+        "Can't enqueue a job with more than 5 tags! (passed 6)",
+        error.message
+    end
+
+    it "should raise an error if any of the tags are too long" do
+      error =
+        assert_raises(Que::Error) do
+          Que::Job.enqueue 1, string: "string", tags: ["a" * 101]
+        end
+
+      assert_equal \
+        "Can't enqueue a job with a tag longer than 100 characters! (\"#{"a" * 101}\")",
+        error.message
+    end
   end
 
   it "should respect a job class defined as a string" do
