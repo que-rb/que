@@ -20,6 +20,8 @@
 
     *   Custom middleware that wrap running jobs are now supported.
 
+    *   Support for categorizing jobs with tags.
+
     *   Job configuration options are now inheritable, so job class hierarchies are more useful.
 
     *   Worked jobs may optionally be retained in the database indefinitely.
@@ -85,6 +87,8 @@
     *   Due to popular demand, the default queue name is now "default" rather than an empty string. The migration will move pending jobs under the "" queue to the "default" queue.
 
     *   The `last_error` column has been split in two, to `last_error_message` and `last_error_backtrace`. These two columns are now limited to 500 and 10,000 characters, respectively. The migration will split old error data correctly, and truncate it if necessary.
+
+    *   Names for queues and job classes are now limited to 500 characters, which is still far longer than either of these values should reasonably be.
 
     *   Rather than an `args` JSON column, job arguments are stored as an array under an `args` key in a `data` JSONB column.
 
