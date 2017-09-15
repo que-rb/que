@@ -57,7 +57,14 @@ ALTER TABLE que_jobs
     char_length(queue) <= 500
   ),
   ADD CONSTRAINT job_class_length CHECK (
-    char_length(job_class) <= 500
+    char_length(
+      CASE job_class
+      WHEN 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper' THEN
+        data->'args'->0->>'job_class'
+      ELSE
+        job_class
+      END
+    ) <= 500
   ),
   ADD CONSTRAINT args_is_array CHECK (
     (jsonb_typeof(data) = 'object')

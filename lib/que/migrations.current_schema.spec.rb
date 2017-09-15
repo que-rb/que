@@ -83,6 +83,29 @@ describe Que::Migrations, "current schema" do
         DB[:que_jobs].
           insert(job_class: 'a' * 501)
       end
+
+      # Make sure the check constraint also handles wrapped ActiveJob jobs.
+      assert_constraint_error 'job_class_length' do
+        DB[:que_jobs].
+          insert(
+            job_class: 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper',
+            data: JSON.dump(
+              args: [{job_class: 'a' * 501}],
+              tags: [],
+            )
+          )
+      end
+
+      # If the job_class is the ActiveJob wrapper but the args don't look like
+      # we expect, just ignore it.
+      DB[:que_jobs].
+        insert(
+          job_class: 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper',
+          data: JSON.dump(
+            args: [],
+            tags: [],
+          )
+        )
     end
 
     it "should make sure that a queue does not exceed 500 characters" do
