@@ -52,6 +52,7 @@ module Que
         priority:  nil,
         run_at:    nil,
         job_class: nil,
+        tags:      [],
         **arg_opts
       )
 
@@ -61,7 +62,7 @@ module Que
           queue:    queue    || resolve_que_setting(:queue) || Que.default_queue,
           priority: priority || resolve_que_setting(:priority),
           run_at:   run_at   || resolve_que_setting(:run_at),
-          data:     Que.serialize_json(args: args, tags: []),
+          data:     Que.serialize_json(args: args, tags: tags),
           job_class: \
             job_class || name ||
               raise(Error, "Can't enqueue an anonymous subclass of Que::Job"),

@@ -10,7 +10,8 @@ describe Que::Job, '.enqueue' do
     expected_run_at: Time.now,
     expected_job_class: Que::Job,
     expected_result_class: nil,
-    expected_args: []
+    expected_args: [],
+    expected_tags: []
   )
 
     assert_equal 0, jobs_dataset.count
@@ -29,6 +30,7 @@ describe Que::Job, '.enqueue' do
 
     assert_equal expected_priority, result.que_attrs[:priority]
     assert_equal expected_args, result.que_attrs[:data][:args]
+    assert_equal expected_tags, result.que_attrs[:data][:tags]
 
     job = jobs_dataset.first
     assert_equal expected_queue, job[:queue]
@@ -113,6 +115,26 @@ describe Que::Job, '.enqueue' do
       expected_args: [1, {string: "string"}],
       expected_run_at: Time.now + 60,
       expected_priority: 4
+  end
+
+  describe "when enqueuing a job with tags" do
+    it "should be able to specify tags on a case-by-case basis" do
+      assert_enqueue \
+        [1, {string: "string", tags: ["tag_1", "tag_2"]}],
+        expected_args: [1, {string: "string"}],
+        expected_tags: ["tag_1", "tag_2"]
+    end
+
+    it "should be able to use multiple hashes to avoid conflicts with keywords" do
+      assert_enqueue \
+        [1, {string: "string", tags: ["tag_1", "tag_2"]}, {}],
+        expected_args: [1, {string: "string", tags: ["tag_1", "tag_2"]}],
+        expected_tags: []
+    end
+
+    it "should raise an error if passing too many tags"
+
+    it "should raise an error if any of the tags are too long"
   end
 
   it "should respect a job class defined as a string" do
