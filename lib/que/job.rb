@@ -16,7 +16,7 @@ module Que
           coalesce($2, 100)::smallint,
           coalesce($3, now())::timestamptz,
           $4::text,
-          coalesce($5, '{"args":[]}')::jsonb
+          coalesce($5, '{"args":[],"tags":[]}')::jsonb
         )
         RETURNING *
       }
@@ -61,7 +61,7 @@ module Que
           queue:    queue    || resolve_que_setting(:queue) || Que.default_queue,
           priority: priority || resolve_que_setting(:priority),
           run_at:   run_at   || resolve_que_setting(:run_at),
-          data:     Que.serialize_json(args: args),
+          data:     Que.serialize_json(args: args, tags: []),
           job_class: \
             job_class || name ||
               raise(Error, "Can't enqueue an anonymous subclass of Que::Job"),

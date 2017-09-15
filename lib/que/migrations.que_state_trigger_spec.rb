@@ -44,7 +44,7 @@ describe Que::Migrations, "que_state trigger" do
       it "should report the wrapped job class" do
         DB[:que_jobs].insert(
           job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
-          data: JSON.dump(args: [{job_class: "WrappedJobClass"}]),
+          data: JSON.dump(args: [{job_class: "WrappedJobClass"}], tags: []),
         )
 
         assert_equal(
@@ -64,7 +64,7 @@ describe Que::Migrations, "que_state trigger" do
         ].each do |args|
           DB[:que_jobs].insert(
             job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
-            data: JSON.dump(args: args),
+            data: JSON.dump(args: args, tags: []),
           )
 
           assert_equal(

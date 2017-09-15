@@ -29,7 +29,9 @@ SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
         WHEN 'array' THEN args::jsonb
         ELSE jsonb_build_array(args)
         END
-      )
+      ),
+      'tags',
+      jsonb_build_array()
     );
 
 CREATE INDEX que_poll_idx ON que_jobs (queue, priority, run_at, id) WHERE finished_at IS NULL;
@@ -38,15 +40,24 @@ CREATE INDEX que_jobs_data_gin_idx ON que_jobs USING gin (data jsonb_path_ops);
 ALTER TABLE que_jobs
   ADD PRIMARY KEY (id),
   ALTER COLUMN queue SET DEFAULT 'default',
-  ALTER COLUMN data SET DEFAULT '{"args":[]}',
+  ALTER COLUMN data SET DEFAULT '{"args":[],"tags":[]}',
   ALTER COLUMN data SET NOT NULL,
   DROP COLUMN args,
-  ADD CONSTRAINT data_format CHECK (
+  ADD CONSTRAINT args_is_array CHECK (
     (jsonb_typeof(data) = 'object')
     AND
     ((data->'args') IS NOT NULL)
     AND
     (jsonb_typeof(data->'args') = 'array')
+  ),
+  ADD CONSTRAINT tags_is_short_array CHECK (
+    (jsonb_typeof(data) = 'object')
+    AND
+    ((data->'tags') IS NOT NULL)
+    AND
+    (jsonb_typeof(data->'tags') = 'array')
+    AND
+    (jsonb_array_length(data->'tags') <= 5)
   ),
   ADD CONSTRAINT error_length CHECK (
     (char_length(last_error_message) <= 500) AND

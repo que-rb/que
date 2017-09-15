@@ -74,7 +74,7 @@ describe Que::Utils::Introspection do
       assert_in_delta state[:run_at], Time.now, 3
       assert_equal 2**33, state[:id]
       assert_equal 'BlockJob', state[:job_class]
-      assert_equal({args: []}, state[:data])
+      assert_equal({args: [], tags: []}, state[:data])
       assert_equal 0, state[:error_count]
       assert_nil state.fetch(:last_error_message)
       assert_nil state.fetch(:last_error_backtrace)
