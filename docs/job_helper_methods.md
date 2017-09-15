@@ -6,6 +6,8 @@ There are a number of instance methods on Que::Job that you can use in your jobs
 
 ### destroy
 
+### expire
+
 ### retry_in
 
 ### handle_error(error)

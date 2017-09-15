@@ -17,8 +17,8 @@ class MyJob < Que::Job
     DB.transaction do
       # Make changes to the database.
 
-      # Finishing this job will be protected by the same transaction.
-      finish
+      # Destroying this job will be protected by the same transaction.
+      destroy
     end
   end
 end
