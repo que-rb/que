@@ -16,4 +16,42 @@ describe Que::Sequel::Model do
 
     assert_equal "custom_queue", DB[:que_jobs].get(:queue)
   end
+
+  describe "errored" do
+    it "should return a dataset of jobs that have errored"
+  end
+
+  describe "expired" do
+    it "should return a dataset of jobs that have expired"
+  end
+
+  describe "finished" do
+    it "should return a dataset of jobs that have finished"
+  end
+
+  describe "scheduled" do
+    it "should return a dataset of jobs that are scheduled for the future"
+  end
+
+  describe "ready" do
+    it "should return a dataset of unerrored jobs that are ready to be run"
+  end
+
+  describe "by_job_class" do
+    it "should return a dataset of jobs with that job class"
+
+    it "should be compatible with ActiveModel job classes"
+  end
+
+  describe "by_queue" do
+    it "should return a dataset of jobs in that queue"
+  end
+
+  describe "by_tag" do
+    it "should return a dataset of jobs with the given tag"
+  end
+
+  describe "by_args" do
+    it "should return a dataset of jobs whose args contain the given value"
+  end
 end

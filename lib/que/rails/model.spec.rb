@@ -17,5 +17,7 @@ if defined?(::ActiveRecord)
 
       assert_equal "custom_queue", DB[:que_jobs].get(:queue)
     end
+
+    it "should support all the same querying methods that the Sequel model does"
   end
 end
