@@ -222,7 +222,10 @@ CREATE FUNCTION que_state_notify() RETURNS trigger AS $$
 
         CASE row.job_class
         WHEN 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper' THEN
-          coalesce(row.data->'args'->0->>'job_class', 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper')
+          coalesce(
+            row.data->'args'->0->>'job_class',
+            'ActiveJob::QueueAdapters::QueAdapter::JobWrapper'
+          )
         ELSE
           row.job_class
         END AS job_class,
