@@ -57,7 +57,7 @@ module Que
           handle_error(error)
         rescue => error_2
           Que.notify_error(error_2, que_target.que_attrs)
-          retry_in_default_interval
+          true
         end
 
       Que.notify_error(error, que_target.que_attrs) if run_error_notifier
