@@ -53,6 +53,12 @@ ALTER TABLE que_jobs
   ALTER COLUMN data SET DEFAULT '{"args":[],"tags":[]}',
   ALTER COLUMN data SET NOT NULL,
   DROP COLUMN args,
+  ADD CONSTRAINT queue_length CHECK (
+    char_length(queue) <= 500
+  ),
+  ADD CONSTRAINT job_class_length CHECK (
+    char_length(job_class) <= 500
+  ),
   ADD CONSTRAINT args_is_array CHECK (
     (jsonb_typeof(data) = 'object')
     AND
@@ -230,8 +236,8 @@ CREATE FUNCTION que_state_notify() RETURNS trigger AS $$
           row.job_class
         END AS job_class,
 
-        previous_state   AS previous_state,
-        current_state    AS current_state
+        previous_state AS previous_state,
+        current_state  AS current_state
     ) t;
 
     PERFORM pg_notify('que_state', message::text);

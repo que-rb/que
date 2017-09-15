@@ -20,6 +20,8 @@ ALTER TABLE que_jobs RENAME COLUMN last_error_message TO last_error;
 
 ALTER TABLE que_jobs
   DROP CONSTRAINT error_length,
+  DROP CONSTRAINT queue_length,
+  DROP CONSTRAINT job_class_length,
   DROP COLUMN finished_at,
   ADD COLUMN args JSON;
 

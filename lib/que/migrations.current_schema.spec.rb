@@ -78,6 +78,20 @@ describe Que::Migrations, "current schema" do
       end
     end
 
+    it "should make sure that a job_class does not exceed 500 characters" do
+      assert_constraint_error 'job_class_length' do
+        DB[:que_jobs].
+          insert(job_class: 'a' * 501)
+      end
+    end
+
+    it "should make sure that a queue does not exceed 500 characters" do
+      assert_constraint_error 'queue_length' do
+        DB[:que_jobs].
+          insert(job_class: 'Que::Job', queue: 'a' * 501)
+      end
+    end
+
     it "should make sure that a job error message does not exceed 500 characters" do
       assert_constraint_error 'error_length' do
         DB[:que_jobs].
