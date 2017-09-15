@@ -24,7 +24,7 @@
 
     *   Job configuration options are now inheritable, so job class hierarchies are more useful.
 
-    *   Worked jobs may optionally be retained in the database indefinitely.
+    *   Jobs that have finished working may optionally be retained in the database indefinitely.
 
         *   To keep a job record, replace the `destroy` calls in your jobs with `finish`. `destroy` will still delete records entirely, for jobs that you don't want to keep.
 
@@ -32,7 +32,13 @@
 
         *   Finished jobs have a timestamp set in the finished_at column.
 
-    *   You can now set job priority thresholds for individual worker threads, to ensure that there will always be space available for high-priority jobs.
+    *   Jobs that have errored too many times will now be marked as expired, and won't be retried again.
+
+        *   You can configure a maximum_retry_count in your job classes, to set the threshold at which a job will be marked expired. The default is 15.
+
+        *   To manually mark a job as expired (and keep it in the database but not try to run it again) you can call `expire` helper in your job.
+
+    *   You can now set job priority thresholds for individual workers, to ensure that there will always be space available for high-priority jobs.
 
     *   `Que.job_states` returns a list of locked jobs and the hostname/pid of the Ruby processes that have locked them.
 
