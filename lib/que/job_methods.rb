@@ -80,7 +80,7 @@ module Que
     def default_resolve_action
       return unless que_target
 
-      finish
+      destroy
     end
 
     def finish

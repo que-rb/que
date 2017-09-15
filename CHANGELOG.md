@@ -28,7 +28,7 @@
 
         *   To keep a job record, replace the `destroy` calls in your jobs with `finish`. `destroy` will still delete records entirely, for jobs that you don't want to keep.
 
-        *   If you don't resolve a job yourself, Que will `finish` the job for you by default (previously it would `destroy` it).
+        *   If you don't resolve a job yourself one way or another, Que will still `destroy` the job for you by default.
 
         *   Finished jobs have a timestamp set in the finished_at column.
 

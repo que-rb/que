@@ -119,12 +119,13 @@ describe Que::Job do
             end
 
             def default_resolve_action
-              destroy
+              finish
             end
           end
 
           execute
-          assert_empty jobs_dataset
+          assert_empty active_jobs_dataset
+          assert_equal(should_persist_job ? 1 : 0, jobs_dataset.count)
         end
 
         it "should wrap the run method in whatever middleware are defined" do
@@ -157,21 +158,6 @@ describe Que::Job do
           end
 
           assert_equal passed_1.object_id, passed_2.object_id
-        end
-
-        it "should make it easy to override the finishing action" do
-          TestJobClass.class_eval do
-            def finish
-              $args = []
-              $args << :before_destroy
-              destroy
-              $args << :after_destroy
-            end
-          end
-
-          execute
-          assert_equal [:before_destroy, :after_destroy], $args
-          assert_empty jobs_dataset
         end
 
         it "calling retry_in when there's no error shouldn't be problematic" do
