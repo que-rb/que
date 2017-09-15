@@ -305,14 +305,28 @@ describe Que::Worker do
     end
 
     describe "when retrying because the job couldn't even be run" do
-      it "when there's no corresponding job class" do
-        assert_retry_cadence \
-          4, 19, 84, 259,
-          job_class: "NonexistentClass",
-          expected_error_message: /uninitialized constant:? .*NonexistentClass/,
-          expected_backtrace: false
+      describe "when there's no corresponding job class" do
+        it "should retry" do
+          assert_retry_cadence \
+            4, 19, 84, 259,
+            job_class: "NonexistentClass",
+            expected_error_message: /uninitialized constant:? .*NonexistentClass/,
+            expected_backtrace: false
 
-        assert_instance_of NameError, notified_errors.first[:error]
+          assert_instance_of NameError, notified_errors.first[:error]
+        end
+
+        it "when it reaches a maximum should mark the job as expired" do
+          job = Que.enqueue(job_class: "NonexistentJobClass")
+          ds = jobs_dataset.where(id: job.que_attrs[:id])
+
+          assert_equal 1, ds.update(error_count: 15)
+          run_jobs
+
+          expired_at, error_count = ds.select_map([:expired_at, :error_count]).first
+          assert_in_delta expired_at, Time.now, 3
+          assert_equal 16, error_count
+        end
       end
 
       it "when the job class doesn't descend from Que::Job" do

@@ -125,19 +125,27 @@ module Que
         # backoff logic in Que::Job.
         job_class = (klass && klass <= Job) ? klass : Job
 
-        delay =
-          job_class.
-          resolve_que_setting(
-            :retry_interval,
-            job.fetch(:error_count) + 1,
-          )
+        error_count = job.fetch(:error_count) + 1
 
-        Que.execute :set_error, [
-          delay,
-          "#{error.class}: #{error.message}".slice(0, 500),
-          error.backtrace.join("\n").slice(0, 10000),
-          job.fetch(:id),
-        ]
+        max_retry_count = job_class.resolve_que_setting(:maximum_retry_count)
+
+        if max_retry_count && error_count > max_retry_count
+          Que.execute :expire_job, [job.fetch(:id)]
+        else
+          delay =
+            job_class.
+            resolve_que_setting(
+              :retry_interval,
+              error_count,
+            )
+
+          Que.execute :set_error, [
+            delay,
+            "#{error.class}: #{error.message}".slice(0, 500),
+            error.backtrace.join("\n").slice(0, 10000),
+            job.fetch(:id),
+          ]
+        end
       rescue
         # If we can't reach the database for some reason, too bad, but
         # don't let it crash the work loop.
