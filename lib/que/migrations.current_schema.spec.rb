@@ -10,29 +10,71 @@ describe Que::Migrations, "current schema" do
 
   describe "que_jobs table constraints" do
     it "should make sure that a job has valid arguments" do
-      assert_constraint_error 'args_is_array' do
-        DB[:que_jobs].
-          insert(job_class: 'Que::Job', data: JSON.dump({}))
+      [
+        {},
+        [],
+        4,
+        "string",
+        nil,
+        true
+      ].each do |data|
+        assert_constraint_error 'args_is_array' do
+          DB[:que_jobs].
+            insert(job_class: 'Que::Job', data: JSON.dump(data))
+        end
       end
 
-      assert_constraint_error 'args_is_array' do
+      [
+        {},
+        4,
+        "string",
+        nil,
+        true
+      ].each do |args|
+        assert_constraint_error 'args_is_array' do
+          DB[:que_jobs].
+            insert(job_class: 'Que::Job', data: JSON.dump(args: args))
+        end
+      end
+    end
+
+    it "should make sure that a job has valid tags" do
+      assert_constraint_error 'tags_is_short_array' do
         DB[:que_jobs].
-          insert(job_class: 'Que::Job', data: JSON.dump([]))
+          insert(job_class: 'Que::Job', data: JSON.dump(args: []))
       end
 
-      assert_constraint_error 'args_is_array' do
-        DB[:que_jobs].
-          insert(job_class: 'Que::Job', data: JSON.dump([{args: []}]))
+      [
+        {},
+        4,
+        "string",
+        nil,
+        true,
+        %w[a b c d e f], # More than 5 elements.
+      ].each do |tags|
+        assert_constraint_error 'tags_is_short_array' do
+          DB[:que_jobs].
+            insert(job_class: 'Que::Job', data: JSON.dump(args: [], tags: tags))
+        end
       end
 
-      assert_constraint_error 'args_is_array' do
-        DB[:que_jobs].
-          insert(job_class: 'Que::Job', data: '4')
-      end
+      [
+        [1],
+        [true],
+        [nil],
+        [[]],
+        [{}],
+        ["a" * 101],
+      ].each do |tags|
+        assert_constraint_error 'tags_short_strings' do
+          DB[:que_jobs].
+            insert(job_class: 'Que::Job', data: JSON.dump(args: [], tags: tags))
+        end
 
-      assert_constraint_error 'args_is_array' do
-        DB[:que_jobs].
-          insert(job_class: 'Que::Job', data: JSON.dump({args: 4}))
+        assert_constraint_error 'tags_short_strings' do
+          DB[:que_jobs].
+            insert(job_class: 'Que::Job', data: JSON.dump(args: [], tags: (tags << "valid_tag").shuffle))
+        end
       end
     end
 

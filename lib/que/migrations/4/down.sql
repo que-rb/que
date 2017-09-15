@@ -37,3 +37,5 @@ ALTER TABLE que_jobs
 
 ALTER TABLE que_jobs
   ADD PRIMARY KEY (queue, priority, run_at, job_id);
+
+DROP FUNCTION que_validate_tags(jsonb);

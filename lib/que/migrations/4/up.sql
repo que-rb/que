@@ -37,6 +37,16 @@ SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
 CREATE INDEX que_poll_idx ON que_jobs (queue, priority, run_at, id) WHERE finished_at IS NULL;
 CREATE INDEX que_jobs_data_gin_idx ON que_jobs USING gin (data jsonb_path_ops);
 
+CREATE FUNCTION que_validate_tags(tags_array jsonb) RETURNS boolean AS $$
+  SELECT bool_and(
+    jsonb_typeof(value) = 'string'
+    AND
+    char_length(value::text) <= 100
+  )
+  FROM jsonb_array_elements(tags_array)
+$$
+LANGUAGE SQL;
+
 ALTER TABLE que_jobs
   ADD PRIMARY KEY (id),
   ALTER COLUMN queue SET DEFAULT 'default',
@@ -59,6 +69,7 @@ ALTER TABLE que_jobs
     AND
     (jsonb_array_length(data->'tags') <= 5)
   ),
+  ADD CONSTRAINT tags_short_strings CHECK (que_validate_tags(data->'tags')),
   ADD CONSTRAINT error_length CHECK (
     (char_length(last_error_message) <= 500) AND
     (char_length(last_error_backtrace) <= 10000)
