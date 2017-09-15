@@ -8,6 +8,13 @@ module Que
       WHERE id = $1::bigint
     }
 
+  SQL[:expire_job] =
+    %{
+      UPDATE public.que_jobs
+      SET expired_at = now()
+      WHERE id = $1::bigint
+    }
+
   SQL[:destroy_job] =
     %{
       DELETE FROM public.que_jobs
@@ -81,6 +88,16 @@ module Que
       return unless que_target
 
       destroy
+    end
+
+    def expire
+      return unless que_target
+
+      if id = que_target.que_attrs[:id]
+        Que.execute :expire_job, [id]
+      end
+
+      que_target.que_resolved = true
     end
 
     def finish

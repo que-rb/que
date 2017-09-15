@@ -190,6 +190,25 @@ describe Que::Migrations, "que_state trigger" do
       )
     end
 
+    it "and marking it as expired" do
+      id = DB[:que_jobs].insert(job_class: "MyJobClass")
+
+      assert get_message
+
+      assert_equal 1, DB[:que_jobs].where(id: id).update(expired_at: Time.now)
+
+      assert_equal(
+        {
+          queue: "default",
+          job_class: "MyJobClass",
+          tags: [],
+          previous_state: "ready",
+          current_state: "expired",
+        },
+        get_message,
+      )
+    end
+
     it "and not changing the state should not emit a message" do
       id = DB[:que_jobs].insert(job_class: "MyJobClass", run_at: Time.now + 36000)
 

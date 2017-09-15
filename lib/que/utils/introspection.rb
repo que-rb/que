@@ -19,7 +19,7 @@ module Que
             FROM pg_locks
             WHERE locktype = 'advisory'
           ) locks USING (id)
-          WHERE finished_at IS NULL
+          WHERE finished_at IS NULL AND expired_at IS NULL
           GROUP BY job_class
           ORDER BY count(*) DESC
         }

@@ -200,7 +200,15 @@ class QueSpec < Minitest::Spec
   end
 
   def active_jobs_dataset
-    jobs_dataset.where(finished_at: nil)
+    jobs_dataset.where(finished_at: nil, expired_at: nil)
+  end
+
+  def expired_jobs_dataset
+    jobs_dataset.exclude(expired_at: nil)
+  end
+
+  def finished_jobs_dataset
+    jobs_dataset.exclude(finished_at: nil)
   end
 
   def listening_lockers

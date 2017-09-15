@@ -6,6 +6,7 @@ ALTER SEQUENCE que_jobs_job_id_seq RENAME TO que_jobs_id_seq;
 ALTER TABLE que_jobs
   ADD COLUMN last_error_backtrace text,
   ADD COLUMN finished_at timestamptz,
+  ADD COLUMN expired_at timestamptz,
   ADD COLUMN data JSONB;
 
 ALTER TABLE que_jobs DROP CONSTRAINT que_jobs_pkey;
@@ -34,7 +35,7 @@ SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
       jsonb_build_array()
     );
 
-CREATE INDEX que_poll_idx ON que_jobs (queue, priority, run_at, id) WHERE finished_at IS NULL;
+CREATE INDEX que_poll_idx ON que_jobs (queue, priority, run_at, id) WHERE (finished_at IS NULL AND expired_at IS NULL);
 CREATE INDEX que_jobs_data_gin_idx ON que_jobs USING gin (data jsonb_path_ops);
 
 CREATE FUNCTION que_validate_tags(tags_array jsonb) RETURNS boolean AS $$
@@ -188,6 +189,7 @@ CREATE TRIGGER que_job_notify
 CREATE FUNCTION que_determine_job_state(job que_jobs) RETURNS text AS $$
   SELECT
     CASE
+    WHEN job.expired_at  IS NOT NULL    THEN 'expired'
     WHEN job.finished_at IS NOT NULL    THEN 'finished'
     WHEN job.error_count > 0            THEN 'errored'
     WHEN job.run_at > CURRENT_TIMESTAMP THEN 'scheduled'

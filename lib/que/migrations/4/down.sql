@@ -23,6 +23,7 @@ ALTER TABLE que_jobs
   DROP CONSTRAINT queue_length,
   DROP CONSTRAINT job_class_length,
   DROP COLUMN finished_at,
+  DROP COLUMN expired_at,
   ADD COLUMN args JSON;
 
 UPDATE que_jobs

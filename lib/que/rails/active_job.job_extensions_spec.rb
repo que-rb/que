@@ -31,6 +31,7 @@ if defined?(::ActiveJob)
             :default_resolve_action,
             :destroy,
             :error_count,
+            :expire,
             :finish,
             :handle_error,
             :que_target,
@@ -48,6 +49,7 @@ if defined?(::ActiveJob)
               default_resolve_action,
               destroy,
               error_count,
+              expire,
               finish,
               handle_error(nil),
               que_target,
@@ -68,7 +70,7 @@ if defined?(::ActiveJob)
         )
 
         assert_equal(
-          [nil, nil, 0, nil, nil, nil, nil, nil, nil],
+          [nil, nil, 0, nil, nil, nil, nil, nil, nil, nil],
           $results,
         )
       end

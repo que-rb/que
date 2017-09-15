@@ -60,7 +60,7 @@ module Que
             WHERE queue = $1::text
               AND NOT id = ANY($2::bigint[])
               AND run_at <= now()
-              AND finished_at IS NULL
+              AND finished_at IS NULL AND expired_at IS NULL
             ORDER BY priority, run_at, id
             LIMIT 1
           ) AS t1
@@ -73,7 +73,7 @@ module Que
                 WHERE queue = $1::text
                   AND NOT id = ANY($2::bigint[])
                   AND run_at <= now()
-                  AND finished_at IS NULL
+                  AND finished_at IS NULL AND expired_at IS NULL
                   AND (priority, run_at, id) >
                     (jobs.priority, jobs.run_at, jobs.id)
                 ORDER BY priority, run_at, id

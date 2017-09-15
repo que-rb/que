@@ -110,7 +110,30 @@ describe Que::Job do
           end
 
           execute
-          assert_empty active_jobs_dataset
+
+          if should_persist_job
+            assert_empty active_jobs_dataset
+            refute_empty finished_jobs_dataset
+          else
+            assert_empty jobs_dataset
+          end
+        end
+
+        it "should make it easy to expire the job" do
+          TestJobClass.class_eval do
+            def run
+              expire
+            end
+          end
+
+          execute
+
+          if should_persist_job
+            assert_empty active_jobs_dataset
+            refute_empty expired_jobs_dataset
+          else
+            assert_empty jobs_dataset
+          end
         end
 
         it "should make it easy to override the default resolution action" do
@@ -124,8 +147,13 @@ describe Que::Job do
           end
 
           execute
-          assert_empty active_jobs_dataset
-          assert_equal(should_persist_job ? 1 : 0, jobs_dataset.count)
+
+          if should_persist_job
+            assert_empty active_jobs_dataset
+            refute_empty finished_jobs_dataset
+          else
+            assert_empty jobs_dataset
+          end
         end
 
         it "should wrap the run method in whatever middleware are defined" do
