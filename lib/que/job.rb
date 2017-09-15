@@ -44,7 +44,8 @@ module Que
       self
     end
 
-    @retry_interval = proc { |count| count ** 4 + 3 }
+    @retry_interval      = proc { |count| count ** 4 + 3 }
+    @maximum_retry_count = 15
 
     class << self
       attr_accessor :run_synchronously

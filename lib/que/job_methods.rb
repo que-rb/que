@@ -11,7 +11,8 @@ module Que
   SQL[:expire_job] =
     %{
       UPDATE public.que_jobs
-      SET expired_at = now()
+      SET error_count = error_count + 1,
+          expired_at = now()
       WHERE id = $1::bigint
     }
 
@@ -24,12 +25,10 @@ module Que
   SQL[:set_error] =
     %{
       UPDATE public.que_jobs
-
       SET error_count          = error_count + 1,
           run_at               = now() + $1::float * '1 second'::interval,
           last_error_message   = left($2::text, 500),
           last_error_backtrace = left($3::text, 10000)
-
       WHERE id = $4::bigint
     }
 
@@ -121,7 +120,13 @@ module Que
     def handle_error(error)
       return unless que_target
 
-      retry_in_default_interval
+      max = resolve_que_setting(:maximum_retry_count)
+
+      if max && error_count > max
+        expire
+      else
+        retry_in_default_interval
+      end
     end
 
     def retry_in_default_interval

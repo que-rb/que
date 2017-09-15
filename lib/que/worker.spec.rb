@@ -47,7 +47,7 @@ describe Que::Worker do
 
     job_queue.push(*jobs)
 
-    sleep_until! do
+    sleep_until!(60000) do
       finished_job_ids == job_ids
     end
   end
@@ -245,6 +245,61 @@ describe Que::Worker do
         it "when the retry_interval is a callable returning an ActiveSupport::Duration" do
           WorkerJob.class_eval { @retry_interval = proc { |count| count.minutes } }
           assert_retry_cadence 60, 120, 180, 240
+        end
+      end
+
+      describe "when the job has reached it's maximum_retry_count" do
+        before do
+          WorkerJob.class_eval do
+            def run(*args)
+              raise "Blah!"
+            end
+          end
+        end
+
+        it "should mark the job as expired" do
+          job = WorkerJob.enqueue
+
+          assert_equal 1, jobs_dataset.update(error_count: 14)
+          # The job has failed 14 times, it's on its 14th retry.
+
+          run_jobs
+
+          assert_equal [[nil, 15]], jobs_dataset.select_map([:expired_at, :error_count])
+
+          assert_equal 1, jobs_dataset.update(run_at: Time.now - 3600)
+
+          run_jobs
+
+          a = jobs_dataset.select_map([:expired_at, :error_count])
+          assert_equal 1, a.length
+
+          expired_at, error_count = a.first
+
+          assert_in_delta expired_at, Time.now, 3
+          assert_equal 16, error_count
+        end
+
+        describe "when that value is custom" do
+          before do
+            WorkerJob.class_eval { @maximum_retry_count = 3 }
+          end
+
+          it "should mark the job as expired" do
+            job = WorkerJob.enqueue
+            ds = jobs_dataset.where(id: job.que_attrs[:id])
+
+            (1..4).each do |attempt|
+              run_jobs
+              assert_equal attempt, ds.get(:error_count)
+
+              if attempt == 4
+                assert_in_delta ds.get(:expired_at), Time.now, 5
+              else
+                assert_nil ds.get(:expired_at)
+              end
+            end
+          end
         end
       end
     end
