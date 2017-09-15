@@ -31,11 +31,21 @@ describe Que::Migrations, "que_state trigger" do
   end
 
   describe "the notification metadata" do
-    it "should report the job's class and queue" do
-      DB[:que_jobs].insert(job_class: "CustomJobClass", queue: "custom_queue")
+    it "should report the job's class and queue and tags" do
+      DB[:que_jobs].insert(
+        job_class: "CustomJobClass",
+        queue: "custom_queue",
+        data: JSON.dump(args: [], tags: ["tag_1", "tag_2"]),
+      )
 
       assert_equal(
-        {queue: "custom_queue", job_class: "CustomJobClass", previous_state: "nonexistent", current_state: "ready"},
+        {
+          queue: "custom_queue",
+          job_class: "CustomJobClass",
+          tags: ["tag_1", "tag_2"],
+          previous_state: "nonexistent",
+          current_state: "ready",
+        },
         get_message,
       )
     end
@@ -48,7 +58,13 @@ describe Que::Migrations, "que_state trigger" do
         )
 
         assert_equal(
-          {queue: "default", job_class: "WrappedJobClass", previous_state: "nonexistent", current_state: "ready"},
+          {
+            queue: "default",
+            job_class: "WrappedJobClass",
+            tags: [],
+            previous_state: "nonexistent",
+            current_state: "ready",
+          },
           get_message,
         )
       end
@@ -68,7 +84,13 @@ describe Que::Migrations, "que_state trigger" do
           )
 
           assert_equal(
-            {queue: "default", job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper", previous_state: "nonexistent", current_state: "ready"},
+            {
+              queue: "default",
+              job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
+              tags: [],
+              previous_state: "nonexistent",
+              current_state: "ready",
+            },
             get_message,
           )
         end
@@ -83,7 +105,13 @@ describe Que::Migrations, "que_state trigger" do
       DB[:que_jobs].insert(job_class: "MyJobClass")
 
       assert_equal(
-        {queue: "default", job_class: "MyJobClass", previous_state: "nonexistent", current_state: "ready"},
+        {
+          queue: "default",
+          job_class: "MyJobClass",
+          tags: [],
+          previous_state: "nonexistent",
+          current_state: "ready",
+        },
         get_message,
       )
     end
@@ -92,7 +120,13 @@ describe Que::Migrations, "que_state trigger" do
       DB[:que_jobs].insert(job_class: "MyJobClass", run_at: Time.now + 36000)
 
       assert_equal(
-        {queue: "default", job_class: "MyJobClass", previous_state: "nonexistent", current_state: "scheduled"},
+        {
+          queue: "default",
+          job_class: "MyJobClass",
+          tags: [],
+          previous_state: "nonexistent",
+          current_state: "scheduled",
+        },
         get_message,
       )
     end
@@ -107,7 +141,13 @@ describe Que::Migrations, "que_state trigger" do
       assert_equal 1, DB[:que_jobs].where(id: id).update(finished_at: Time.now)
 
       assert_equal(
-        {queue: "default", job_class: "MyJobClass", previous_state: "ready", current_state: "finished"},
+        {
+          queue: "default",
+          job_class: "MyJobClass",
+          tags: [],
+          previous_state: "ready",
+          current_state: "finished",
+        },
         get_message,
       )
     end
@@ -120,7 +160,13 @@ describe Que::Migrations, "que_state trigger" do
       assert_equal 1, DB[:que_jobs].where(id: id).update(error_count: 1)
 
       assert_equal(
-        {queue: "default", job_class: "MyJobClass", previous_state: "ready", current_state: "errored"},
+        {
+          queue: "default",
+          job_class: "MyJobClass",
+          tags: [],
+          previous_state: "ready",
+          current_state: "errored",
+        },
         get_message,
       )
     end
@@ -133,7 +179,13 @@ describe Que::Migrations, "que_state trigger" do
       assert_equal 1, DB[:que_jobs].where(id: id).update(run_at: Time.now + 36000)
 
       assert_equal(
-        {queue: "default", job_class: "MyJobClass", previous_state: "ready", current_state: "scheduled"},
+        {
+          queue: "default",
+          job_class: "MyJobClass",
+          tags: [],
+          previous_state: "ready",
+          current_state: "scheduled",
+        },
         get_message,
       )
     end
@@ -158,7 +210,13 @@ describe Que::Migrations, "que_state trigger" do
       assert_equal 1, DB[:que_jobs].where(id: id).delete
 
       assert_equal(
-        {queue: "default", job_class: "MyJobClass", previous_state: "ready", current_state: "nonexistent"},
+        {
+          queue: "default",
+          job_class: "MyJobClass",
+          tags: [],
+          previous_state: "ready",
+          current_state: "nonexistent",
+        },
         get_message,
       )
     end

@@ -216,17 +216,19 @@ CREATE FUNCTION que_state_notify() RETURNS trigger AS $$
     INTO message
     FROM (
       SELECT
-        'job_change'   AS message_type,
-        row.queue      AS queue,
-        previous_state AS previous_state,
-        current_state  AS current_state,
+        'job_change'     AS message_type,
+        row.queue        AS queue,
+        row.data->'tags' AS tags,
 
         CASE row.job_class
         WHEN 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper' THEN
           coalesce(row.data->'args'->0->>'job_class', 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper')
         ELSE
           row.job_class
-        END AS job_class
+        END AS job_class,
+
+        previous_state   AS previous_state,
+        current_state    AS current_state
     ) t;
 
     PERFORM pg_notify('que_state', message::text);
