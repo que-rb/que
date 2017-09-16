@@ -88,7 +88,7 @@ defaults: &defaults
                 for GEMFILE_VERSION in $GEMFILE_VERSIONS
                 do
                   # The oldest Rails version doesn't support Ruby 2.4.
-                  if [ $RUBY_VERSION -eq 2.4 -a $USE_RAILS -eq true -a $GEMFILE_VERSION -eq oldest ]
+                  if [ $RUBY_VERSION -eq "2.4" -a $USE_RAILS -eq true -a $GEMFILE_VERSION -eq oldest ]
                   then
                     continue
                   fi
