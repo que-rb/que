@@ -150,12 +150,26 @@ module Que
     end
 
     def message_matches_format?(message, format)
-      # Add one to account for message_type key, which we've confirmed exists.
-      return false unless message.length == format.length + 1
+      message_has_all_keys?(message, format) &&
+        message_has_no_excess_keys?(message, format) &&
+        message_keys_all_valid?(message, format)
+    end
 
-      format.all? do |key, type|
-        value = message.fetch(key) { return false }
-        Que.assert?(type, value)
+    def message_has_all_keys?(message, format)
+      format.all? { |k,v| message.has_key?(k) }
+    end
+
+    def message_has_no_excess_keys?(message, format)
+      message.all? { |k,v| format.has_key?(k) || k == :message_type }
+    end
+
+    def message_keys_all_valid?(message, format)
+      message.all? do |key, value|
+        if type = format[key]
+          Que.assert?(type, value)
+        else
+          true
+        end
       end
     end
   end
