@@ -30,43 +30,69 @@ describe Que::Migrations, "que_state trigger" do
     raise "No message!" unless expect_nothing
   end
 
+  def assert_notification(
+    current_state:,
+    previous_state:,
+    queue: "default",
+    job_class: "MyJobClass",
+    tags: [],
+    id: nil,
+    run_at: nil
+  )
+    current_time = nil
+
+    DB.transaction do
+      result = yield
+      current_time = DB.get{now.function}
+
+      id     ||= result
+      run_at ||= current_time
+    end
+
+    assert_equal(
+      {
+        queue: queue,
+        job_class: job_class,
+        tags: tags,
+        previous_state: previous_state,
+        current_state: current_state,
+        id: id,
+        run_at: run_at.utc.iso8601(6),
+        current_time: current_time.utc.iso8601(6),
+      },
+      get_message,
+    )
+  end
+
   describe "the notification metadata" do
     it "should report the job's class and queue and tags" do
-      DB[:que_jobs].insert(
+      assert_notification(
         job_class: "CustomJobClass",
         queue: "custom_queue",
-        data: JSON.dump(args: [], tags: ["tag_1", "tag_2"]),
-      )
-
-      assert_equal(
-        {
-          queue: "custom_queue",
+        tags: ["tag_1", "tag_2"],
+        previous_state: "nonexistent",
+        current_state: "ready",
+      ) do
+        DB[:que_jobs].insert(
           job_class: "CustomJobClass",
-          tags: ["tag_1", "tag_2"],
-          previous_state: "nonexistent",
-          current_state: "ready",
-        },
-        get_message,
-      )
+          queue: "custom_queue",
+          data: JSON.dump(args: [], tags: ["tag_1", "tag_2"]),
+        )
+      end
     end
 
     describe "when the job is wrapped by ActiveJob" do
       it "should report the wrapped job class" do
-        DB[:que_jobs].insert(
-          job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
-          data: JSON.dump(args: [{job_class: "WrappedJobClass"}], tags: []),
-        )
-
-        assert_equal(
-          {
-            queue: "default",
-            job_class: "WrappedJobClass",
-            tags: [],
-            previous_state: "nonexistent",
-            current_state: "ready",
-          },
-          get_message,
-        )
+        assert_notification(
+          job_class: "WrappedJobClass",
+          previous_state: "nonexistent",
+          current_state: "ready",
+        ) do
+          DB[:que_jobs].insert(
+            job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
+            data: JSON.dump(args: [{job_class: "WrappedJobClass"}], tags: []),
+          )
+        end
       end
 
       it "and the wrapped job class cannot be found should report the wrapper" do
@@ -78,21 +104,16 @@ describe Que::Migrations, "que_state trigger" do
           [{other_key: 'value'}],
           ['string'],
         ].each do |args|
-          DB[:que_jobs].insert(
+          assert_notification(
             job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
-            data: JSON.dump(args: args, tags: []),
-          )
-
-          assert_equal(
-            {
-              queue: "default",
+            previous_state: "nonexistent",
+            current_state: "ready",
+          ) do
+            DB[:que_jobs].insert(
               job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
-              tags: [],
-              previous_state: "nonexistent",
-              current_state: "ready",
-            },
-            get_message,
-          )
+              data: JSON.dump(args: args, tags: []),
+            )
+          end
         end
       end
     end
@@ -102,111 +123,84 @@ describe Que::Migrations, "que_state trigger" do
 
   describe "when inserting a new job" do
     it "that is ready should issue a notification containing the job's class, queue, etc." do
-      DB[:que_jobs].insert(job_class: "MyJobClass")
-
-      assert_equal(
-        {
-          queue: "default",
-          job_class: "MyJobClass",
-          tags: [],
-          previous_state: "nonexistent",
-          current_state: "ready",
-        },
-        get_message,
-      )
+      assert_notification(
+        previous_state: "nonexistent",
+        current_state: "ready",
+      ) do
+        DB[:que_jobs].insert(job_class: "MyJobClass")
+      end
     end
 
     it "that is scheduled" do
-      DB[:que_jobs].insert(job_class: "MyJobClass", run_at: Time.now + 36000)
+      future = Time.now + 36000
 
-      assert_equal(
-        {
-          queue: "default",
-          job_class: "MyJobClass",
-          tags: [],
-          previous_state: "nonexistent",
-          current_state: "scheduled",
-        },
-        get_message,
-      )
+      assert_notification(
+        previous_state: "nonexistent",
+        current_state: "scheduled",
+        run_at: future,
+      ) do
+        DB[:que_jobs].insert(job_class: "MyJobClass", run_at: future)
+      end
     end
   end
 
   describe "when updating a job" do
     it "and marking it as finished should issue a notification containing the job's class, error count, etc." do
-      id = DB[:que_jobs].insert(job_class: "MyJobClass")
-
+      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass").first
       assert get_message
 
-      assert_equal 1, DB[:que_jobs].where(id: id).update(finished_at: Time.now)
-
-      assert_equal(
-        {
-          queue: "default",
-          job_class: "MyJobClass",
-          tags: [],
-          previous_state: "ready",
-          current_state: "finished",
-        },
-        get_message,
-      )
+      assert_notification(
+        previous_state: "ready",
+        current_state: "finished",
+        id: record[:id],
+        run_at: record[:run_at],
+      ) do
+        DB[:que_jobs].where(id: record[:id]).update(finished_at: Time.now)
+      end
     end
 
     it "and marking it as errored" do
-      id = DB[:que_jobs].insert(job_class: "MyJobClass")
-
+      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass").first
       assert get_message
 
-      assert_equal 1, DB[:que_jobs].where(id: id).update(error_count: 1)
-
-      assert_equal(
-        {
-          queue: "default",
-          job_class: "MyJobClass",
-          tags: [],
-          previous_state: "ready",
-          current_state: "errored",
-        },
-        get_message,
-      )
+      assert_notification(
+        previous_state: "ready",
+        current_state: "errored",
+        id: record[:id],
+        run_at: record[:run_at],
+      ) do
+        DB[:que_jobs].where(id: record[:id]).update(error_count: 1)
+      end
     end
 
     it "and marking it as scheduled for the future" do
-      id = DB[:que_jobs].insert(job_class: "MyJobClass")
-
+      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass").first
       assert get_message
 
-      assert_equal 1, DB[:que_jobs].where(id: id).update(run_at: Time.now + 36000)
+      future = Time.now + 36000
 
-      assert_equal(
-        {
-          queue: "default",
-          job_class: "MyJobClass",
-          tags: [],
-          previous_state: "ready",
-          current_state: "scheduled",
-        },
-        get_message,
-      )
+      assert_notification(
+        previous_state: "ready",
+        current_state: "scheduled",
+        id: record[:id],
+        run_at: future,
+      ) do
+        DB[:que_jobs].where(id: record[:id]).update(run_at: future)
+      end
     end
 
     it "and marking it as expired" do
-      id = DB[:que_jobs].insert(job_class: "MyJobClass")
-
+      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass").first
       assert get_message
 
-      assert_equal 1, DB[:que_jobs].where(id: id).update(expired_at: Time.now)
-
-      assert_equal(
-        {
-          queue: "default",
-          job_class: "MyJobClass",
-          tags: [],
-          previous_state: "ready",
-          current_state: "expired",
-        },
-        get_message,
-      )
+      assert_notification(
+        previous_state: "ready",
+        current_state: "expired",
+        id: record[:id],
+        run_at: record[:run_at],
+      ) do
+        DB[:que_jobs].where(id: record[:id]).update(expired_at: Time.now)
+      end
     end
 
     it "and not changing the state should not emit a message" do
@@ -222,22 +216,17 @@ describe Que::Migrations, "que_state trigger" do
 
   describe "when deleting a job" do
     it "should issue a notification containing the job's class, queue, etc." do
-      id = DB[:que_jobs].insert(job_class: "MyJobClass")
-
+      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass").first
       assert get_message
 
-      assert_equal 1, DB[:que_jobs].where(id: id).delete
-
-      assert_equal(
-        {
-          queue: "default",
-          job_class: "MyJobClass",
-          tags: [],
-          previous_state: "ready",
-          current_state: "nonexistent",
-        },
-        get_message,
-      )
+      assert_notification(
+        previous_state: "ready",
+        current_state: "nonexistent",
+        id: record[:id],
+        run_at: record[:run_at],
+      ) do
+        DB[:que_jobs].where(id: record[:id]).delete
+      end
     end
   end
 end
