@@ -3,7 +3,11 @@
 require 'spec_helper'
 
 if defined?(::ActiveRecord)
-  describe Que::ActiveRecord::Model do
+  describe 'Que::ActiveRecord::Model' do
+    before do
+      require "que/rails/model"
+    end
+
     it "should be able to load, modify and update jobs" do
       job_attrs = Que::Job.enqueue.que_attrs
 

@@ -2,7 +2,11 @@
 
 require 'spec_helper'
 
-describe Que::Sequel::Model do
+describe 'Que::Sequel::Model' do
+  before do
+    require "que/sequel/model"
+  end
+
   it "should be able to load, modify and update jobs" do
     job_attrs = Que::Job.enqueue.que_attrs
 
