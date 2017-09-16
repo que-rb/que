@@ -5,7 +5,7 @@ require 'spec_helper'
 if defined?(::ActiveRecord)
   describe 'Que::ActiveRecord::Model' do
     before do
-      require "que/rails/model"
+      require "que/active_record/model"
     end
 
     it "should be able to load, modify and update jobs" do

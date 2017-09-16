@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'command_line_interface'
 require 'spec_helper'
+require_relative 'command_line_interface'
 
 describe Que::CommandLineInterface do
   LOADED_FILES = {}

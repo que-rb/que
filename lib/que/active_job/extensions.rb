@@ -90,6 +90,8 @@ module Que
   end
 end
 
-ActiveJob::QueueAdapters::QueAdapter::JobWrapper.prepend(
-  Que::ActiveJob::WrapperExtensions
-)
+class ActiveJob::QueueAdapters::QueAdapter
+  class JobWrapper < Que::Job
+    prepend Que::ActiveJob::WrapperExtensions
+  end
+end

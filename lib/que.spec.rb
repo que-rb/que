@@ -72,9 +72,9 @@ describe Que do
         it "should start using the ConnectionMiddleware iff it wasn't already used" do
           assert_empty Que.middleware
           Que.connection = ActiveRecord
-          assert_equal [Que::ActiveRecord::ConnectionMiddleware], Que.middleware
+          assert_equal [Que::ActiveRecord::Connection::Middleware], Que.middleware
           Que.connection = ActiveRecord
-          assert_equal [Que::ActiveRecord::ConnectionMiddleware], Que.middleware
+          assert_equal [Que::ActiveRecord::Connection::Middleware], Que.middleware
         end
       end
     end

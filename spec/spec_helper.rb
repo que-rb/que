@@ -1,18 +1,5 @@
 # frozen_string_literal: true
 
-require 'que'
-
-# Libraries necessary for tests.
-require 'uri'
-require 'pg'
-require 'pry'
-require 'pg_examiner'
-require 'timeout'
-
-# Connection pool sources.
-require 'pond'
-require 'connection_pool'
-
 # ActiveRecord and ActiveJob require ActiveSupport, which affects a bunch of
 # core classes and may change some behavior that we rely on, so only bring it in
 # in some spec runs.
@@ -25,11 +12,24 @@ if ENV['USE_RAILS'] == 'true'
     ActiveJob::Base.queue_adapter = :que
     ActiveJob::Base.logger = nil
 
-    require 'que/rails/active_job'
+    # require 'que/active_job/extensions'
   rescue LoadError
     # We're on an old Gemfile where ActiveJob isn't available - no biggie.
   end
 end
+
+require 'que'
+
+# Libraries necessary for tests.
+require 'uri'
+require 'pg'
+require 'pry'
+require 'pg_examiner'
+require 'timeout'
+
+# Connection pool sources.
+require 'pond'
+require 'connection_pool'
 
 # Minitest stuff.
 require 'minitest/autorun'

@@ -74,10 +74,10 @@ module Que
       self.connection_proc =
         if conn.to_s == 'ActiveRecord'
           # Load and setup AR compatibility.
-          require_relative 'que/rails/active_record'
-          m = Que::ActiveRecord::ConnectionMiddleware
+          require_relative 'que/active_record/connection'
+          m = Que::ActiveRecord::Connection::Middleware
           middleware << m unless middleware.include?(m)
-          Que::ActiveRecord.method(:checkout)
+          Que::ActiveRecord::Connection.method(:checkout)
         else
           case conn.class.to_s
           when 'Sequel::Postgres::Database' then conn.method(:synchronize)
@@ -107,5 +107,5 @@ module Que
 end
 
 # Load Rails features as appropriate.
-require_relative 'rails/railtie'    if defined?(::Rails::Railtie)
-require_relative 'rails/active_job' if defined?(::ActiveJob)
+require_relative 'que/rails/railtie'         if defined?(::Rails::Railtie)
+require_relative 'que/active_job/extensions' if defined?(::ActiveJob)
