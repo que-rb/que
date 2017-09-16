@@ -20,9 +20,7 @@ end
 
 TODO: Note that you can use handle_error to finish/destroy the job, or to manually set the retry delay depending on whatever conditions.
 
-<!--
-Unlike DelayedJob, however, there is currently no maximum number of failures after which jobs will be deleted. Que's assumption is that if a job is erroring perpetually (and not just transiently), you will want to take action to get the job working properly rather than simply losing it silently.
- -->
+There is a maximum_retry_count option for jobs. It defaults to 15 retries, which with the default retry interval means that a job will stop retrying after a little more than two days.
 
 ## Error Notifications
 
@@ -30,25 +28,27 @@ If you're using an error notification system (highly recommended, of course), yo
 
 ```ruby
 Que.error_notifier = proc do |error, job|
-  # Do whatever you want with the error object or job row here.
+  # Do whatever you want with the error object or job row here. Note that the
+  # job passed is not the actual job object, but the hash representing the job
+  # row in the database, which looks like:
 
-  # Note that the job passed is not the actual job object, but the hash
-  # representing the job row in the database, which looks like:
-
-  # TODO: Update this job representation.
   # {
-  #   "queue" => "my_queue",
-  #   "priority" => 100,
-  #   "run_at" => 2015-03-06 11:07:08 -0500,
-  #   "job_id" => 65,
-  #   "job_class" => "MyJob",
-  #   "args" => ['argument', 78],
-  #   "error_count" => 0
+  #   :priority => 100,
+  #   :run_at => "2017-09-15T20:18:52.018101Z",
+  #   :id => 172340879,
+  #   :job_class => "TestJob",
+  #   :error_count => 0,
+  #   :last_error_message => nil,
+  #   :queue => "default",
+  #   :last_error_backtrace => nil,
+  #   :finished_at => nil,
+  #   :expired_at => nil,
+  #   :data => {:args => [], :tags => []}
   # }
 
   # This is done because the job may not have been able to be deserialized
-  # properly, if the name of the job class was changed or the job is being
-  # retrieved and worked by the wrong app. The job argument may also be
-  # nil, if there was a connection failure or something similar.
+  # properly, if the name of the job class was changed or the job class isn't
+  # loaded for some reason. The job argument may also be nil, if there was a
+  # connection failure or something similar.
 end
 ```

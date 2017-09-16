@@ -75,15 +75,18 @@ module Que
         if conn.to_s == 'ActiveRecord'
           # Load and setup AR compatibility.
           require_relative 'que/rails/active_record'
+          require_relative 'que/rails/model'
           m = Que::ActiveRecord::ConnectionMiddleware
           middleware << m unless middleware.include?(m)
           Que::ActiveRecord.method(:checkout)
         else
           case conn.class.to_s
-          when 'Sequel::Postgres::Database' then conn.method(:synchronize)
-          when 'Pond'                       then conn.method(:checkout)
-          when 'ConnectionPool'             then conn.method(:with)
-          when 'NilClass'                   then conn
+          when 'Sequel::Postgres::Database'
+            require_relative 'que/sequel/model' if defined?(Sequel::Model)
+            conn.method(:synchronize)
+          when 'Pond'           then conn.method(:checkout)
+          when 'ConnectionPool' then conn.method(:with)
+          when 'NilClass'       then conn
           else raise Error, "Unsupported connection: #{conn.class}"
           end
         end
