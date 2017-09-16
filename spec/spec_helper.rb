@@ -75,12 +75,15 @@ parse_json = -> (json) { JSON.parse(json, symbolize_names: true) }
 DB.add_named_conversion_proc(:jsonb, &parse_json)
 DB.add_named_conversion_proc(:json,  &parse_json)
 
+# Have Que use a Sequel DB distinct from the one we use in our testing logic.
+SEQUEL_TEST_DB = Sequel.connect(QUE_URL)
+
 
 
 # Define connection pools of various types for testing purposes.
 
 QUE_POOLS = {
-  sequel:          DB,
+  sequel:          SEQUEL_TEST_DB,
   pond:            Pond.new(&NEW_PG_CONNECTION),
   connection_pool: ConnectionPool.new(&NEW_PG_CONNECTION),
 }.

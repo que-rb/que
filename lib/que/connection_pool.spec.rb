@@ -143,8 +143,8 @@ describe "when wrapping a Sequel connection pool" do
   it "should use the same connection that Sequel does" do
     pid1 = pid2 = nil
 
-    DB.synchronize do
-      pid1 = DB["SELECT pg_backend_pid()"].get
+    SEQUEL_TEST_DB.synchronize do
+      pid1 = SEQUEL_TEST_DB["SELECT pg_backend_pid()"].get
       pid2 = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
     end
 
@@ -153,7 +153,7 @@ describe "when wrapping a Sequel connection pool" do
     pid1 = pid2 = nil
 
     Que.checkout do
-      pid1 = DB["SELECT pg_backend_pid()"].get
+      pid1 = SEQUEL_TEST_DB["SELECT pg_backend_pid()"].get
       pid2 = Que.execute("SELECT pg_backend_pid()").first[:pg_backend_pid]
     end
 
