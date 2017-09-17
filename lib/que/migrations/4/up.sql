@@ -237,7 +237,7 @@ CREATE FUNCTION que_state_notify() RETURNS trigger AS $$
         row.data->'tags' AS tags,
 
         to_char(row.run_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS run_at,
-        to_char(now()      AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS current_time,
+        to_char(now()      AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS time,
 
         CASE row.job_class
         WHEN 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper' THEN

@@ -58,7 +58,7 @@ describe Que::Migrations, "que_state trigger" do
         current_state: current_state,
         id: id,
         run_at: run_at.utc.iso8601(6),
-        current_time: current_time.utc.iso8601(6),
+        time: current_time.utc.iso8601(6),
       },
       get_message,
     )
