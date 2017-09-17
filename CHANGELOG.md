@@ -24,6 +24,8 @@
 
     *   Job configuration options are now inheritable, so job class hierarchies are more useful.
 
+    *   There are now built-in models for ActiveRecord and Sequel to allow inspecting the queue easily.
+
     *   Jobs that have finished working may optionally be retained in the database indefinitely.
 
         *   To keep a job record, replace the `destroy` calls in your jobs with `finish`. `destroy` will still delete records entirely, for jobs that you don't want to keep.

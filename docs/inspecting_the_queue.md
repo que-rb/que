@@ -31,33 +31,4 @@ This tells you that, for instance, there are ten ChargeCreditCard jobs in the qu
 
 ### Custom Queries
 
-If you want to query the jobs table yourself to see what's been queued or to check the state of various jobs, you can always use Que to execute whatever SQL you want:
-
-```ruby
-Que.execute("select count(*) from que_jobs") #=> [{:count=>492}]
-```
-
-If you want to use ActiveRecord's features when querying, you can define your own model around Que's job table:
-
-```ruby
-class QueJob < ActiveRecord::Base
-end
-
-# Or:
-
-class MyJob < ActiveRecord::Base
-  self.table_name = :que_jobs
-end
-```
-
-Then you can query just as you would with any other model. If you're using Sequel, you can use the same technique:
-
-```ruby
-class QueJob < Sequel::Model
-end
-
-# Or:
-
-class MyJob < Sequel::Model(:que_jobs)
-end
-```
+(Write about the built-in models for ActiveRecord and Sequel)
