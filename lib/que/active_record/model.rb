@@ -4,6 +4,45 @@ module Que
   module ActiveRecord
     class Model < ::ActiveRecord::Base
       self.table_name = :que_jobs
+
+      t = arel_table
+
+      scope :errored,     -> { where(t[:error_count].gt(0)) }
+      scope :not_errored, -> { where(t[:error_count].eq(0)) }
+
+      scope :expired,     -> { where(t[:expired_at].not_eq(nil)) }
+      scope :not_expired, -> { where(t[:expired_at].eq(nil)) }
+
+      scope :finished,     -> { where(t[:finished_at].not_eq(nil)) }
+      scope :not_finished, -> { where(t[:finished_at].eq(nil)) }
+
+      scope :scheduled,     -> { where(t[:run_at].gt("now()")) }
+      scope :not_scheduled, -> { where(t[:run_at].lteq("now()")) }
+
+      scope :ready,     -> { not_errored.not_expired.not_finished.not_scheduled }
+      scope :not_ready, -> { errored.or(expired).or(finished).or(scheduled) }
+
+      class << self
+        def by_job_class(job_class)
+          job_class = job_class.name if job_class.is_a?(Class)
+          where(
+            "que_jobs.job_class = ? OR (que_jobs.job_class = 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper' AND que_jobs.data->'args'->0->>'job_class' = ?)",
+            job_class, job_class,
+          )
+        end
+
+        def by_queue(queue)
+          where(arel_table[:queue].eq(queue))
+        end
+
+        def by_tag(tag)
+          where("que_jobs.data @> ?", JSON.dump(tags: [tag]))
+        end
+
+        def by_args(args)
+          where("que_jobs.data @> ?", JSON.dump(args: [args]))
+        end
+      end
     end
   end
 end
