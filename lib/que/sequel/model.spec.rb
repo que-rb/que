@@ -11,6 +11,11 @@ describe 'Que::Sequel::Model' do
     Que::Job.enqueue(*args).que_attrs[:id]
   end
 
+  def assert_ids(*expected)
+    actual = yield(Que::Sequel::Model).select_order_map(:id)
+    assert_equal expected, actual
+  end
+
   it "should be able to load, modify and update jobs" do
     id = enqueue_job
     job = Que::Sequel::Model[id]
@@ -29,8 +34,8 @@ describe 'Que::Sequel::Model' do
       a, b = 2.times.map { enqueue_job }
       assert_equal 1, jobs_dataset.where(id: a).update(error_count: 1)
 
-      assert_equal [a], Que::Sequel::Model.errored.select_map(:id)
-      assert_equal [b], Que::Sequel::Model.not_errored.select_map(:id)
+      assert_ids(a) { |ds| ds.errored }
+      assert_ids(b) { |ds| ds.not_errored }
     end
   end
 
@@ -39,8 +44,8 @@ describe 'Que::Sequel::Model' do
       a, b = 2.times.map { enqueue_job }
       assert_equal 1, jobs_dataset.where(id: a).update(expired_at: Time.now)
 
-      assert_equal [a], Que::Sequel::Model.expired.select_map(:id)
-      assert_equal [b], Que::Sequel::Model.not_expired.select_map(:id)
+      assert_ids(a) { |ds| ds.expired }
+      assert_ids(b) { |ds| ds.not_expired }
     end
   end
 
@@ -49,8 +54,8 @@ describe 'Que::Sequel::Model' do
       a, b = 2.times.map { enqueue_job }
       assert_equal 1, jobs_dataset.where(id: a).update(finished_at: Time.now)
 
-      assert_equal [a], Que::Sequel::Model.finished.select_map(:id)
-      assert_equal [b], Que::Sequel::Model.not_finished.select_map(:id)
+      assert_ids(a) { |ds| ds.finished }
+      assert_ids(b) { |ds| ds.not_finished }
     end
   end
 
@@ -59,8 +64,8 @@ describe 'Que::Sequel::Model' do
       a, b = 2.times.map { enqueue_job }
       assert_equal 1, jobs_dataset.where(id: a).update(run_at: Time.now + 60)
 
-      assert_equal [a], Que::Sequel::Model.scheduled.select_map(:id)
-      assert_equal [b], Que::Sequel::Model.not_scheduled.select_map(:id)
+      assert_ids(a) { |ds| ds.scheduled }
+      assert_ids(b) { |ds| ds.not_scheduled }
     end
   end
 
@@ -72,8 +77,8 @@ describe 'Que::Sequel::Model' do
       assert_equal 1, jobs_dataset.where(id: c).update(finished_at: Time.now)
       assert_equal 1, jobs_dataset.where(id: d).update(run_at: Time.now + 60)
 
-      assert_equal [e], Que::Sequel::Model.ready.select_map(:id)
-      assert_equal [a, b, c, d], Que::Sequel::Model.not_ready.select_order_map(:id)
+      assert_ids(e) { |ds| ds.ready }
+      assert_ids(a, b, c, d) { |ds| ds.not_ready }
     end
   end
 
@@ -83,12 +88,11 @@ describe 'Que::Sequel::Model' do
       b = enqueue_job(job_class: "BlockJob")
       c = enqueue_job
 
-      assert_equal [a], Que::Sequel::Model.by_job_class("CustomJobClass").select_map(:id)
-      assert_equal [b], Que::Sequel::Model.by_job_class("BlockJob").select_map(:id)
-      assert_equal [b], Que::Sequel::Model.by_job_class(BlockJob).select_map(:id)
-      assert_equal [c], Que::Sequel::Model.by_job_class(Que::Job).select_map(:id)
-
-      assert_equal [],  Que::Sequel::Model.by_job_class("NonexistentJobClass").select_map(:id)
+      assert_ids(a) { |ds| ds.by_job_class("CustomJobClass") }
+      assert_ids(b) { |ds| ds.by_job_class("BlockJob") }
+      assert_ids(b) { |ds| ds.by_job_class(BlockJob) }
+      assert_ids(c) { |ds| ds.by_job_class(Que::Job) }
+      assert_ids    { |ds| ds.by_job_class("NonexistentJobClass") }
     end
 
     it "should be compatible with ActiveModel job classes" do
@@ -96,9 +100,9 @@ describe 'Que::Sequel::Model' do
       b = enqueue_job({job_class: "OtherWrappedJobClass"}, {job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper"})
       c = enqueue_job
 
-      assert_equal [a], Que::Sequel::Model.by_job_class("WrappedJobClass").select_map(:id)
-      assert_equal [b], Que::Sequel::Model.by_job_class("OtherWrappedJobClass").select_map(:id)
-      assert_equal [],  Que::Sequel::Model.by_job_class("NonexistentJobClass").select_map(:id)
+      assert_ids(a) { |ds| ds.by_job_class("WrappedJobClass") }
+      assert_ids(b) { |ds| ds.by_job_class("OtherWrappedJobClass") }
+      assert_ids    { |ds| ds.by_job_class("NonexistentJobClass") }
     end
   end
 
@@ -107,9 +111,9 @@ describe 'Que::Sequel::Model' do
       a = enqueue_job
       b = enqueue_job(queue: "other_queue")
 
-      assert_equal [a], Que::Sequel::Model.by_queue("default").select_map(:id)
-      assert_equal [b], Que::Sequel::Model.by_queue("other_queue").select_map(:id)
-      assert_equal [],  Que::Sequel::Model.by_queue("nonexistent_queue").select_map(:id)
+      assert_ids(a) { |ds| ds.by_queue("default") }
+      assert_ids(b) { |ds| ds.by_queue("other_queue") }
+      assert_ids    { |ds| ds.by_queue("nonexistent_queue") }
     end
   end
 
@@ -118,9 +122,9 @@ describe 'Que::Sequel::Model' do
       a = enqueue_job(tags: ["tag_1"])
       b = enqueue_job(tags: ["tag_2"])
 
-      assert_equal [a], Que::Sequel::Model.by_tag("tag_1").select_map(:id)
-      assert_equal [b], Que::Sequel::Model.by_tag("tag_2").select_map(:id)
-      assert_equal [],  Que::Sequel::Model.by_tag("nonexistent_tag").select_map(:id)
+      assert_ids(a) { |ds| ds.by_tag("tag_1") }
+      assert_ids(b) { |ds| ds.by_tag("tag_2") }
+      assert_ids    { |ds| ds.by_tag("nonexistent_tag") }
     end
   end
 
@@ -131,12 +135,12 @@ describe 'Que::Sequel::Model' do
       c = enqueue_job arg_hash: {arg: "arg_string"}
       d = enqueue_job
 
-      assert_equal [a], Que::Sequel::Model.by_args("arg_string").select_map(:id)
-      assert_equal [],  Que::Sequel::Model.by_args("nonexistent_arg_string").select_map(:id)
-      assert_equal [b], Que::Sequel::Model.by_args(arg: "arg_string").select_map(:id)
-      assert_equal [],  Que::Sequel::Model.by_args(arg: "nonexistent_arg_string").select_map(:id)
-      assert_equal [c], Que::Sequel::Model.by_args(arg_hash: {arg: "arg_string"}).select_map(:id)
-      assert_equal [],  Que::Sequel::Model.by_args(arg_hash: {arg: "nonexistent_arg_string"}).select_map(:id)
+      assert_ids(a) { |ds| ds.by_args("arg_string") }
+      assert_ids    { |ds| ds.by_args("nonexistent_arg_string") }
+      assert_ids(b) { |ds| ds.by_args(arg: "arg_string") }
+      assert_ids    { |ds| ds.by_args(arg: "nonexistent_arg_string") }
+      assert_ids(c) { |ds| ds.by_args(arg_hash: {arg: "arg_string"}) }
+      assert_ids    { |ds| ds.by_args(arg_hash: {arg: "nonexistent_arg_string"}) }
     end
   end
 end
