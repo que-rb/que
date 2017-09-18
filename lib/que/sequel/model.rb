@@ -5,10 +5,10 @@ module Que
     class Model < ::Sequel::Model(:que_jobs)
       dataset_module do
         conditions = {
-          errored:   ::Sequel.identifier(:error_count) > 0,
-          expired:   ::Sequel.~(expired_at: nil),
-          finished:  ::Sequel.~(finished_at: nil),
-          scheduled: ::Sequel.identifier(:run_at) > ::Sequel::CURRENT_TIMESTAMP,
+          errored:   ::Sequel.qualify(:que_jobs, :error_count) > 0,
+          expired:   ::Sequel.~(::Sequel.qualify(:que_jobs, :expired_at)  => nil),
+          finished:  ::Sequel.~(::Sequel.qualify(:que_jobs, :finished_at) => nil),
+          scheduled: ::Sequel.qualify(:que_jobs, :run_at) > ::Sequel::CURRENT_TIMESTAMP,
         }
 
         conditions.each do |name, condition|
@@ -18,6 +18,31 @@ module Que
 
         subset :ready,     conditions.values.map(&:~).inject{|a, b| a & b}
         subset :not_ready, conditions.values.         inject{|a, b| a | b}
+
+        def by_job_class(job_class)
+          job_class = job_class.name if job_class.is_a?(Class)
+          where(
+            ::Sequel.|(
+              {::Sequel.qualify(:que_jobs, :job_class) => job_class},
+              {
+                ::Sequel.qualify(:que_jobs, :job_class) => "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
+                ::Sequel.lit("que_jobs.data->'args'->0->>'job_class'") => job_class,
+              }
+            )
+          )
+        end
+
+        def by_queue(queue)
+          where(::Sequel.qualify(:que_jobs, :queue) => queue)
+        end
+
+        def by_tag(tag)
+          where(::Sequel.lit("que_jobs.data @> ?", JSON.dump(tags: [tag])))
+        end
+
+        def by_args(args)
+          where(::Sequel.lit("que_jobs.data @> ?", JSON.dump(args: [args])))
+        end
       end
     end
   end
