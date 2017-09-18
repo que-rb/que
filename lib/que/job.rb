@@ -44,11 +44,15 @@ module Que
       self
     end
 
-    @retry_interval      = proc { |count| count ** 4 + 3 }
-    @maximum_retry_count = 15
-
     class << self
-      attr_accessor :run_synchronously
+      # Job class configuration options.
+      attr_accessor \
+        :run_synchronously,
+        :retry_interval,
+        :maximum_retry_count,
+        :queue,
+        :priority,
+        :run_at
 
       def enqueue(
         *args,
@@ -106,10 +110,9 @@ module Que
       end
 
       def resolve_que_setting(setting, *args)
-        iv_name = :"@#{setting}"
+        value = send(setting) if respond_to?(setting)
 
-        if instance_variable_defined?(iv_name)
-          value = instance_variable_get(iv_name)
+        if !value.nil?
           value.respond_to?(:call) ? value.call(*args) : value
         else
           c = superclass
@@ -132,5 +135,9 @@ module Que
         end
       end
     end
+
+    # Set up some defaults.
+    self.retry_interval      = proc { |count| count ** 4 + 3 }
+    self.maximum_retry_count = 15
   end
 end

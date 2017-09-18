@@ -18,7 +18,7 @@ ProcessCreditCard.enqueue current_user.id, queue: 'credit_cards'
 class ProcessCreditCard < Que::Job
   # Set a default queue for this job class; this can be overridden by
   # passing the :queue parameter to enqueue like above.
-  @queue = 'credit_cards'
+  self.queue = 'credit_cards'
 end
 ```
 

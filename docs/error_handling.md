@@ -7,14 +7,14 @@ If a given job fails repeatedly, Que will retry it at exponentially-increasing i
 ```ruby
 class MyJob < Que::Job
   # Just retry a failed job every 5 seconds:
-  @retry_interval = 5
+  self.retry_interval = 5
 
   # Always retry this job immediately (not recommended, or transient
   # errors will spam your error reporting):
-  @retry_interval = 0
+  self.retry_interval = 0
 
   # Increase the delay by 30 seconds every time this job fails:
-  @retry_interval = proc { |count| count * 30 }
+  self.retry_interval = proc { |count| count * 30 }
 end
 ```
 
