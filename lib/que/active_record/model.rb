@@ -20,7 +20,7 @@ module Que
       scope :not_scheduled, -> { where(t[:run_at].lteq("now()")) }
 
       scope :ready,     -> { not_errored.not_expired.not_finished.not_scheduled }
-      scope :not_ready, -> { errored.or(expired).or(finished).or(scheduled) }
+      scope :not_ready, -> { where(t[:error_count].gt(0).or(t[:expired_at].not_eq(nil)).or(t[:finished_at].not_eq(nil)).or(t[:run_at].gt("now()"))) }
 
       class << self
         def by_job_class(job_class)
