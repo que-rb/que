@@ -13,7 +13,21 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://github.com/chanks/que'
   spec.license       = 'MIT'
 
-  spec.files         = `git ls-files`.split($/)
+  files_to_exclude = [
+    /\Adocs/,
+    /\A\.circleci/,
+    /\ACHANGELOG/,
+    /\AREADME/,
+    /\AGemfile/,
+    /\Aspec/,
+    /\Atasks/,
+    /spec\.rb\z/,
+  ]
+
+  spec.files = `git ls-files`.split($/).reject do |file|
+    files_to_exclude.any?{|r| r.match?(file)}
+  end
+
   spec.executables   = ['que']
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ['lib']
