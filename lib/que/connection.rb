@@ -26,9 +26,13 @@ module Que
     class << self
       def wrap(conn)
         case conn
-        when self           then conn
-        when PG::Connection then new(conn)
-        else raise Error, "Unsupported input for Connection.wrap: #{conn.class}"
+        when self
+          conn
+        when PG::Connection
+          conn.instance_variable_get(:@que_wrapper) ||
+          conn.instance_variable_set(:@que_wrapper, new(conn))
+        else
+          raise Error, "Unsupported input for Connection.wrap: #{conn.class}"
         end
       end
     end

@@ -19,10 +19,18 @@ describe Que::Connection do
       assert_equal connection.object_id, Que::Connection.wrap(connection).object_id
     end
 
-    it "when given a PG connection should wrap it" do
-      c = Que::Connection.wrap(EXTRA_PG_CONNECTION)
+    it "when given a PG connection should wrap it and set the wrapper as an attr on it" do
+      new_connection = NEW_PG_CONNECTION.call
+      assert_instance_of PG::Connection, new_connection
+
+      c = Que::Connection.wrap(new_connection)
       assert_instance_of(Que::Connection, c)
-      assert_equal EXTRA_PG_CONNECTION, c.wrapped_connection
+
+      assert_equal new_connection, c.wrapped_connection
+      assert_equal c, new_connection.instance_variable_get(:@que_wrapper)
+
+      c2 = Que::Connection.wrap(new_connection)
+      assert_equal c.object_id, c2.object_id
     end
 
     it "when given something else should raise an error" do
