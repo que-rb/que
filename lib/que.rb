@@ -63,6 +63,7 @@ module Que
     def_delegators Migrations, :db_version, :migrate!
 
     # Global configuration logic.
+    attr_accessor :use_prepared_statements
     attr_writer :default_queue
 
     def default_queue
@@ -104,6 +105,9 @@ module Que
     # generally.
     attr_writer :pool
   end
+
+  # Set config defaults.
+  self.use_prepared_statements = true
 end
 
 # Load Rails features as appropriate.

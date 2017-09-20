@@ -14,22 +14,23 @@ describe Que::Connection do
     end
   end
 
+  let :fresh_connection, &NEW_PG_CONNECTION
+
   describe ".wrap()" do
     it "when given a Que connection should return it" do
       assert_equal connection.object_id, Que::Connection.wrap(connection).object_id
     end
 
     it "when given a PG connection should wrap it and set the wrapper as an attr on it" do
-      new_connection = NEW_PG_CONNECTION.call
-      assert_instance_of PG::Connection, new_connection
+      assert_instance_of PG::Connection, fresh_connection
 
-      c = Que::Connection.wrap(new_connection)
+      c = Que::Connection.wrap(fresh_connection)
       assert_instance_of(Que::Connection, c)
 
-      assert_equal new_connection, c.wrapped_connection
-      assert_equal c, new_connection.instance_variable_get(:@que_wrapper)
+      assert_equal fresh_connection, c.wrapped_connection
+      assert_equal c, fresh_connection.instance_variable_get(:@que_wrapper)
 
-      c2 = Que::Connection.wrap(new_connection)
+      c2 = Que::Connection.wrap(fresh_connection)
       assert_equal c.object_id, c2.object_id
     end
 
@@ -120,5 +121,52 @@ describe Que::Connection do
         result.first,
       )
     end
+  end
+
+  describe "execute_prepared" do
+    def assert_statement_prepared
+      assert_equal [], fresh_connection.describe_prepared("que_check_job").to_a
+    end
+
+    def refute_statement_prepared
+      assert_raises(PG::InvalidSqlStatementName) { fresh_connection.describe_prepared("que_check_job") }
+    end
+
+    it "should prepare the given SQL query before running it, if necessary" do
+      c = Que::Connection.wrap(fresh_connection)
+      refute_statement_prepared
+
+      assert_equal [], c.execute_prepared(:check_job, [1])
+      assert_statement_prepared
+
+      assert_equal [], c.execute_prepared(:check_job, [1])
+      assert_statement_prepared
+    end
+
+    it "should defer to execute() if use_prepared_statements is false" do
+      Que.use_prepared_statements = false
+
+      c = Que::Connection.wrap(fresh_connection)
+      refute_statement_prepared
+
+      assert_equal [], c.execute_prepared(:check_job, [1])
+      refute_statement_prepared
+
+      assert_equal [], c.execute_prepared(:check_job, [1])
+      refute_statement_prepared
+    end
+
+    it "should defer to execute() when in a transaction" do
+      c = Que::Connection.wrap(fresh_connection)
+      refute_statement_prepared
+
+      c.execute("BEGIN")
+      assert_equal [], c.execute_prepared(:check_job, [1])
+      c.execute("COMMIT")
+
+      refute_statement_prepared
+    end
+
+    it "if it turns out that the given connection doesn't actually have the statement prepared should recover"
   end
 end

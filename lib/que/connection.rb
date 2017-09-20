@@ -14,6 +14,7 @@
 # established and then garbage-collected.
 
 require 'time' # For Time.parse
+require 'set'
 
 module Que
   class Connection
@@ -39,6 +40,7 @@ module Que
 
     def initialize(connection)
       @wrapped_connection = connection
+      @prepared_statements = Set.new
     end
 
     def execute(command, params = nil)
@@ -62,6 +64,39 @@ module Que
       end
 
       convert_result(result)
+    end
+
+    def execute_prepared(command, params = nil)
+      Que.assert(Symbol, command)
+
+      if !Que.use_prepared_statements || in_transaction?
+        return execute(command, params)
+      end
+
+      name = "que_#{command}"
+
+      begin
+        unless @prepared_statements.include?(command)
+          wrapped_connection.prepare(name, SQL[command])
+          @prepared_statements.add(command)
+          prepared_just_now = true
+        end
+
+        convert_result(
+          wrapped_connection.exec_prepared(name, params)
+        )
+      rescue ::PG::InvalidSqlStatementName => error
+        # Reconnections on ActiveRecord can cause the same connection
+        # objects to refer to new backends, so recover as well as we can.
+
+        unless prepared_just_now
+          Que.log level: :warn, event: "reprepare_statement", command: :command
+          @prepared_statements.delete(command)
+          retry
+        end
+
+        raise error
+      end
     end
 
     def next_notification

@@ -276,7 +276,8 @@ class QueSpec < Minitest::Spec
 
     Que.middleware.clear
 
-    Que.run_synchronously = false
+    Que.run_synchronously       = false
+    Que.use_prepared_statements = true
 
     QUE_LOGGER.messages.clear
     QUE_INTERNAL_LOGGER.messages.clear
