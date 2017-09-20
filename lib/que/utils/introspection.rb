@@ -37,7 +37,7 @@ module Que
           JOIN (
             SELECT (classid::bigint << 32) + objid::bigint AS id, que_lockers.*
             FROM pg_locks
-            JOIN que_lockers USING (pid)
+            JOIN public.que_lockers USING (pid)
             WHERE locktype = 'advisory'
           ) pg USING (id)
         }
