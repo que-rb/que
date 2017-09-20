@@ -167,6 +167,20 @@ describe Que::Connection do
       refute_statement_prepared
     end
 
-    it "if it turns out that the given connection doesn't actually have the statement prepared should recover"
+    # ActiveRecord can do this sometimes when there's a reconnection.
+    it "if the connection doesn't actually have the statement prepared should recover" do
+      c = Que::Connection.wrap(fresh_connection)
+      c.instance_variable_get(:@prepared_statements).add(:check_job)
+      refute_statement_prepared
+
+      assert_equal [], c.execute_prepared(:check_job, [1])
+      assert_statement_prepared
+
+      messages = logged_messages.select{|m| m[:event] == "reprepare_statement"}
+      assert_equal 1, messages.length
+
+      message = messages.first
+      assert_equal "check_job", message[:command]
+    end
   end
 end

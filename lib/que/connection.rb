@@ -90,7 +90,7 @@ module Que
         # objects to refer to new backends, so recover as well as we can.
 
         unless prepared_just_now
-          Que.log level: :warn, event: "reprepare_statement", command: :command
+          Que.log level: :warn, event: :reprepare_statement, command: command
           @prepared_statements.delete(command)
           retry
         end
