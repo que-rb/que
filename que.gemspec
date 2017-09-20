@@ -25,7 +25,7 @@ Gem::Specification.new do |spec|
   ]
 
   spec.files = `git ls-files`.split($/).reject do |file|
-    files_to_exclude.any?{|r| r.match?(file)}
+    files_to_exclude.any? { |r| r === file }
   end
 
   spec.executables   = ['que']
