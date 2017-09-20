@@ -122,7 +122,7 @@ module Que
       return unless should_poll?
 
       jobs =
-        connection.execute(
+        connection.execute_prepared(
           :poll_jobs,
           [
             @queue,
