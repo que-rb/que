@@ -255,6 +255,8 @@ describe Que::Locker do
     end
 
     it "should request only enough jobs to fill the queue" do
+      skip
+
       # Three BlockJobs will tie up the low-priority workers.
       ids  = 3.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
       ids += 9.times.map { Que::Job.enqueue(priority: 101).que_attrs[:id] }
@@ -320,6 +322,8 @@ describe Que::Locker do
     end
 
     it "should request as many as necessary to reach the maximum_queue_size" do
+      skip
+
       # Three BlockJobs to tie up the low-priority workers.
       ids  = 3.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
       ids += [Que::Job.enqueue(priority: 101).que_attrs[:id]]
@@ -367,6 +371,8 @@ describe Que::Locker do
     end
 
     it "should trigger a new poll when the queue drops to the minimum size" do
+      skip
+
       ids = 12.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
 
       locker_settings[:poll] = true

@@ -94,11 +94,14 @@ module Que
       Que.assert Array, worker_priorities
       worker_priorities.each { |p| Que.assert(Integer, p) }
 
+      all_worker_priorities = worker_priorities.values_at(0...worker_count)
+
       # We use a JobQueue to track jobs and pass them to workers, and a
       # ResultQueue to receive messages from workers.
       @job_queue = JobQueue.new(
         maximum_size: maximum_queue_size,
         minimum_size: minimum_queue_size,
+        priorities:   all_worker_priorities.uniq,
       )
 
       @result_queue = ResultQueue.new
@@ -129,7 +132,7 @@ module Que
       # 50] will result in three workers that only work jobs that meet those
       # priorities, and three workers that will work any job.
       @workers =
-        worker_count.times.zip(worker_priorities).map do |_, priority|
+        all_worker_priorities.map do |priority|
           Worker.new(
             priority:       priority,
             job_queue:      @job_queue,
@@ -141,7 +144,7 @@ module Que
       # To prevent race conditions, let every worker get into a ready state
       # before starting up the locker thread.
       loop do
-        break if job_queue.waiting_count == workers.count{|w| w.priority.nil?}
+        break if job_queue.waiting_count == workers.count
         sleep 0.001
       end
 

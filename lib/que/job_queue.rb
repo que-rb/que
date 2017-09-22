@@ -6,12 +6,13 @@
 
 module Que
   class JobQueue
-    attr_reader :maximum_size, :minimum_size
+    attr_reader :maximum_size, :minimum_size, :priority_queues
 
-    def initialize(maximum_size:, minimum_size:)
-      @stop         = false
-      @array        = []
-
+    def initialize(
+      maximum_size:,
+      minimum_size:,
+      priorities:
+    )
       @maximum_size = Que.assert(Integer, maximum_size)
       Que.assert(maximum_size > 0) { "maximum_size for a JobQueue must be greater than zero!" }
 
@@ -23,9 +24,15 @@ module Que
           "greater than the maximum queue size (#{maximum_size})!"
       end
 
-      @waiting_count = 0
-      @monitor = Monitor.new
-      @cv      = Monitor::ConditionVariable.new(@monitor)
+      @stop    = false
+      @array   = []
+      @monitor = Monitor.new # TODO: Make this a mutex.
+
+      @priority_queues = Hash[
+        priorities.sort_by{|p| p.nil? ? Float::INFINITY : p}.map do |p|
+          [p, PriorityQueue.new(priority: p, job_queue: self)]
+        end
+      ].freeze
     end
 
     def push(*metajobs)
@@ -42,14 +49,14 @@ module Que
 
         @array.push(*metajobs).sort!
 
-        # Notify all waiting threads that they can try again to remove a item.
-        # We could try to only wake up a subset of the waiting threads, to avoid
-        # contention when there are many sleeping threads, but not all
-        # threads/workers will be interested in all jobs (some have a minimum
-        # priority they care about), so how do we notify only the ones with the
-        # an appropriate priority threshold? Seems possible, but it would
-        # require a custom Monitor/ConditionVariable implementation.
-        @cv.broadcast
+        # Relying on the hash's contents being sorted, here.
+        priority_queues.each_value do |pq|
+          pq.waiting_count.times do
+            job = shift_job(pq.priority)
+            break if job.nil?
+            pq.push(job)
+          end
+        end
 
         # If we passed the maximum queue size, drop the lowest sort keys and
         # return their ids to be unlocked.
@@ -58,23 +65,17 @@ module Que
       end
     end
 
-    # Looping/ConditionVariable technique borrowed from the rubysl-thread gem.
     def shift(priority = nil)
-      loop do
-        sync do
-          if stopping?
-            return
-          elsif (job = @array.first) && job.priority_sufficient?(priority)
-            return @array.shift
-          else
-            if priority.nil?
-              @waiting_count += 1
-              @cv.wait
-              @waiting_count -= 1
-            else
-              @cv.wait
-            end
-          end
+      queue = priority_queues.fetch(priority) { raise Error, "not a permitted priority! #{priority}" }
+      queue.pop
+    end
+
+    def shift_job(priority = nil)
+      sync do
+        if stopping?
+          false
+        elsif (job = @array.first) && job.priority_sufficient?(priority)
+          @array.shift
         end
       end
     end
@@ -109,12 +110,16 @@ module Que
     end
 
     def waiting_count
-      sync { @waiting_count }
+      count = 0
+      priority_queues.each_value do |pq|
+        count += pq.waiting_count
+      end
+      count
     end
 
     def space
       sync do
-        maximum_size + @waiting_count - size
+        maximum_size + waiting_count - size
       end
     end
 
@@ -127,7 +132,13 @@ module Que
     end
 
     def stop
-      sync { @stop = true; @cv.broadcast }
+      sync do
+        @stop = true
+        priority_queues.each_value do |pq|
+          # TODO: race condition here.
+          pq.waiting_count.times { pq.push(nil) }
+        end
+      end
     end
 
     def clear
@@ -146,6 +157,36 @@ module Que
 
     def sync
       @monitor.synchronize { yield }
+    end
+
+    # A queue object dedicated to a specific worker priority. It's basically a
+    # Queue object from the standard library, but it's able to reach into the
+    # JobQueue's cache in order to satisfy a pop.
+    class PriorityQueue
+      attr_reader :job_queue, :priority
+
+      def initialize(
+        job_queue:,
+        priority:
+      )
+        @job_queue = job_queue
+        @priority  = priority
+        @queue     = ::Queue.new
+      end
+
+      def pop
+        job = job_queue.shift_job(priority)
+        return job unless job.nil? # False means we're stopping.
+        @queue.pop
+      end
+
+      def push(thing)
+        @queue.push(thing)
+      end
+
+      def waiting_count
+        @queue.num_waiting
+      end
     end
   end
 end

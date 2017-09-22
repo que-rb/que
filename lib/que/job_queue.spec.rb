@@ -10,6 +10,7 @@ describe Que::JobQueue do
     Que::JobQueue.new(
       maximum_size: 8,
       minimum_size: 0,
+      priorities: [10, 30, 50, nil].shuffle,
     )
   end
 
@@ -34,7 +35,7 @@ describe Que::JobQueue do
   describe "during instantiation" do
     it "should raise an error if passed a maximum queue size of zero or less" do
       error = assert_raises(Que::Error) do
-        Que::JobQueue.new(minimum_size: 0, maximum_size: 0)
+        Que::JobQueue.new(minimum_size: 0, maximum_size: 0, priorities: [10])
       end
 
       assert_equal "maximum_size for a JobQueue must be greater than zero!", error.message
@@ -42,7 +43,7 @@ describe Que::JobQueue do
 
     it "should raise an error if passed a minimum queue size less than zero" do
       error = assert_raises(Que::Error) do
-        Que::JobQueue.new(minimum_size: -1, maximum_size: 8)
+        Que::JobQueue.new(minimum_size: -1, maximum_size: 8, priorities: [10])
       end
 
       assert_equal "minimum_size for a JobQueue must be at least zero!", error.message
@@ -50,7 +51,7 @@ describe Que::JobQueue do
 
     it "should raise an error if passed a minimum queue size larger than its maximum" do
       error = assert_raises(Que::Error) do
-        Que::JobQueue.new(minimum_size: 10, maximum_size: 8)
+        Que::JobQueue.new(minimum_size: 10, maximum_size: 8, priorities: [10])
       end
 
       assert_equal "minimum queue size (10) is greater than the maximum queue size (8)!", error.message
@@ -59,7 +60,7 @@ describe Que::JobQueue do
 
   describe "jobs_needed?" do
     it "should return true iff the current size is less than the minimum" do
-      queue = Que::JobQueue.new(minimum_size: 2, maximum_size: 8)
+      queue = Que::JobQueue.new(minimum_size: 2, maximum_size: 8, priorities: [10])
 
       assert_equal true, queue.jobs_needed?
       queue.push job_array.pop
@@ -172,13 +173,13 @@ describe Que::JobQueue do
       assert_equal job_array[4..7], job_queue.to_a
     end
 
-    it "should respect a minimum priority argument" do
-      a = new_metajob(priority: 10, run_at: Time.now, id: 1)
-      b = new_metajob(priority: 10, run_at: Time.now, id: 2)
+    it "should respect a priority threshold argument" do
+      a = new_metajob(priority: 25, run_at: Time.now, id: 1)
+      b = new_metajob(priority: 25, run_at: Time.now, id: 2)
       c = new_metajob(priority:  5, run_at: Time.now, id: 3)
 
       job_queue.push(a)
-      t = Thread.new { Thread.current[:job] = job_queue.shift(5) }
+      t = Thread.new { Thread.current[:job] = job_queue.shift(10) }
       sleep_until! { t.status == 'sleep' }
 
       job_queue.push(b)
@@ -194,7 +195,7 @@ describe Que::JobQueue do
       job_queue # Pre-initialize to avoid race conditions.
 
       # Randomize order in which threads lock.
-      threads = [5, 10, 15, 20].shuffle.map do |priority|
+      threads = [10, 30, 50].shuffle.map do |priority|
         Thread.new do
           Thread.current[:priority] = priority
           Thread.current[:job] = job_queue.shift(priority)
@@ -205,12 +206,11 @@ describe Que::JobQueue do
 
       threads.sort_by! { |t| t[:priority] }
 
-      value = new_metajob(priority: 17, run_at: Time.now, id: 1)
+      value = new_metajob(priority: 25, run_at: Time.now, id: 1)
       job_queue.push value
 
-      sleep_until! { threads[3].status == false }
-      assert_equal value, threads[3][:job]
-      sleep_until! { threads[0..2].all? { |t| t.status == 'sleep' } }
+      sleep_until! { threads.map(&:status) == ['sleep', false, 'sleep'] }
+      assert_equal value, threads[1][:job]
     end
   end
 
@@ -224,6 +224,7 @@ describe Que::JobQueue do
           Que::JobQueue.new(
             maximum_size: maximum_size,
             minimum_size: 0,
+            priorities: [10],
           )
 
         jobs_that_should_make_it_in = job_array.first(maximum_size)
@@ -295,7 +296,7 @@ describe Que::JobQueue do
   end
 
   describe "stop" do
-    it "should return nil to waiting workers" do
+    it "should return false to waiting workers" do
       job_queue # Pre-initialize to avoid race conditions.
 
       threads =
@@ -310,7 +311,7 @@ describe Que::JobQueue do
       sleep_until! { threads.all? { |t| t.status == false } }
 
       threads.map { |t| assert_nil t[:job] }
-      10.times { assert_nil job_queue.shift }
+      10.times { assert_equal false, job_queue.shift }
     end
   end
 
