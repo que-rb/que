@@ -26,7 +26,7 @@ module Que
 
       @stop    = false
       @array   = []
-      @monitor = Monitor.new # TODO: Make this a mutex.
+      @monitor = Monitor.new # TODO: Make this a mutex?
 
       @priority_queues = Hash[
         priorities.sort_by{|p| p.nil? ? Float::INFINITY : p}.map do |p|
@@ -50,7 +50,7 @@ module Que
         @array.push(*metajobs).sort!
 
         # Relying on the hash's contents being sorted, here.
-        priority_queues.each_value do |pq|
+        priority_queues.reverse_each do |_, pq|
           pq.waiting_count.times do
             job = shift_job(pq.priority)
             break if job.nil?
@@ -134,10 +134,7 @@ module Que
     def stop
       sync do
         @stop = true
-        priority_queues.each_value do |pq|
-          # TODO: race condition here.
-          pq.waiting_count.times { pq.push(nil) }
-        end
+        priority_queues.each_value(&:stop)
       end
     end
 
@@ -171,21 +168,56 @@ module Que
       )
         @job_queue = job_queue
         @priority  = priority
-        @queue     = ::Queue.new
+        @waiting   = 0
+        @stopping  = false
+        @item      = nil
+        @monitor   = Monitor.new
+        @cv        = Monitor::ConditionVariable.new(@monitor)
       end
 
       def pop
-        job = job_queue.shift_job(priority)
-        return job unless job.nil? # False means we're stopping.
-        @queue.pop
+        sync do
+          loop do
+            return false if @stopping
+
+            if item = @item
+              @item = nil
+              return item
+            end
+
+            job = job_queue.shift_job(priority)
+            return job unless job.nil? # False means we're stopping.
+
+            @waiting += 1
+            @cv.wait
+            @waiting -= 1
+          end
+        end
       end
 
       def push(thing)
-        @queue.push(thing)
+        sync do
+          Que.assert(waiting_count > 0)
+          @item = thing
+          @cv.signal
+        end
+      end
+
+      def stop
+        sync do
+          @stopping = true
+          @cv.broadcast
+        end
       end
 
       def waiting_count
-        @queue.num_waiting
+        @waiting
+      end
+
+      private
+
+      def sync
+        @monitor.synchronize { yield }
       end
     end
   end

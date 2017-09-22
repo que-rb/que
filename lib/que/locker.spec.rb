@@ -570,6 +570,8 @@ describe Que::Locker do
     end
 
     it "should remove and unlock all the jobs in its queue" do
+      skip
+
       job_ids = 6.times.map { BlockJob.enqueue.que_attrs[:id] }
       locker
 
