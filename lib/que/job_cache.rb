@@ -5,7 +5,7 @@
 # minimum priority, and stopping gracefully.
 
 module Que
-  class JobQueue
+  class JobCache
     attr_reader :maximum_size, :minimum_size, :priority_queues
 
     def initialize(
@@ -14,10 +14,10 @@ module Que
       priorities:
     )
       @maximum_size = Que.assert(Integer, maximum_size)
-      Que.assert(maximum_size > 0) { "maximum_size for a JobQueue must be greater than zero!" }
+      Que.assert(maximum_size > 0) { "maximum_size for a JobCache must be greater than zero!" }
 
       @minimum_size = Que.assert(Integer, minimum_size)
-      Que.assert(minimum_size >= 0) { "minimum_size for a JobQueue must be at least zero!" }
+      Que.assert(minimum_size >= 0) { "minimum_size for a JobCache must be at least zero!" }
 
       Que.assert(minimum_size <= maximum_size) do
         "minimum queue size (#{minimum_size}) is " \
@@ -30,13 +30,13 @@ module Que
 
       @priority_queues = Hash[
         priorities.sort_by{|p| p.nil? ? Float::INFINITY : p}.map do |p|
-          [p, PriorityQueue.new(priority: p, job_queue: self)]
+          [p, PriorityQueue.new(priority: p, job_cache: self)]
         end
       ].freeze
     end
 
     def push(*metajobs)
-      Que.internal_log(:job_queue_push, self) do
+      Que.internal_log(:job_cache_push, self) do
         {
           maximum_size:  maximum_size,
           ids:           metajobs.map(&:id),
@@ -158,15 +158,15 @@ module Que
 
     # A queue object dedicated to a specific worker priority. It's basically a
     # Queue object from the standard library, but it's able to reach into the
-    # JobQueue's cache in order to satisfy a pop.
+    # JobCache's cache in order to satisfy a pop.
     class PriorityQueue
-      attr_reader :job_queue, :priority
+      attr_reader :job_cache, :priority
 
       def initialize(
-        job_queue:,
+        job_cache:,
         priority:
       )
-        @job_queue = job_queue
+        @job_cache = job_cache
         @priority  = priority
         @waiting   = 0
         @stopping  = false
@@ -184,7 +184,7 @@ module Que
               return item
             end
 
-            job = job_queue.shift_job(priority)
+            job = job_cache.shift_job(priority)
             return job unless job.nil? # False means we're stopping.
 
             @waiting += 1

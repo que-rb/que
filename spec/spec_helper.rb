@@ -149,8 +149,8 @@ class QueSpec < Minitest::Spec
     Que::Locker.new(locker_settings)
   end
 
-  let :job_queue do
-    Que::JobQueue.new(maximum_size: 20, minimum_size: 0, priorities: [10, 30, 50, nil])
+  let :job_cache do
+    Que::JobCache.new(maximum_size: 20, minimum_size: 0, priorities: [10, 30, 50, nil])
   end
 
   let :result_queue do
@@ -159,7 +159,7 @@ class QueSpec < Minitest::Spec
 
   let :worker do
     Que::Worker.new \
-      job_queue:    job_queue,
+      job_cache:    job_cache,
       result_queue: result_queue
   end
 
@@ -168,7 +168,7 @@ class QueSpec < Minitest::Spec
   end
 
   def ids_in_local_queue
-    locker.job_queue.to_a.map(&:id)
+    locker.job_cache.to_a.map(&:id)
   end
 
   # Helper for testing threaded code.

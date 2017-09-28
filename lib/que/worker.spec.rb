@@ -10,7 +10,7 @@ describe Que::Worker do
   let :worker do
     Que::Worker.new(
       priority:     priority,
-      job_queue:    job_queue,
+      job_cache:    job_cache,
       result_queue: result_queue,
     )
   end
@@ -45,7 +45,7 @@ describe Que::Worker do
 
     job_ids = jobs.map(&:id).sort
 
-    job_queue.push(*jobs)
+    job_cache.push(*jobs)
 
     sleep_until!(60000) do
       finished_job_ids == job_ids
@@ -56,7 +56,7 @@ describe Que::Worker do
     results(message_type: :job_finished).map{|m| m.fetch(:metajob).id}.sort
   end
 
-  it "should repeatedly work jobs that are passed to it via its job_queue" do
+  it "should repeatedly work jobs that are passed to it via its job_cache" do
     results = []
 
     WorkerJob.class_eval do
@@ -108,11 +108,11 @@ describe Que::Worker do
 
       job_ids = jobs.map { |j| j[:id] }
 
-      job_queue.push *jobs.map{|j| Que::Metajob.new(j)}
+      job_cache.push *jobs.map{|j| Que::Metajob.new(j)}
 
       sleep_until! { finished_job_ids == job_ids[0..9] }
 
-      assert_equal job_ids[10..19], job_queue.to_a.map(&:id)
+      assert_equal job_ids[10..19], job_cache.to_a.map(&:id)
     end
   end
 

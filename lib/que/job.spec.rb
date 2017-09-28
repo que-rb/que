@@ -351,7 +351,7 @@ describe Que::Job do
       job = TestJobClass.enqueue(*args)
       attrs = job.que_attrs
 
-      job_queue.push(Que::Metajob.new(attrs))
+      job_cache.push(Que::Metajob.new(attrs))
 
       sleep_until! { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
 
@@ -419,7 +419,7 @@ describe Que::Job do
         assert_equal 1, jobs_dataset.count
         attrs = jobs_dataset.first!
 
-        job_queue.push(Que::Metajob.new(attrs))
+        job_cache.push(Que::Metajob.new(attrs))
 
         sleep_until! { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
 
