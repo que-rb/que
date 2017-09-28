@@ -170,7 +170,7 @@ module Que
         @priority  = priority
         @waiting   = 0
         @stopping  = false
-        @item      = nil
+        @items     = [] # Items pending distribution to waiting threads.
         @monitor   = Monitor.new
         @cv        = Monitor::ConditionVariable.new(@monitor)
       end
@@ -180,8 +180,7 @@ module Que
           loop do
             return false if @stopping
 
-            if item = @item
-              @item = nil
+            if item = @items.pop
               return item
             end
 
@@ -195,10 +194,10 @@ module Que
         end
       end
 
-      def push(thing)
+      def push(item)
         sync do
           Que.assert(waiting_count > 0)
-          @item = thing
+          @items << item
           @cv.signal
         end
       end
