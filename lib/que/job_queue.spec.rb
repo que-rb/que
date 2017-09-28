@@ -151,7 +151,6 @@ describe Que::JobQueue do
     end
 
     it "should block for multiple threads when the queue is empty" do
-      skip
       job_queue # Pre-initialize to avoid race conditions.
 
       threads =
