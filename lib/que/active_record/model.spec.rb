@@ -30,6 +30,8 @@ if defined?(::ActiveRecord)
       assert_equal "custom_queue", DB[:que_jobs].where(id: id).get(:queue)
     end
 
+    it "should work when using a subclass of the model"
+
     describe "errored" do
       it "should return a dataset of jobs that have errored" do
         a, b = 2.times.map { enqueue_job }
