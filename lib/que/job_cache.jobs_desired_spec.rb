@@ -76,13 +76,13 @@ describe Que::JobCache, "jobs_desired" do
 
   after { dummy_workers.each(&:kill) }
 
-  describe "when the job queue is empty and there are unprioritized workers" do
+  describe "when the job queue is empty and there are free low-priority workers" do
     it "should ask for enough jobs to satisfy all of its unprioritized workers and fill the queue" do
       assert_desired [12, 32767]
     end
   end
 
-  describe "when the unprioritized workers are all busy" do
+  describe "when the low-priority workers are all busy" do
     before { fill_cache(100 => 4) }
 
     it "should only ask for jobs to fill the cache" do
@@ -90,7 +90,7 @@ describe Que::JobCache, "jobs_desired" do
     end
   end
 
-  describe "when the cache is full and the unprioritized workers are busy" do
+  describe "when the cache is full and the low-priority workers are busy" do
     before { fill_cache(100 => 12) }
 
     it "should only ask for jobs at the next priority level" do
@@ -111,12 +111,12 @@ describe Que::JobCache, "jobs_desired" do
     let(:minimum_size) { 0 }
 
     describe "and all the workers are free" do
-      it "should only ask for jobs at the next priority level" do
+      it "should only ask for jobs at the lowest priority level" do
         assert_desired [4, 32767]
       end
     end
 
-    describe "and the unprioritized workers are busy" do
+    describe "and the low-priority workers are busy" do
       before { fill_cache(100 => 4) }
 
       it "should only ask for jobs at the next priority level" do
