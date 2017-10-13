@@ -19,7 +19,14 @@ describe Que::Poller do
     ids.map!{|h| h[:id].to_i}.sort
   end
 
-  def poll(count, queue_name: 'default', job_ids: [], override_connection: nil)
+  def poll(
+    count,
+    queue_name: 'default',
+    job_ids: [],
+    priority_threshold: 10_000,
+    override_connection: nil
+  )
+
     assert_empty held_advisory_locks(override_connection: override_connection)
 
     job_ids = job_ids.to_set
@@ -31,7 +38,7 @@ describe Que::Poller do
         poll_interval: 5,
       )
 
-    metajobs = poller.poll(count, priority_threshold: 10_000, held_locks: job_ids)
+    metajobs = poller.poll(count, priority_threshold: priority_threshold, held_locks: job_ids)
 
     metajobs.each do |metajob|
       # Make sure we pull in run_at timestamps in iso8601 format.
@@ -88,6 +95,13 @@ describe Que::Poller do
     jobs_dataset.where(id: two).update(expired_at: Time.now)
 
     assert_equal [one], poll(5)
+  end
+
+  it "should skip jobs that don't meet the priority threshold" do
+    one = Que::Job.enqueue(priority: 7).que_attrs[:id]
+    two = Que::Job.enqueue(priority: 8).que_attrs[:id]
+
+    assert_equal [one], poll(5, priority_threshold: 7)
   end
 
   it "should only work a job whose scheduled time to run has passed" do
