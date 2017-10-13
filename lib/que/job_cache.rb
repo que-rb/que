@@ -14,7 +14,7 @@ module Que
       priorities:
     )
       @maximum_size = Que.assert(Integer, maximum_size)
-      Que.assert(maximum_size > 0) { "maximum_size for a JobCache must be greater than zero!" }
+      Que.assert(maximum_size >= 0) { "maximum_size for a JobCache must be at least zero!" }
 
       @minimum_size = Que.assert(Integer, minimum_size)
       Que.assert(minimum_size >= 0) { "minimum_size for a JobCache must be at least zero!" }

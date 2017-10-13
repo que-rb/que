@@ -33,12 +33,12 @@ describe Que::JobCache do
   end
 
   describe "during instantiation" do
-    it "should raise an error if passed a maximum queue size of zero or less" do
+    it "should raise an error if passed a maximum queue size less than zero" do
       error = assert_raises(Que::Error) do
-        Que::JobCache.new(minimum_size: 0, maximum_size: 0, priorities: [10])
+        Que::JobCache.new(minimum_size: 0, maximum_size: -1, priorities: [10])
       end
 
-      assert_equal "maximum_size for a JobCache must be greater than zero!", error.message
+      assert_equal "maximum_size for a JobCache must be at least zero!", error.message
     end
 
     it "should raise an error if passed a minimum queue size less than zero" do

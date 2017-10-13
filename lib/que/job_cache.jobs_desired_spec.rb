@@ -83,19 +83,23 @@ describe Que::JobCache, "jobs_desired" do
   end
 
   describe "when the unprioritized workers are all busy" do
-    before do
-      fill_cache(100 => 4)
-    end
+    before { fill_cache(100 => 4) }
 
     it "should only ask for jobs to fill the cache" do
       assert_desired [8, 32767]
     end
   end
 
-  describe "when the job queue is completely full" do
-    before do
-      fill_cache(5 => 18)
+  describe "when the cache is full and the unprioritized workers are busy" do
+    before { fill_cache(100 => 12) }
+
+    it "should only ask for jobs at the next priority level" do
+      assert_desired [2, 50]
     end
+  end
+
+  describe "when the job queue is completely full" do
+    before { fill_cache(5 => 18) }
 
     it "should ask for zero jobs" do
       assert_desired [0, 32767]
@@ -103,6 +107,29 @@ describe Que::JobCache, "jobs_desired" do
   end
 
   describe "when the maximum cache size is zero" do
-    it "should behave reasonably"
+    let(:maximum_size) { 0 }
+    let(:minimum_size) { 0 }
+
+    describe "and all the workers are free" do
+      it "should only ask for jobs at the next priority level" do
+        assert_desired [4, 32767]
+      end
+    end
+
+    describe "and the unprioritized workers are busy" do
+      before { fill_cache(100 => 4) }
+
+      it "should only ask for jobs at the next priority level" do
+        assert_desired [2, 50]
+      end
+    end
+
+    describe "and all the workers are busy" do
+      before { fill_cache(5 => 10) }
+
+      it "should ask for zero jobs" do
+        assert_desired [0, 32767]
+      end
+    end
   end
 end
