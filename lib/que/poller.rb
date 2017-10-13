@@ -59,36 +59,45 @@ module Que
     SQL[:poll_jobs] =
       %{
         WITH RECURSIVE jobs AS (
-          SELECT (j).*, pg_try_advisory_lock((j).id) AS locked
+          SELECT
+            (j).*,
+            pg_try_advisory_lock((j).id) AS locked,
+            que_subtract_priority($3::jsonb, (j).priority) AS remaining_priorities
           FROM (
             SELECT j
             FROM public.que_jobs AS j
             WHERE queue = $1::text
               AND NOT id = ANY($2::bigint[])
-              AND priority <= $3::smallint
+              AND priority <= que_highest_remaining_priority($3::jsonb)
               AND run_at <= now()
               AND finished_at IS NULL AND expired_at IS NULL
             ORDER BY priority, run_at, id
             LIMIT 1
           ) AS t1
           UNION ALL (
-            SELECT (j).*, pg_try_advisory_lock((j).id) AS locked
+            SELECT
+              (j).*,
+              pg_try_advisory_lock((j).id) AS locked,
+              que_subtract_priority(remaining_priorities, (j).priority) AS remaining_priorities
             FROM (
-              SELECT (
-                SELECT j
-                FROM public.que_jobs AS j
-                WHERE queue = $1::text
-                  AND NOT id = ANY($2::bigint[])
-                  AND priority <= $3::smallint
-                  AND run_at <= now()
-                  AND finished_at IS NULL AND expired_at IS NULL
-                  AND (priority, run_at, id) >
-                    (jobs.priority, jobs.run_at, jobs.id)
-                ORDER BY priority, run_at, id
-                LIMIT 1
-              ) AS j
+              SELECT
+                remaining_priorities,
+                (
+                  SELECT j
+                  FROM public.que_jobs AS j
+                  WHERE queue = $1::text
+                    AND NOT id = ANY($2::bigint[])
+                    AND priority <= que_highest_remaining_priority(jobs.remaining_priorities)
+                    AND run_at <= now()
+                    AND finished_at IS NULL AND expired_at IS NULL
+                    AND (priority, run_at, id) >
+                      (jobs.priority, jobs.run_at, jobs.id)
+                  ORDER BY priority, run_at, id
+                  LIMIT 1
+                ) AS j
+
               FROM jobs
-              WHERE jobs.id IS NOT NULL
+              WHERE jobs.id IS NOT NULL AND jobs.remaining_priorities != '{}'::jsonb
               LIMIT 1
             ) AS t1
           )
@@ -128,11 +137,24 @@ module Que
 
     def poll(
       limit,
-      priority_threshold: MAXIMUM_PRIORITY,
+      priority_requirements:,
       held_locks:
     )
 
       return unless should_poll?
+
+      binding.pry unless $stop
+      0
+
+      connection.execute(
+        SQL[:poll_jobs],
+        [
+          @queue,
+          "{#{held_locks.to_a.join(',')}}",
+          JSON.dump(priority_requirements),
+          limit,
+        ]
+      )
 
       jobs =
         connection.execute_prepared(
@@ -140,7 +162,7 @@ module Que
           [
             @queue,
             "{#{held_locks.to_a.join(',')}}",
-            priority_threshold,
+            JSON.dump(priority_requirements),
             limit,
           ]
         )

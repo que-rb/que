@@ -23,7 +23,7 @@ describe Que::Poller do
     count,
     queue_name: 'default',
     job_ids: [],
-    priority_threshold: Que::MAXIMUM_PRIORITY,
+    priority_requirements:,
     override_connection: nil
   )
 
@@ -38,7 +38,7 @@ describe Que::Poller do
         poll_interval: 5,
       )
 
-    metajobs = poller.poll(count, priority_threshold: priority_threshold, held_locks: job_ids)
+    metajobs = poller.poll(count, priority_requirements: priority_requirements, held_locks: job_ids)
 
     metajobs.each do |metajob|
       # Make sure we pull in run_at timestamps in iso8601 format.
@@ -95,6 +95,29 @@ describe Que::Poller do
     jobs_dataset.where(id: two).update(expired_at: Time.now)
 
     assert_equal [one], poll(5)
+  end
+
+  describe "when passed a set of priority requirements" do
+    before do
+      priorities = []
+      [10, 20, 30, 40, 50].each {|p| priorities += ([p] * 10)}
+      priorities.shuffle!
+      priorities.each { |p| Que::Job.enqueue(priority: p) }
+    end
+
+    it "should retrieve jobs that match those priority requirements" do
+      # binding.pry
+
+      # DB.get{que_subtract_priority(Sequel.cast(JSON.dump({5 => 6, 7 => 8, 9 => 0}), :jsonb), Sequel.cast(7, :smallint))}
+
+      ids = poll(20, priority_requirements: {5 => 5, 10 => 6, 25 => 7})
+      priorities = jobs_dataset.where(id: ids).group_by(:priority).select_hash(:priority, Sequel::Dataset::COUNT_OF_ALL_AS_COUNT)
+
+      assert_equal(
+        {10 => 10, 20 => 3},
+        priorities,
+      )
+    end
   end
 
   it "should skip jobs that don't meet the priority threshold" do

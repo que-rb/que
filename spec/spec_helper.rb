@@ -122,6 +122,8 @@ QUE_TABLES = [:que_jobs, :que_lockers, :que_values]
 
 # Reset the schema to the most up-to-date version.
 DB.drop_table? *QUE_TABLES, cascade: true
+DB.drop_function :que_subtract_priority, if_exists: true, cascade: true, args: [:jsonb, :smallint]
+DB.drop_function :que_highest_remaining_priority,  if_exists: true, cascade: true, args: [:jsonb]
 DB.drop_function :que_state_notify,  if_exists: true, cascade: true
 DB.drop_function :que_validate_tags, if_exists: true, cascade: true, args: [:jsonb]
 DB.drop_function :que_job_notify,    if_exists: true, cascade: true

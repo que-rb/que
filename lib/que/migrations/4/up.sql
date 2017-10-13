@@ -268,3 +268,36 @@ CREATE TRIGGER que_state_notify
   AFTER INSERT OR UPDATE OR DELETE ON que_jobs
   FOR EACH ROW
   EXECUTE PROCEDURE que_state_notify();
+
+CREATE FUNCTION que_subtract_priority(priorities jsonb, priority_to_subtract smallint) RETURNS jsonb AS $$
+  WITH exploded AS (
+    SELECT
+      key::smallint AS priority,
+      value::text::integer AS count
+    FROM jsonb_each(priorities)
+  ),
+  relevant AS (
+    SELECT priority, count
+    FROM exploded
+    WHERE priority >= priority_to_subtract
+      AND count > 0
+    ORDER BY priority DESC
+    LIMIT 1
+  )
+  SELECT jsonb_set(
+    priorities,
+    ARRAY[priority::text],
+    to_jsonb(count - 1)
+  )
+  FROM relevant
+$$
+STABLE
+LANGUAGE SQL;
+
+CREATE FUNCTION que_highest_remaining_priority(priorities jsonb) RETURNS smallint AS $$
+  SELECT max(key::smallint)
+  FROM jsonb_each(priorities)
+  WHERE value::text::integer > 0
+$$
+STABLE
+LANGUAGE SQL;
