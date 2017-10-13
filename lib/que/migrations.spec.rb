@@ -142,7 +142,7 @@ describe Que::Migrations do
       version_3 do
         # The table primary key is different at this schema version, so provide a
         # returning clause so that Sequel doesn't get confused.
-        DB[:que_jobs].returning(:job_id).insert(v3_default.merge(v3).tap{|j| j[:args] = JSON.dump(j[:args])})
+        DB[:que_jobs].returning(:job_id).insert(v3_default.merge(v3).tap{|j| j[:args] = JSON.generate(j[:args], quirks_mode: true)})
       end
 
       assert_equal(

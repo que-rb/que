@@ -280,7 +280,7 @@ describe Que::Locker do
 
       locker_settings[:poll] = true
       locker
-      sleep_until!(5) { active_jobs_dataset.empty? }
+      sleep_until!(10) { active_jobs_dataset.empty? }
       locker.stop!
     end
   end

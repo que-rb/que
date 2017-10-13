@@ -1,11 +1,11 @@
 default_environment: &default_environment
   GEMFILE_VERSIONS: "current old older oldest"
-  PG_VERSIONS: "9.5 9.6"
-  PG_PORTS: "5433 5434"
+  PG_VERSIONS: "9.5 9.6 10"
+  PG_PORTS: "5432 5433 5434"
 
 defaults: &defaults
   docker:
-    - image: chanks/que-circleci:0.0.4
+    - image: chanks/que-circleci:0.0.5
   steps:
     - checkout
 
@@ -87,10 +87,13 @@ defaults: &defaults
               do
                 for GEMFILE_VERSION in $GEMFILE_VERSIONS
                 do
-                  # The oldest Rails version doesn't support Ruby 2.4.
-                  if [ "$RUBY_VERSION" == "2.4" -a "$USE_RAILS" == "true" -a "$GEMFILE_VERSION" == "oldest" ]
+                  # The oldest Rails version doesn't support Ruby 2.4+.
+                  if [ "$USE_RAILS" == "true" -a "$GEMFILE_VERSION" == "oldest" ]
                   then
-                    continue
+                    if [ "$RUBY_VERSION" == "2.4" -o "$RUBY_VERSION" == "ruby-head" ]
+                    then
+                      continue
+                    fi
                   fi
 
                   # Use the template1 DB that comes with Postgres so we don't
@@ -133,6 +136,12 @@ jobs:
       <<: *default_environment
       RUBY_VERSION: 2.4
 
+  ruby_head:
+    <<: *defaults
+    environment:
+      <<: *default_environment
+      RUBY_VERSION: ruby-head
+
 workflows:
   version: 2
   build:
@@ -140,3 +149,4 @@ workflows:
       - ruby_2_2
       - ruby_2_3
       - ruby_2_4
+      - ruby_head

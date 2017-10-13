@@ -29,6 +29,23 @@ describe 'Que::Sequel::Model' do
     assert_equal "custom_queue", DB[:que_jobs].where(id: id).get(:queue)
   end
 
+  it "should work when using a subclass of the model" do
+    id = enqueue_job
+    klass = Class.new(Que::Sequel::Model)
+    job = klass[id]
+
+    assert_instance_of klass, job
+    assert_equal id, job.id
+
+    assert_equal "default", job.queue
+    job.update queue: "custom_queue"
+
+    assert_equal "custom_queue", DB[:que_jobs].where(id: id).get(:queue)
+
+    # Make sure that scopes work.
+    assert_equal 1, klass.not_finished.count
+  end
+
   describe "errored" do
     it "should return a dataset of jobs that have errored" do
       a, b = 2.times.map { enqueue_job }
