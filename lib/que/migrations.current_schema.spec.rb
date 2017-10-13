@@ -12,20 +12,6 @@ describe Que::Migrations, "current schema" do
     it "should make sure that a job has valid arguments" do
       [
         {},
-        [],
-        4,
-        "string",
-        nil,
-        true
-      ].each do |data|
-        assert_constraint_error 'args_is_array' do
-          DB[:que_jobs].
-            insert(job_class: 'Que::Job', data: JSON.generate(data, quirks_mode: true))
-        end
-      end
-
-      [
-        {},
         4,
         "string",
         nil,
@@ -33,15 +19,15 @@ describe Que::Migrations, "current schema" do
       ].each do |args|
         assert_constraint_error 'args_is_array' do
           DB[:que_jobs].
-            insert(job_class: 'Que::Job', data: JSON.dump(args: args))
+            insert(job_class: 'Que::Job', args: JSON.dump(args))
         end
       end
     end
 
     it "should make sure that a job has valid tags" do
-      assert_constraint_error 'tags_is_short_array' do
+      assert_constraint_error 'valid_data' do
         DB[:que_jobs].
-          insert(job_class: 'Que::Job', data: JSON.dump(args: []))
+          insert(job_class: 'Que::Job', data: JSON.dump(tags: {}))
       end
 
       [
@@ -52,9 +38,9 @@ describe Que::Migrations, "current schema" do
         true,
         %w[a b c d e f], # More than 5 elements.
       ].each do |tags|
-        assert_constraint_error 'tags_is_short_array' do
+        assert_constraint_error 'valid_data' do
           DB[:que_jobs].
-            insert(job_class: 'Que::Job', data: JSON.dump(args: [], tags: tags))
+            insert(job_class: 'Que::Job', data: JSON.dump(tags: tags))
         end
       end
 
@@ -66,14 +52,14 @@ describe Que::Migrations, "current schema" do
         [{}],
         ["a" * 101],
       ].each do |tags|
-        assert_constraint_error 'tags_short_strings' do
+        assert_constraint_error 'valid_data' do
           DB[:que_jobs].
-            insert(job_class: 'Que::Job', data: JSON.dump(args: [], tags: tags))
+            insert(job_class: 'Que::Job', data: JSON.dump(tags: tags))
         end
 
-        assert_constraint_error 'tags_short_strings' do
+        assert_constraint_error 'valid_data' do
           DB[:que_jobs].
-            insert(job_class: 'Que::Job', data: JSON.dump(args: [], tags: (tags << "valid_tag").shuffle))
+            insert(job_class: 'Que::Job', data: JSON.dump(tags: (tags << "valid_tag").shuffle))
         end
       end
     end
@@ -89,10 +75,7 @@ describe Que::Migrations, "current schema" do
         DB[:que_jobs].
           insert(
             job_class: 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper',
-            data: JSON.dump(
-              args: [{job_class: 'a' * 501}],
-              tags: [],
-            )
+            args: JSON.dump([{job_class: 'a' * 501}])
           )
       end
 

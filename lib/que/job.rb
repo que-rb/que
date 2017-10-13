@@ -12,14 +12,15 @@ module Que
     SQL[:insert_job] =
       %{
         INSERT INTO public.que_jobs
-        (queue, priority, run_at, job_class, data)
+        (queue, priority, run_at, job_class, args, data)
         VALUES
         (
           coalesce($1, 'default')::text,
           coalesce($2, 100)::smallint,
           coalesce($3, now())::timestamptz,
           $4::text,
-          coalesce($5, '{"args":[],"tags":[]}')::jsonb
+          coalesce($5, '[]')::jsonb,
+          coalesce($6, '{}')::jsonb
         )
         RETURNING *
       }
@@ -60,19 +61,21 @@ module Que
         priority:  nil,
         run_at:    nil,
         job_class: nil,
-        tags:      [],
+        tags:      nil,
         **arg_opts
       )
 
         args << arg_opts if arg_opts.any?
 
-        if tags.length > MAXIMUM_TAGS_COUNT
-          raise Que::Error, "Can't enqueue a job with more than #{MAXIMUM_TAGS_COUNT} tags! (passed #{tags.length})"
-        end
+        if tags
+          if tags.length > MAXIMUM_TAGS_COUNT
+            raise Que::Error, "Can't enqueue a job with more than #{MAXIMUM_TAGS_COUNT} tags! (passed #{tags.length})"
+          end
 
-        tags.each do |tag|
-          if tag.length > MAXIMUM_TAG_LENGTH
-            raise Que::Error, "Can't enqueue a job with a tag longer than 100 characters! (\"#{tag}\")"
+          tags.each do |tag|
+            if tag.length > MAXIMUM_TAG_LENGTH
+              raise Que::Error, "Can't enqueue a job with a tag longer than 100 characters! (\"#{tag}\")"
+            end
           end
         end
 
@@ -80,20 +83,22 @@ module Que
           queue:    queue    || resolve_que_setting(:queue) || Que.default_queue,
           priority: priority || resolve_que_setting(:priority),
           run_at:   run_at   || resolve_que_setting(:run_at),
-          data:     Que.serialize_json(args: args, tags: tags),
+          args:     Que.serialize_json(args),
+          data:     tags ? Que.serialize_json(tags: tags) : "{}",
           job_class: \
             job_class || name ||
               raise(Error, "Can't enqueue an anonymous subclass of Que::Job"),
         }
 
         if attrs[:run_at].nil? && resolve_que_setting(:run_synchronously)
+          attrs[:args] = Que.deserialize_json(attrs[:args])
           attrs[:data] = Que.deserialize_json(attrs[:data])
           _run_attrs(attrs)
         else
           values =
             Que.execute(
               :insert_job,
-              attrs.values_at(:queue, :priority, :run_at, :job_class, :data),
+              attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :data),
             ).first
 
           new(values)
@@ -103,10 +108,10 @@ module Que
       def run(*args)
         # Make sure things behave the same as they would have with a round-trip
         # to the DB.
-        data = Que.deserialize_json(Que.serialize_json(args: args))
+        args = Que.deserialize_json(Que.serialize_json(args))
 
         # Should not fail if there's no DB connection.
-        _run_attrs(data: data)
+        _run_attrs(args: args)
       end
 
       def resolve_que_setting(setting, *args)

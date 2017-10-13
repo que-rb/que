@@ -97,7 +97,7 @@ if defined?(::ActiveJob)
       assert_equal [5, 6], $args
 
       assert_instance_of ActiveJob::QueueAdapters::QueAdapter::JobWrapper, passed_1
-      assert_equal([5, 6], passed_1.que_attrs[:data][:args].first[:arguments])
+      assert_equal([5, 6], passed_1.que_attrs[:args].first[:arguments])
 
       assert_equal passed_1.object_id, passed_2.object_id
     end
@@ -114,7 +114,7 @@ if defined?(::ActiveJob)
       assert_raises(CustomExceptionSubclass) { execute(5, 6) }
 
       assert_equal 1, active_jobs_dataset.count
-      assert_equal [5, 6], active_jobs_dataset.get(:data)[:args].first[:arguments]
+      assert_equal [5, 6], active_jobs_dataset.get(:args).first[:arguments]
     end
 
     describe "when running synchronously" do

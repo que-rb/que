@@ -26,7 +26,7 @@ module Que
               {::Sequel.qualify(:que_jobs, :job_class) => job_class},
               {
                 ::Sequel.qualify(:que_jobs, :job_class) => "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
-                ::Sequel.lit("que_jobs.data->'args'->0->>'job_class'") => job_class,
+                ::Sequel.lit("que_jobs.args->0->>'job_class'") => job_class,
               }
             )
           )
@@ -40,8 +40,8 @@ module Que
           where(::Sequel.lit("que_jobs.data @> ?", JSON.dump(tags: [tag])))
         end
 
-        def by_args(args)
-          where(::Sequel.lit("que_jobs.data @> ?", JSON.dump(args: [args])))
+        def by_args(*args)
+          where(::Sequel.lit("que_jobs.args @> ?", JSON.dump(args)))
         end
       end
     end

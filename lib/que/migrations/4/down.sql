@@ -12,6 +12,7 @@ DROP FUNCTION que_determine_job_state(que_jobs);
 DROP TABLE que_lockers;
 
 DROP TABLE que_values;
+DROP INDEX que_jobs_args_gin_idx;
 
 ALTER TABLE que_jobs RENAME COLUMN id TO job_id;
 ALTER SEQUENCE que_jobs_id_seq RENAME TO que_jobs_job_id_seq;
@@ -22,12 +23,13 @@ ALTER TABLE que_jobs
   DROP CONSTRAINT error_length,
   DROP CONSTRAINT queue_length,
   DROP CONSTRAINT job_class_length,
+  DROP CONSTRAINT args_is_array,
   DROP COLUMN finished_at,
   DROP COLUMN expired_at,
-  ADD COLUMN args JSON;
+  ALTER args TYPE JSON using args::json;
 
 UPDATE que_jobs
-  SET args = (data->'args')::json,
+SET
   queue = CASE queue WHEN 'default' THEN '' ELSE queue END,
   last_error = last_error || coalesce(E'\n' || last_error_backtrace, '');
 

@@ -111,10 +111,15 @@ describe Que::Migrations do
     end
 
     def assert_round_trip_migration(v3: {}, v4: {})
-      v4_default = {id: 1, job_class: 'Que::Job', queue: 'default', data: {args: [], tags: []}, last_error_message: nil, last_error_backtrace: nil}
+      v4_default = {id: 1, job_class: 'Que::Job', queue: 'default', data: {}, args: [], last_error_message: nil, last_error_backtrace: nil}
       v3_default = {job_id: 1, job_class: 'Que::Job', queue: '', args: [], last_error: nil}
 
-      DB[:que_jobs].insert(v4_default.merge(v4).tap{|j| j[:data] = JSON.dump(j[:data])})
+      DB[:que_jobs].insert(
+        v4_default.merge(v4).tap { |j|
+          j[:args] = JSON.dump(j[:args])
+          j[:data] = JSON.dump(j[:data])
+        }
+      )
 
       version_3 do
         assert_equal(
@@ -130,13 +135,13 @@ describe Que::Migrations do
         v4_default.merge(v4),
         DB[:que_jobs].
           where(id: 1).
-          select(:id, :job_class, :data, :queue, :last_error_message, :last_error_backtrace).
+          select(:id, :job_class, :args, :data, :queue, :last_error_message, :last_error_backtrace).
           first
       )
     end
 
     def assert_up_migration(v3: {}, v4: {})
-      v4_default = {id: 1, job_class: 'Que::Job', queue: 'default', data: {args: [], tags: []}, last_error_message: nil, last_error_backtrace: nil}
+      v4_default = {id: 1, job_class: 'Que::Job', queue: 'default', data: {}, args: [], last_error_message: nil, last_error_backtrace: nil}
       v3_default = {job_id: 1, job_class: 'Que::Job', queue: '', args: [], last_error: nil}
 
       version_3 do
@@ -149,7 +154,7 @@ describe Que::Migrations do
         v4_default.merge(v4),
         DB[:que_jobs].
           where(id: 1).
-          select(:id, :job_class, :data, :queue, :last_error_message, :last_error_backtrace).
+          select(:id, :job_class, :data, :args, :queue, :last_error_message, :last_error_backtrace).
           first
       )
     end
@@ -179,21 +184,21 @@ describe Que::Migrations do
       it "should correctly migrate up jobs whose args are hashes instead of arrays" do
         assert_up_migration(
           v3: {args: {arg1: true, arg2: 'a'}},
-          v4: {data: {args: [{arg1: true, arg2: 'a'}], tags: []}},
+          v4: {args: [{arg1: true, arg2: 'a'}]},
         )
       end
 
       it "should correctly migrate up jobs whose args are scalar strings instead of arrays" do
         assert_up_migration(
           v3: {args: "arg1"},
-          v4: {data: {args: ["arg1"], tags: []}},
+          v4: {args: ["arg1"]},
         )
       end
 
       it "should correctly migrate up jobs whose args are scalar integers instead of arrays" do
         assert_up_migration(
           v3: {args: 5},
-          v4: {data: {args: [5], tags: []}},
+          v4: {args: [5]},
         )
       end
     end

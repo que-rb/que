@@ -26,7 +26,7 @@ module Que
         def by_job_class(job_class)
           job_class = job_class.name if job_class.is_a?(Class)
           where(
-            "que_jobs.job_class = ? OR (que_jobs.job_class = 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper' AND que_jobs.data->'args'->0->>'job_class' = ?)",
+            "que_jobs.job_class = ? OR (que_jobs.job_class = 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper' AND que_jobs.args->0->>'job_class' = ?)",
             job_class, job_class,
           )
         end
@@ -39,8 +39,8 @@ module Que
           where("que_jobs.data @> ?", JSON.dump(tags: [tag]))
         end
 
-        def by_args(args)
-          where("que_jobs.data @> ?", JSON.dump(args: [args]))
+        def by_args(*args)
+          where("que_jobs.args @> ?", JSON.dump(args))
         end
       end
     end

@@ -1,42 +1,37 @@
 ALTER TABLE que_jobs SET (fillfactor = 90);
 ALTER TABLE que_jobs RENAME COLUMN last_error TO last_error_message;
 ALTER TABLE que_jobs RENAME COLUMN job_id TO id;
+ALTER TABLE que_jobs RENAME COLUMN args TO old_args;
 ALTER SEQUENCE que_jobs_job_id_seq RENAME TO que_jobs_id_seq;
 
 ALTER TABLE que_jobs
   ADD COLUMN last_error_backtrace text,
   ADD COLUMN finished_at timestamptz,
   ADD COLUMN expired_at timestamptz,
+  ADD COLUMN args JSONB,
   ADD COLUMN data JSONB;
 
 ALTER TABLE que_jobs DROP CONSTRAINT que_jobs_pkey;
 
 UPDATE que_jobs
-SET queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
+SET
+  queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
+  last_error_backtrace =
     -- Some old error fields might be missing the backtrace, so try to provide a
     -- reasonable default.
-    last_error_backtrace =
-      CASE
-      WHEN last_error_message ~ '\n'
-        THEN left(regexp_replace(last_error_message, '^[^\n]+\n', ''), 10000)
-      ELSE
-        NULL
-      END,
-    last_error_message = left(substring(last_error_message from '^[^\n]+'), 500),
-    data = jsonb_build_object(
-      'args',
-      (
-        CASE json_typeof(args)
-        WHEN 'array' THEN args::jsonb
-        ELSE jsonb_build_array(args)
-        END
-      ),
-      'tags',
-      jsonb_build_array()
-    );
-
-CREATE INDEX que_poll_idx ON que_jobs (queue, priority, run_at, id) WHERE (finished_at IS NULL AND expired_at IS NULL);
-CREATE INDEX que_jobs_data_gin_idx ON que_jobs USING gin (data jsonb_path_ops);
+    CASE
+    WHEN last_error_message ~ '\n'
+      THEN left(regexp_replace(last_error_message, '^[^\n]+\n', ''), 10000)
+    ELSE
+      NULL
+    END,
+  last_error_message = left(substring(last_error_message from '^[^\n]+'), 500),
+  args =
+    CASE json_typeof(old_args)
+    WHEN 'array' THEN old_args::jsonb
+    ELSE jsonb_build_array(old_args)
+    END,
+  data = '{}'::jsonb;
 
 CREATE FUNCTION que_validate_tags(tags_array jsonb) RETURNS boolean AS $$
   SELECT bool_and(
@@ -48,12 +43,19 @@ CREATE FUNCTION que_validate_tags(tags_array jsonb) RETURNS boolean AS $$
 $$
 LANGUAGE SQL;
 
+-- Now that we're done rewriting data, add new indexes.
+CREATE INDEX que_poll_idx ON que_jobs (queue, priority, run_at, id) WHERE (finished_at IS NULL AND expired_at IS NULL);
+CREATE INDEX que_jobs_data_gin_idx ON que_jobs USING gin (data jsonb_path_ops);
+CREATE INDEX que_jobs_args_gin_idx ON que_jobs USING gin (args jsonb_path_ops);
+
 ALTER TABLE que_jobs
   ADD PRIMARY KEY (id),
+  DROP COLUMN old_args,
   ALTER COLUMN queue SET DEFAULT 'default',
-  ALTER COLUMN data SET DEFAULT '{"args":[],"tags":[]}',
+  ALTER COLUMN args SET DEFAULT '[]',
+  ALTER COLUMN args SET NOT NULL,
+  ALTER COLUMN data SET DEFAULT '{}',
   ALTER COLUMN data SET NOT NULL,
-  DROP COLUMN args,
   ADD CONSTRAINT queue_length CHECK (
     char_length(queue) <= 500
   ),
@@ -61,29 +63,30 @@ ALTER TABLE que_jobs
     char_length(
       CASE job_class
       WHEN 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper' THEN
-        data->'args'->0->>'job_class'
+        args->0->>'job_class'
       ELSE
         job_class
       END
     ) <= 500
   ),
   ADD CONSTRAINT args_is_array CHECK (
+    (jsonb_typeof(args) = 'array')
+  ),
+  ADD CONSTRAINT valid_data CHECK (
     (jsonb_typeof(data) = 'object')
     AND
-    ((data->'args') IS NOT NULL)
-    AND
-    (jsonb_typeof(data->'args') = 'array')
+    (
+      (NOT data ? 'tags')
+      OR
+      (
+        (jsonb_typeof(data->'tags') = 'array')
+        AND
+        (jsonb_array_length(data->'tags') <= 5)
+        AND
+        (que_validate_tags(data->'tags'))
+      )
+    )
   ),
-  ADD CONSTRAINT tags_is_short_array CHECK (
-    (jsonb_typeof(data) = 'object')
-    AND
-    ((data->'tags') IS NOT NULL)
-    AND
-    (jsonb_typeof(data->'tags') = 'array')
-    AND
-    (jsonb_array_length(data->'tags') <= 5)
-  ),
-  ADD CONSTRAINT tags_short_strings CHECK (que_validate_tags(data->'tags')),
   ADD CONSTRAINT error_length CHECK (
     (char_length(last_error_message) <= 500) AND
     (char_length(last_error_backtrace) <= 10000)
@@ -231,10 +234,11 @@ CREATE FUNCTION que_state_notify() RETURNS trigger AS $$
     INTO message
     FROM (
       SELECT
-        'job_change'     AS message_type,
-        row.id           AS id,
-        row.queue        AS queue,
-        row.data->'tags' AS tags,
+        'job_change' AS message_type,
+        row.id       AS id,
+        row.queue    AS queue,
+
+        coalesce(row.data->'tags', '[]'::jsonb) AS tags,
 
         to_char(row.run_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS run_at,
         to_char(now()      AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS time,
@@ -242,7 +246,7 @@ CREATE FUNCTION que_state_notify() RETURNS trigger AS $$
         CASE row.job_class
         WHEN 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper' THEN
           coalesce(
-            row.data->'args'->0->>'job_class',
+            row.args->0->>'job_class',
             'ActiveJob::QueueAdapters::QueAdapter::JobWrapper'
           )
         ELSE

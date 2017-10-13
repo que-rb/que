@@ -76,7 +76,7 @@ describe Que::Migrations, "que_state trigger" do
         DB[:que_jobs].insert(
           job_class: "CustomJobClass",
           queue: "custom_queue",
-          data: JSON.dump(args: [], tags: ["tag_1", "tag_2"]),
+          data: JSON.dump(tags: ["tag_1", "tag_2"]),
         )
       end
     end
@@ -90,7 +90,7 @@ describe Que::Migrations, "que_state trigger" do
         ) do
           DB[:que_jobs].insert(
             job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
-            data: JSON.dump(args: [{job_class: "WrappedJobClass"}], tags: []),
+            args: JSON.dump([{job_class: "WrappedJobClass"}]),
           )
         end
       end
@@ -111,7 +111,7 @@ describe Que::Migrations, "que_state trigger" do
           ) do
             DB[:que_jobs].insert(
               job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
-              data: JSON.dump(args: args, tags: []),
+              args: JSON.dump(args),
             )
           end
         end

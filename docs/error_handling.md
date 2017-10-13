@@ -43,7 +43,8 @@ Que.error_notifier = proc do |error, job|
   #   :last_error_backtrace => nil,
   #   :finished_at => nil,
   #   :expired_at => nil,
-  #   :data => {:args => [], :tags => []}
+  #   :args => [],
+  #   :data => {}
   # }
 
   # This is done because the job may not have been able to be deserialized

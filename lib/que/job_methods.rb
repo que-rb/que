@@ -41,7 +41,7 @@ module Que
     # ActiveJob.
     def _run(args: nil, reraise_errors: false)
       if args.nil? && que_target
-        args = que_target.que_attrs.fetch(:data).fetch(:args)
+        args = que_target.que_attrs.fetch(:args)
       end
 
       run(*args)

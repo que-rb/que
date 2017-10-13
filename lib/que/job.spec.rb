@@ -179,10 +179,10 @@ describe Que::Job do
 
           if defined?(ApplicationJob)
             assert_instance_of ActiveJob::QueueAdapters::QueAdapter::JobWrapper, passed_1
-            assert_equal([5, 6], passed_1.que_attrs[:data][:args].first[:arguments])
+            assert_equal([5, 6], passed_1.que_attrs[:args].first[:arguments])
           else
             assert_instance_of TestJobClass, passed_1
-            assert_equal([5, 6], passed_1.que_attrs[:data][:args])
+            assert_equal([5, 6], passed_1.que_attrs[:args])
           end
 
           assert_equal passed_1.object_id, passed_2.object_id

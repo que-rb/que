@@ -11,7 +11,7 @@ describe Que::Job, '.enqueue' do
     expected_job_class: Que::Job,
     expected_result_class: nil,
     expected_args: [],
-    expected_tags: []
+    expected_tags: nil
   )
 
     assert_equal 0, jobs_dataset.count
@@ -29,15 +29,20 @@ describe Que::Job, '.enqueue' do
     assert_instance_of (expected_result_class || expected_job_class), result
 
     assert_equal expected_priority, result.que_attrs[:priority]
-    assert_equal expected_args, result.que_attrs[:data][:args]
-    assert_equal expected_tags, result.que_attrs[:data][:tags]
+    assert_equal expected_args, result.que_attrs[:args]
+
+    if expected_tags.nil?
+      assert_equal({}, result.que_attrs[:data])
+    else
+      assert_equal expected_tags, result.que_attrs[:data][:tags]
+    end
 
     job = jobs_dataset.first
     assert_equal expected_queue, job[:queue]
     assert_equal expected_priority, job[:priority]
     assert_in_delta job[:run_at], expected_run_at, 3
     assert_equal expected_job_class.to_s, job[:job_class]
-    assert_equal expected_args, job[:data][:args]
+    assert_equal expected_args, job[:args]
 
     jobs_dataset.delete
   end
@@ -129,7 +134,7 @@ describe Que::Job, '.enqueue' do
       assert_enqueue \
         [1, {string: "string", tags: ["tag_1", "tag_2"]}, {}],
         expected_args: [1, {string: "string", tags: ["tag_1", "tag_2"]}],
-        expected_tags: []
+        expected_tags: nil
     end
 
     it "should raise an error if passing too many tags" do
