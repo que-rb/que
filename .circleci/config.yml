@@ -89,6 +89,7 @@ defaults: &defaults
                 do
                   # The oldest Rails version doesn't support Ruby 2.4+.
                   if [ "$USE_RAILS" == "true" -a "$GEMFILE_VERSION" == "oldest" ]
+                  then
                     if [ "$RUBY_VERSION" == "2.4" -o "$RUBY_VERSION" == "ruby-head" ]
                     then
                       continue
