@@ -20,12 +20,13 @@ module Que
     # The CTE will initially produce an "anchor" from the non-recursive term
     # (i.e. before the `UNION`), and then use it as the contents of the
     # working table as it continues to iterate through `que_jobs` looking for
-    # a lock. The jobs table has a sort on (priority, run_at, id) which
+    # a lock. The jobs table has an index on (priority, run_at, id) which
     # allows it to walk the jobs table in a stable manner. As noted above, the
     # recursion examines one job at a time so that it only ever acquires a
     # single lock.
     #
-    # The recursion has two possible end conditions:
+    # The recursion has two possible end conditions, assuming that the top-level
+    # query has a LIMIT of 1:
     #
     # 1. If a lock *can* be acquired, it bubbles up to the top-level `SELECT`
     #    outside of the `job` CTE which stops recursion because it is
@@ -35,6 +36,11 @@ module Que
     #    (i.e. what's after the `UNION`) will return an empty result set
     #    because there are no more candidates left that could possibly be
     #    locked. This empty result automatically ends recursion.
+    #
+    # If the query has a LIMIT greater than 1, the recursive term repeats (each
+    # time working from the last-locked job) until it has locked and SELECTed
+    # enough records to satisfy the LIMIT, or until the empty result has been
+    # reached.
     #
     # Also note that we don't retrieve all the job information in poll_jobs
     # due to a race condition that could result in jobs being run twice. If
