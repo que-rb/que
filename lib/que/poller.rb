@@ -126,7 +126,12 @@ module Que
       end
     end
 
-    def poll(limit, priority_threshold:, held_locks:)
+    def poll(
+      limit,
+      priority_threshold: MAXIMUM_PRIORITY,
+      held_locks:
+    )
+
       return unless should_poll?
 
       jobs =

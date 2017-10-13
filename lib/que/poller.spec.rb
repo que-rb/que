@@ -23,7 +23,7 @@ describe Que::Poller do
     count,
     queue_name: 'default',
     job_ids: [],
-    priority_threshold: 10_000,
+    priority_threshold: Que::MAXIMUM_PRIORITY,
     override_connection: nil
   )
 
@@ -208,29 +208,29 @@ describe Que::Poller do
     it "should be true if the last poll returned a full complement of jobs" do
       jobs = 5.times.map { Que::Job.enqueue }
 
-      result = poller.poll(3, priority_threshold: 10_000, held_locks: Set.new)
+      result = poller.poll(3, held_locks: Set.new)
       assert_equal 3, result.length
 
-      assert poller.should_poll?
+      assert_equal true, poller.should_poll?
     end
 
     it "should be false if the last poll didn't return a full complement of jobs" do
       jobs = 5.times.map { Que::Job.enqueue }
 
-      result = poller.poll(7, priority_threshold: 10_000, held_locks: Set.new)
+      result = poller.poll(7, held_locks: Set.new)
       assert_equal 5, result.length
 
-      refute poller.should_poll?
+      assert_equal false, poller.should_poll?
     end
 
     it "should be true if the last poll didn't return a full complement of jobs, but the poll_interval has elapsed" do
       jobs = 5.times.map { Que::Job.enqueue }
 
-      result = poller.poll(7, priority_threshold: 10_000, held_locks: Set.new)
+      result = poller.poll(7, held_locks: Set.new)
       assert_equal 5, result.length
 
       poller.instance_variable_set(:@last_polled_at, Time.now - 30)
-      assert poller.should_poll?
+      assert_equal true, poller.should_poll?
     end
   end
 end

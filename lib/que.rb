@@ -8,6 +8,7 @@ module Que
   DEFAULT_QUEUE    = 'default'.freeze
   TIME_REGEX       = /\A\d{4}\-\d{2}\-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}Z\z/
   CONFIG_MUTEX     = Mutex.new
+  MAXIMUM_PRIORITY = 32767
 
   class Error < StandardError; end
 

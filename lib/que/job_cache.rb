@@ -6,8 +6,6 @@
 
 module Que
   class JobCache
-    MAXIMUM_PRIORITY = 32767
-
     attr_reader :maximum_size, :minimum_size, :priority_queues
 
     def initialize(
