@@ -31,7 +31,7 @@ describe Que::Poller do
         poll_interval: 5,
       )
 
-    metajobs = poller.poll(count, held_locks: job_ids)
+    metajobs = poller.poll(count, priority_threshold: 10_000, held_locks: job_ids)
 
     metajobs.each do |metajob|
       # Make sure we pull in run_at timestamps in iso8601 format.
@@ -194,7 +194,7 @@ describe Que::Poller do
     it "should be true if the last poll returned a full complement of jobs" do
       jobs = 5.times.map { Que::Job.enqueue }
 
-      result = poller.poll(3, held_locks: Set.new)
+      result = poller.poll(3, priority_threshold: 10_000, held_locks: Set.new)
       assert_equal 3, result.length
 
       assert poller.should_poll?
@@ -203,7 +203,7 @@ describe Que::Poller do
     it "should be false if the last poll didn't return a full complement of jobs" do
       jobs = 5.times.map { Que::Job.enqueue }
 
-      result = poller.poll(7, held_locks: Set.new)
+      result = poller.poll(7, priority_threshold: 10_000, held_locks: Set.new)
       assert_equal 5, result.length
 
       refute poller.should_poll?
@@ -212,7 +212,7 @@ describe Que::Poller do
     it "should be true if the last poll didn't return a full complement of jobs, but the poll_interval has elapsed" do
       jobs = 5.times.map { Que::Job.enqueue }
 
-      result = poller.poll(7, held_locks: Set.new)
+      result = poller.poll(7, priority_threshold: 10_000, held_locks: Set.new)
       assert_equal 5, result.length
 
       poller.instance_variable_set(:@last_polled_at, Time.now - 30)

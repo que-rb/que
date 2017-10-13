@@ -6,6 +6,8 @@
 
 module Que
   class JobCache
+    MAXIMUM_PRIORITY = 32767
+
     attr_reader :maximum_size, :minimum_size, :priority_queues
 
     def initialize(
@@ -28,8 +30,9 @@ module Que
       @array   = []
       @monitor = Monitor.new # TODO: Make this a mutex?
 
+      # Make sure that priority = nil sorts highest.
       @priority_queues = Hash[
-        priorities.sort_by{|p| p.nil? ? Float::INFINITY : p}.map do |p|
+        priorities.sort_by{|p| p || Float::INFINITY}.map do |p|
           [p, PriorityQueue.new(priority: p, job_cache: self)]
         end
       ].freeze
@@ -60,7 +63,7 @@ module Que
 
         # If we passed the maximum queue size, drop the lowest sort keys and
         # return their ids to be unlocked.
-        overage = -space
+        overage = -cache_space
         pop(overage) if overage > 0
       end
     end
@@ -86,7 +89,7 @@ module Que
       metajobs.sort!
 
       sync do
-        start_index = space
+        start_index = cache_space
         final_index = metajobs.length - 1
 
         return metajobs if start_index > final_index
@@ -117,9 +120,19 @@ module Que
       count
     end
 
-    def space
+    def jobs_desired
+      priority_queues.reverse_each do |priority, pq|
+        wc = pq.waiting_count
+        wc += cache_space if priority.nil?
+        return [wc, priority || MAXIMUM_PRIORITY] if wc > 0
+      end
+
+      return [0, MAXIMUM_PRIORITY]
+    end
+
+    def cache_space
       sync do
-        maximum_size + waiting_count - size
+        maximum_size - size
       end
     end
 

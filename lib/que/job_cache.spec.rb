@@ -255,22 +255,10 @@ describe Que::JobCache do
     end
   end
 
-  describe "space" do
-    it "should return how much space is available in the queue" do
+  describe "cache_space" do
+    it "should return how much space is available in the cache" do
       job_cache.push(*job_array.sample(3))
-      assert_equal 5, job_cache.space
-    end
-
-    it "should increase by one for each any-priority worker waiting for a job" do
-      assert_equal 8, job_cache.space
-
-      thread  = Thread.new { job_cache.shift(5) }
-      threads = 2.times.map { Thread.new { job_cache.shift } }
-
-      sleep_until! { job_cache.space == 10 }
-
-      thread.kill
-      threads.each &:kill
+      assert_equal 5, job_cache.cache_space
     end
   end
 

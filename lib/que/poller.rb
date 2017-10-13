@@ -65,6 +65,7 @@ module Que
             FROM public.que_jobs AS j
             WHERE queue = $1::text
               AND NOT id = ANY($2::bigint[])
+              AND priority <= $3::smallint
               AND run_at <= now()
               AND finished_at IS NULL AND expired_at IS NULL
             ORDER BY priority, run_at, id
@@ -78,6 +79,7 @@ module Que
                 FROM public.que_jobs AS j
                 WHERE queue = $1::text
                   AND NOT id = ANY($2::bigint[])
+                  AND priority <= $3::smallint
                   AND run_at <= now()
                   AND finished_at IS NULL AND expired_at IS NULL
                   AND (priority, run_at, id) >
@@ -94,7 +96,7 @@ module Que
         SELECT *
         FROM jobs
         WHERE locked
-        LIMIT $3::integer
+        LIMIT $4::integer
       }
 
     attr_reader \
@@ -124,7 +126,7 @@ module Que
       end
     end
 
-    def poll(limit, held_locks:)
+    def poll(limit, priority_threshold:, held_locks:)
       return unless should_poll?
 
       jobs =
@@ -133,6 +135,7 @@ module Que
           [
             @queue,
             "{#{held_locks.to_a.join(',')}}",
+            priority_threshold,
             limit,
           ]
         )
