@@ -19,7 +19,7 @@ describe Que::Migrations, "current schema" do
       ].each do |args|
         assert_constraint_error 'args_is_array' do
           DB[:que_jobs].
-            insert(job_class: 'Que::Job', args: JSON.dump(args))
+            insert(job_class: 'Que::Job', args: JSON.generate(args, quirks_mode: true))
         end
       end
     end
