@@ -22,6 +22,8 @@
 
     *   Support for categorizing jobs with tags.
 
+    *   Support for configuring a `maximum_retry_count` on individual job classes.
+
     *   Job configuration options are now inheritable, so job class hierarchies are more useful.
 
     *   There are now built-in models for ActiveRecord and Sequel to allow inspecting the queue easily.
@@ -64,11 +66,21 @@
 
         *   To start up the worker pool (the old :async behavior) you should use the `que` executable to start up a worker process. There's no longer a supported API for running workers outside of the `que` executable.
 
-    *   Que no longer uses prepared statements for its built-in queries. This should have no outward-facing change, except that the `disable_prepared_statements` configuration option no longer exists.
+    *   The way Que uses prepared statements internally has changed. This shouldn't affect anyone's use of Que, except that the `disable_prepared_statements` configuration option is no longer necessary and has been removed.
 
-    *   In addition to `Que.disable_prepared_statements=`, the following methods are not meaningful under the new implementation and have been removed: `Que.wake_interval`, `Que.wake_interval=`, `Que.wake!`, `Que.wake_all!`, `Que.worker_count`, `Que.worker_count=`.
+        *   Specifically, while Que previously used prepared statements for most of its built-in queries, now only the polling query uses it, due to its complexity. Since the polling query is only run through a dedicated connection, it's no longer possible for prepared statements to conflict with external connection pools, which was the reason that `disable_prepared_statements` was supported in the first place.
 
-    *   Since Que needs a dedicated Postgres connection to manage job locks, it is no longer possible to run Que through a single PG connection. A connection pool with a size of at least 2 is required.
+    *   In addition to `Que.disable_prepared_statements=`, the following methods are not meaningful under the new implementation and have been removed:
+
+        *   The `Que.wake_interval` getter and setter.
+
+        *   The `Que.worker_count` getter and setter.
+
+        *   `Que.wake!`
+
+        *   `Que.wake_all!`
+
+    *   Since Que needs a dedicated Postgres connection to manage job locks, running Que through a single PG connection is no longer supported.
 
         *   It's not clear that anyone ever actually did this.
 
@@ -88,9 +100,11 @@
 
 *   Finally, if you've built up your own tooling and customizations around Que, you may need to be aware of some DB schema changes made in the migration to schema version #4.
 
-    *   The `job_id` column has been renamed `id` and is now the primary key. This should make it  easier to manage the queue using a `QueJob` ActiveRecord model.
+    *   The `job_id` column has been renamed `id` and is now the primary key. This makes it easier to manage the queue using an ActiveRecord model.
 
-    *   Finished jobs are now kept in the DB, unless you explicitly call `destroy`. If you want to query the DB for only jobs that haven't finished yet, add a `WHERE finished_at IS NULL` condition to your query.
+    *   Finished jobs are now kept in the DB, unless you explicitly call `destroy`. If you want to query the DB for only jobs that haven't finished yet, add a `WHERE finished_at IS NULL` condition to your query, or use the not_finished scope on one of the provided ORM models.
+
+    *   There is now an `expired_at` timestamp column, which is set when a job reaches its maximum number of retries and will not be attempted again.
 
     *   Due to popular demand, the default queue name is now "default" rather than an empty string. The migration will move pending jobs under the "" queue to the "default" queue.
 
@@ -98,7 +112,7 @@
 
     *   Names for queues and job classes are now limited to 500 characters, which is still far longer than either of these values should reasonably be.
 
-    *   Rather than an `args` JSON column, job arguments are stored as an array under an `args` key in a `data` JSONB column.
+    *   There is now a `data` JSONB column which is used to support various ways of organizing jobs (setting tags on them, etc).
 
 ### 0.13.1 (2017-07-05)
 
