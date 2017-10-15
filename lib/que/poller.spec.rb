@@ -71,6 +71,10 @@ describe Que::Poller do
     assert_equal [id], poll
   end
 
+  it "should not fail if the jobs table is empty" do
+    assert_equal [], poll
+  end
+
   it "should return only the requested number of jobs" do
     ids = 5.times.map { Que::Job.enqueue.que_attrs[:id] }
     assert_equal ids[0..3], poll(priorities: {200 => 4})
@@ -107,6 +111,13 @@ describe Que::Poller do
     assert_equal [one], poll
   end
 
+  it "should skip jobs that don't meet the priority requirements" do
+    one = Que::Job.enqueue(priority: 7).que_attrs[:id]
+    two = Que::Job.enqueue(priority: 8).que_attrs[:id]
+
+    assert_equal [one], poll(priorities: {7 => 5})
+  end
+
   describe "when passed a set of priority requirements" do
     before do
       priorities = []
@@ -131,14 +142,14 @@ describe Que::Poller do
         locked: {10 => 10},
       )
     end
+
+    it "should behave properly if none of the jobs match the requirements" do
+      assert_poll(
+        priorities: {5 => 5},
+        locked: {},
+      )
+    end
   end
-
-  # it "should skip jobs that don't meet the priority threshold" do
-  #   one = Que::Job.enqueue(priority: 7).que_attrs[:id]
-  #   two = Que::Job.enqueue(priority: 8).que_attrs[:id]
-
-  #   assert_equal [one], poll(priority_threshold: 7)
-  # end
 
   it "should only work a job whose scheduled time to run has passed" do
     future1 = Que::Job.enqueue(run_at: Time.now + 30).que_attrs[:id]
