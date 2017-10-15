@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-describe Que::JobCache, "jobs_desired" do
+describe Que::JobCache, "available_priorities" do
   class DummyWorker
     attr_reader :thread
 
@@ -53,10 +53,10 @@ describe Que::JobCache, "jobs_desired" do
     job_cache.push(*metajobs)
   end
 
-  def assert_desired(expected)
+  def assert_available(expected)
     actual = nil
     sleep_until!(0.5) do
-      actual = job_cache.jobs_desired
+      actual = job_cache.available_priorities
       actual == expected
     end
   rescue
@@ -78,7 +78,12 @@ describe Que::JobCache, "jobs_desired" do
 
   describe "when the job queue is empty and there are free low-priority workers" do
     it "should ask for enough jobs to satisfy all of its unprioritized workers and fill the queue" do
-      assert_desired [12, 32767]
+      assert_available(
+        10    => 2,
+        30    => 2,
+        50    => 2,
+        32767 => 12,
+      )
     end
   end
 
@@ -86,15 +91,24 @@ describe Que::JobCache, "jobs_desired" do
     before { fill_cache(100 => 4) }
 
     it "should only ask for jobs to fill the cache" do
-      assert_desired [8, 32767]
+      assert_available(
+        10    => 2,
+        30    => 2,
+        50    => 2,
+        32767 => 8,
+      )
     end
   end
 
   describe "when the cache is full and the low-priority workers are busy" do
     before { fill_cache(100 => 12) }
 
-    it "should only ask for jobs at the next priority level" do
-      assert_desired [2, 50]
+    it "should only ask for jobs at the higher priority levels" do
+      assert_available(
+        10 => 2,
+        30 => 2,
+        50 => 2,
+      )
     end
   end
 
@@ -102,7 +116,7 @@ describe Que::JobCache, "jobs_desired" do
     before { fill_cache(5 => 18) }
 
     it "should ask for zero jobs" do
-      assert_desired [0, 32767]
+      assert_available({})
     end
   end
 
@@ -111,8 +125,13 @@ describe Que::JobCache, "jobs_desired" do
     let(:minimum_size) { 0 }
 
     describe "and all the workers are free" do
-      it "should only ask for jobs at the lowest priority level" do
-        assert_desired [4, 32767]
+      it "should not include any cache space in the available counts" do
+        assert_available(
+          10    => 2,
+          30    => 2,
+          50    => 2,
+          32767 => 4,
+        )
       end
     end
 
@@ -120,7 +139,11 @@ describe Que::JobCache, "jobs_desired" do
       before { fill_cache(100 => 4) }
 
       it "should only ask for jobs at the next priority level" do
-        assert_desired [2, 50]
+        assert_available(
+          10    => 2,
+          30    => 2,
+          50    => 2,
+        )
       end
     end
 
@@ -128,7 +151,7 @@ describe Que::JobCache, "jobs_desired" do
       before { fill_cache(5 => 10) }
 
       it "should ask for zero jobs" do
-        assert_desired [0, 32767]
+        assert_available({})
       end
     end
   end

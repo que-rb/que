@@ -118,22 +118,22 @@ module Que
       count
     end
 
-    def jobs_desired
-      priority_queues.reverse_each do |priority, pq|
-        wc = pq.waiting_count
-        wc += cache_space if priority.nil?
-        return [wc, priority || 32767] if wc > 0
-      end
-
-      return [0, MAXIMUM_PRIORITY]
-    end
-
     def available_priorities
-      h = {}
-      priority_queues.each do |priority, pq|
-        h[priority || MAXIMUM_PRIORITY] = pq.waiting_count
+      hash = {}
+      lowest_priority = true
+
+      priority_queues.reverse_each do |priority, pq|
+        count = pq.waiting_count
+
+        if lowest_priority
+          count += cache_space
+          lowest_priority = false
+        end
+
+        hash[priority || MAXIMUM_PRIORITY] = count if count > 0
       end
-      h
+
+      hash
     end
 
     def cache_space
