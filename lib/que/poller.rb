@@ -47,8 +47,15 @@ module Que
     # recursive query returns an empty result and the recursion breaks. This
     # also happens if there aren't enough appropriate jobs in the jobs table.
     #
-    # Thanks to RhodiumToad in #postgresql for help with the original version
-    # of the recursive job lock CTE.
+    # Also note the use of JOIN LATERAL to combine the job data with the
+    # output of lock_and_update_priorities(). The naive approach would be to
+    # write the SELECT as `SELECT (j).*, (lock_and_update_priorities(..., j)).*`,
+    # but the asterisk-expansion of the latter composite row causes the function
+    # to be evaluated twice, and to thereby take the advisory lock twice,
+    # which complicates the later unlocking step.
+    #
+    # Thanks to RhodiumToad in #postgresql for help with the original
+    # (simpler) version of the recursive job lock CTE.
 
     SQL[:poll_jobs] =
       %{
