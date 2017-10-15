@@ -178,9 +178,10 @@ module Que
     end
 
     class << self
-      # Manage some temporary infrastructure (specific to the connection)
-      # that we'll use for polling. These could easily be created permanently
-      # in a migration, but that'd make it more painful to tweak them later.
+      # Manage some temporary infrastructure (specific to the connection) that
+      # we'll use for polling. These could easily be created permanently in a
+      # migration, but that'd require another migration if we wanted to tweak
+      # them later.
 
       def setup(connection)
         connection.execute <<-SQL
@@ -208,13 +209,15 @@ module Que
                   FROM jsonb_each(priorities)
                   ) t1
                 WHERE priority >= (job).priority
-                ORDER BY priority DESC
+                ORDER BY priority ASC
                 LIMIT 1
               )
             SELECT
               (SELECT taken FROM lock_taken), -- R
               CASE (SELECT taken FROM lock_taken)
               WHEN false THEN
+                -- Simple case - we couldn't lock the job, so don't update the
+                -- priorities hash.
                 priorities
               WHEN true THEN
                 CASE count

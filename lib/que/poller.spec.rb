@@ -139,7 +139,7 @@ describe Que::Poller do
     it "should retrieve jobs that match those priority requirements" do
       assert_poll(
         priorities: {5 => 5, 10 => 6, 25 => 7},
-        locked: {10 => 10},
+        locked: {10 => 10, 20 => 3},
       )
     end
 
