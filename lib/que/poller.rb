@@ -10,51 +10,45 @@ module Que
     # the `RECURSION` nomenclature defined by the SQL standards committee.
     # Recursion is used here so that jobs in the table can be iterated one-by-
     # one until a lock can be acquired, where a non-recursive `SELECT` would
-    # have the undesirable side-effect of locking multiple jobs at once. i.e.
-    # Consider that the following would have the worker lock *all* unlocked
-    # jobs:
+    # have the undesirable side-effect of locking jobs unnecessarily. For
+    # example, the following might lock more than five jobs during execution:
     #
     #   SELECT (j).*, pg_try_advisory_lock((j).id) AS locked
-    #   FROM public.que_jobs AS j;
+    #   FROM public.que_jobs AS j
+    #   LIMIT 5;
     #
     # The CTE will initially produce an "anchor" from the non-recursive term
     # (i.e. before the `UNION`), and then use it as the contents of the
     # working table as it continues to iterate through `que_jobs` looking for
-    # a lock. The jobs table has an index on (priority, run_at, id) which
+    # locks. The jobs table has an index on (priority, run_at, id) which
     # allows it to walk the jobs table in a stable manner. As noted above, the
-    # recursion examines one job at a time so that it only ever acquires a
-    # single lock.
+    # recursion examines/locks one job at a time. Every time the recursive
+    # entry runs, it's output becomes the new contents of the working table,
+    # and what was previously in the working table is appended to the final
+    # result set. For more information on the basic workings of recursive
+    # CTEs, see http://www.postgresql.org/docs/devel/static/queries-with.html
     #
-    # The recursion has two possible end conditions, assuming that the top-level
-    # query has a LIMIT of 1:
+    # The polling query is provided a JSONB hash of desired job priorities.
+    # For example, if the locker has three workers free that can work a
+    # priority less than 5, and two workers free that can work a priority less
+    # than 10, the provided priority document is `{"5":3,"10":2}`. The query
+    # uses this information to decide what jobs to lock - if only high-
+    # priority workers were available, it wouldn't make sense to retrieve low-
+    # priority jobs.
     #
-    # 1. If a lock *can* be acquired, it bubbles up to the top-level `SELECT`
-    #    outside of the `job` CTE which stops recursion because it is
-    #    constrained with a `LIMIT` of 1.
-    #
-    # 2. If a lock *cannot* be acquired, the recursive term of the expression
-    #    (i.e. what's after the `UNION`) will return an empty result set
-    #    because there are no more candidates left that could possibly be
-    #    locked. This empty result automatically ends recursion.
-    #
-    # If the query has a LIMIT greater than 1, the recursive term repeats (each
-    # time working from the last-locked job) until it has locked and SELECTed
-    # enough records to satisfy the LIMIT, or until the empty result has been
-    # reached.
-    #
-    # Also note that we don't retrieve all the job information in poll_jobs
-    # due to a race condition that could result in jobs being run twice. If
-    # this query took its MVCC snapshot while a job was being processed by
-    # another worker, but didn't attempt the advisory lock until it was
-    # finished by that worker, it could return a job that had already been
-    # completed. Once we have the lock we know that a previous worker would
-    # have deleted the job by now, so we use get_job to retrieve it. If it
-    # doesn't exist, no problem.
-    #
-    # [1] http://www.postgresql.org/docs/devel/static/queries-with.html
+    # As each job is retrieved from the table, it is passed to
+    # lock_and_update_priorities() (which, for future flexibility, we define
+    # as a temporary function attached to the connection rather than embedding
+    # permanently into the DB schema). lock_and_update_priorities() attempts
+    # to lock the given job and, if it is able to, updates the priorities
+    # document to reflect that a job was available for that given priority.
+    # When the priorities document is emptied (all the counts of desired jobs
+    # for the various priorities have reached zero and been removed), the
+    # recursive query returns an empty result and the recursion breaks. This
+    # also happens if there aren't enough appropriate jobs in the jobs table.
     #
     # Thanks to RhodiumToad in #postgresql for help with the original version
-    # of the job lock CTE.
+    # of the recursive job lock CTE.
 
     SQL[:poll_jobs] =
       %{
@@ -74,7 +68,7 @@ module Que
             ORDER BY priority, run_at, id
             LIMIT 1
           ) AS t1
-          JOIN LATERAL (SELECT * FROM pg_temp.que_subtract_priority($3::jsonb, j)) AS l ON true
+          JOIN LATERAL (SELECT * FROM pg_temp.lock_and_update_priorities($3::jsonb, j)) AS l ON true
           UNION ALL (
             SELECT
               (j).*,
@@ -101,7 +95,7 @@ module Que
               WHERE jobs.id IS NOT NULL AND jobs.remaining_priorities != '{}'::jsonb
               LIMIT 1
             ) AS t1
-            JOIN LATERAL (SELECT * FROM pg_temp.que_subtract_priority(remaining_priorities, j)) AS l ON true
+            JOIN LATERAL (SELECT * FROM pg_temp.lock_and_update_priorities(remaining_priorities, j)) AS l ON true
           )
         )
         SELECT *
@@ -195,7 +189,7 @@ module Que
             remaining_priorities jsonb
           );
 
-          CREATE FUNCTION pg_temp.que_subtract_priority(priorities jsonb, job que_jobs) RETURNS pg_temp.que_query_result AS $$
+          CREATE FUNCTION pg_temp.lock_and_update_priorities(priorities jsonb, job que_jobs) RETURNS pg_temp.que_query_result AS $$
             WITH
               lock_taken AS (
                 SELECT pg_try_advisory_lock((job).id) AS taken
@@ -249,7 +243,7 @@ module Que
       def cleanup(connection)
         connection.execute <<-SQL
           DROP FUNCTION pg_temp.que_highest_remaining_priority(jsonb);
-          DROP FUNCTION pg_temp.que_subtract_priority(jsonb, que_jobs);
+          DROP FUNCTION pg_temp.lock_and_update_priorities(jsonb, que_jobs);
           DROP TYPE pg_temp.que_query_result;
         SQL
       end
