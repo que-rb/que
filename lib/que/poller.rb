@@ -143,6 +143,8 @@ module Que
 
       return unless should_poll?
 
+      expected_count = priorities.inject(0){|s,(p,c)| s + c}
+
       jobs =
         connection.execute_prepared(
           :poll_jobs,
@@ -154,7 +156,7 @@ module Que
         )
 
       @last_polled_at      = Time.now
-      # @last_poll_satisfied = limit == jobs.count
+      @last_poll_satisfied = expected_count == jobs.count
 
       Que.internal_log :poller_polled, self do
         {

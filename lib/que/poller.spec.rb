@@ -228,45 +228,48 @@ describe Que::Poller do
     threads.each(&:join)
   end
 
-  # describe "should_poll?" do
-  #   let :poller do
-  #     Que::Poller.new(
-  #       connection: connection,
-  #       queue: 'default',
-  #       poll_interval: 5,
-  #     )
-  #   end
+  describe "should_poll?" do
+    let :poller do
+      Que::Poller.new(
+        connection: connection,
+        queue: 'default',
+        poll_interval: 5,
+      )
+    end
 
-  #   it "should be true if the poller hasn't run before" do
-  #     assert poller.should_poll?
-  #   end
+    before { Que::Poller.setup  (connection) }
+    after  { Que::Poller.cleanup(connection) }
 
-  #   it "should be true if the last poll returned a full complement of jobs" do
-  #     jobs = 5.times.map { Que::Job.enqueue }
+    it "should be true if the poller hasn't run before" do
+      assert poller.should_poll?
+    end
 
-  #     result = poller.poll(3, held_locks: Set.new)
-  #     assert_equal 3, result.length
+    it "should be true if the last poll returned a full complement of jobs" do
+      jobs = 5.times.map { Que::Job.enqueue }
 
-  #     assert_equal true, poller.should_poll?
-  #   end
+      result = poller.poll(priorities: {500 => 3}, held_locks: Set.new)
+      assert_equal 3, result.length
 
-  #   it "should be false if the last poll didn't return a full complement of jobs" do
-  #     jobs = 5.times.map { Que::Job.enqueue }
+      assert_equal true, poller.should_poll?
+    end
 
-  #     result = poller.poll(7, held_locks: Set.new)
-  #     assert_equal 5, result.length
+    it "should be false if the last poll didn't return a full complement of jobs" do
+      jobs = 5.times.map { Que::Job.enqueue }
 
-  #     assert_equal false, poller.should_poll?
-  #   end
+      result = poller.poll(priorities: {500 => 7}, held_locks: Set.new)
+      assert_equal 5, result.length
 
-  #   it "should be true if the last poll didn't return a full complement of jobs, but the poll_interval has elapsed" do
-  #     jobs = 5.times.map { Que::Job.enqueue }
+      assert_equal false, poller.should_poll?
+    end
 
-  #     result = poller.poll(7, held_locks: Set.new)
-  #     assert_equal 5, result.length
+    it "should be true if the last poll didn't return a full complement of jobs, but the poll_interval has elapsed" do
+      jobs = 5.times.map { Que::Job.enqueue }
 
-  #     poller.instance_variable_set(:@last_polled_at, Time.now - 30)
-  #     assert_equal true, poller.should_poll?
-  #   end
-  # end
+      result = poller.poll(priorities: {500 => 7}, held_locks: Set.new)
+      assert_equal 5, result.length
+
+      poller.instance_variable_set(:@last_polled_at, Time.now - 30)
+      assert_equal true, poller.should_poll?
+    end
+  end
 end
