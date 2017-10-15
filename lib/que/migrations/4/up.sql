@@ -269,13 +269,16 @@ CREATE TRIGGER que_state_notify
   FOR EACH ROW
   EXECUTE PROCEDURE que_state_notify();
 
--- CREATE TYPE que_query_result AS (
---   locked boolean,
---   remaining_priorities jsonb
--- );
+CREATE TYPE que_query_result AS (
+  locked boolean,
+  remaining_priorities jsonb
+);
 
-CREATE FUNCTION que_subtract_priority(priorities jsonb, priority_to_subtract smallint) RETURNS jsonb AS $$
-  WITH exploded AS (
+CREATE FUNCTION que_subtract_priority(priorities jsonb, job que_jobs) RETURNS que_query_result AS $$
+  WITH lock_taken AS (
+    SELECT pg_try_advisory_lock((job).id) AS taken
+  ),
+  exploded AS (
     SELECT
       key::smallint AS priority,
       value::text::integer AS count
@@ -284,21 +287,27 @@ CREATE FUNCTION que_subtract_priority(priorities jsonb, priority_to_subtract sma
   relevant AS (
     SELECT priority, count
     FROM exploded
-    WHERE priority >= priority_to_subtract
+    WHERE priority >= (job).priority
       AND count > 0
     ORDER BY priority DESC
     LIMIT 1
   )
   SELECT
-    CASE count
-    WHEN 1 THEN
-      priorities - priority::text
-    ELSE
-      jsonb_set(
-        priorities,
-        ARRAY[priority::text],
-        to_jsonb(count - 1)
-      )
+    (SELECT taken FROM lock_taken),
+    CASE (SELECT taken FROM lock_taken)
+    WHEN true THEN
+      CASE count
+      WHEN 1 THEN
+        priorities - priority::text
+      ELSE
+        jsonb_set(
+          priorities,
+          ARRAY[priority::text],
+          to_jsonb(count - 1)
+        )
+      END
+    WHEN false THEN
+      priorities
     END
   FROM relevant
 $$

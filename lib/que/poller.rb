@@ -61,8 +61,7 @@ module Que
         WITH RECURSIVE jobs AS (
           SELECT
             (j).*,
-            pg_try_advisory_lock((j).id) AS locked,
-            que_subtract_priority($3::jsonb, (j).priority) AS remaining_priorities
+            (que_subtract_priority($3::jsonb, j)).*
           FROM (
             SELECT j
             FROM public.que_jobs AS j
@@ -77,8 +76,7 @@ module Que
           UNION ALL (
             SELECT
               (j).*,
-              pg_try_advisory_lock((j).id) AS locked,
-              que_subtract_priority(remaining_priorities, (j).priority) AS remaining_priorities
+              (que_subtract_priority(remaining_priorities, j)).*
             FROM (
               SELECT
                 remaining_priorities,

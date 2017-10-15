@@ -46,3 +46,4 @@ ALTER TABLE que_jobs
 DROP FUNCTION que_validate_tags(jsonb);
 DROP FUNCTION que_subtract_priority(jsonb, smallint);
 DROP FUNCTION que_highest_remaining_priority(jsonb);
+DROP TYPE que_query_result;

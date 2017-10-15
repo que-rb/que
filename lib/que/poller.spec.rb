@@ -185,8 +185,6 @@ describe Que::Poller do
   end
 
   it "should behave when being run concurrently by several connections" do
-    skip "requires some query work"
-
     q1, q2, q3, q4 = 4.times.map { Queue.new }
 
     # Poll 25 jobs each from four connections simultaneously.
