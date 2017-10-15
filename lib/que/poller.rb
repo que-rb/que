@@ -143,15 +143,6 @@ module Que
 
       return unless should_poll?
 
-      # connection.execute(
-      #   "EXPLAIN ANALYZE " + SQL[:poll_jobs],
-      #   [
-      #     @queue,
-      #     "{#{held_locks.to_a.join(',')}}",
-      #     JSON.dump(priorities),
-      #   ]
-      # )
-
       jobs =
         connection.execute_prepared(
           :poll_jobs,
