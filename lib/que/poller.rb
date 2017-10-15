@@ -184,46 +184,52 @@ module Que
 
       def setup(connection)
         connection.execute <<-SQL
+          -- Temporary composite type we need for our queries to work.
           CREATE TYPE pg_temp.que_query_result AS (
             locked boolean,
             remaining_priorities jsonb
           );
 
-          CREATE FUNCTION pg_temp.lock_and_update_priorities(priorities jsonb, job que_jobs) RETURNS pg_temp.que_query_result AS $$
+          CREATE FUNCTION pg_temp.lock_and_update_priorities(priorities jsonb, job que_jobs)
+          RETURNS pg_temp.que_query_result
+          AS $$
             WITH
+              -- Take the lock in a CTE because we want to use the result
+              -- multiple times while only taking the lock once.
               lock_taken AS (
                 SELECT pg_try_advisory_lock((job).id) AS taken
               ),
-              exploded AS (
-                SELECT
-                  key::smallint AS priority,
-                  value::text::integer AS count
-                FROM jsonb_each(priorities)
-              ),
               relevant AS (
                 SELECT priority, count
-                FROM exploded
+                FROM (
+                  SELECT
+                    key::smallint AS priority,
+                    value::text::integer AS count
+                  FROM jsonb_each(priorities)
+                  ) t1
                 WHERE priority >= (job).priority
-                  AND count > 0
                 ORDER BY priority DESC
                 LIMIT 1
               )
             SELECT
-              (SELECT taken FROM lock_taken),
+              (SELECT taken FROM lock_taken), -- R
               CASE (SELECT taken FROM lock_taken)
+              WHEN false THEN
+                priorities
               WHEN true THEN
                 CASE count
                 WHEN 1 THEN
+                  -- Remove the priority from the JSONB doc entirely, rather
+                  -- than leaving a zero entry in it.
                   priorities - priority::text
                 ELSE
+                  -- Decrement the value in the JSONB doc.
                   jsonb_set(
                     priorities,
                     ARRAY[priority::text],
                     to_jsonb(count - 1)
                   )
                 END
-              WHEN false THEN
-                priorities
               END
             FROM relevant
           $$
@@ -231,9 +237,7 @@ module Que
           LANGUAGE SQL;
 
           CREATE FUNCTION pg_temp.que_highest_remaining_priority(priorities jsonb) RETURNS smallint AS $$
-            SELECT max(key::smallint)
-            FROM jsonb_each(priorities)
-            WHERE value::text::integer > 0
+            SELECT max(key::smallint) FROM jsonb_each(priorities)
           $$
           STABLE
           LANGUAGE SQL;
