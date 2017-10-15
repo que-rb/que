@@ -46,7 +46,9 @@ describe Que::Poller do
         poll_interval: 5,
       )
 
+    Que::Poller.setup(override_connection || connection)
     metajobs = poller.poll(priorities: priorities, held_locks: job_ids)
+    Que::Poller.cleanup(override_connection || connection)
 
     metajobs.each do |metajob|
       # Make sure we pull in run_at timestamps in iso8601 format.

@@ -180,6 +180,8 @@ module Que
                 ["Que Locker: #{connection.backend_pid}"]
               )
 
+              Poller.setup(connection)
+
               if listen
                 @listener = Listener.new(connection: connection)
               end
@@ -201,6 +203,8 @@ module Que
                 "SELECT set_config('application_name', $1, false)",
                 [original_application_name]
               )
+
+              Poller.cleanup(connection)
             end
           end
         end

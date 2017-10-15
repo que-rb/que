@@ -61,22 +61,25 @@ module Que
         WITH RECURSIVE jobs AS (
           SELECT
             (j).*,
-            (que_subtract_priority($3::jsonb, j)).*
+            l.locked,
+            l.remaining_priorities
           FROM (
             SELECT j
             FROM public.que_jobs AS j
             WHERE queue = $1::text
               AND NOT id = ANY($2::bigint[])
-              AND priority <= que_highest_remaining_priority($3::jsonb)
+              AND priority <= pg_temp.que_highest_remaining_priority($3::jsonb)
               AND run_at <= now()
               AND finished_at IS NULL AND expired_at IS NULL
             ORDER BY priority, run_at, id
             LIMIT 1
           ) AS t1
+          JOIN LATERAL (SELECT * FROM pg_temp.que_subtract_priority($3::jsonb, j)) AS l ON true
           UNION ALL (
             SELECT
               (j).*,
-              (que_subtract_priority(remaining_priorities, j)).*
+              l.locked,
+              l.remaining_priorities
             FROM (
               SELECT
                 remaining_priorities,
@@ -85,7 +88,7 @@ module Que
                   FROM public.que_jobs AS j
                   WHERE queue = $1::text
                     AND NOT id = ANY($2::bigint[])
-                    AND priority <= que_highest_remaining_priority(jobs.remaining_priorities)
+                    AND priority <= pg_temp.que_highest_remaining_priority(jobs.remaining_priorities)
                     AND run_at <= now()
                     AND finished_at IS NULL AND expired_at IS NULL
                     AND (priority, run_at, id) >
@@ -98,6 +101,7 @@ module Que
               WHERE jobs.id IS NOT NULL AND jobs.remaining_priorities != '{}'::jsonb
               LIMIT 1
             ) AS t1
+            JOIN LATERAL (SELECT * FROM pg_temp.que_subtract_priority(remaining_priorities, j)) AS l ON true
           )
         )
         SELECT *
@@ -184,6 +188,78 @@ module Que
     def poll_interval_elapsed?
       return unless interval = poll_interval
       (Time.now - last_polled_at) > interval
+    end
+
+    class << self
+      # Manage some temporary infrastructure (specific to the connection)
+      # that we'll use for polling. These could easily be created permanently
+      # in a migration, but that'd make it more painful to tweak them later.
+
+      def setup(connection)
+        connection.execute <<-SQL
+          CREATE TYPE pg_temp.que_query_result AS (
+            locked boolean,
+            remaining_priorities jsonb
+          );
+
+          CREATE FUNCTION pg_temp.que_subtract_priority(priorities jsonb, job que_jobs) RETURNS pg_temp.que_query_result AS $$
+            WITH
+              lock_taken AS (
+                SELECT pg_try_advisory_lock((job).id) AS taken
+              ),
+              exploded AS (
+                SELECT
+                  key::smallint AS priority,
+                  value::text::integer AS count
+                FROM jsonb_each(priorities)
+              ),
+              relevant AS (
+                SELECT priority, count
+                FROM exploded
+                WHERE priority >= (job).priority
+                  AND count > 0
+                ORDER BY priority DESC
+                LIMIT 1
+              )
+            SELECT
+              (SELECT taken FROM lock_taken),
+              CASE (SELECT taken FROM lock_taken)
+              WHEN true THEN
+                CASE count
+                WHEN 1 THEN
+                  priorities - priority::text
+                ELSE
+                  jsonb_set(
+                    priorities,
+                    ARRAY[priority::text],
+                    to_jsonb(count - 1)
+                  )
+                END
+              WHEN false THEN
+                priorities
+              END
+            FROM relevant
+          $$
+          STABLE
+          LANGUAGE SQL;
+
+          CREATE FUNCTION pg_temp.que_highest_remaining_priority(priorities jsonb) RETURNS smallint AS $$
+            SELECT max(key::smallint)
+            FROM jsonb_each(priorities)
+            WHERE value::text::integer > 0
+          $$
+          STABLE
+          LANGUAGE SQL;
+        SQL
+      end
+
+      def cleanup(connection)
+        connection.execute <<-SQL
+          DROP FUNCTION pg_temp.que_highest_remaining_priority(jsonb);
+          DROP FUNCTION pg_temp.que_subtract_priority(jsonb, que_jobs);
+          DROP TYPE pg_temp.que_query_result;
+        SQL
+      end
     end
   end
 end
