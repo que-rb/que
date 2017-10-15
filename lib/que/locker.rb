@@ -301,20 +301,20 @@ module Que
       # enabled) and when the local queue has dropped below the configured
       # minimum size.
       return unless pollers && job_cache.jobs_needed?
-      limit, priority_threshold = job_cache.jobs_desired
+      priorities = job_cache.available_priorities
 
-      Que.internal_log(:locker_polling, self) { {limit: limit, priority_threshold: priority_threshold} }
+      Que.internal_log(:locker_polling, self) { {priorities: priorities, held_locks: @locks.to_a} }
 
       pollers.each do |poller|
-        break if limit <= 0
+        # break if limit <= 0
 
-        if metajobs = poller.poll(limit, priority_threshold: priority_threshold, held_locks: @locks)
+        if metajobs = poller.poll(priorities: priorities, held_locks: @locks)
           metajobs.each do |metajob|
             mark_id_as_locked(metajob.id)
           end
 
           push_jobs(metajobs)
-          limit -= metajobs.length
+          # limit -= metajobs.length
         end
       end
     end

@@ -269,6 +269,11 @@ CREATE TRIGGER que_state_notify
   FOR EACH ROW
   EXECUTE PROCEDURE que_state_notify();
 
+-- CREATE TYPE que_query_result AS (
+--   locked boolean,
+--   remaining_priorities jsonb
+-- );
+
 CREATE FUNCTION que_subtract_priority(priorities jsonb, priority_to_subtract smallint) RETURNS jsonb AS $$
   WITH exploded AS (
     SELECT
@@ -284,11 +289,17 @@ CREATE FUNCTION que_subtract_priority(priorities jsonb, priority_to_subtract sma
     ORDER BY priority DESC
     LIMIT 1
   )
-  SELECT jsonb_set(
-    priorities,
-    ARRAY[priority::text],
-    to_jsonb(count - 1)
-  )
+  SELECT
+    CASE count
+    WHEN 1 THEN
+      priorities - priority::text
+    ELSE
+      jsonb_set(
+        priorities,
+        ARRAY[priority::text],
+        to_jsonb(count - 1)
+      )
+    END
   FROM relevant
 $$
 STABLE

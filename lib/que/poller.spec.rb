@@ -19,11 +19,19 @@ describe Que::Poller do
     ids.map!{|h| h[:id].to_i}.sort
   end
 
+  let :default_priorities do
+    {
+      10    => 1,
+      30    => 1,
+      50    => 1,
+      32767 => 3,
+    }
+  end
+
   def poll(
-    count,
+    priorities: default_priorities,
     queue_name: 'default',
     job_ids: [],
-    priority_requirements:,
     override_connection: nil
   )
 
@@ -38,7 +46,7 @@ describe Que::Poller do
         poll_interval: 5,
       )
 
-    metajobs = poller.poll(count, priority_requirements: priority_requirements, held_locks: job_ids)
+    metajobs = poller.poll(priorities: priorities, held_locks: job_ids)
 
     metajobs.each do |metajob|
       # Make sure we pull in run_at timestamps in iso8601 format.
@@ -58,25 +66,25 @@ describe Que::Poller do
 
   it "should not fail if there aren't enough jobs to return" do
     id = Que::Job.enqueue.que_attrs[:id]
-    assert_equal [id], poll(5)
+    assert_equal [id], poll
   end
 
   it "should return only the requested number of jobs" do
     ids = 5.times.map { Que::Job.enqueue.que_attrs[:id] }
-    assert_equal ids[0..3], poll(4)
+    assert_equal ids[0..3], poll(priorities: {200 => 4})
   end
 
   it "should skip jobs with the given ids" do
     one, two = 2.times.map { Que::Job.enqueue.que_attrs[:id] }
 
-    assert_equal [two], poll(2, job_ids: [one])
+    assert_equal [two], poll(job_ids: [one])
   end
 
   it "should skip jobs in the wrong queue" do
     one = Que::Job.enqueue(queue: 'one').que_attrs[:id]
     two = Que::Job.enqueue(queue: 'two').que_attrs[:id]
 
-    assert_equal [one], poll(5, queue_name: 'one')
+    assert_equal [one], poll(queue_name: 'one')
   end
 
   it "should skip jobs that are finished" do
@@ -85,7 +93,7 @@ describe Que::Poller do
 
     jobs_dataset.where(id: two).update(finished_at: Time.now)
 
-    assert_equal [one], poll(5)
+    assert_equal [one], poll
   end
 
   it "should skip jobs that are expired" do
@@ -94,7 +102,7 @@ describe Que::Poller do
 
     jobs_dataset.where(id: two).update(expired_at: Time.now)
 
-    assert_equal [one], poll(5)
+    assert_equal [one], poll
   end
 
   describe "when passed a set of priority requirements" do
@@ -102,37 +110,40 @@ describe Que::Poller do
       priorities = []
       [10, 20, 30, 40, 50].each {|p| priorities += ([p] * 10)}
       priorities.shuffle!
-      priorities.each { |p| Que::Job.enqueue(priority: p) }
+
+      jobs_dataset.import([:job_class, :priority], priorities.map{|p| ["Que::Job", p]})
+    end
+
+    def assert_poll(priorities:, locked:)
+      ids = poll(priorities: priorities)
+
+      assert_equal(
+        locked,
+        jobs_dataset.where(id: ids).group_by(:priority).select_hash(:priority, Sequel::Dataset::COUNT_OF_ALL_AS_COUNT),
+      )
     end
 
     it "should retrieve jobs that match those priority requirements" do
-      # binding.pry
-
-      # DB.get{que_subtract_priority(Sequel.cast(JSON.dump({5 => 6, 7 => 8, 9 => 0}), :jsonb), Sequel.cast(7, :smallint))}
-
-      ids = poll(20, priority_requirements: {5 => 5, 10 => 6, 25 => 7})
-      priorities = jobs_dataset.where(id: ids).group_by(:priority).select_hash(:priority, Sequel::Dataset::COUNT_OF_ALL_AS_COUNT)
-
-      assert_equal(
-        {10 => 10, 20 => 3},
-        priorities,
+      assert_poll(
+        priorities: {5 => 5, 10 => 6, 25 => 7},
+        locked: {10 => 10},
       )
     end
   end
 
-  it "should skip jobs that don't meet the priority threshold" do
-    one = Que::Job.enqueue(priority: 7).que_attrs[:id]
-    two = Que::Job.enqueue(priority: 8).que_attrs[:id]
+  # it "should skip jobs that don't meet the priority threshold" do
+  #   one = Que::Job.enqueue(priority: 7).que_attrs[:id]
+  #   two = Que::Job.enqueue(priority: 8).que_attrs[:id]
 
-    assert_equal [one], poll(5, priority_threshold: 7)
-  end
+  #   assert_equal [one], poll(priority_threshold: 7)
+  # end
 
   it "should only work a job whose scheduled time to run has passed" do
     future1 = Que::Job.enqueue(run_at: Time.now + 30).que_attrs[:id]
     past    = Que::Job.enqueue(run_at: Time.now - 30).que_attrs[:id]
     future2 = Que::Job.enqueue(run_at: Time.now + 30).que_attrs[:id]
 
-    assert_equal [past], poll(5)
+    assert_equal [past], poll
   end
 
   it "should prefer a job with lower priority" do
@@ -141,7 +152,7 @@ describe Que::Poller do
 
     assert_equal(
       jobs_dataset.where{priority <= 3}.select_order_map(:id),
-      poll(5).sort,
+      poll(priorities: {10 => 5}).sort,
     )
   end
 
@@ -150,7 +161,7 @@ describe Que::Poller do
     id2 = Que::Job.enqueue(run_at: Time.now - 60).que_attrs[:id]
     id3 = Que::Job.enqueue(run_at: Time.now - 30).que_attrs[:id]
 
-    assert_equal [id2], poll(1)
+    assert_equal [id2], poll(priorities: {200 => 1})
   end
 
   it "should prefer a job that was queued earlier" do
@@ -158,7 +169,7 @@ describe Que::Poller do
 
     a, b, c = 3.times.map { Que::Job.enqueue(run_at: run_at).que_attrs[:id] }
 
-    assert_equal [a, b], poll(2)
+    assert_equal [a, b], poll(priorities: {200 => 2})
   end
 
   it "should skip jobs that are advisory-locked" do
@@ -167,13 +178,15 @@ describe Que::Poller do
     begin
       DB.get{pg_advisory_lock(b)}
 
-      assert_equal [a, c], poll(5)
+      assert_equal [a, c], poll
     ensure
       DB.get{pg_advisory_unlock(b)}
     end
   end
 
   it "should behave when being run concurrently by several connections" do
+    skip "requires some query work"
+
     q1, q2, q3, q4 = 4.times.map { Queue.new }
 
     # Poll 25 jobs each from four connections simultaneously.
@@ -183,7 +196,7 @@ describe Que::Poller do
           q1.push nil
           q2.pop
 
-          Thread.current[:jobs] = poll(25, override_connection: conn)
+          Thread.current[:jobs] = poll(priorities: {200 => 25}, override_connection: conn)
 
           q3.push nil
           q4.pop
@@ -215,45 +228,45 @@ describe Que::Poller do
     threads.each(&:join)
   end
 
-  describe "should_poll?" do
-    let :poller do
-      Que::Poller.new(
-        connection: connection,
-        queue: 'default',
-        poll_interval: 5,
-      )
-    end
+  # describe "should_poll?" do
+  #   let :poller do
+  #     Que::Poller.new(
+  #       connection: connection,
+  #       queue: 'default',
+  #       poll_interval: 5,
+  #     )
+  #   end
 
-    it "should be true if the poller hasn't run before" do
-      assert poller.should_poll?
-    end
+  #   it "should be true if the poller hasn't run before" do
+  #     assert poller.should_poll?
+  #   end
 
-    it "should be true if the last poll returned a full complement of jobs" do
-      jobs = 5.times.map { Que::Job.enqueue }
+  #   it "should be true if the last poll returned a full complement of jobs" do
+  #     jobs = 5.times.map { Que::Job.enqueue }
 
-      result = poller.poll(3, held_locks: Set.new)
-      assert_equal 3, result.length
+  #     result = poller.poll(3, held_locks: Set.new)
+  #     assert_equal 3, result.length
 
-      assert_equal true, poller.should_poll?
-    end
+  #     assert_equal true, poller.should_poll?
+  #   end
 
-    it "should be false if the last poll didn't return a full complement of jobs" do
-      jobs = 5.times.map { Que::Job.enqueue }
+  #   it "should be false if the last poll didn't return a full complement of jobs" do
+  #     jobs = 5.times.map { Que::Job.enqueue }
 
-      result = poller.poll(7, held_locks: Set.new)
-      assert_equal 5, result.length
+  #     result = poller.poll(7, held_locks: Set.new)
+  #     assert_equal 5, result.length
 
-      assert_equal false, poller.should_poll?
-    end
+  #     assert_equal false, poller.should_poll?
+  #   end
 
-    it "should be true if the last poll didn't return a full complement of jobs, but the poll_interval has elapsed" do
-      jobs = 5.times.map { Que::Job.enqueue }
+  #   it "should be true if the last poll didn't return a full complement of jobs, but the poll_interval has elapsed" do
+  #     jobs = 5.times.map { Que::Job.enqueue }
 
-      result = poller.poll(7, held_locks: Set.new)
-      assert_equal 5, result.length
+  #     result = poller.poll(7, held_locks: Set.new)
+  #     assert_equal 5, result.length
 
-      poller.instance_variable_set(:@last_polled_at, Time.now - 30)
-      assert_equal true, poller.should_poll?
-    end
-  end
+  #     poller.instance_variable_set(:@last_polled_at, Time.now - 30)
+  #     assert_equal true, poller.should_poll?
+  #   end
+  # end
 end

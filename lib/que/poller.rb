@@ -105,7 +105,6 @@ module Que
         SELECT *
         FROM jobs
         WHERE locked
-        LIMIT $4::integer
       }
 
     attr_reader \
@@ -136,25 +135,20 @@ module Que
     end
 
     def poll(
-      limit,
-      priority_requirements:,
+      priorities:,
       held_locks:
     )
 
       return unless should_poll?
 
-      binding.pry unless $stop
-      0
-
-      connection.execute(
-        SQL[:poll_jobs],
-        [
-          @queue,
-          "{#{held_locks.to_a.join(',')}}",
-          JSON.dump(priority_requirements),
-          limit,
-        ]
-      )
+      # connection.execute(
+      #   "EXPLAIN ANALYZE " + SQL[:poll_jobs],
+      #   [
+      #     @queue,
+      #     "{#{held_locks.to_a.join(',')}}",
+      #     JSON.dump(priorities),
+      #   ]
+      # )
 
       jobs =
         connection.execute_prepared(
@@ -162,18 +156,16 @@ module Que
           [
             @queue,
             "{#{held_locks.to_a.join(',')}}",
-            JSON.dump(priority_requirements),
-            limit,
+            JSON.dump(priorities),
           ]
         )
 
       @last_polled_at      = Time.now
-      @last_poll_satisfied = limit == jobs.count
+      # @last_poll_satisfied = limit == jobs.count
 
       Que.internal_log :poller_polled, self do
         {
           queue:        @queue,
-          limit:        limit,
           locked:       jobs.count,
           held_locks:   held_locks.to_a,
           newly_locked: jobs.map { |key| key.fetch(:id) },
