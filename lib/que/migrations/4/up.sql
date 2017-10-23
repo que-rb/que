@@ -125,9 +125,6 @@ CREATE UNLOGGED TABLE que_lockers (
   )
 );
 
-CREATE INDEX que_lockers_listening_queues_idx
-  ON que_lockers USING gin(queues) WHERE (listening);
-
 CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
   DECLARE
     locker_pid integer;
