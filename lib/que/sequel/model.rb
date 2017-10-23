@@ -2,7 +2,7 @@
 
 module Que
   module Sequel
-    class Model < ::Sequel::Model(:que_jobs)
+    class Model < ::Sequel::Model(::Sequel.qualify(:public, :que_jobs))
       dataset_module do
         conditions = {
           errored:   ::Sequel.qualify(:que_jobs, :error_count) > 0,
