@@ -163,6 +163,7 @@ module Que
         {
           queue:        @queue,
           locked:       jobs.count,
+          priorities:   priorities,
           held_locks:   held_locks.to_a,
           newly_locked: jobs.map { |key| key.fetch(:id) },
         }

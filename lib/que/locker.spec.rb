@@ -255,8 +255,6 @@ describe Que::Locker do
     end
 
     it "should request only enough jobs to fill the queue" do
-      skip
-
       # Three BlockJobs will tie up the low-priority workers.
       ids  = 3.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
       ids += 9.times.map { Que::Job.enqueue(priority: 101).que_attrs[:id] }
@@ -322,8 +320,6 @@ describe Que::Locker do
     end
 
     it "should request as many as necessary to reach the maximum_queue_size" do
-      skip
-
       # Three BlockJobs to tie up the low-priority workers.
       ids  = 3.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
       ids += [Que::Job.enqueue(priority: 101).que_attrs[:id]]
@@ -355,13 +351,14 @@ describe Que::Locker do
       # First big batch lock, tried to fill the queue and didn't quite get
       # there.
       event = locker_polled_events.shift
-      assert_equal 11, event[:limit]
+
       assert_equal 4,  event[:locked]
+      assert_equal({:"32767"=>11, :"50"=>1, :"30"=>1, :"10"=>1}, event[:priorities])
 
       # Second big batch lock, filled the queue.
       second_mass_lock =
         locker_polled_events.find do |e|
-          e[:limit] == 7 && e[:locked] == 7
+          e[:priorities] == {:"32767"=>7, :"50"=>1, :"30"=>1, :"10"=>1} && e[:locked] == 7
         end
 
       assert(
@@ -371,11 +368,10 @@ describe Que::Locker do
     end
 
     it "should trigger a new poll when the queue drops to the minimum size" do
-      skip
-
       ids = 12.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
 
       locker_settings[:poll] = true
+      locker_settings[:poll_interval] = 0.01
       locker
       3.times { $q1.pop }
 
@@ -570,8 +566,6 @@ describe Que::Locker do
     end
 
     it "should remove and unlock all the jobs in its queue" do
-      skip
-
       job_ids = 6.times.map { BlockJob.enqueue.que_attrs[:id] }
       locker
 
