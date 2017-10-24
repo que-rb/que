@@ -33,14 +33,14 @@ describe Que::Utils::Introspection do
         assert_equal 1, qj[:count_working]
         assert_equal 1, qj[:count_errored]
         assert_equal 5, qj[:highest_error_count]
-        assert_in_delta qj[:oldest_run_at], old, 3
+        assert_in_delta qj[:oldest_run_at], old, QueSpec::TIME_SKEW
 
         assert_equal 'BlockJob', bj[:job_class]
         assert_equal 1, bj[:count]
         assert_equal 0, bj[:count_working]
         assert_equal 0, bj[:count_errored]
         assert_equal 0, bj[:highest_error_count]
-        assert_in_delta bj[:oldest_run_at], Time.now, 3
+        assert_in_delta bj[:oldest_run_at], Time.now, QueSpec::TIME_SKEW
       ensure
         DB.get(Sequel.function(:pg_advisory_unlock_all))
       end
@@ -71,7 +71,7 @@ describe Que::Utils::Introspection do
         state.keys
 
       assert_equal 2, state[:priority]
-      assert_in_delta state[:run_at], Time.now, 3
+      assert_in_delta state[:run_at], Time.now, QueSpec::TIME_SKEW
       assert_equal 2**33, state[:id]
       assert_equal 'BlockJob', state[:job_class]
       assert_equal [], state[:args]

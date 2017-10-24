@@ -155,7 +155,7 @@ describe Que::Worker do
           )
         end
 
-        assert_in_delta job[:run_at], Time.now + delay, 3
+        assert_in_delta job[:run_at], Time.now + delay, QueSpec::TIME_SKEW
 
         jobs_dataset.update(run_at: Time.now - 60)
       end
@@ -276,7 +276,7 @@ describe Que::Worker do
 
           expired_at, error_count = a.first
 
-          assert_in_delta expired_at, Time.now, 3
+          assert_in_delta expired_at, Time.now, QueSpec::TIME_SKEW
           assert_equal 16, error_count
         end
 
@@ -294,7 +294,7 @@ describe Que::Worker do
               assert_equal attempt, ds.get(:error_count)
 
               if attempt == 4
-                assert_in_delta ds.get(:expired_at), Time.now, 5
+                assert_in_delta ds.get(:expired_at), Time.now, QueSpec::TIME_SKEW
               else
                 assert_nil ds.get(:expired_at)
               end
@@ -324,7 +324,7 @@ describe Que::Worker do
           run_jobs
 
           expired_at, error_count = ds.select_map([:expired_at, :error_count]).first
-          assert_in_delta expired_at, Time.now, 3
+          assert_in_delta expired_at, Time.now, QueSpec::TIME_SKEW
           assert_equal 16, error_count
         end
       end

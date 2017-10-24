@@ -200,7 +200,7 @@ describe Que::Job do
           assert_equal expected_job_count, active_jobs_dataset.count
 
           if should_persist_job
-            assert_in_delta active_jobs_dataset.get(:run_at), Time.now + 50, 3
+            assert_in_delta active_jobs_dataset.get(:run_at), Time.now + 50, QueSpec::TIME_SKEW
             assert_equal [job.que_attrs[:id]], active_jobs_dataset.select_map(:id)
           end
         end

@@ -115,7 +115,7 @@ describe Que::Utils::Logging do
     def get_messages
       messages = QUE_INTERNAL_LOGGER.messages.map{|m| JSON.parse(m, symbolize_names: true)}
       messages.each do |message|
-        assert_in_delta Time.iso8601(message.delete(:t)), Time.now.utc, 5
+        assert_in_delta Time.iso8601(message.delete(:t)), Time.now.utc, QueSpec::TIME_SKEW
       end
       messages
     end

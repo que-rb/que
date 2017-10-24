@@ -137,6 +137,7 @@ class QueSpec < Minitest::Spec
   include Minitest::Hooks
 
   SPEC_TIMEOUT = (ENV['SPEC_TIMEOUT'] || (ENV['CI'] ? 10 : 600)).to_i
+  TIME_SKEW = (ENV['SPEC_TIME_SKEW'] || (ENV['CI'] ? 10 : 1)).to_i
   SLEEP_UNTIL_TIMEOUT = 2
 
   register_spec_type(//, self)
@@ -232,7 +233,7 @@ class QueSpec < Minitest::Spec
       assert_equal Process.pid,        message.delete(:pid)
       assert_kind_of Integer,          message.delete(:thread)
 
-      assert_in_delta Time.iso8601(message.delete(:t)), Time.now.utc, 5
+      assert_in_delta Time.iso8601(message.delete(:t)), Time.now.utc, TIME_SKEW
     end
 
     if event
