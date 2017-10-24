@@ -17,8 +17,6 @@ UPDATE que_jobs
 SET
   queue = CASE queue WHEN '' THEN 'default' ELSE queue END,
   last_error_backtrace =
-    -- Some old error fields might be missing the backtrace, so try to provide a
-    -- reasonable default.
     CASE
     WHEN last_error_message ~ '\n'
       THEN left(regexp_replace(last_error_message, '^[^\n]+\n', ''), 10000)
@@ -57,7 +55,7 @@ ALTER TABLE que_jobs
   ALTER COLUMN data SET DEFAULT '{}',
   ALTER COLUMN data SET NOT NULL,
   ADD CONSTRAINT queue_length CHECK (
-    char_length(queue) <= 500
+    char_length(queue) <= 100
   ),
   ADD CONSTRAINT job_class_length CHECK (
     char_length(
@@ -67,9 +65,9 @@ ALTER TABLE que_jobs
       ELSE
         job_class
       END
-    ) <= 500
+    ) <= 200
   ),
-  ADD CONSTRAINT args_is_array CHECK (
+  ADD CONSTRAINT valid_args CHECK (
     (jsonb_typeof(args) = 'array')
   ),
   ADD CONSTRAINT valid_data CHECK (
@@ -98,7 +96,7 @@ ALTER TABLE que_jobs
 -- and sparingly (famous last words).
 CREATE TABLE que_values (
   key text PRIMARY KEY,
-  value jsonb NOT NULL,
+  value jsonb NOT NULL DEFAULT '{}',
   CONSTRAINT valid_value CHECK (jsonb_typeof(value) = 'object')
 )
 WITH (FILLFACTOR=90);
@@ -165,12 +163,12 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
       INTO sort_key
       FROM (
         SELECT
-          'work_job'   AS message_type,
-          NEW.queue    AS queue,
-          NEW.priority AS priority,
+          'job_available' AS message_type,
+          NEW.queue       AS queue,
+          NEW.priority    AS priority,
+          NEW.id          AS id,
           -- Make sure we output timestamps as UTC ISO 8601
-          to_char(NEW.run_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS run_at,
-          NEW.id       AS id
+          to_char(NEW.run_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS run_at
       ) t;
 
       PERFORM pg_notify('que_listener_' || locker_pid::text, sort_key::text);

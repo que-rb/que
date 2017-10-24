@@ -7,7 +7,7 @@
 require 'set'
 
 module Que
-  Listener::MESSAGE_FORMATS[:work_job] =
+  Listener::MESSAGE_FORMATS[:job_available] =
     {
       queue:    String,
       id:       Integer,
@@ -52,7 +52,7 @@ module Que
     MESSAGE_RESOLVERS = {}
     RESULT_RESOLVERS  = {}
 
-    MESSAGE_RESOLVERS[:work_job] =
+    MESSAGE_RESOLVERS[:job_available] =
       -> (messages) {
         metajobs = messages.map { |key| Metajob.new(key) }
         push_jobs(lock_jobs(job_cache.accept?(metajobs)))

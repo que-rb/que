@@ -23,7 +23,7 @@ ALTER TABLE que_jobs
   DROP CONSTRAINT error_length,
   DROP CONSTRAINT queue_length,
   DROP CONSTRAINT job_class_length,
-  DROP CONSTRAINT args_is_array,
+  DROP CONSTRAINT valid_args,
   DROP COLUMN finished_at,
   DROP COLUMN expired_at,
   ALTER args TYPE JSON using args::json;
