@@ -151,10 +151,8 @@ module Que
     end
 
     def stop
-      sync do
-        @stop = true
-        priority_queues.each_value(&:stop)
-      end
+      sync { @stop = true }
+      priority_queues.each_value(&:stop)
     end
 
     def clear
