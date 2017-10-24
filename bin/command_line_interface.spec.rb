@@ -66,6 +66,11 @@ describe Que::CommandLineInterface do
     $q2.push nil
 
     assert_equal 0, thread.value
+  ensure
+    unless thread.status == false
+      puts "CLI invocation thread status: #{thread.status.inspect}"
+      puts thread.backtrace
+    end
   end
 
   def execute(
