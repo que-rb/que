@@ -19,6 +19,8 @@ ALTER SEQUENCE que_jobs_id_seq RENAME TO que_jobs_job_id_seq;
 
 ALTER TABLE que_jobs RENAME COLUMN last_error_message TO last_error;
 
+DELETE FROM que_jobs WHERE (finished_at IS NOT NULL OR expired_at IS NOT NULL);
+
 ALTER TABLE que_jobs
   DROP CONSTRAINT error_length,
   DROP CONSTRAINT queue_length,
