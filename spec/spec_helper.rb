@@ -332,7 +332,7 @@ class QueSpec < Minitest::Spec
 
     # A bit of lint: make sure that no specs leave advisory locks hanging open.
     unless locked_ids.empty?
-      puts "\n\nAdvisory lock left open: #{current_spec_location}\n\n"
+      puts "\n\nAdvisory lock left open: #{current_spec_location}\n\nLocks open: #{locked_ids.inspect}\n\n"
       # Again, no point in running the rest of the specs, since our state is
       # unknown/not clean.
       abort
