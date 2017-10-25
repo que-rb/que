@@ -349,34 +349,6 @@ module Que
       end
     end
 
-    def push_jobs(metajobs)
-      return if metajobs.empty?
-
-      # First check that the jobs are all still visible/available in the DB.
-      ids = metajobs.map(&:id)
-
-      verified_ids =
-        connection.execute(
-          <<-SQL
-            SELECT id
-            FROM public.que_jobs
-            WHERE finished_at IS NULL
-              AND expired_at IS NULL
-              AND id IN (#{ids.join(', ')})
-          SQL
-        ).map{|h| h[:id]}.to_set
-
-
-      good, bad = metajobs.partition{|mj| verified_ids.include?(mj.id)}
-
-      displaced = @job_cache.push(*good) || []
-
-      # Unlock any low-importance jobs the new ones may displace.
-      if bad.any? || displaced.any?
-        unlock_jobs(bad + displaced)
-      end
-    end
-
     def lock_jobs(metajobs)
       metajobs.reject! { |m| @locks.include?(m.id) }
       return metajobs if metajobs.empty?
@@ -393,12 +365,10 @@ module Que
       jobs =
         connection.execute \
           <<-SQL
-            WITH locks AS (
-              SELECT v.i AS id
-              FROM (VALUES (#{ids.join('), (')})) v (i)
-              WHERE pg_try_advisory_lock(v.i)
+            WITH jobs AS (
+              SELECT * FROM que_jobs WHERE id IN (#{ids.join(', ')})
             )
-            SELECT * FROM que_jobs WHERE id IN (SELECT id FROM locks)
+            SELECT * FROM jobs WHERE pg_try_advisory_lock(id)
           SQL
 
       jobs_by_id = {}
@@ -416,6 +386,33 @@ module Que
         else
           false
         end
+      end
+    end
+
+    def push_jobs(metajobs)
+      return if metajobs.empty?
+
+      # First check that the jobs are all still visible/available in the DB.
+      ids = metajobs.map(&:id)
+
+      verified_ids =
+        connection.execute(
+          <<-SQL
+            SELECT id
+            FROM public.que_jobs
+            WHERE finished_at IS NULL
+              AND expired_at IS NULL
+              AND id IN (#{ids.join(', ')})
+          SQL
+        ).map{|h| h[:id]}.to_set
+
+      good, bad = metajobs.partition{|mj| verified_ids.include?(mj.id)}
+
+      displaced = @job_cache.push(*good) || []
+
+      # Unlock any low-importance jobs the new ones may displace.
+      if bad.any? || displaced.any?
+        unlock_jobs(bad + displaced)
       end
     end
 

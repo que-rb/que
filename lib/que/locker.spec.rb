@@ -408,38 +408,42 @@ describe Que::Locker do
 
     it "but the job is gone should not leave the lock open" do
       locker
+      sleep_until! { DB[:que_lockers].count == 1 }
 
       DB.transaction do
-        id = BlockJob.enqueue.que_attrs[:id]
+        id = jobs_dataset.insert(job_class: "BlockJob")
         assert_equal 1, jobs_dataset.where(id: id).delete
       end
 
-      assert_empty locked_ids
+      assert_empty jobs_dataset
       locker.stop!
+      assert_empty locked_ids
     end
 
     it "but the job is finished should not leave the lock open" do
       locker
+      sleep_until! { DB[:que_lockers].count == 1 }
 
       DB.transaction do
-        id = BlockJob.enqueue.que_attrs[:id]
+        id = jobs_dataset.insert(job_class: "BlockJob")
         assert_equal 1, jobs_dataset.where(id: id).update(finished_at: Time.now)
       end
 
-      assert_empty locked_ids
       locker.stop!
+      assert_empty locked_ids
     end
 
     it "but the job is expired should not leave the lock open" do
       locker
+      sleep_until! { DB[:que_lockers].count == 1 }
 
       DB.transaction do
-        id = BlockJob.enqueue.que_attrs[:id]
+        id = jobs_dataset.insert(job_class: "BlockJob")
         assert_equal 1, jobs_dataset.where(id: id).update(expired_at: Time.now)
       end
 
-      assert_empty locked_ids
       locker.stop!
+      assert_empty locked_ids
     end
 
     it "should receive NOTIFYs for any of the queues it LISTENs for" do
