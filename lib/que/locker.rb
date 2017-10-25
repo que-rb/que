@@ -350,9 +350,30 @@ module Que
     end
 
     def push_jobs(metajobs)
+      return if metajobs.empty?
+
+      # First check that the jobs are all still visible/available in the DB.
+      ids = metajobs.map(&:id)
+
+      verified_ids =
+        connection.execute(
+          <<-SQL
+            SELECT id
+            FROM public.que_jobs
+            WHERE finished_at IS NULL
+              AND expired_at IS NULL
+              AND id IN (#{ids.join(', ')})
+          SQL
+        ).map{|h| h[:id]}.to_set
+
+
+      good, bad = metajobs.partition{|mj| verified_ids.include?(mj.id)}
+
+      displaced = @job_cache.push(*good) || []
+
       # Unlock any low-importance jobs the new ones may displace.
-      if displaced = @job_cache.push(*metajobs)
-        unlock_jobs(displaced)
+      if bad.any? || displaced.any?
+        unlock_jobs(bad + displaced)
       end
     end
 
