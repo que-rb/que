@@ -23,9 +23,11 @@ class MyJob < Que::Job
   end
 end
 
-# In your controller action:
+# Or, in your controller action:
 DB.transaction do
   @user = User.create(params[:user])
   MyJob.enqueue user_id: @user.id
 end
 ```
+
+Sequel automatically wraps model persistance actions (create, update, destroy) in transactions, so you can simply call #enqueue methods from your models' callbacks, if you wish.

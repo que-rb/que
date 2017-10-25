@@ -31,4 +31,34 @@ This tells you that, for instance, there are ten ChargeCreditCard jobs in the qu
 
 ### Custom Queries
 
-(Write about the built-in models for ActiveRecord and Sequel)
+If you're using ActiveRecord or Sequel, Que ships with models that wrap the job queue so you can write your own logic to inspect it. They include some helpful scopes to write your queries - see the gem source for a complete accounting.
+
+#### ActiveRecord Example
+
+``` ruby
+# app/models/que_job.rb
+
+require 'que/active_record/model'
+
+class QueJob < Que::ActiveRecord::Model
+end
+
+QueJob.finished.to_sql # => "SELECT \"que_jobs\".* FROM \"que_jobs\" WHERE (\"que_jobs\".\"finished_at\" IS NOT NULL)"
+
+# You could also name the model whatever you like, or just query from
+# Que::ActiveRecord::Model directly if you don't need to write your own model
+# logic.
+```
+
+#### Sequel Example
+
+``` ruby
+# app/models/que_job.rb
+
+require 'que/sequel/model'
+
+class QueJob < Que::Sequel::Model
+end
+
+QueJob.finished # => #<Sequel::Postgres::Dataset: "SELECT * FROM \"public\".\"que_jobs\" WHERE (\"public\".\"que_jobs\".\"finished_at\" IS NOT NULL)">
+```

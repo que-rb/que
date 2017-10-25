@@ -17,10 +17,10 @@ Additionally, there are the general benefits of storing jobs in Postgres, alongs
 
 Que's primary goal is reliability. You should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que does everything it can to ensure that jobs you queue are performed exactly once (though the occasional repetition of a job can be impossible to avoid - see the docs on [how to write a reliable job](https://github.com/chanks/que/blob/master/docs/writing_reliable_jobs.md)).
 
-Que's secondary goal is performance. The worker process is multithreaded, so that a single process can run many jobs simultaneously. In [benchmarks of RDBMS queues](https://github.com/chanks/queue-shootout) using PostgreSQL 9.3 on a AWS c3.8xlarge instance, Que approaches 10,000 jobs per second, or about twenty times the throughput of DelayedJob or QueueClassic. You are encouraged to try things out on your own production hardware, though. (TODO: Run new benchmarks)
+Que's secondary goal is performance. The worker process is multithreaded, so that a single process can run many jobs simultaneously.
 
 Compatibility:
-- Ruby 2.2+
+- MRI Ruby 2.2+
 - PostgreSQL 9.5+
 - Rails 4.1+ (optional)
 
@@ -44,16 +44,25 @@ Or install it yourself as:
 
 ## Usage
 
-# TODO: Update Rails version
-The following assumes you're using Rails 4.0 and ActiveRecord. See the [/docs directory](https://github.com/chanks/que/blob/master/docs) for instructions on using Que [outside of Rails](https://github.com/chanks/que/blob/master/docs/advanced_setup.md), with [Sequel](https://github.com/chanks/que/blob/master/docs/using_sequel.md) or with [no ORM](https://github.com/chanks/que/blob/master/docs/using_plain_connections.md).
+First, create the queue schema in a migration. For example:
 
-First, generate and run a migration for the job table.
+``` ruby
+class CreateQueSchema < ActiveRecord::Migration[5.0]
+  def up
+    # Whenever you use Que in a migration, always specify the version you're
+    # migrating to. If you're unsure what the current version is, check the
+    # changelog.
+    Que.migrate!(version: 4)
+  end
 
-    $ bin/rails generate que:install
-    $ bin/rake db:migrate
+  def down
+    # Migrate to version 0 to remove Que entirely.
+    Que.migrate!(version: 0)
+  end
+end
+```
 
 Create a class for each type of job you want to run:
-
 
 ``` ruby
 # app/jobs/charge_credit_card.rb
@@ -108,17 +117,7 @@ ChargeCreditCard.enqueue card.id, user_id: current_user.id, run_at: 1.day.from_n
 
 There are a couple ways to do testing. You may want to set `Que::Job.run_synchronously = true`, which will cause JobClass.enqueue to simply execute the job's logic synchronously, as if you'd run JobClass.run(*your_args). Or, you may want to leave it disabled so you can assert on the job state once they are stored in the database.
 
-**If you're using ActiveRecord to dump your database's schema, [set your schema_format to :sql](http://guides.rubyonrails.org/migrations.html#types-of-schema-dumps) so that Que's table structure is managed correctly.** (You can use schema_format as :ruby if you want but keep in mind this is highly advised against, as some parts of Que will not work.)
-
-
-## Related Projects
-
-  * [que-web](https://github.com/statianzo/que-web) is a Sinatra-based UI for inspecting your job queue.
-  * [que-testing](https://github.com/statianzo/que-testing) allows making assertions on enqueued jobs.
-  * [que-go](https://github.com/bgentry/que-go) is a port of Que for the Go programming language. It uses the same table structure, so that you can use the same job queue from Ruby and Go applications.
-  * [wisper-que](https://github.com/joevandyk/wisper-que) adds support for Que to [wisper](https://github.com/krisleech/wisper).
-
-If you have a project that uses or relates to Que, feel free to submit a PR adding it to the list!
+**If you're using ActiveRecord to dump your database's schema, please [set your schema_format to :sql](http://guides.rubyonrails.org/migrations.html#types-of-schema-dumps) so that Que's table structure is managed correctly.** This is a good idea regardless, as the `:ruby` schema format doesn't support many of PostgreSQL's advanced features.
 
 
 ## Community and Contributing

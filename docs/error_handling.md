@@ -18,8 +18,6 @@ class MyJob < Que::Job
 end
 ```
 
-TODO: Note that you can use handle_error to finish/destroy the job, or to manually set the retry delay depending on whatever conditions.
-
 There is a maximum_retry_count option for jobs. It defaults to 15 retries, which with the default retry interval means that a job will stop retrying after a little more than two days.
 
 ## Error Notifications
@@ -53,3 +51,44 @@ Que.error_notifier = proc do |error, job|
   # connection failure or something similar.
 end
 ```
+
+## Error-Specific Handling
+
+You can also define a handle_error method in your job, like so:
+
+```ruby
+class MyJob < Que::Job
+  def run(*args)
+    # Your code goes here.
+  end
+
+  def handle_error(error)
+    case error
+    when TemporaryError then retry_in 10.seconds
+    when PermanentError then expire
+    else super # Default (exponential backoff) behavior.
+    end
+  end
+end
+```
+
+The return value of handle_error determines whether the error object is passed to the error notifier. The helper methods like expire and retry_in return true, so these errors will be notified. You can explicitly return false to skip notification.
+
+```ruby
+class MyJob < Que::Job
+  def handle_error(error)
+    case error
+    when AnnoyingError
+      retry_in 10.seconds
+      false
+    when TransientError
+      super
+      error_count > 3
+    else
+      super # Default (exponential backoff) behavior.
+    end
+  end
+end
+```
+
+In this example, AnnoyingError will never be notified, while TransientError will only be notified once it has affected a given job at least three times.

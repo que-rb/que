@@ -30,14 +30,10 @@ After you've connected Que to the database, you can manage the jobs table. You'l
 
 ```ruby
 # Update the schema to version #4.
-def up
-  Que.migrate! version: 4
-end
+Que.migrate! version: 4
 
-def down
-  # Remove Que's jobs table entirely.
-  Que.migrate! version: 0
-end
+# Remove Que's jobs table entirely.
+Que.migrate! version: 0
 ```
 
 There's also a helper method to clear all jobs from the jobs table:
