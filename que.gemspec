@@ -14,10 +14,7 @@ Gem::Specification.new do |spec|
   spec.license       = 'MIT'
 
   files_to_exclude = [
-    /\Adocs/,
     /\A\.circleci/,
-    /\ACHANGELOG/,
-    /\AREADME/,
     /\AGemfile/,
     /\Aspec/,
     /\Atasks/,
