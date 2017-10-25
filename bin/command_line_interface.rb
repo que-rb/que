@@ -105,7 +105,7 @@ module Que
             end
 
             opts.on(
-              '--maximum-queue-size [SIZE]',
+              '--maximum-buffer-size [SIZE]',
               Integer,
               "Set maximum number of jobs to be cached in this process " \
                 "awaiting a worker (default: 8)",
@@ -114,7 +114,7 @@ module Que
             end
 
             opts.on(
-              '--minimum-queue-size [SIZE]',
+              '--minimum-buffer-size [SIZE]',
               Integer,
               "Set minimum number of jobs to be cached in this process " \
                 "awaiting a worker (default: 2)",

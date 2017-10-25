@@ -293,7 +293,7 @@ MSG
 
     it "with a configurable local queue size" do
       assert_successful_invocation \
-        "./#{filename} --minimum-queue-size 8 --maximum-queue-size 20"
+        "./#{filename} --minimum-buffer-size 8 --maximum-buffer-size 20"
 
       assert_locker_instantiated(
         minimum_queue_size: 8,
@@ -302,7 +302,7 @@ MSG
     end
 
     it "should raise an error if the minimum_queue_size is above the maximum_queue_size" do
-      code = execute("./#{filename} --minimum-queue-size 10")
+      code = execute("./#{filename} --minimum-buffer-size 10")
       assert_equal 1, code
       assert_equal 1, output.messages.length
       assert_equal \
