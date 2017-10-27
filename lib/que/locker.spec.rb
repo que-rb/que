@@ -691,7 +691,7 @@ describe Que::Locker do
 
         lockers.each &:stop!
 
-        assert_equal 0,  jobs_dataset.where(finished_at: nil).count
+        assert_empty jobs_dataset.where(finished_at: nil).all
         assert_equal 50, jobs_dataset.count
 
         assert_equal 50, DB[:test_data].count
