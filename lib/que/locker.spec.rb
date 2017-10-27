@@ -655,4 +655,55 @@ describe Que::Locker do
       assert_equal 0, DB[:que_lockers].count
     end
   end
+
+  describe "when receiving a mix of listened and polled jobs" do
+    it "shouldn't execute the same job twice" do
+      locker_settings[:poll_interval] = 0.001
+
+      begin
+        DB.create_table? :test_data do
+          bigint :job_id, primary_key: true
+          integer :count
+        end
+
+        class QueSpec::RunOnceTestJob < Que::Job
+          def run(runs:)
+            Que.checkout do |conn|
+              conn.execute "BEGIN"
+              conn.execute "INSERT INTO test_data (job_id, count) VALUES (#{que_attrs[:id]}, 1) ON CONFLICT (job_id) DO UPDATE SET count = test_data.count + 1"
+
+              if runs < 10
+                delay = rand > 0.5 ? 1 : 0
+                conn.execute(%(INSERT INTO que_jobs (job_class, args, run_at) VALUES ('QueSpec::RunOnceTestJob', '[{"runs":#{runs + 1}}]', now() + '#{delay} microseconds')))
+              end
+
+              finish
+              conn.execute "COMMIT"
+            end
+          end
+        end
+
+        lockers = 4.times.map { Que::Locker.new(locker_settings) }
+
+        5.times { QueSpec::RunOnceTestJob.enqueue(runs: 1) }
+
+        sleep_until { jobs_dataset.where(finished_at: nil).empty? }
+
+        lockers.each &:stop!
+
+        assert_equal 0,  jobs_dataset.where(finished_at: nil).count
+        assert_equal 50, jobs_dataset.count
+
+        assert_equal 50, DB[:test_data].count
+        assert_equal 50, DB[:test_data].where(count: 1).count
+
+        assert_equal(
+          jobs_dataset.select_order_map(:id),
+          DB[:test_data].select_order_map(:job_id),
+        )
+      ensure
+        DB.drop_table :test_data
+      end
+    end
+  end
 end
