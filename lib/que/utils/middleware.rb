@@ -16,13 +16,13 @@ module Que
             @#{type}_middleware ||= []
           end
 
-          def run_#{type}_middleware(item)
+          def run_#{type}_middleware(*args)
             m = #{type}_middleware
 
             if m.empty?
               yield
             else
-              invoke_middleware(middleware: m.dup, item: item) { yield }
+              invoke_middleware(middleware: m.dup, args: args) { yield }
             end
           end
         CODE
@@ -30,10 +30,10 @@ module Que
 
       private
 
-      def invoke_middleware(middleware:, item:)
+      def invoke_middleware(middleware:, args:)
         if m = middleware.shift
-          m.call(item) do
-            invoke_middleware(middleware: middleware, item: item) { yield }
+          m.call(*args) do
+            invoke_middleware(middleware: middleware, args: args) { yield }
           end
         else
           yield

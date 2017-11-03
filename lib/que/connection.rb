@@ -43,7 +43,7 @@ module Que
       @prepared_statements = Set.new
     end
 
-    def execute(command, params = nil)
+    def execute(command, params = [])
       sql =
         case command
         when Symbol then SQL[command]
@@ -51,8 +51,17 @@ module Que
         else raise Error, "Bad command! #{command.inspect}"
         end
 
-      params = convert_params(params) if params
-      result = execute_sql(sql, params)
+      params = convert_params(params)
+
+      result =
+        Que.run_sql_middleware(sql, params) do
+          # Some versions of the PG gem dislike an empty/nil params argument.
+          if params.empty?
+            wrapped_connection.async_exec(sql)
+          else
+            wrapped_connection.async_exec(sql, params)
+          end
+        end
 
       Que.internal_log :connection_execute, self do
         {
@@ -126,15 +135,6 @@ module Que
         else
           param
         end
-      end
-    end
-
-    def execute_sql(sql, params)
-      # Some versions of the PG gem dislike an empty/nil params argument.
-      if params && !params.empty?
-        wrapped_connection.async_exec(sql, params)
-      else
-        wrapped_connection.async_exec(sql)
       end
     end
 
