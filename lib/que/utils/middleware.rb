@@ -5,27 +5,38 @@
 module Que
   module Utils
     module Middleware
-      def run_job_middleware(job, &block)
-        invoke_middleware(
-          middleware: job_middleware.dup,
-          item:       job,
-          block:      block,
-        )
-      end
+      TYPES = [
+        :job,
+        :sql,
+      ].freeze
 
-      def job_middleware
-        @job_middleware ||= []
+      TYPES.each do |type|
+        module_eval <<-CODE
+          def #{type}_middleware
+            @#{type}_middleware ||= []
+          end
+
+          def run_#{type}_middleware(item)
+            m = #{type}_middleware
+
+            if m.empty?
+              yield
+            else
+              invoke_middleware(middleware: m.dup, item: item) { yield }
+            end
+          end
+        CODE
       end
 
       private
 
-      def invoke_middleware(middleware:, item:, block:)
+      def invoke_middleware(middleware:, item:)
         if m = middleware.shift
           m.call(item) do
-            invoke_middleware(middleware: middleware, item: item, block: block)
+            invoke_middleware(middleware: middleware, item: item) { yield }
           end
         else
-          block.call
+          yield
         end
       end
     end
