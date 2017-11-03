@@ -35,14 +35,14 @@ describe Que::Locker do
 
     it "should allow configuration of various parameters" do
       locker_settings.merge!(
-        queues:             ['my_queue'],
-        listen:             false,
-        minimum_queue_size: 5,
-        maximum_queue_size: 45,
-        wait_period:        200,
-        poll_interval:      0.4,
-        worker_priorities:  [1, 2, 3, 4],
-        worker_count:       8,
+        queues:              ['my_queue'],
+        listen:              false,
+        minimum_buffer_size: 5,
+        maximum_buffer_size: 45,
+        wait_period:         200,
+        poll_interval:       0.4,
+        worker_priorities:   [1, 2, 3, 4],
+        worker_count:        8,
       )
 
       assert_que_locker_insertion(
@@ -254,7 +254,7 @@ describe Que::Locker do
       )
     end
 
-    it "should request only enough jobs to fill the queue" do
+    it "should request only enough jobs to fill the buffer" do
       # Three BlockJobs will tie up the low-priority workers.
       ids  = 3.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
       ids += 9.times.map { Que::Job.enqueue(priority: 101).que_attrs[:id] }
@@ -262,7 +262,7 @@ describe Que::Locker do
       locker
       3.times { $q1.pop }
 
-      # The default queue size is 8, with 3 open workers, so it shouldn't lock the 12th job.
+      # The default buffer size is 8, with 3 open workers, so it shouldn't lock the 12th job.
       assert_equal ids[0..-2], locked_ids
 
       3.times { $q2.push nil }
@@ -319,7 +319,7 @@ describe Que::Locker do
       end
     end
 
-    it "should request as many as necessary to reach the maximum_queue_size" do
+    it "should request as many as necessary to reach the maximum_buffer_size" do
       # Three BlockJobs to tie up the low-priority workers.
       ids  = 3.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
       ids += [Que::Job.enqueue(priority: 101).que_attrs[:id]]
@@ -367,7 +367,7 @@ describe Que::Locker do
       )
     end
 
-    it "should trigger a new poll when the queue drops to the minimum size" do
+    it "should trigger a new poll when the buffer drops to the minimum size" do
       ids = 12.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
 
       locker_settings[:poll] = true
@@ -378,7 +378,7 @@ describe Que::Locker do
       # Should have locked first 11 only.
       assert_equal ids[0...11], locked_ids
 
-      # Get the queue size down to 1, and it should lock the final one.
+      # Get the buffer size down to 1, and it should lock the final one.
       9.times { $q2.push nil }
       sleep_until! { locked_ids.include?(ids[-1]) }
       3.times { $q2.push nil }
@@ -534,7 +534,7 @@ describe Que::Locker do
     end
 
     it "of low importance should not lock them if the local queue is full" do
-      locker_settings.replace(worker_count: 1, maximum_queue_size: 3)
+      locker_settings.replace(worker_count: 1, maximum_buffer_size: 3)
       locker
 
       sleep_until! { DB[:que_lockers].count == 1 }
@@ -554,7 +554,7 @@ describe Que::Locker do
     end
 
     it "of significant importance should lock and add it to the local queue" do
-      locker_settings.replace(worker_count: 1, maximum_queue_size: 3)
+      locker_settings.replace(worker_count: 1, maximum_buffer_size: 3)
       locker
 
       sleep_until! { DB[:que_lockers].count == 1 }

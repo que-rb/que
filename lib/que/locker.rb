@@ -61,25 +61,25 @@ module Que
     RESULT_RESOLVERS[:job_finished] =
       -> (messages) { finish_jobs(messages.map{|m| m.fetch(:metajob)}) }
 
-    DEFAULT_POLL_INTERVAL      = 5.0
-    DEFAULT_WAIT_PERIOD        = 50
-    DEFAULT_MINIMUM_QUEUE_SIZE = 2
-    DEFAULT_MAXIMUM_QUEUE_SIZE = 8
-    DEFAULT_WORKER_COUNT       = 6
-    DEFAULT_WORKER_PRIORITIES  = [10, 30, 50].freeze
+    DEFAULT_POLL_INTERVAL       = 5.0
+    DEFAULT_WAIT_PERIOD         = 50
+    DEFAULT_MINIMUM_BUFFER_SIZE = 2
+    DEFAULT_MAXIMUM_BUFFER_SIZE = 8
+    DEFAULT_WORKER_COUNT        = 6
+    DEFAULT_WORKER_PRIORITIES   = [10, 30, 50].freeze
 
     def initialize(
-      queues:             [Que.default_queue],
-      connection:         nil,
-      listen:             true,
-      poll:               true,
-      poll_interval:      DEFAULT_POLL_INTERVAL,
-      wait_period:        DEFAULT_WAIT_PERIOD,
-      maximum_queue_size: DEFAULT_MAXIMUM_QUEUE_SIZE,
-      minimum_queue_size: DEFAULT_MINIMUM_QUEUE_SIZE,
-      worker_count:       DEFAULT_WORKER_COUNT,
-      worker_priorities:  DEFAULT_WORKER_PRIORITIES,
-      on_worker_start:    nil
+      queues:              [Que.default_queue],
+      connection:          nil,
+      listen:              true,
+      poll:                true,
+      poll_interval:       DEFAULT_POLL_INTERVAL,
+      wait_period:         DEFAULT_WAIT_PERIOD,
+      maximum_buffer_size: DEFAULT_MAXIMUM_BUFFER_SIZE,
+      minimum_buffer_size: DEFAULT_MINIMUM_BUFFER_SIZE,
+      worker_count:        DEFAULT_WORKER_COUNT,
+      worker_priorities:   DEFAULT_WORKER_PRIORITIES,
+      on_worker_start:     nil
     )
 
       # Sanity-check all our arguments, since some users may instantiate Locker
@@ -99,8 +99,8 @@ module Que
       # We use a JobBuffer to track jobs and pass them to workers, and a
       # ResultQueue to receive messages from workers.
       @job_buffer = JobBuffer.new(
-        maximum_size: maximum_queue_size,
-        minimum_size: minimum_queue_size,
+        maximum_size: maximum_buffer_size,
+        minimum_size: minimum_buffer_size,
         priorities:   all_worker_priorities.uniq,
       )
 
@@ -108,15 +108,15 @@ module Que
 
       Que.internal_log :locker_instantiate, self do
         {
-          queues:             queues,
-          listen:             listen,
-          poll:               poll,
-          poll_interval:      poll_interval,
-          wait_period:        wait_period,
-          maximum_queue_size: maximum_queue_size,
-          minimum_queue_size: minimum_queue_size,
-          worker_count:       worker_count,
-          worker_priorities:  worker_priorities,
+          queues:              queues,
+          listen:              listen,
+          poll:                poll,
+          poll_interval:       poll_interval,
+          wait_period:         wait_period,
+          maximum_buffer_size: maximum_buffer_size,
+          minimum_buffer_size: minimum_buffer_size,
+          worker_count:        worker_count,
+          worker_priorities:   worker_priorities,
         }
       end
 

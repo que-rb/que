@@ -41,7 +41,7 @@ describe Que::JobBuffer, "available_priorities" do
     end
   end
 
-  def fill_cache(amounts)
+  def fill_buffer(amounts)
     metajobs = []
 
     amounts.each do |priority, count|
@@ -88,9 +88,9 @@ describe Que::JobBuffer, "available_priorities" do
   end
 
   describe "when the low-priority workers are all busy" do
-    before { fill_cache(100 => 4) }
+    before { fill_buffer(100 => 4) }
 
-    it "should only ask for jobs to fill the cache" do
+    it "should only ask for jobs to fill the buffer" do
       assert_available(
         10    => 2,
         30    => 2,
@@ -100,8 +100,8 @@ describe Que::JobBuffer, "available_priorities" do
     end
   end
 
-  describe "when the cache is full and the low-priority workers are busy" do
-    before { fill_cache(100 => 12) }
+  describe "when the buffer is full and the low-priority workers are busy" do
+    before { fill_buffer(100 => 12) }
 
     it "should only ask for jobs at the higher priority levels" do
       assert_available(
@@ -113,19 +113,19 @@ describe Que::JobBuffer, "available_priorities" do
   end
 
   describe "when the job queue is completely full" do
-    before { fill_cache(5 => 18) }
+    before { fill_buffer(5 => 18) }
 
     it "should ask for zero jobs" do
       assert_available({})
     end
   end
 
-  describe "when the maximum cache size is zero" do
+  describe "when the maximum buffer size is zero" do
     let(:maximum_size) { 0 }
     let(:minimum_size) { 0 }
 
     describe "and all the workers are free" do
-      it "should not include any cache space in the available counts" do
+      it "should not include any buffer space in the available counts" do
         assert_available(
           10    => 2,
           30    => 2,
@@ -136,7 +136,7 @@ describe Que::JobBuffer, "available_priorities" do
     end
 
     describe "and the low-priority workers are busy" do
-      before { fill_cache(100 => 4) }
+      before { fill_buffer(100 => 4) }
 
       it "should only ask for jobs at the next priority level" do
         assert_available(
@@ -148,7 +148,7 @@ describe Que::JobBuffer, "available_priorities" do
     end
 
     describe "and all the workers are busy" do
-      before { fill_cache(5 => 10) }
+      before { fill_buffer(5 => 10) }
 
       it "should ask for zero jobs" do
         assert_available({})

@@ -20,8 +20,8 @@ module Que
       Que.assert(minimum_size >= 0) { "minimum_size for a JobBuffer must be at least zero!" }
 
       Que.assert(minimum_size <= maximum_size) do
-        "minimum queue size (#{minimum_size}) is " \
-          "greater than the maximum queue size (#{maximum_size})!"
+        "minimum buffer size (#{minimum_size}) is " \
+          "greater than the maximum buffer size (#{maximum_size})!"
       end
 
       @stop    = false
@@ -59,9 +59,9 @@ module Que
           end
         end
 
-        # If we passed the maximum queue size, drop the lowest sort keys and
+        # If we passed the maximum buffer size, drop the lowest sort keys and
         # return their ids to be unlocked.
-        overage = -cache_space
+        overage = -buffer_space
         pop(overage) if overage > 0
       end
     end
@@ -87,7 +87,7 @@ module Que
       metajobs.sort!
 
       sync do
-        start_index = cache_space
+        start_index = buffer_space
         final_index = metajobs.length - 1
 
         return metajobs if start_index > final_index
@@ -126,7 +126,7 @@ module Que
         count = pq.waiting_count
 
         if lowest_priority
-          count += cache_space
+          count += buffer_space
           lowest_priority = false
         end
 
@@ -136,7 +136,7 @@ module Que
       hash
     end
 
-    def cache_space
+    def buffer_space
       sync do
         maximum_size - size
       end
@@ -175,7 +175,7 @@ module Que
 
     # A queue object dedicated to a specific worker priority. It's basically a
     # Queue object from the standard library, but it's able to reach into the
-    # JobBuffer's cache in order to satisfy a pop.
+    # JobBuffer's buffer in order to satisfy a pop.
     class PriorityQueue
       attr_reader :job_buffer, :priority
 

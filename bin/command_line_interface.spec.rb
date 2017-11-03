@@ -190,8 +190,8 @@ MSG
       poll_interval: 5,
       wait_period: 50,
       queues: ['default'],
-      minimum_queue_size: 2,
-      maximum_queue_size: 8
+      minimum_buffer_size: 2,
+      maximum_buffer_size: 8
     )
 
       locker_instantiates = internal_messages(event: 'locker_instantiate')
@@ -199,14 +199,14 @@ MSG
 
       locker_instantiate = locker_instantiates.first
 
-      assert_equal true,               locker_instantiate[:listen]
-      assert_equal true,               locker_instantiate[:poll]
-      assert_equal queues,             locker_instantiate[:queues]
-      assert_equal poll_interval,      locker_instantiate[:poll_interval]
-      assert_equal wait_period,        locker_instantiate[:wait_period]
-      assert_equal minimum_queue_size, locker_instantiate[:minimum_queue_size]
-      assert_equal maximum_queue_size, locker_instantiate[:maximum_queue_size]
-      assert_equal worker_priorities,  locker_instantiate[:worker_priorities]
+      assert_equal true,                locker_instantiate[:listen]
+      assert_equal true,                locker_instantiate[:poll]
+      assert_equal queues,              locker_instantiate[:queues]
+      assert_equal poll_interval,       locker_instantiate[:poll_interval]
+      assert_equal wait_period,         locker_instantiate[:wait_period]
+      assert_equal minimum_buffer_size, locker_instantiate[:minimum_buffer_size]
+      assert_equal maximum_buffer_size, locker_instantiate[:maximum_buffer_size]
+      assert_equal worker_priorities,   locker_instantiate[:worker_priorities]
     end
 
     def assert_locker_started(
@@ -296,17 +296,17 @@ MSG
         "./#{filename} --minimum-buffer-size 8 --maximum-buffer-size 20"
 
       assert_locker_instantiated(
-        minimum_queue_size: 8,
-        maximum_queue_size: 20,
+        minimum_buffer_size: 8,
+        maximum_buffer_size: 20,
       )
     end
 
-    it "should raise an error if the minimum_queue_size is above the maximum_queue_size" do
+    it "should raise an error if the minimum_buffer_size is above the maximum_buffer_size" do
       code = execute("./#{filename} --minimum-buffer-size 10")
       assert_equal 1, code
       assert_equal 1, output.messages.length
       assert_equal \
-        "minimum queue size (10) is greater than the maximum queue size (8)!",
+        "minimum buffer size (10) is greater than the maximum buffer size (8)!",
         output.messages.first.to_s
     end
 

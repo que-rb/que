@@ -33,7 +33,7 @@ describe Que::JobBuffer do
   end
 
   describe "during instantiation" do
-    it "should raise an error if passed a maximum queue size less than zero" do
+    it "should raise an error if passed a maximum buffer size less than zero" do
       error = assert_raises(Que::Error) do
         Que::JobBuffer.new(minimum_size: 0, maximum_size: -1, priorities: [10])
       end
@@ -41,7 +41,7 @@ describe Que::JobBuffer do
       assert_equal "maximum_size for a JobBuffer must be at least zero!", error.message
     end
 
-    it "should raise an error if passed a minimum queue size less than zero" do
+    it "should raise an error if passed a minimum buffer size less than zero" do
       error = assert_raises(Que::Error) do
         Que::JobBuffer.new(minimum_size: -1, maximum_size: 8, priorities: [10])
       end
@@ -49,26 +49,26 @@ describe Que::JobBuffer do
       assert_equal "minimum_size for a JobBuffer must be at least zero!", error.message
     end
 
-    it "should raise an error if passed a minimum queue size larger than its maximum" do
+    it "should raise an error if passed a minimum buffer size larger than its maximum" do
       error = assert_raises(Que::Error) do
         Que::JobBuffer.new(minimum_size: 10, maximum_size: 8, priorities: [10])
       end
 
-      assert_equal "minimum queue size (10) is greater than the maximum queue size (8)!", error.message
+      assert_equal "minimum buffer size (10) is greater than the maximum buffer size (8)!", error.message
     end
   end
 
   describe "jobs_needed?" do
     it "should return true iff the current size is less than the minimum" do
-      queue = Que::JobBuffer.new(minimum_size: 2, maximum_size: 8, priorities: [10])
+      buffer = Que::JobBuffer.new(minimum_size: 2, maximum_size: 8, priorities: [10])
 
-      assert_equal true, queue.jobs_needed?
-      queue.push job_array.pop
-      assert_equal true, queue.jobs_needed?
-      queue.push job_array.pop
-      assert_equal false, queue.jobs_needed?
-      queue.push job_array.pop
-      assert_equal false, queue.jobs_needed?
+      assert_equal true, buffer.jobs_needed?
+      buffer.push job_array.pop
+      assert_equal true, buffer.jobs_needed?
+      buffer.push job_array.pop
+      assert_equal false, buffer.jobs_needed?
+      buffer.push job_array.pop
+      assert_equal false, buffer.jobs_needed?
     end
   end
 
@@ -255,10 +255,10 @@ describe Que::JobBuffer do
     end
   end
 
-  describe "cache_space" do
-    it "should return how much space is available in the cache" do
+  describe "buffer_space" do
+    it "should return how much space is available in the buffer" do
       job_buffer.push(*job_array.sample(3))
-      assert_equal 5, job_buffer.cache_space
+      assert_equal 5, job_buffer.buffer_space
     end
   end
 

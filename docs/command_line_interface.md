@@ -10,8 +10,8 @@ usage: que [options] [file/to/require] ...
     -w, --worker-count [COUNT]       Set number of workers in process (default: 6)
         --connection-url [URL]       Set a custom database url to connect to for locking purposes.
         --log-internals              Log verbosely about Que's internal state. Only recommended for debugging issues
-        --maximum-buffer-size [SIZE] Set maximum number of jobs to be cached in this process awaiting a worker (default: 8)
-        --minimum-buffer-size [SIZE] Set minimum number of jobs to be cached in this process awaiting a worker (default: 2)
+        --maximum-buffer-size [SIZE] Set maximum number of jobs to be locked and held in this process awaiting a worker (default: 8)
+        --minimum-buffer-size [SIZE] Set minimum number of jobs to be locked and held in this process awaiting a worker (default: 2)
         --wait-period [PERIOD]       Set maximum interval between checks of the in-memory job queue, in milliseconds (default: 50)
         --worker-priorities [LIST]   List of priorities to assign to workers, unspecified workers take jobs of any priority (default: 10,30,50)
 ```
@@ -30,7 +30,7 @@ This option sets the number of seconds the process will wait between polls of th
 
 ### minimum-buffer-size and maximum-buffer-size
 
-These options set the size of the internal buffer that Que uses to cache job information until it's ready for workers. The default minimum is 2 and the maximum is 8, meaning that the process won't buffer more than 8 jobs that aren't yet ready to be worked, and will only resort to polling if the buffer dips below 2. If you don't want jobs to be buffered at all, you can set both of these values to zero.
+These options set the size of the internal buffer that Que uses to hold jobs until they're ready for workers. The default minimum is 2 and the maximum is 8, meaning that the process won't buffer more than 8 jobs that aren't yet ready to be worked, and will only resort to polling if the buffer dips below 2. If you don't want jobs to be buffered at all, you can set both of these values to zero.
 
 ### connection-url
 

@@ -107,19 +107,19 @@ module Que
             opts.on(
               '--maximum-buffer-size [SIZE]',
               Integer,
-              "Set maximum number of jobs to be cached in this process " \
-                "awaiting a worker (default: 8)",
+              "Set maximum number of jobs to be locked and held in this " \
+                "process awaiting a worker (default: 8)",
             ) do |s|
-              options[:maximum_queue_size] = s
+              options[:maximum_buffer_size] = s
             end
 
             opts.on(
               '--minimum-buffer-size [SIZE]',
               Integer,
-              "Set minimum number of jobs to be cached in this process " \
-                "awaiting a worker (default: 2)",
+              "Set minimum number of jobs to be locked and held in this " \
+                "process awaiting a worker (default: 2)",
             ) do |s|
-              options[:minimum_queue_size] = s
+              options[:minimum_buffer_size] = s
             end
 
             opts.on(
