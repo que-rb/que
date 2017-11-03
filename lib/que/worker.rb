@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Workers wrap threads which continuously pull job pks from JobCache objects,
+# Workers wrap threads which continuously pull job pks from JobBuffer objects,
 # fetch and work those jobs, and export relevant data to ResultQueues.
 
 module Que
@@ -15,20 +15,20 @@ module Que
       }
 
     def initialize(
-      job_cache:,
+      job_buffer:,
       result_queue:,
       priority: nil,
       start_callback: nil
     )
 
       @priority     = Que.assert([NilClass, Integer], priority)
-      @job_cache    = Que.assert(JobCache, job_cache)
+      @job_buffer   = Que.assert(JobBuffer, job_buffer)
       @result_queue = Que.assert(ResultQueue, result_queue)
 
       Que.internal_log(:worker_instantiate, self) do
         {
           priority:     priority,
-          job_cache:    job_cache.object_id,
+          job_buffer:   job_buffer.object_id,
           result_queue: result_queue.object_id,
         }
       end
@@ -80,7 +80,7 @@ module Que
     end
 
     def fetch_next_metajob
-      @job_cache.shift(*priority)
+      @job_buffer.shift(*priority)
     end
 
     def work_job(metajob)

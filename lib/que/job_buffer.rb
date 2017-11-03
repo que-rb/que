@@ -5,7 +5,7 @@
 # minimum priority, and stopping gracefully.
 
 module Que
-  class JobCache
+  class JobBuffer
     attr_reader :maximum_size, :minimum_size, :priority_queues
 
     def initialize(
@@ -14,10 +14,10 @@ module Que
       priorities:
     )
       @maximum_size = Que.assert(Integer, maximum_size)
-      Que.assert(maximum_size >= 0) { "maximum_size for a JobCache must be at least zero!" }
+      Que.assert(maximum_size >= 0) { "maximum_size for a JobBuffer must be at least zero!" }
 
       @minimum_size = Que.assert(Integer, minimum_size)
-      Que.assert(minimum_size >= 0) { "minimum_size for a JobCache must be at least zero!" }
+      Que.assert(minimum_size >= 0) { "minimum_size for a JobBuffer must be at least zero!" }
 
       Que.assert(minimum_size <= maximum_size) do
         "minimum queue size (#{minimum_size}) is " \
@@ -31,13 +31,13 @@ module Que
       # Make sure that priority = nil sorts highest.
       @priority_queues = Hash[
         priorities.sort_by{|p| p || Float::INFINITY}.map do |p|
-          [p, PriorityQueue.new(priority: p, job_cache: self)]
+          [p, PriorityQueue.new(priority: p, job_buffer: self)]
         end
       ].freeze
     end
 
     def push(*metajobs)
-      Que.internal_log(:job_cache_push, self) do
+      Que.internal_log(:job_buffer_push, self) do
         {
           maximum_size:  maximum_size,
           ids:           metajobs.map(&:id),
@@ -175,15 +175,15 @@ module Que
 
     # A queue object dedicated to a specific worker priority. It's basically a
     # Queue object from the standard library, but it's able to reach into the
-    # JobCache's cache in order to satisfy a pop.
+    # JobBuffer's cache in order to satisfy a pop.
     class PriorityQueue
-      attr_reader :job_cache, :priority
+      attr_reader :job_buffer, :priority
 
       def initialize(
-        job_cache:,
+        job_buffer:,
         priority:
       )
-        @job_cache = job_cache
+        @job_buffer = job_buffer
         @priority  = priority
         @waiting   = 0
         @stopping  = false
@@ -201,7 +201,7 @@ module Que
               return item
             end
 
-            job = job_cache.shift_job(priority)
+            job = job_buffer.shift_job(priority)
             return job unless job.nil? # False means we're stopping.
 
             @waiting += 1

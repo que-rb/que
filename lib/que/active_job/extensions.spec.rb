@@ -28,7 +28,7 @@ if defined?(::ActiveJob)
       assert_equal 1, active_jobs_dataset.count
       attrs = active_jobs_dataset.first!
 
-      job_cache.push(Que::Metajob.new(attrs))
+      job_buffer.push(Que::Metajob.new(attrs))
 
       sleep_until! { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
       attrs

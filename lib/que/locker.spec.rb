@@ -507,7 +507,7 @@ describe Que::Locker do
 
       $q1.pop
 
-      assert_equal [], locker.job_cache.to_a
+      assert_equal [], locker.job_buffer.to_a
       assert_equal [id].to_set, locker.locks
 
       payload =
@@ -617,7 +617,7 @@ describe Que::Locker do
 
       t = Thread.new { locker.stop! }
 
-      sleep_until! { locker.job_cache.to_a.empty? }
+      sleep_until! { locker.job_buffer.to_a.empty? }
       sleep_until! { locked_ids == job_ids[0..2] }
 
       3.times { $q2.push nil }

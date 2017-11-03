@@ -2,13 +2,13 @@
 
 require 'spec_helper'
 
-describe Que::JobCache, "available_priorities" do
+describe Que::JobBuffer, "available_priorities" do
   class DummyWorker
     attr_reader :thread
 
-    def initialize(priority:, job_cache:)
+    def initialize(priority:, job_buffer:)
       @thread = Thread.new do
-        job_cache.shift(priority)
+        job_buffer.shift(priority)
       end
     end
 
@@ -24,8 +24,8 @@ describe Que::JobCache, "available_priorities" do
   let(:maximum_size) { 8 }
   let(:minimum_size) { 2 }
 
-  let :job_cache do
-    Que::JobCache.new(
+  let :job_buffer do
+    Que::JobBuffer.new(
       maximum_size: maximum_size,
       minimum_size: minimum_size,
       priorities: worker_priorities.uniq,
@@ -36,7 +36,7 @@ describe Que::JobCache, "available_priorities" do
     worker_priorities.shuffle.map do |priority|
       DummyWorker.new(
         priority: priority,
-        job_cache: job_cache,
+        job_buffer: job_buffer,
       )
     end
   end
@@ -50,13 +50,13 @@ describe Que::JobCache, "available_priorities" do
       end
     end
 
-    job_cache.push(*metajobs)
+    job_buffer.push(*metajobs)
   end
 
   def assert_available(expected)
     actual = nil
     sleep_until!(0.5) do
-      actual = job_cache.available_priorities
+      actual = job_buffer.available_priorities
       actual == expected
     end
   rescue

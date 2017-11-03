@@ -47,7 +47,7 @@ module Que
     }
 
   class Locker
-    attr_reader :thread, :workers, :job_cache, :locks
+    attr_reader :thread, :workers, :job_buffer, :locks
 
     MESSAGE_RESOLVERS = {}
     RESULT_RESOLVERS  = {}
@@ -55,7 +55,7 @@ module Que
     MESSAGE_RESOLVERS[:job_available] =
       -> (messages) {
         metajobs = messages.map { |key| Metajob.new(key) }
-        push_jobs(lock_jobs(job_cache.accept?(metajobs)))
+        push_jobs(lock_jobs(job_buffer.accept?(metajobs)))
       }
 
     RESULT_RESOLVERS[:job_finished] =
@@ -96,9 +96,9 @@ module Que
 
       all_worker_priorities = worker_priorities.values_at(0...worker_count)
 
-      # We use a JobCache to track jobs and pass them to workers, and a
+      # We use a JobBuffer to track jobs and pass them to workers, and a
       # ResultQueue to receive messages from workers.
-      @job_cache = JobCache.new(
+      @job_buffer = JobBuffer.new(
         maximum_size: maximum_queue_size,
         minimum_size: minimum_queue_size,
         priorities:   all_worker_priorities.uniq,
@@ -135,7 +135,7 @@ module Que
         all_worker_priorities.map do |priority|
           Worker.new(
             priority:       priority,
-            job_cache:      @job_cache,
+            job_buffer:     @job_buffer,
             result_queue:   @result_queue,
             start_callback: on_worker_start,
           )
@@ -144,7 +144,7 @@ module Que
       # To prevent race conditions, let every worker get into a ready state
       # before starting up the locker thread.
       loop do
-        break if job_cache.waiting_count == workers.count
+        break if job_buffer.waiting_count == workers.count
         sleep 0.001
       end
 
@@ -215,7 +215,7 @@ module Que
     end
 
     def stop
-      @job_cache.stop
+      @job_buffer.stop
       @stop = true
     end
 
@@ -268,7 +268,7 @@ module Que
           event: :locker_stop,
         )
 
-        unlock_jobs(@job_cache.clear)
+        unlock_jobs(@job_buffer.clear)
 
         @workers.each(&:wait_until_stopped)
 
@@ -304,10 +304,10 @@ module Que
       # Only poll when there are pollers to use (that is, when polling is
       # enabled) and when the local queue has dropped below the configured
       # minimum size.
-      return unless pollers && job_cache.jobs_needed?
+      return unless pollers && job_buffer.jobs_needed?
 
       pollers.each do |poller|
-        priorities = job_cache.available_priorities
+        priorities = job_buffer.available_priorities
         break if priorities.empty?
 
         Que.internal_log(:locker_polling, self) { {priorities: priorities, held_locks: @locks.to_a, queue: poller.queue} }
@@ -408,7 +408,7 @@ module Que
 
       good, bad = metajobs.partition{|mj| verified_ids.include?(mj.id)}
 
-      displaced = @job_cache.push(*good) || []
+      displaced = @job_buffer.push(*good) || []
 
       # Unlock any low-importance jobs the new ones may displace.
       if bad.any? || displaced.any?
