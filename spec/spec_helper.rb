@@ -276,6 +276,7 @@ class QueSpec < Minitest::Spec
     end
 
     Que.job_middleware.clear
+    Que.sql_middleware.clear
 
     Que.run_synchronously       = false
     Que.use_prepared_statements = true

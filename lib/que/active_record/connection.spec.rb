@@ -31,7 +31,7 @@ if defined?(::ActiveRecord)
     end
   end
 
-  describe Que::ActiveRecord::Connection::Middleware do
+  describe Que::ActiveRecord::Connection::JobMiddleware do
     before do
       Que.connection = ::ActiveRecord
     end

@@ -27,7 +27,7 @@ module Que
         end
       end
 
-      module Middleware
+      module JobMiddleware
         class << self
           def call(job)
             yield

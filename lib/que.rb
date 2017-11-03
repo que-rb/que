@@ -77,8 +77,8 @@ module Que
         if conn.to_s == 'ActiveRecord'
           # Load and setup AR compatibility.
           require_relative 'que/active_record/connection'
-          m = Que::ActiveRecord::Connection::Middleware
-          middleware << m unless middleware.include?(m)
+          m = Que::ActiveRecord::Connection::JobMiddleware
+          job_middleware << m unless job_middleware.include?(m)
           Que::ActiveRecord::Connection.method(:checkout)
         else
           case conn.class.to_s
