@@ -8,7 +8,7 @@ module Que
       def run_job_middleware(job, &block)
         invoke_middleware(
           middleware: job_middleware.dup,
-          job:        job,
+          item:       job,
           block:      block,
         )
       end
@@ -19,10 +19,10 @@ module Que
 
       private
 
-      def invoke_middleware(middleware:, job:, block:)
+      def invoke_middleware(middleware:, item:, block:)
         if m = middleware.shift
-          m.call(job) do
-            invoke_middleware(middleware: middleware, job: job, block: block)
+          m.call(item) do
+            invoke_middleware(middleware: middleware, item: item, block: block)
           end
         else
           block.call
