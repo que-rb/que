@@ -3,7 +3,7 @@
 You can define middleware to wrap jobs. For example:
 
 ``` ruby
-Que.middleware.push(
+Que.job_middleware.push(
   -> (job, &block) {
     # Do stuff with the job object - report on it, count time elapsed, etc.
     block.call

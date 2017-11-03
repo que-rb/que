@@ -5,16 +5,16 @@
 module Que
   module Utils
     module Middleware
-      def run_middleware(job, &block)
+      def run_job_middleware(job, &block)
         invoke_middleware(
-          middleware: middleware.dup,
+          middleware: job_middleware.dup,
           job:        job,
           block:      block,
         )
       end
 
-      def middleware
-        @middleware ||= []
+      def job_middleware
+        @job_middleware ||= []
       end
 
       private

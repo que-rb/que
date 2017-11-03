@@ -134,7 +134,7 @@ module Que
         Que.recursively_freeze(attrs)
 
         new(attrs).tap do |job|
-          Que.run_middleware(job) do
+          Que.run_job_middleware(job) do
             job._run(reraise_errors: true)
           end
         end

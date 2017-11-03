@@ -156,10 +156,10 @@ describe Que::Job do
           end
         end
 
-        it "should wrap the run method in whatever middleware are defined" do
+        it "should wrap the run method in whatever job_middleware are defined" do
           passed_1 = passed_2 = nil
 
-          Que.middleware.push(
+          Que.job_middleware.push(
             -> (job, &block) {
               passed_1 = job
               block.call
@@ -167,7 +167,7 @@ describe Que::Job do
             }
           )
 
-          Que.middleware.push(
+          Que.job_middleware.push(
             -> (job, &block) {
               passed_2 = job
               block.call

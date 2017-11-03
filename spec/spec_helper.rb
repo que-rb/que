@@ -275,7 +275,7 @@ class QueSpec < Minitest::Spec
       puts current_spec_location
     end
 
-    Que.middleware.clear
+    Que.job_middleware.clear
 
     Que.run_synchronously       = false
     Que.use_prepared_statements = true

@@ -70,11 +70,11 @@ describe Que do
 
       describe "when accepting the ActiveRecord class" do
         it "should start using the ConnectionMiddleware iff it wasn't already used" do
-          assert_empty Que.middleware
+          assert_empty Que.job_middleware
           Que.connection = ActiveRecord
-          assert_equal [Que::ActiveRecord::Connection::Middleware], Que.middleware
+          assert_equal [Que::ActiveRecord::Connection::Middleware], Que.job_middleware
           Que.connection = ActiveRecord
-          assert_equal [Que::ActiveRecord::Connection::Middleware], Que.middleware
+          assert_equal [Que::ActiveRecord::Connection::Middleware], Que.job_middleware
         end
       end
     end

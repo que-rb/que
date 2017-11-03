@@ -3,11 +3,11 @@
 require 'spec_helper'
 
 describe Que::Utils::Middleware do
-  describe "run_middleware" do
-    it "when no middleware are defined should just run the block" do
+  describe "run_job_middleware" do
+    it "when no job_middleware are defined should just run the block" do
       order = []
 
-      Que.run_middleware(nil) { order << :called_block }
+      Que.run_job_middleware(nil) { order << :called_block }
 
       assert_equal [:called_block], order
     end
@@ -15,7 +15,7 @@ describe Que::Utils::Middleware do
     it "when one middleware is defined should run it" do
       order = []
 
-      Que.middleware.push(
+      Que.job_middleware.push(
         -> (job, &block) {
           assert_equal 5, job
           order << :middleware_1_a
@@ -24,7 +24,7 @@ describe Que::Utils::Middleware do
         }
       )
 
-      Que.run_middleware(5) { order << :called_block }
+      Que.run_job_middleware(5) { order << :called_block }
 
       assert_equal [
         :middleware_1_a,
@@ -36,7 +36,7 @@ describe Que::Utils::Middleware do
     it "when multiple middleware are defined should run them" do
       order = []
 
-      Que.middleware.push(
+      Que.job_middleware.push(
         -> (job, &block) {
           assert_equal 5, job
           order << :middleware_1_a
@@ -45,7 +45,7 @@ describe Que::Utils::Middleware do
         }
       )
 
-      Que.middleware.push(
+      Que.job_middleware.push(
         -> (job, &block) {
           assert_equal 5, job
           order << :middleware_2_a
@@ -54,7 +54,7 @@ describe Que::Utils::Middleware do
         }
       )
 
-      Que.run_middleware(5) { order << :called_block }
+      Que.run_job_middleware(5) { order << :called_block }
 
       assert_equal [
         :middleware_1_a,
@@ -83,11 +83,11 @@ describe Que::Utils::Middleware do
         $order << :object_2
       end
 
-      Que.middleware << MiddlewareTestModule << o
+      Que.job_middleware << MiddlewareTestModule << o
 
       assert_equal [], $order
 
-      Que.run_middleware(5) { $order << :called_block }
+      Que.run_job_middleware(5) { $order << :called_block }
 
       assert_equal [
         :module_1,

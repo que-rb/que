@@ -89,7 +89,7 @@ module Que
       klass    = Que.constantize(job.fetch(:job_class))
       instance = klass.new(job)
 
-      Que.run_middleware(instance) { instance.tap(&:_run) }
+      Que.run_job_middleware(instance) { instance.tap(&:_run) }
 
       log_message = {
         level: :debug,
