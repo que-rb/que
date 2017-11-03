@@ -121,6 +121,37 @@ describe Que::Connection do
         result.first,
       )
     end
+
+    it "should run the sql_middleware around the request" do
+      actions = []
+
+      Que.sql_middleware.push(
+        -> (sql, params, &block) {
+          actions << :middleware_1_a << sql << params
+          block.call
+          actions << :middleware_1_b
+          nil # Shouldn't matter what's returned.
+        }
+      )
+
+      Que.sql_middleware.push(
+        -> (sql, params, &block) {
+          actions << :middleware_2_a << sql << params
+          block.call
+          actions << :middleware_2_b
+          nil # Shouldn't matter what's returned.
+        }
+      )
+
+      r = Que.execute("SELECT 1 AS a")
+      assert_equal [{a: 1}], r
+      assert_equal [:middleware_1_a, "SELECT 1 AS a", [], :middleware_2_a, "SELECT 1 AS a", [], :middleware_2_b, :middleware_1_b], actions
+      actions.clear
+
+      r = Que.execute("SELECT 1 + $1 AS a", [2])
+      assert_equal [{a: 3}], r
+      assert_equal [:middleware_1_a, "SELECT 1 + $1 AS a", [2], :middleware_2_a, "SELECT 1 + $1 AS a", [2], :middleware_2_b, :middleware_1_b], actions
+    end
   end
 
   describe "execute_prepared" do
