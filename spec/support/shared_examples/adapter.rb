@@ -7,6 +7,11 @@ shared_examples "a Que adapter" do
     result.first[:one].should == 1
   end
 
+  it "should be able to cast boolean results properly" do
+    r = Que.execute("SELECT true AS true_value, false AS false_value")
+    r.should == [{'true_value' => true, 'false_value' => false}]
+  end
+
   it "should be able to execute multiple SQL statements in one string" do
     Que.execute("SELECT 1 AS one; SELECT 1 AS one")
   end
