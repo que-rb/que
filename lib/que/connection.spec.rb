@@ -103,6 +103,8 @@ describe Que::Connection do
             'string'                            AS string_value,
             '2017-06-30T23:29:32Z'::timestamptz AS timestamp_value,
             2 + 2 = 4                           AS boolean_value,
+            true                                AS true_value,
+            false                               AS false_value,
             '{"key":"value"}'::json             AS json_value,
             '{"key":"value"}'::jsonb            AS jsonb_value
         SQL
@@ -115,6 +117,8 @@ describe Que::Connection do
           string_value: 'string',
           timestamp_value: Time.iso8601('2017-06-30T23:29:32Z'),
           boolean_value: true,
+          true_value: true,
+          false_value: false,
           json_value: {key: 'value'},
           jsonb_value: {key: 'value'},
         },
