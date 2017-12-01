@@ -687,7 +687,7 @@ describe Que::Locker do
 
         5.times { QueSpec::RunOnceTestJob.enqueue(runs: 1) }
 
-        sleep_until { jobs_dataset.where(finished_at: nil).empty? }
+        sleep_until { DB[:test_data].count >= 50 }
 
         lockers.each &:stop!
 
