@@ -16,11 +16,11 @@ module Que
       scope :finished,     -> { where(t[:finished_at].not_eq(nil)) }
       scope :not_finished, -> { where(t[:finished_at].eq(nil)) }
 
-      scope :scheduled,     -> { where(t[:run_at].gt("now()")) }
-      scope :not_scheduled, -> { where(t[:run_at].lteq("now()")) }
+      scope :scheduled,     -> { where(t[:run_at].gt  (Arel.sql("now()"))) }
+      scope :not_scheduled, -> { where(t[:run_at].lteq(Arel.sql("now()"))) }
 
       scope :ready,     -> { not_errored.not_expired.not_finished.not_scheduled }
-      scope :not_ready, -> { where(t[:error_count].gt(0).or(t[:expired_at].not_eq(nil)).or(t[:finished_at].not_eq(nil)).or(t[:run_at].gt("now()"))) }
+      scope :not_ready, -> { where(t[:error_count].gt(0).or(t[:expired_at].not_eq(nil)).or(t[:finished_at].not_eq(nil)).or(t[:run_at].gt(Arel.sql("now()")))) }
 
       class << self
         def by_job_class(job_class)

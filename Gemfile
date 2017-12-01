@@ -6,8 +6,8 @@ source 'https://rubygems.org'
 group :development, :test do
   gem 'rake', '< 11.0'
 
-  gem 'activerecord',    require: nil
-  gem 'activejob',       require: nil
+  gem 'activerecord',    '5.2.0.beta2', require: nil
+  gem 'activejob',       '5.2.0.beta2', require: nil
   gem 'sequel',          require: nil
   gem 'connection_pool', require: nil
   gem 'pond',            require: nil

@@ -1,5 +1,5 @@
 default_environment: &default_environment
-  GEMFILE_VERSIONS: "current old older oldest"
+  GEMFILE_VERSIONS: "4.1 4.2 5.0 5.1 5.2"
   PG_VERSIONS: "9.5 9.6 10"
   PG_PORTS: "5432 5433 5434"
 
@@ -88,7 +88,7 @@ defaults: &defaults
                 for GEMFILE_VERSION in $GEMFILE_VERSIONS
                 do
                   # The oldest Rails version doesn't support Ruby 2.4+.
-                  if [ "$USE_RAILS" == "true" -a "$GEMFILE_VERSION" == "oldest" ]
+                  if [ "$USE_RAILS" == "true" -a "$GEMFILE_VERSION" == "4.1" ]
                   then
                     if [ "$RUBY_VERSION" == "2.4" -o "$RUBY_VERSION" == "ruby-head" ]
                     then
