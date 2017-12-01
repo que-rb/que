@@ -92,6 +92,15 @@ each_with_object({}) do |(name, source), hash|
   hash[name] = Que.pool
 end
 
+if ENV['CI']
+  puts "\n" + [
+    "Ruby: #{RUBY_VERSION}",
+    "PostgreSQL: #{DB["SHOW server_version"].get}",
+    "Gemfile: #{ENV['BUNDLE_GEMFILE']}",
+    "ActiveRecord: #{defined?(ActiveRecord) ? ActiveRecord.version.to_s : 'not loaded'}",
+  ].join("\n")
+end
+
 # ActiveRecord requires ActiveSupport, which affects a bunch of core classes and
 # may change some behavior that we rely on, so only bring it in sometimes.
 if ENV['USE_RAILS'] == 'true'
@@ -116,17 +125,6 @@ end
 QUE_POOLS.freeze
 
 Que.pool = DEFAULT_QUE_POOL = QUE_POOLS[:pond]
-
-
-
-if ENV['CI']
-  puts "\n\n" + [
-    "Ruby: #{RUBY_VERSION}",
-    "PostgreSQL: #{DB["SHOW server_version"].get}",
-    "Gemfile: #{ENV['BUNDLE_GEMFILE']}",
-    "ActiveRecord: #{defined?(ActiveRecord) ? ActiveRecord.version.to_s : 'not loaded'}",
-  ].join("\n")
-end
 
 
 
