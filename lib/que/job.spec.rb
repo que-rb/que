@@ -283,6 +283,25 @@ describe Que::Job do
             assert_equal expected_job_count, jobs_dataset.count
             assert_equal ["Uh-oh again!", "Uh-oh!"], notified_errors.map(&:message)
           end
+
+          if defined?(ActiveRecord)
+            it "should support the use of GlobalId arguments" do
+              skip "Not yet implemented"
+
+              Que::Job.enqueue # Test job object
+
+              job = QueJob.first
+              job.update(finished_at: Time.now)
+              gid = job.to_global_id(app: :test)
+
+              execute(job_object: gid.to_s)
+
+              assert_equal(
+                [{job_object: job}],
+                $args,
+              )
+            end
+          end
         end
       end
     end

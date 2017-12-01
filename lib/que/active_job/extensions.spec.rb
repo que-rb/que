@@ -48,18 +48,6 @@ if defined?(::ActiveJob)
     end
 
     it "shouldn't disrupt the use of GlobalId arguments" do
-      class QueJob < ActiveRecord::Base
-        include GlobalID::Identification
-      end
-
-      class TestLocator
-        def locate(gid)
-          gid.model_name.constantize.find(gid.model_id)
-        end
-      end
-
-      GlobalID::Locator.use :test, TestLocator.new
-
       Que::Job.enqueue # Test job object
 
       job = QueJob.first
