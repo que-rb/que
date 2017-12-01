@@ -97,7 +97,7 @@ describe Que::ConnectionPool do
         assert_equal 2, connections.length
 
         error = assert_raises(Que::Error) { test_pool.checkout {} }
-        assert_match /is not reentrant/, error.message
+        assert_match(/is not reentrant/, error.message)
         assert_equal 2, connections.length
       end
 

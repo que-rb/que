@@ -165,32 +165,32 @@ module Que
           # Give this thread priority, so it can promptly respond to NOTIFYs.
           Thread.current.priority = 1
 
-          pool.checkout do |connection|
+          pool.checkout do |conn|
             original_application_name =
-              connection.
+              conn.
               execute("SHOW application_name").
               first.
               fetch(:application_name)
 
             begin
-              @connection = connection
+              @connection = conn
 
-              connection.execute(
+              conn.execute(
                 "SELECT set_config('application_name', $1, false)",
                 ["Que Locker: #{connection.backend_pid}"]
               )
 
-              Poller.setup(connection)
+              Poller.setup(conn)
 
               if listen
-                @listener = Listener.new(connection: connection)
+                @listener = Listener.new(connection: conn)
               end
 
               if poll
                 @pollers =
                   queues.map do |queue, interval|
                     Poller.new(
-                      connection:    connection,
+                      connection:    conn,
                       queue:         queue,
                       poll_interval: interval || poll_interval,
                     )
@@ -199,12 +199,12 @@ module Que
 
               work_loop
             ensure
-              connection.execute(
+              conn.execute(
                 "SELECT set_config('application_name', $1, false)",
                 [original_application_name]
               )
 
-              Poller.cleanup(connection)
+              Poller.cleanup(conn)
             end
           end
         end

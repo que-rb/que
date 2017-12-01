@@ -5,7 +5,8 @@
 module Que
   module Utils
     module Logging
-      attr_accessor :logger, :log_formatter, :internal_logger
+      attr_accessor :logger, :internal_logger
+      attr_writer :log_formatter
 
       def log(event:, level: :info, **extra)
         data = _default_log_data

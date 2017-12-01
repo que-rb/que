@@ -114,7 +114,7 @@ if defined?(::ActiveRecord)
       it "should be compatible with ActiveModel job classes" do
         a = enqueue_job({job_class: "WrappedJobClass"}, {job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper"})
         b = enqueue_job({job_class: "OtherWrappedJobClass"}, {job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper"})
-        c = enqueue_job
+        enqueue_job
 
         assert_ids(a) { |ds| ds.by_job_class("WrappedJobClass") }
         assert_ids(b) { |ds| ds.by_job_class("OtherWrappedJobClass") }
@@ -149,7 +149,7 @@ if defined?(::ActiveRecord)
         a = enqueue_job "arg_string"
         b = enqueue_job arg: "arg_string"
         c = enqueue_job arg_hash: {arg: "arg_string"}
-        d = enqueue_job
+        enqueue_job
 
         assert_ids(a) { |ds| ds.by_args("arg_string") }
         assert_ids    { |ds| ds.by_args("nonexistent_arg_string") }

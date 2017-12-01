@@ -23,7 +23,7 @@ if defined?(::ActiveJob)
 
     def execute(*args)
       worker # Make sure worker is initialized.
-      wrapper = execute_raw(*args)
+      execute_raw(*args)
 
       assert_equal 1, active_jobs_dataset.count
       attrs = active_jobs_dataset.first!

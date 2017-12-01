@@ -30,7 +30,7 @@ describe Que do
           Que.pool
         end
 
-      assert_match /Que connection not established!/, error.message
+      assert_match(/Que connection not established!/, error.message)
     end
   end
 
@@ -80,7 +80,7 @@ describe Que do
     end
 
     it "should accept a Pond instance" do
-      pond = Pond.new &NEW_PG_CONNECTION
+      pond = Pond.new(&NEW_PG_CONNECTION)
       Que.connection = pond
 
       pond.checkout do |conn1|
@@ -97,7 +97,7 @@ describe Que do
     end
 
     it "should accept a ConnectionPool instance" do
-      cp = ConnectionPool.new &NEW_PG_CONNECTION
+      cp = ConnectionPool.new(&NEW_PG_CONNECTION)
 
       Que.connection = cp
 
@@ -122,7 +122,7 @@ describe Que do
           Que.pool
         end
 
-      assert_match /Que connection not established!/, error.message
+      assert_match(/Que connection not established!/, error.message)
     end
   end
 

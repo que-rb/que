@@ -265,7 +265,7 @@ describe Que::Job do
               end
             end
 
-            error = assert_raises(RuntimeError) { execute }
+            assert_raises(RuntimeError) { execute }
 
             assert_empty notified_errors
           end
@@ -414,7 +414,7 @@ describe Que::Job do
       def execute(*args)
         worker # Make sure worker is initialized.
 
-        job = TestJobClass.perform_later(*args)
+        TestJobClass.perform_later(*args)
 
         assert_equal 1, jobs_dataset.count
         attrs = jobs_dataset.first!
