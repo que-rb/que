@@ -48,6 +48,8 @@ if defined?(::ActiveJob)
     end
 
     it "shouldn't disrupt the use of GlobalId arguments" do
+      skip "GlobalID not found!" unless defined?(::GlobalID)
+
       Que::Job.enqueue # Test job object
 
       job = QueJob.first

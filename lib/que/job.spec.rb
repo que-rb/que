@@ -284,7 +284,7 @@ describe Que::Job do
             assert_equal ["Uh-oh again!", "Uh-oh!"], notified_errors.map(&:message)
           end
 
-          if defined?(ActiveRecord)
+          if defined?(ActiveJob) # GlobalID isn't a thing unless we have ActiveJob.
             it "should support the use of GlobalId arguments" do
               skip "Not yet implemented"
 

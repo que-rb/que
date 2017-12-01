@@ -109,17 +109,20 @@ if ENV['USE_RAILS'] == 'true'
   Que.connection = ActiveRecord
   QUE_POOLS[:active_record] = Que.pool
 
-  class QueJob < ActiveRecord::Base
-    include GlobalID::Identification
-  end
-
-  class TestLocator
-    def locate(gid)
-      gid.model_name.constantize.find(gid.model_id)
+  # We won't have GlobalID if ActiveJob isn't defined.
+  if defined?(::ActiveJob)
+    class QueJob < ActiveRecord::Base
+      include GlobalID::Identification
     end
-  end
 
-  GlobalID::Locator.use :test, TestLocator.new
+    class TestLocator
+      def locate(gid)
+        gid.model_name.constantize.find(gid.model_id)
+      end
+    end
+
+    GlobalID::Locator.use :test, TestLocator.new
+  end
 end
 
 QUE_POOLS.freeze
