@@ -52,6 +52,8 @@ Note also the use of the triple-dot range, which results in a query like `SELECT
 
 Finally, by passing both the start and end times for the period to be processed, and only using the interval to calculate the period for the following job, we make it easy to change the interval at which the job runs, without the risk of missing or double-processing any users.
 
+For more declarative scheduling, the [que-scheduler](https://github.com/hlascelles/que-scheduler) gem can be used to enqueue jobs defined with a cron based configuration. que-scheduler itself is a Que job, so it comes with the same ACID guarantees and DB restore semantics that Que benefits from, and can perform missed job executions after a full system downtime.
+
 ### DelayedJob-style Jobs
 
 DelayedJob offers a simple API for delaying methods to objects:
