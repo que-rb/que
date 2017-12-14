@@ -9,7 +9,7 @@ describe Que::Connection do
 
       around do |&block|
         super() do
-          DEFAULT_QUE_POOL.checkout do |conn|
+          pool.checkout do |conn|
             @connection = conn
             block.call
           end

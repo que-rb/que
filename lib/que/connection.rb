@@ -141,7 +141,13 @@ module Que
     # Procs used to convert strings from Postgres into Ruby types.
     CAST_PROCS = {
       # Boolean
-      16   => 't'.method(:==),
+      16 => -> (value) {
+        case value
+        when String then value == 't'.freeze
+        else !!value
+        end
+      },
+
       # Timestamp with time zone
       1184 => Time.method(:parse),
     }
