@@ -1,3 +1,7 @@
+### 0.14.1 (2017-12-14)
+
+*   Fix a bug with typecasting boolean values on Rails 5+.
+
 ### 0.14.0 (2017-08-11)
 
 *   Fix incompatibility with Rails 5.1.
