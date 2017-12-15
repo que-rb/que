@@ -116,6 +116,8 @@
 
     *   There is now a `data` JSONB column which is used to support various ways of organizing jobs (setting tags on them, etc).
 
+For a detailed list of the changes between each beta release of 1.0.0, see [the beta Changelog](CHANGELOG.1.0.beta.md).
+
 ### 0.13.1 (2017-07-05)
 
 *   Fix issue that caused error stacktraces to not be persisted in most cases.
