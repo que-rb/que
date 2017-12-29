@@ -27,7 +27,7 @@ RUN apt-get install -y \
 # Set up RVM and Rubies.
 
 RUN gpg --keyserver hkp://keys.gnupg.net --recv-keys D39DC0E3
-RUN curl -sSL https://get.rvm.io | bash -s stable
+RUN curl -sSL https://get.rvm.io | bash -s head
 ENV PATH /usr/local/rvm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 RUN /bin/bash -l -c "rvm reload"
@@ -41,6 +41,9 @@ RUN /bin/bash -l -c "rvm 2.3 do gem install bundler --no-ri --no-rdoc"
 
 RUN /bin/bash -l -c "rvm install 2.4"
 RUN /bin/bash -l -c "rvm 2.4 do gem install bundler --no-ri --no-rdoc"
+
+RUN /bin/bash -l -c "rvm install 2.5"
+RUN /bin/bash -l -c "rvm 2.5 do gem install bundler --no-ri --no-rdoc"
 
 RUN /bin/bash -l -c "rvm install ruby-head"
 RUN /bin/bash -l -c "rvm ruby-head do gem install bundler --no-ri --no-rdoc"

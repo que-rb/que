@@ -5,7 +5,7 @@ default_environment: &default_environment
 
 defaults: &defaults
   docker:
-    - image: chanks/que-circleci:0.0.5
+    - image: chanks/que-circleci:0.0.6
   steps:
     - checkout
 
@@ -135,6 +135,12 @@ jobs:
     environment:
       <<: *default_environment
       RUBY_VERSION: 2.4
+
+  ruby_2_5:
+    <<: *defaults
+    environment:
+      <<: *default_environment
+      RUBY_VERSION: 2.5
 
   ruby_head:
     <<: *defaults
