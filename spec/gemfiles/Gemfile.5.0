@@ -3,7 +3,7 @@ source 'https://rubygems.org'
 gem 'que', path: '../..'
 
 group :development, :test do
-  gem 'rake', '< 11.0'
+  gem 'rake'
 
   gem 'activerecord',    '~> 5.0.0', require: nil
   gem 'activejob',       '~> 5.0.0', require: nil
