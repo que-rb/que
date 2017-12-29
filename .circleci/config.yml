@@ -90,7 +90,7 @@ defaults: &defaults
                   # The oldest Rails version doesn't support Ruby 2.4+.
                   if [ "$USE_RAILS" == "true" -a "$GEMFILE_VERSION" == "4.1" ]
                   then
-                    if [ "$RUBY_VERSION" == "2.4" -o "$RUBY_VERSION" == "ruby-head" ]
+                    if [ "$RUBY_VERSION" == "2.4" -o "$RUBY_VERSION" == "2.5" -o "$RUBY_VERSION" == "ruby-head" ]
                     then
                       continue
                     fi
@@ -155,4 +155,5 @@ workflows:
       - ruby_2_2
       - ruby_2_3
       - ruby_2_4
+      - ruby_2_5
       - ruby_head
