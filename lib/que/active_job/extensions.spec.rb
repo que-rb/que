@@ -93,6 +93,10 @@ if defined?(::ActiveJob)
     end
 
     it "raising an unrecoverable error shouldn't finish the job record" do
+      if Thread.current.respond_to?(:report_on_exception=)
+        worker.thread.report_on_exception = false
+      end
+
       CustomExceptionSubclass = Class.new(Exception)
 
       TestJobClass.class_eval do
