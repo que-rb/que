@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# Silence Ruby warnings.
+$VERBOSE = nil
+
 # ActiveRecord and ActiveJob require ActiveSupport, which affects a bunch of
 # core classes and may change some behavior that we rely on, so only bring it in
 # in some spec runs.
