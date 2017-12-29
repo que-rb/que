@@ -3,6 +3,8 @@
 require 'spec_helper'
 require_relative 'command_line_interface'
 
+require 'digest/md5'
+
 describe Que::CommandLineInterface do
   LOADED_FILES = {}
 
