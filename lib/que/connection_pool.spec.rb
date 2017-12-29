@@ -125,6 +125,10 @@ describe Que::ConnectionPool do
         error.message
       )
 
+      if t.respond_to?(:report_on_exception=)
+        t.report_on_exception = false
+      end
+
       q2.push(nil)
       error = assert_raises(Que::Error) { t.join }
       assert_match(

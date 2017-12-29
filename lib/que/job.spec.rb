@@ -206,6 +206,10 @@ describe Que::Job do
         end
 
         it "raising an unrecoverable error shouldn't delete the job record" do
+          if Thread.current.respond_to?(:report_on_exception=)
+            worker.thread.report_on_exception = false
+          end
+
           error_class = Class.new(Exception)
 
           TestJobClass.class_eval do
