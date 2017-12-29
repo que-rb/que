@@ -20,7 +20,7 @@ describe Que::ResultQueue do
         end
       end
 
-      threads.each &:join
+      threads.each(&:join)
 
       assert_equal (1..100).to_a, result_queue.to_a.sort
     end

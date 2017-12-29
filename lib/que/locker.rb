@@ -106,6 +106,8 @@ module Que
 
       @result_queue = ResultQueue.new
 
+      @stop = false
+
       Que.internal_log :locker_instantiate, self do
         {
           queues:              queues,
@@ -182,9 +184,10 @@ module Que
 
               Poller.setup(connection)
 
-              if listen
-                @listener = Listener.new(connection: connection)
-              end
+              @listener =
+                if listen
+                  Listener.new(connection: connection)
+                end
 
               if poll
                 @pollers =

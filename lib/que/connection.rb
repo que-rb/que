@@ -30,8 +30,11 @@ module Que
         when self
           conn
         when PG::Connection
-          conn.instance_variable_get(:@que_wrapper) ||
-          conn.instance_variable_set(:@que_wrapper, new(conn))
+          if conn.instance_variable_defined?(:@que_wrapper)
+            conn.instance_variable_get(:@que_wrapper)
+          else
+            conn.instance_variable_set(:@que_wrapper, new(conn))
+          end
         else
           raise Error, "Unsupported input for Connection.wrap: #{conn.class}"
         end

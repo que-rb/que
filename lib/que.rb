@@ -45,6 +45,12 @@ module Que
   require_relative 'que/worker'
 
   class << self
+    attr_writer :default_queue
+  end
+
+  self.default_queue = nil
+
+  class << self
     include Utils::Assertions
     include Utils::Constantization
     include Utils::ErrorNotification
@@ -65,7 +71,6 @@ module Que
 
     # Global configuration logic.
     attr_accessor :use_prepared_statements
-    attr_writer :default_queue
 
     def default_queue
       @default_queue || DEFAULT_QUEUE

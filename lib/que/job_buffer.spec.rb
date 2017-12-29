@@ -141,7 +141,7 @@ describe Que::JobBuffer do
 
   describe "shift" do
     it "should return the lowest item's pk by sort order" do
-      job_buffer.push *job_array
+      job_buffer.push(*job_array)
 
       assert_equal job_array[0],    job_buffer.shift
       assert_equal job_array[1..7], job_buffer.to_a
@@ -161,7 +161,7 @@ describe Que::JobBuffer do
         end
 
       sleep_until! { threads.all? { |t| t.status == 'sleep' } }
-      job_buffer.push *job_array
+      job_buffer.push(*job_array)
       sleep_until! { threads.all? { |t| t.status == false } }
 
       assert_equal \
@@ -306,14 +306,14 @@ describe Que::JobBuffer do
 
   describe "clear" do
     it "should remove and return all items" do
-      job_buffer.push *job_array
+      job_buffer.push(*job_array)
       assert_equal job_array, job_buffer.clear
       assert_equal [], job_buffer.to_a
     end
 
     it "should return an empty array if there are no items to clear" do
       assert_equal [], job_buffer.clear
-      job_buffer.push *job_array
+      job_buffer.push(*job_array)
       assert_equal job_array, job_buffer.clear
       assert_equal [], job_buffer.clear
     end
