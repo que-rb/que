@@ -667,14 +667,14 @@ describe Que::Locker do
         end
 
         class QueSpec::RunOnceTestJob < Que::Job
-          def run(runs:)
+          def run(runs:, index:)
             Que.checkout do |conn|
               conn.execute "BEGIN"
               conn.execute "INSERT INTO test_data (job_id, count) VALUES (#{que_attrs[:id]}, 1) ON CONFLICT (job_id) DO UPDATE SET count = test_data.count + 1"
 
               if runs < 10
                 delay = rand > 0.5 ? 1 : 0
-                conn.execute(%(INSERT INTO que_jobs (job_class, args, run_at) VALUES ('QueSpec::RunOnceTestJob', '[{"runs":#{runs + 1}}]', now() + '#{delay} microseconds')))
+                conn.execute(%(INSERT INTO que_jobs (job_class, args, run_at) VALUES ('QueSpec::RunOnceTestJob', '[{"runs":#{runs + 1},"index":#{index}}]', now() + '#{delay} microseconds')))
               end
 
               finish
@@ -685,7 +685,7 @@ describe Que::Locker do
 
         lockers = 4.times.map { Que::Locker.new(locker_settings) }
 
-        5.times { QueSpec::RunOnceTestJob.enqueue(runs: 1) }
+        5.times { |i| QueSpec::RunOnceTestJob.enqueue(runs: 1, index: i) }
 
         sleep_until { DB[:test_data].count >= 50 }
 
@@ -696,6 +696,11 @@ describe Que::Locker do
 
         assert_equal 50, DB[:test_data].count
         assert_equal 50, DB[:test_data].where(count: 1).count
+
+        assert_equal(
+          (0..4).flat_map{|i| (1..10).map{|j| [i, j]}},
+          jobs_dataset.select_map(:args).map{|a| [a.first[:index], a.first[:runs]]}.sort,
+        )
 
         assert_equal(
           jobs_dataset.select_order_map(:id),
