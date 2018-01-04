@@ -74,9 +74,9 @@ DB = Sequel.connect(QUE_URL)
 DB.extension :pg_array
 
 # Make it a bit easier to manage JSON when we're inspecting the DB in specs.
-parse_json = -> (json) { JSON.parse(json, symbolize_names: true) }
-DB.add_named_conversion_proc(:jsonb, &parse_json)
-DB.add_named_conversion_proc(:json,  &parse_json)
+PARSE_JSON = -> (json) { JSON.parse(json, symbolize_names: true) }
+DB.add_named_conversion_proc(:jsonb, &PARSE_JSON)
+DB.add_named_conversion_proc(:json,  &PARSE_JSON)
 
 # Have Que use a Sequel DB distinct from the one we use in our testing logic.
 SEQUEL_TEST_DB = Sequel.connect(QUE_URL)
@@ -236,12 +236,12 @@ class QueSpec < Minitest::Spec
   end
 
   def logged_messages
-    QUE_LOGGER.messages.map { |message| JSON.parse(message, symbolize_names: true) }
+    QUE_LOGGER.messages.map(&PARSE_JSON)
   end
 
   def internal_messages(event: nil)
     messages =
-      QUE_INTERNAL_LOGGER.messages.map { |m| JSON.parse(m, symbolize_names: true) }
+      QUE_INTERNAL_LOGGER.messages.map(&PARSE_JSON)
 
     messages.each do |message|
       assert_equal 'que',              message.delete(:lib)
