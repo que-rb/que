@@ -174,7 +174,7 @@ describe Que::Listener do
         assert_ignored_notification 'blah'
         assert_ignored_notification '{"blah:"}'
 
-        sleep_until! { notified_errors.count == 3 }
+        sleep_until { notified_errors.count == 3 }
         notified_errors.each{|e| assert_instance_of(JSON::ParserError, e)}
       end
 
@@ -269,7 +269,7 @@ describe Que::Listener do
         error = nil
         Que.error_notifier = proc { |e| error = e }
         assert_message_ignored
-        sleep_until! { !error.nil? }
+        sleep_until { !error.nil? }
 
         assert_instance_of Que::Error, error
 

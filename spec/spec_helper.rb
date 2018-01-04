@@ -189,11 +189,11 @@ class QueSpec < Minitest::Spec
   end
 
   # Helper for testing threaded code.
-  def sleep_until!(*args, &block)
-    sleep_until(*args, &block) || raise("sleep_until! timeout reached")
+  def sleep_until(*args, &block)
+    sleep_until?(*args, &block) || raise("sleep_until timeout reached")
   end
 
-  def sleep_until(timeout = SLEEP_UNTIL_TIMEOUT)
+  def sleep_until?(timeout = SLEEP_UNTIL_TIMEOUT)
     deadline = Time.now + timeout
     loop do
       if result = yield

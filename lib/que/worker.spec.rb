@@ -47,7 +47,7 @@ describe Que::Worker do
 
     job_buffer.push(*jobs)
 
-    sleep_until!(60000) do
+    sleep_until 10 do
       finished_job_ids == job_ids
     end
   end
@@ -110,7 +110,7 @@ describe Que::Worker do
 
       job_buffer.push *jobs.map{|j| Que::Metajob.new(j)}
 
-      sleep_until! { finished_job_ids == job_ids[0..9] }
+      sleep_until { finished_job_ids == job_ids[0..9] }
 
       assert_equal job_ids[10..19], job_buffer.to_a.map(&:id)
     end

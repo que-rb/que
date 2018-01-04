@@ -53,7 +53,7 @@ describe Que::CommandLineInterface do
         )
       end
 
-    unless sleep_until { !$q1.empty? }
+    unless sleep_until? { !$q1.empty? }
       puts "CLI invocation thread hung!"
       thread.join
     end

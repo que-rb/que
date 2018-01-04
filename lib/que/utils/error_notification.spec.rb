@@ -83,7 +83,7 @@ describe Que::Utils::ErrorNotification do
       Que.error_notifier = proc { |*args| passed = args }
 
       assert_equal true, Que.notify_error_async(1, 2)
-      sleep_until! { passed == [1, 2] }
+      sleep_until { passed == [1, 2] }
       assert_empty Que::Utils::ErrorNotification::ASYNC_QUEUE
     end
 
@@ -94,7 +94,7 @@ describe Que::Utils::ErrorNotification do
         Que.error_notifier = proc { |*args| passed = args; q.pop }
 
         assert_equal true, Que.notify_error_async(1, 2)
-        sleep_until! { passed == [1, 2] }
+        sleep_until { passed == [1, 2] }
 
         assert_equal 0, Que::Utils::ErrorNotification::ASYNC_QUEUE.size
 
@@ -106,7 +106,7 @@ describe Que::Utils::ErrorNotification do
       ensure
         Que.error_notifier = nil
         q.push(nil)
-        sleep_until! do
+        sleep_until do
           Que::Utils::ErrorNotification::ASYNC_QUEUE.size == 0
         end
       end

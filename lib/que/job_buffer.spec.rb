@@ -160,9 +160,9 @@ describe Que::JobBuffer do
           end
         end
 
-      sleep_until! { threads.all? { |t| t.status == 'sleep' } }
+      sleep_until { threads.all? { |t| t.status == 'sleep' } }
       job_buffer.push(*job_array)
-      sleep_until! { threads.all? { |t| t.status == false } }
+      sleep_until { threads.all? { |t| t.status == false } }
 
       assert_equal \
         job_array[0..3],
@@ -180,13 +180,13 @@ describe Que::JobBuffer do
 
       job_buffer.push(a)
       t = Thread.new { Thread.current[:job] = job_buffer.shift(10) }
-      sleep_until! { t.status == 'sleep' }
+      sleep_until { t.status == 'sleep' }
 
       job_buffer.push(b)
-      sleep_until! { t.status == 'sleep' }
+      sleep_until { t.status == 'sleep' }
 
       job_buffer.push(c)
-      sleep_until! { t.status == false }
+      sleep_until { t.status == false }
 
       assert_equal c, t[:job]
     end
@@ -202,14 +202,14 @@ describe Que::JobBuffer do
         end
       end
 
-      sleep_until! { threads.all? { |t| t.status == 'sleep' } }
+      sleep_until { threads.all? { |t| t.status == 'sleep' } }
 
       threads.sort_by! { |t| t[:priority] }
 
       value = new_metajob(priority: 25, run_at: Time.now, id: 1)
       job_buffer.push value
 
-      sleep_until! { threads.map(&:status) == ['sleep', 'sleep', false] }
+      sleep_until { threads.map(&:status) == ['sleep', 'sleep', false] }
 
       assert_equal value, threads[2][:job]
     end
@@ -295,9 +295,9 @@ describe Que::JobBuffer do
           end
         end
 
-      sleep_until! { threads.all? { |t| t.status == 'sleep' } }
+      sleep_until { threads.all? { |t| t.status == 'sleep' } }
       job_buffer.stop
-      sleep_until! { threads.all? { |t| t.status == false } }
+      sleep_until { threads.all? { |t| t.status == false } }
 
       threads.map { |t| assert_equal false, t[:job] }
       10.times { assert_equal false, job_buffer.shift }

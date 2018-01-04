@@ -55,7 +55,7 @@ describe Que::JobBuffer, "available_priorities" do
 
   def assert_available(expected)
     actual = nil
-    sleep_until!(0.5) do
+    sleep_until 0.5 do
       actual = job_buffer.available_priorities
       actual == expected
     end
