@@ -348,7 +348,10 @@ class QueSpec < Minitest::Spec
     end
 
     # A bit of lint: make sure that no specs leave advisory locks hanging open.
-    unless locked_ids.empty?
+    # Use the sleep because sometimes Postgres has a slight delay in cleaning
+    # them up, but that shouldn't affect the (rare?) case where a bug leaves
+    # them hanging.
+    unless sleep_until? { locked_ids.empty? }
       puts "\n\nAdvisory lock left open: #{current_spec_location}\n\nLocks open: #{locked_ids.inspect}\n\n"
       # Again, no point in running the rest of the specs, since our state is
       # unknown/not clean.
