@@ -252,17 +252,7 @@ module Que
       begin
         @listener.listen if @listener
 
-        # A previous locker that didn't exit cleanly may have left behind
-        # a bad locker record, so clean up before registering.
-        connection.execute :clean_lockers
-        connection.execute :register_locker, [
-          @workers.count,
-          "{#{@workers.map(&:priority).map{|p| p || 'NULL'}.join(',')}}",
-          Process.pid,
-          CURRENT_HOSTNAME,
-          !!@listener,
-          "{\"#{@queue_names.join('","')}\"}",
-        ]
+        startup
 
         {} while cycle
 
@@ -271,16 +261,26 @@ module Que
           event: :locker_stop,
         )
 
-        unlock_jobs(@job_buffer.clear)
-
-        @workers.each(&:wait_until_stopped)
-
-        handle_results
+        shutdown
       ensure
         connection.execute :clean_lockers
 
         @listener.unlisten if @listener
       end
+    end
+
+    def startup
+      # A previous locker that didn't exit cleanly may have left behind
+      # a bad locker record, so clean up before registering.
+      connection.execute :clean_lockers
+      connection.execute :register_locker, [
+        @workers.count,
+        "{#{@workers.map(&:priority).map{|p| p || 'NULL'}.join(',')}}",
+        Process.pid,
+        CURRENT_HOSTNAME,
+        !!@listener,
+        "{\"#{@queue_names.join('","')}\"}",
+      ]
     end
 
     def cycle
@@ -301,6 +301,12 @@ module Que
 
       # If we haven't gotten the stop signal, cycle again.
       !@stop
+    end
+
+    def shutdown
+      unlock_jobs(@job_buffer.clear)
+      @workers.each(&:wait_until_stopped)
+      handle_results
     end
 
     def poll
