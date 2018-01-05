@@ -4,7 +4,7 @@ module Que
   module Utils
     module Constantization
       def constantize(string)
-        assert String, string
+        Que.assert String, string
 
         if string.respond_to?(:constantize)
           string.constantize

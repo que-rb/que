@@ -24,26 +24,8 @@ module Que
 
   SQL[:register_locker] =
     %{
-      INSERT INTO public.que_lockers
-      (
-        pid,
-        worker_count,
-        worker_priorities,
-        ruby_pid,
-        ruby_hostname,
-        listening,
-        queues
-      )
-      VALUES
-      (
-        pg_backend_pid(),
-        $1::integer,
-        $2::integer[],
-        $3::integer,
-        $4::text,
-        $5::boolean,
-        $6::text[]
-      )
+      INSERT INTO public.que_lockers (pid, worker_count, worker_priorities, ruby_pid, ruby_hostname, listening, queues)
+      VALUES (pg_backend_pid(), $1::integer, $2::integer[], $3::integer, $4::text, $5::boolean, $6::text[])
     }
 
   class Locker
@@ -305,8 +287,12 @@ module Que
 
     def shutdown
       unlock_jobs(@job_buffer.clear)
-      @workers.each(&:wait_until_stopped)
+      wait_for_shutdown
       handle_results
+    end
+
+    def wait_for_shutdown
+      @workers.each(&:wait_until_stopped)
     end
 
     def poll
@@ -319,7 +305,13 @@ module Que
         priorities = job_buffer.available_priorities
         break if priorities.empty?
 
-        Que.internal_log(:locker_polling, self) { {priorities: priorities, held_locks: @locks.to_a, queue: poller.queue} }
+        Que.internal_log(:locker_polling, self) {
+          {
+            priorities: priorities,
+            held_locks: @locks.to_a,
+            queue: poller.queue,
+          }
+        }
 
         if metajobs = poller.poll(priorities: priorities, held_locks: @locks)
           metajobs.each do |metajob|
