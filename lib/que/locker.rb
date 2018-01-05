@@ -19,7 +19,7 @@ module Que
     %{
       DELETE FROM public.que_lockers
       WHERE pid = pg_backend_pid()
-      OR pid NOT IN (SELECT pid FROM pg_stat_activity)
+      OR NOT EXISTS (SELECT 1 FROM pg_stat_activity WHERE pid = public.que_lockers.pid)
     }
 
   SQL[:register_locker] =
