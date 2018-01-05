@@ -28,8 +28,8 @@ module Que
 
     private
 
-    def sync
-      @mutex.synchronize { yield }
+    def sync(&block)
+      @mutex.synchronize(&block)
     end
   end
 end

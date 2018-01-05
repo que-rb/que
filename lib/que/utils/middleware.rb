@@ -30,11 +30,11 @@ module Que
 
       private
 
-      def invoke_middleware(middleware:, args:)
+      def invoke_middleware(middleware:, args:, &block)
         if m = middleware.shift
           r = nil
           m.call(*args) do
-            r = invoke_middleware(middleware: middleware, args: args) { yield }
+            r = invoke_middleware(middleware: middleware, args: args, &block)
           end
           r
         else

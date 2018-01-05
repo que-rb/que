@@ -169,8 +169,8 @@ module Que
       @array.pop(count)
     end
 
-    def sync
-      @monitor.synchronize { yield }
+    def sync(&block)
+      @monitor.synchronize(&block)
     end
 
     # A queue object dedicated to a specific worker priority. It's basically a
@@ -232,8 +232,8 @@ module Que
 
       private
 
-      def sync
-        @monitor.synchronize { yield }
+      def sync(&block)
+        @monitor.synchronize(&block)
       end
     end
   end
