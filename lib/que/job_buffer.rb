@@ -177,19 +177,19 @@ module Que
     # Queue object from the standard library, but it's able to reach into the
     # JobBuffer's buffer in order to satisfy a pop.
     class PriorityQueue
-      attr_reader :job_buffer, :priority
+      attr_reader :job_buffer, :priority, :mutex
 
       def initialize(
         job_buffer:,
         priority:
       )
         @job_buffer = job_buffer
-        @priority  = priority
-        @waiting   = 0
-        @stopping  = false
-        @items     = [] # Items pending distribution to waiting threads.
-        @monitor   = Monitor.new
-        @cv        = Monitor::ConditionVariable.new(@monitor)
+        @priority   = priority
+        @waiting    = 0
+        @stopping   = false
+        @items      = [] # Items pending distribution to waiting threads.
+        @mutex      = Mutex.new
+        @cv         = ConditionVariable.new
       end
 
       def pop
@@ -205,7 +205,7 @@ module Que
             return job unless job.nil? # False means we're stopping.
 
             @waiting += 1
-            @cv.wait
+            @cv.wait(mutex)
             @waiting -= 1
           end
         end
@@ -233,7 +233,7 @@ module Que
       private
 
       def sync(&block)
-        @monitor.synchronize(&block)
+        mutex.synchronize(&block)
       end
     end
   end
