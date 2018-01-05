@@ -1,4 +1,4 @@
-### 0.14.2 (Unreleased)
+### 0.14.2 (2018-01-05)
 
 *   Deprecate the Que.disable_prepared_statements= accessors.
 
