@@ -74,11 +74,7 @@
 
         *   To start up the worker pool (the old :async behavior) you should use the `que` executable to start up a worker process. There's no longer a supported API for running workers outside of the `que` executable.
 
-    *   The way Que uses prepared statements internally has changed. This shouldn't affect anyone's use of Que, except that the `disable_prepared_statements` configuration option is no longer necessary and has been removed.
-
-        *   Specifically, while Que previously used prepared statements for most of its built-in queries, now only the polling query uses it, due to its complexity. Since the polling query is only run through a dedicated connection, it's no longer possible for prepared statements to conflict with external connection pools, which was the reason that `disable_prepared_statements` was supported in the first place.
-
-    *   In addition to `Que.disable_prepared_statements=`, the following methods are not meaningful under the new implementation and have been removed:
+    *   The following methods are not meaningful under the new implementation and have been removed:
 
         *   The `Que.wake_interval` getter and setter.
 

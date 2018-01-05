@@ -68,11 +68,7 @@
 
         *   To start up the worker pool (the old :async behavior) you should use the `que` executable to start up a worker process. There's no longer a supported API for running workers outside of the `que` executable.
 
-    *   The way Que uses prepared statements internally has changed. This shouldn't affect anyone's use of Que, except that the `disable_prepared_statements` configuration option is no longer necessary and has been removed.
-
-        *   Specifically, while Que previously used prepared statements for most of its built-in queries, now only the polling query uses it, due to its complexity. Since the polling query is only run through a dedicated connection, it's no longer possible for prepared statements to conflict with external connection pools, which was the reason that `disable_prepared_statements` was supported in the first place.
-
-    *   In addition to `Que.disable_prepared_statements=`, the following methods are not meaningful under the new implementation and have been removed:
+    *   The following methods are not meaningful under the new implementation and have been removed:
 
         *   The `Que.wake_interval` getter and setter.
 
@@ -117,6 +113,24 @@
     *   There is now a `data` JSONB column which is used to support various ways of organizing jobs (setting tags on them, etc).
 
 For a detailed list of the changes between each beta release of 1.0.0, see [the beta Changelog](CHANGELOG.1.0.beta.md).
+
+### 0.14.2 (2018-01-05)
+
+*   Deprecate the Que.disable_prepared_statements= accessors.
+
+*   Add Que.use_prepared_statements= configuration accessors.
+
+*   Update the generated Rails migration to declare a version. (NARKOZ)
+
+### 0.14.1 (2017-12-14)
+
+*   Fix a bug with typecasting boolean values on Rails 5+.
+
+### 0.14.0 (2017-08-11)
+
+*   Fix incompatibility with Rails 5.1.
+
+*   Drop support for waking an in-process worker when an ActiveRecord transaction commits.
 
 ### 0.13.1 (2017-07-05)
 
