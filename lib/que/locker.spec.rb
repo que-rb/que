@@ -687,25 +687,25 @@ describe Que::Locker do
 
         5.times { |i| QueSpec::RunOnceTestJob.enqueue(runs: 1, index: i) }
 
-        sleep_until { DB[:test_data].count >= 50 }
+        sleep_until? { DB[:test_data].count >= 50 }
 
         lockers.each &:stop!
 
-        assert_empty jobs_dataset.where(finished_at: nil).all
-        assert_equal 50, jobs_dataset.count
-
-        assert_equal 50, DB[:test_data].count
-        assert_equal 50, DB[:test_data].where(count: 1).count
-
         assert_equal(
           (0..4).flat_map{|i| (1..10).map{|j| [i, j]}},
-          jobs_dataset.select_map(:args).map{|a| [a.first[:index], a.first[:runs]]}.sort,
+          jobs_dataset.exclude(finished_at: nil).select_map(:args).map{|a| [a.first[:index], a.first[:runs]]}.sort,
         )
 
         assert_equal(
           jobs_dataset.select_order_map(:id),
           DB[:test_data].select_order_map(:job_id),
         )
+
+        assert_empty jobs_dataset.where(finished_at: nil).all
+        assert_equal 50, jobs_dataset.count
+
+        assert_equal 50, DB[:test_data].count
+        assert_equal 50, DB[:test_data].where(count: 1).count
       ensure
         DB.drop_table :test_data
       end
