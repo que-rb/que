@@ -189,8 +189,8 @@ module Que
                   Listener.new(connection: conn)
                 end
 
-              if poll
-                @pollers =
+              @pollers =
+                if poll
                   queues.map do |queue, interval|
                     Poller.new(
                       connection:    conn,
@@ -198,7 +198,7 @@ module Que
                       poll_interval: interval || poll_interval,
                     )
                   end
-              end
+                end
 
               work_loop
             ensure
@@ -326,8 +326,8 @@ module Que
     end
 
     def wait
-      if @listener
-        @listener.wait_for_grouped_messages(@wait_period).each do |type, messages|
+      if l = @listener
+        l.wait_for_grouped_messages(@wait_period).each do |type, messages|
           if resolver = MESSAGE_RESOLVERS[type]
             instance_exec messages, &resolver
           else
@@ -356,7 +356,7 @@ module Que
       metajobs.reject! { |m| @locks.include?(m.id) }
       return metajobs if metajobs.empty?
 
-      ids = metajobs.map{|m| m.id.to_i}
+      ids = metajobs.map { |m| m.id.to_i }
 
       Que.internal_log :locker_locking, self do
         {
@@ -368,9 +368,7 @@ module Que
       jobs =
         connection.execute \
           <<-SQL
-            WITH jobs AS (
-              SELECT * FROM que_jobs WHERE id IN (#{ids.join(', ')})
-            )
+            WITH jobs AS (SELECT * FROM que_jobs WHERE id IN (#{ids.join(', ')}))
             SELECT * FROM jobs WHERE pg_try_advisory_lock(id)
           SQL
 
@@ -411,12 +409,12 @@ module Que
 
       good, bad = metajobs.partition{|mj| verified_ids.include?(mj.id)}
 
-      displaced = @job_buffer.push(*good) || []
-
-      # Unlock any low-importance jobs the new ones may displace.
-      if bad.any? || displaced.any?
-        unlock_jobs(bad + displaced)
+      # Need to unlock any low-importance jobs the new ones may displace.
+      if displaced = @job_buffer.push(*good)
+        bad.concat(displaced)
       end
+
+      unlock_jobs(bad)
     end
 
     def finish_jobs(metajobs)
