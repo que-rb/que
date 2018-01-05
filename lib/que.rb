@@ -42,7 +42,7 @@ module Que
 
   class << self
     attr_accessor :error_notifier
-    attr_writer :logger, :adapter, :log_formatter, :disable_prepared_statements, :json_converter
+    attr_writer :logger, :adapter, :log_formatter, :use_prepared_statements, :json_converter
 
     def connection=(connection)
       self.adapter =
@@ -126,8 +126,19 @@ module Que
       @log_formatter ||= JSON.method(:dump)
     end
 
+    def use_prepared_statements
+      setting = @use_prepared_statements
+      setting.nil? ? true : setting
+    end
+
     def disable_prepared_statements
-      @disable_prepared_statements || false
+      warn "Que.disable_prepared_statements has been deprecated, please update your code to invert the result of Que.disable_prepared_statements instead. This shim will be removed in Que version 1.0.0."
+      !use_prepared_statements
+    end
+
+    def disable_prepared_statements=(setting)
+      warn "Que.disable_prepared_statements= has been deprecated, please update your code to pass the inverted value to Que.use_prepared_statements= instead. This shim will be removed in Que version 1.0.0."
+      self.use_prepared_statements = !setting
     end
 
     def error_handler

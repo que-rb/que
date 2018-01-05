@@ -67,7 +67,7 @@ module Que
         checkout do |conn|
           # Prepared statement errors have the potential to foul up the entire
           # transaction, so if we're in one, err on the side of safety.
-          return execute_sql(SQL[name], params) if Que.disable_prepared_statements || in_transaction?
+          return execute_sql(SQL[name], params) if !Que.use_prepared_statements || in_transaction?
 
           statements = @prepared_statements[conn] ||= {}
 
