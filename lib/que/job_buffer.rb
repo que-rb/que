@@ -8,6 +8,13 @@ module Que
   class JobBuffer
     attr_reader :maximum_size, :minimum_size, :priority_queues
 
+    # Since we use a mutex, which is not reentrant, we have to be a little
+    # careful to not call a method that locks the mutex when we've already
+    # locked it. So, as a general rule, public methods handle locking the mutex
+    # when necessary, while private methods handle the actual underlying data
+    # changes. This lets us reuse those private methods without running into
+    # locking issues.
+
     def initialize(
       maximum_size:,
       minimum_size:,
@@ -24,13 +31,13 @@ module Que
           "greater than the maximum buffer size (#{maximum_size})!"
       end
 
-      @stop    = false
-      @array   = []
-      @monitor = Monitor.new # TODO: Make this a mutex?
+      @stop  = false
+      @array = []
+      @mutex = Mutex.new
 
-      # Make sure that priority = nil sorts highest.
       @priority_queues = Hash[
-        priorities.sort_by{|p| p || Float::INFINITY}.map do |p|
+        # Make sure that priority = nil sorts highest.
+        priorities.sort_by{|p| p || MAXIMUM_PRIORITY}.map do |p|
           [p, PriorityQueue.new(priority: p, job_buffer: self)]
         end
       ].freeze
@@ -41,27 +48,27 @@ module Que
         {
           maximum_size:  maximum_size,
           ids:           metajobs.map(&:id),
-          current_queue: @array,
+          current_queue: to_a,
         }
       end
 
       sync do
-        return metajobs if stopping?
+        return metajobs if _stopping?
 
         @array.push(*metajobs).sort!
 
         # Relying on the hash's contents being sorted, here.
         priority_queues.reverse_each do |_, pq|
           pq.waiting_count.times do
-            job = shift_job(pq.priority)
-            break if job.nil?
+            job = _shift_job(pq.priority)
+            break if job.nil? # False would mean we're stopping.
             pq.push(job)
           end
         end
 
         # If we passed the maximum buffer size, drop the lowest sort keys and
         # return their ids to be unlocked.
-        overage = -buffer_space
+        overage = -_buffer_space
         pop(overage) if overage > 0
       end
     end
@@ -72,22 +79,16 @@ module Que
     end
 
     def shift_job(priority = nil)
-      sync do
-        if stopping?
-          false
-        elsif (job = @array.first) && job.priority_sufficient?(priority)
-          @array.shift
-        end
-      end
+      sync { _shift_job(priority) }
     end
 
     def accept?(metajobs)
-      return [] if stopping?
-
       metajobs.sort!
 
       sync do
-        start_index = buffer_space
+        return [] if _stopping?
+
+        start_index = _buffer_space
         final_index = metajobs.length - 1
 
         return metajobs if start_index > final_index
@@ -137,13 +138,11 @@ module Que
     end
 
     def buffer_space
-      sync do
-        maximum_size - size
-      end
+      sync { _buffer_space }
     end
 
     def size
-      sync { @array.size }
+      sync { _size }
     end
 
     def to_a
@@ -156,21 +155,41 @@ module Que
     end
 
     def clear
-      sync { pop(size) }
+      sync { pop(_size) }
     end
 
     def stopping?
-      sync { !!@stop }
+      sync { _stopping? }
     end
 
     private
+
+    def _buffer_space
+      maximum_size - _size
+    end
 
     def pop(count)
       @array.pop(count)
     end
 
+    def _shift_job(priority)
+      if _stopping?
+        false
+      elsif (job = @array.first) && job.priority_sufficient?(priority)
+        @array.shift
+      end
+    end
+
+    def _size
+      @array.size
+    end
+
+    def _stopping?
+      !!@stop
+    end
+
     def sync(&block)
-      @monitor.synchronize(&block)
+      @mutex.synchronize(&block)
     end
 
     # A queue object dedicated to a specific worker priority. It's basically a
