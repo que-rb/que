@@ -1,3 +1,11 @@
+### 0.14.2 (Unreleased)
+
+*   Deprecate the Que.disable_prepared_statements= accessors.
+
+*   Add Que.use_prepared_statements= configuration accessors.
+
+*   Update the generated Rails migration to declare a version. (NARKOZ)
+
 ### 0.14.1 (2017-12-14)
 
 *   Fix a bug with typecasting boolean values on Rails 5+.
