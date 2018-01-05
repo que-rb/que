@@ -301,10 +301,11 @@ module Que
       # minimum size.
       return unless pollers && job_buffer.jobs_needed?
 
-      pollers.each do |poller|
-        priorities = job_buffer.available_priorities
-        break if priorities.empty?
+      # Figure out what job priorities we have to fill.
+      priorities = job_buffer.available_priorities
+      all_metajobs = []
 
+      pollers.each do |poller|
         Que.internal_log(:locker_polling, self) {
           {
             priorities: priorities,
@@ -314,13 +315,35 @@ module Que
         }
 
         if metajobs = poller.poll(priorities: priorities, held_locks: @locks)
+          metajobs.sort!
+          all_metajobs.concat(metajobs)
+
+          # Update the desired priorities list to take the priorities that we
+          # just retrieved into account.
           metajobs.each do |metajob|
-            mark_id_as_locked(metajob.id)
+            job_priority = metajob.job.fetch(:priority)
+
+            priorities.each do |priority, count|
+              if job_priority <= priority
+                new_priority = count - 1
+
+                if new_priority <= 0
+                  priorities.delete(priority)
+                else
+                  priorities[priority] = new_priority
+                end
+
+                break
+              end
+            end
           end
 
-          push_jobs(metajobs)
+          break if priorities.empty?
         end
       end
+
+      all_metajobs.each { |metajob| mark_id_as_locked(metajob.id) }
+      push_jobs(all_metajobs)
     end
 
     def wait
