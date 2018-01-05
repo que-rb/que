@@ -367,6 +367,36 @@ describe Que::Locker do
       )
     end
 
+    it "should poll in bulk across all the queues it's working" do
+      skip "needs some work"
+
+      Que.execute <<-SQL
+        INSERT INTO que_jobs (job_class, priority, queue)
+        SELECT 'BlockJob', 60, 'queue_1'
+        FROM generate_series(1, 100) AS i;
+
+        INSERT INTO que_jobs (job_class, priority, queue)
+        SELECT 'BlockJob', 10, 'queue_2'
+        FROM generate_series(1, 100) AS i;
+      SQL
+
+      locker_settings[:queues] = ["queue_1", "queue_2"]
+      locker
+
+      sleep_until { locked_ids.length == 14 }
+
+      results =
+        jobs_dataset.where(id: locked_ids).group_and_count(:queue, :priority).order_by(:queue, :priority).all
+
+      locker.stop
+
+      sleep_until { locked_ids.length == 6 }
+
+      6.times { $q1.pop; $q2.push nil }
+
+      locker.stop!
+    end
+
     it "should trigger a new poll when the buffer drops to the minimum size" do
       ids = 12.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
 
