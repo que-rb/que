@@ -55,7 +55,7 @@ module Que
       sync do
         return metajobs if _stopping?
 
-        @array.push(*metajobs).sort!
+        @array.concat(metajobs).sort!
 
         # Relying on the hash's contents being sorted, here.
         priority_queues.reverse_each do |_, pq|
