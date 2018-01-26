@@ -368,8 +368,6 @@ describe Que::Locker do
     end
 
     it "should poll in bulk across all the queues it's working" do
-      skip "needs some work"
-
       Que.execute <<-SQL
         INSERT INTO que_jobs (job_class, priority, queue)
         SELECT 'BlockJob', 60, 'queue_1'
@@ -380,19 +378,22 @@ describe Que::Locker do
         FROM generate_series(1, 100) AS i;
       SQL
 
+      queue1_jobs = jobs_dataset.where(queue: "queue_1").all
+      queue2_jobs = jobs_dataset.where(queue: "queue_2").all
+
       locker_settings[:queues] = ["queue_1", "queue_2"]
       locker
 
-      sleep_until { locked_ids.length == 14 }
+      sleep_until { locked_ids.length == 11 }
 
       results =
         jobs_dataset.where(id: locked_ids).group_and_count(:queue, :priority).order_by(:queue, :priority).all
 
       locker.stop
 
-      sleep_until { locked_ids.length == 6 }
+      sleep_until { locked_ids.length == 3 }
 
-      6.times { $q1.pop; $q2.push nil }
+      3.times { $q1.pop; $q2.push nil }
 
       locker.stop!
     end
