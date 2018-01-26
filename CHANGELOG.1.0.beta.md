@@ -4,6 +4,10 @@
 
 *   Added Que.sql_middleware.
 
+*   Officially added support for Ruby 2.5.
+
+*   Internal cleanup and renamings.
+
 ### 1.0.0.beta (2017-10-25)
 
 *   **A schema upgrade to version 4 will be required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
