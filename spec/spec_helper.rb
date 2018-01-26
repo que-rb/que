@@ -188,12 +188,20 @@ class QueSpec < Minitest::Spec
     locker.job_buffer.to_a.map(&:id)
   end
 
-  # Helper for testing threaded code.
+  # Sleep helpers for testing threaded code.
+  def sleep_until_equal(expected, timeout: SLEEP_UNTIL_TIMEOUT)
+    actual = nil
+    sleep_until?(timeout: timeout) do
+      actual = yield
+      actual == expected
+    end || raise("sleep_until_equal: expected #{expected.inspect}, got #{actual.inspect}")
+  end
+
   def sleep_until(*args, &block)
     sleep_until?(*args, &block) || raise("sleep_until timeout reached")
   end
 
-  def sleep_until?(timeout = SLEEP_UNTIL_TIMEOUT)
+  def sleep_until?(timeout: SLEEP_UNTIL_TIMEOUT)
     deadline = Time.now + timeout
     loop do
       if result = yield
@@ -275,10 +283,8 @@ class QueSpec < Minitest::Spec
     puts "Running: #{current_spec_location}" if ENV['LOG_SPEC']
 
     # Don't let async error notifications hang around until the next spec.
-    sleep_until do
-      Que::Utils::ErrorNotification::ASYNC_QUEUE.empty? &&
-        Que.async_error_thread.status == 'sleep'
-    end
+    sleep_until { Que::Utils::ErrorNotification::ASYNC_QUEUE.empty? }
+    sleep_until_equal("sleep") { Que.async_error_thread.status }
 
     Que.pool            = DEFAULT_QUE_POOL
     Que.logger          = QUE_LOGGER

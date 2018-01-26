@@ -376,7 +376,7 @@ describe Que::Job do
 
       job_buffer.push(Que::Metajob.new(attrs))
 
-      sleep_until { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
+      sleep_until_equal([attrs[:id]]) { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} }
 
       if m = jobs_dataset.where(id: job.que_attrs[:id]).get(:last_error_message)
         klass, message = m.split(": ", 2)
@@ -444,7 +444,7 @@ describe Que::Job do
 
         job_buffer.push(Que::Metajob.new(attrs))
 
-        sleep_until { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} == [attrs[:id]] }
+        sleep_until_equal([attrs[:id]]) { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} }
 
         if m = jobs_dataset.where(id: attrs[:id]).get(:last_error_message)
           klass, message = m.split(": ", 2)

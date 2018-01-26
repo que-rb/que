@@ -54,13 +54,7 @@ describe Que::JobBuffer, "available_priorities" do
   end
 
   def assert_available(expected)
-    actual = nil
-    sleep_until 0.5 do
-      actual = job_buffer.available_priorities
-      actual == expected
-    end
-  rescue
-    assert_equal expected, actual # Better error message.
+    sleep_until_equal(expected) { job_buffer.available_priorities }
   end
 
   def new_metajob(key)
@@ -71,7 +65,7 @@ describe Que::JobBuffer, "available_priorities" do
   end
 
   before do
-    sleep_until { dummy_workers.all? { |w| w.thread.status == 'sleep' } }
+    sleep_until_equal(dummy_workers.map{"sleep"}) { dummy_workers.map { |w| w.thread.status } }
   end
 
   after { dummy_workers.each(&:kill) }
