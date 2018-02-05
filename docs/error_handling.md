@@ -45,3 +45,27 @@ Que.error_notifier = proc do |error, job|
   # nil, if there was a connection failure or something similar.
 end
 ```
+
+If you would like to limit the number of retries, or do some other manner of custom error handling, you can implement your own `handle_error` method on your job. You can track error counts, and either call `retry_in` or `destroy` based on your own logic. The first example destroys the job after 3 retries. The second destroys the job if it's a certain error class.
+
+```ruby
+def handle_error(error)
+  if error_count >= 3
+    destroy
+  else
+    super # use the default error handling code
+  end
+end
+```
+
+```ruby
+def handle_error(error)
+  if IOError === error # is the error class an IOError, or descend from IOError
+    destroy
+  else
+    super
+  end
+end
+```
+
+But really, you can do anything you want here. I would advise against using `handle_error` to modify the `retry_interval` or  logic. Better to just set that as described above.
