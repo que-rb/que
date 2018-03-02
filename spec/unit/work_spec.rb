@@ -424,7 +424,7 @@ describe Que::Job, '.work' do
       last_error_lines.should == %w[RuntimeError] + BlankExceptionMessageJob.error.backtrace
     end
 
-    it "should use the class name of the exception if its message is blank when setting last_error" do
+    it "should truncate long error messages when setting last_error" do
       class LongExceptionMessageJob < Que::Job
         def self.error
           @error ||= RuntimeError.new("a" * 500)
