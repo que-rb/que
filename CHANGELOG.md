@@ -114,6 +114,12 @@
 
 For a detailed list of the changes between each beta release of 1.0.0, see [the beta Changelog](CHANGELOG.1.0.beta.md).
 
+### 0.14.3 (2018-03-02)
+
+*   Recorded errors now always include the error class, so that empty error messages can still be helpful. (  joehorsnell)
+
+*   Recorded error messages are now truncated to the first 500 characters.
+
 ### 0.14.2 (2018-01-05)
 
 *   Deprecate the Que.disable_prepared_statements= accessors.
