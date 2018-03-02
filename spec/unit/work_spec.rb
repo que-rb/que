@@ -406,14 +406,12 @@ describe Que::Job, '.work' do
 
     it "should use the class name of the exception if its message is blank when setting last_error" do
       class BlankExceptionMessageJob < Que::Job
-        class << self
-          attr_accessor :last_error
+        def self.error
+          @error ||= RuntimeError.new("")
         end
 
         def run
-          error = RuntimeError.new("")
-          self.class.last_error = error
-          raise error
+          raise self.class.error
         end
       end
 
@@ -423,7 +421,7 @@ describe Que::Job, '.work' do
       job = DB[:que_jobs].first
       job[:error_count].should be 1
       last_error_lines = job[:last_error].split("\n")
-      last_error_lines.should == %w[RuntimeError] + BlankExceptionMessageJob.last_error.backtrace
+      last_error_lines.should == %w[RuntimeError] + BlankExceptionMessageJob.error.backtrace
     end
 
     context "in a job class that has a custom error handler" do
