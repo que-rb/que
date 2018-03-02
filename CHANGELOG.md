@@ -1,6 +1,8 @@
 ### Unreleased
 
-*   Fix handling of last_error message for errors with blank message.
+*   Recorded errors now always include the error class, so that empty error messages can still be helpful. (  joehorsnell)
+
+*   Recorded error messages are now truncated to the first 500 characters.
 
 ### 0.14.2 (2018-01-05)
 
