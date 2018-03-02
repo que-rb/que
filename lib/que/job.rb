@@ -33,6 +33,10 @@ module Que
       @attrs[:error_count]
     end
 
+    def error_message
+      self.class.send(:error_message, @_error)
+    end
+
     def handle_error(error)
       error_count = @attrs[:error_count] += 1
       retry_interval = self.class.retry_interval || Job.retry_interval
@@ -41,7 +45,6 @@ module Que
     end
 
     def retry_in(period)
-      error_message = "#{@_error.message}\n#{@_error.backtrace.join("\n")}"
       Que.execute :set_error, [period, error_message] + @attrs.values_at(:queue, :priority, :run_at, :job_id)
       @retried = true
     end
@@ -142,7 +145,7 @@ module Que
                   count    = job[:error_count].to_i + 1
                   interval = klass && klass.respond_to?(:retry_interval) && klass.retry_interval || retry_interval
                   delay    = interval.respond_to?(:call) ? interval.call(count) : interval
-                  message  = "#{error.message}\n#{error.backtrace.join("\n")}"
+                  message  = error_message(error)
                   Que.execute :set_error, [delay, message] + job.values_at(:queue, :priority, :run_at, :job_id)
                 end
               rescue
@@ -173,6 +176,11 @@ module Que
       end
 
       private
+
+      def error_message(error)
+        message = error.message.nil? || error.message.strip == "" ? error.class.name : error.message
+        ([message] + error.backtrace).join("\n")
+      end
 
       def class_for(string)
         Que.constantize(string)

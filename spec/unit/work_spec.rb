@@ -404,6 +404,28 @@ describe Que::Job, '.work' do
       job[:run_at].should be_within(3).of Time.now + 4
     end
 
+    it "should use the class name of the exception if its message is blank when setting last_error" do
+      class BlankExceptionMessageJob < Que::Job
+        class << self
+          attr_accessor :last_error
+        end
+
+        def run
+          error = RuntimeError.new("")
+          self.class.last_error = error
+          raise error
+        end
+      end
+
+      BlankExceptionMessageJob.enqueue
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      last_error_lines = job[:last_error].split("\n")
+      last_error_lines.should == %w[RuntimeError] + BlankExceptionMessageJob.last_error.backtrace
+    end
+
     context "in a job class that has a custom error handler" do
       it "should allow it to schedule a retry after a specific interval" do
         begin

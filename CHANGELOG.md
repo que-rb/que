@@ -1,3 +1,7 @@
+### Unreleased
+
+*   Fix handling of last_error message for errors with blank message.
+
 ### 0.14.2 (2018-01-05)
 
 *   Deprecate the Que.disable_prepared_statements= accessors.
