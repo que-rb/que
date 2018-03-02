@@ -1,4 +1,4 @@
-### Unreleased
+### 0.14.3 (2018-03-02)
 
 *   Recorded errors now always include the error class, so that empty error messages can still be helpful. (  joehorsnell)
 
