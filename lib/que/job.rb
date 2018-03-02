@@ -178,7 +178,14 @@ module Que
       private
 
       def error_message(error)
-        message = error.message.nil? || error.message.strip == "" ? error.class.name : error.message
+        message = error.class.to_s
+
+        unless error.message.nil? || error.message.strip.empty?
+          message << ": #{error.message}"
+        end
+
+        message = message.slice(0, 500)
+
         ([message] + error.backtrace).join("\n")
       end
 

@@ -237,7 +237,7 @@ describe Que::Job, '.work' do
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 1
-      job[:last_error].should =~ /\AErrorJob!/
+      job[:last_error].should =~ /\ARuntimeError: ErrorJob!/
       job[:run_at].should be_within(3).of Time.now + 4
 
       DB[:que_jobs].update :error_count => 5,
@@ -251,7 +251,7 @@ describe Que::Job, '.work' do
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 6
-      job[:last_error].should =~ /\AErrorJob!/
+      job[:last_error].should =~ /\ARuntimeError: ErrorJob!/
       job[:run_at].should be_within(3).of Time.now + 1299
     end
 
@@ -270,7 +270,7 @@ describe Que::Job, '.work' do
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 1
-      job[:last_error].should =~ /\AErrorJob!/
+      job[:last_error].should =~ /\ARuntimeError: ErrorJob!/
       job[:run_at].to_f.should be_within(3).of Time.now.to_f + RetryIntervalJob.retry_interval
 
       DB[:que_jobs].update :error_count => 5,
@@ -284,7 +284,7 @@ describe Que::Job, '.work' do
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 6
-      job[:last_error].should =~ /\AErrorJob!/
+      job[:last_error].should =~ /\ARuntimeError: ErrorJob!/
       job[:run_at].to_f.should be_within(3).of Time.now.to_f + RetryIntervalJob.retry_interval
     end
 
@@ -303,7 +303,7 @@ describe Que::Job, '.work' do
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 1
-      job[:last_error].should =~ /\AErrorJob!/
+      job[:last_error].should =~ /\ARuntimeError: ErrorJob!/
       job[:run_at].should be_within(3).of Time.now + 10
 
       DB[:que_jobs].update :error_count => 5,
@@ -317,7 +317,7 @@ describe Que::Job, '.work' do
       DB[:que_jobs].count.should be 1
       job = DB[:que_jobs].first
       job[:error_count].should be 6
-      job[:last_error].should =~ /\AErrorJob!/
+      job[:last_error].should =~ /\ARuntimeError: ErrorJob!/
       job[:run_at].should be_within(3).of Time.now + 60
     end
 
@@ -424,6 +424,26 @@ describe Que::Job, '.work' do
       last_error_lines.should == %w[RuntimeError] + BlankExceptionMessageJob.error.backtrace
     end
 
+    it "should use the class name of the exception if its message is blank when setting last_error" do
+      class LongExceptionMessageJob < Que::Job
+        def self.error
+          @error ||= RuntimeError.new("a" * 500)
+        end
+
+        def run
+          raise self.class.error
+        end
+      end
+
+      LongExceptionMessageJob.enqueue
+      result = Que::Job.work
+      result[:event].should == :job_errored
+      job = DB[:que_jobs].first
+      job[:error_count].should be 1
+      last_error_lines = job[:last_error].split("\n")
+      last_error_lines.should == ["RuntimeError: #{'a' * 486}"] + LongExceptionMessageJob.error.backtrace
+    end
+
     context "in a job class that has a custom error handler" do
       it "should allow it to schedule a retry after a specific interval" do
         begin
@@ -454,7 +474,7 @@ describe Que::Job, '.work' do
           job[:error_count].should be 1
 
           lines = job[:last_error].split("\n")
-          lines[0].should == "Blah!"
+          lines[0].should == "RuntimeError: Blah!"
           lines[1].should =~ /work_spec/
           job[:run_at].should be_within(3).of Time.now + 42
 
@@ -563,7 +583,7 @@ describe Que::Job, '.work' do
           DB[:que_jobs].count.should be 1
           job = DB[:que_jobs].first
           job[:error_count].should be 1
-          job[:last_error].should =~ /\ABlah!/
+          job[:last_error].should =~ /\ARuntimeError: Blah!/
           job[:run_at].should be_within(3).of Time.now + 4
 
           error.should == result[:error]
