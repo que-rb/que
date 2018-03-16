@@ -1,6 +1,8 @@
 # Que
 
-**TL;DR: Que is a high-performance job queue that improves the reliability of your application by protecting your jobs with the same [ACID guarantees](https://en.wikipedia.org/wiki/ACID) as the rest of your data.**
+**This README and the rest of the docs on the master branch all refer to Que 1.0, which is currently in beta. If you're using version 0.x, please refer to the docs on [the 0.x branch](https://github.com/chanks/que/tree/0.x).**
+
+*TL;DR: Que is a high-performance job queue that improves the reliability of your application by protecting your jobs with the same [ACID guarantees](https://en.wikipedia.org/wiki/ACID) as the rest of your data.*
 
 Que ("keɪ", or "kay") is a queue for Ruby and PostgreSQL that manages jobs using [advisory locks](http://www.postgresql.org/docs/current/static/explicit-locking.html#ADVISORY-LOCKS), which gives it several advantages over other RDBMS-backed queues:
 
