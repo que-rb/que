@@ -320,6 +320,17 @@ MSG
       end
     end
 
+    it "when the logger is set as a callable should still work" do
+      l1 = Logger.new(STDOUT)
+      Que.logger = proc { l1 }
+
+      assert_successful_invocation("./#{filename} --log-level=fatal") do
+        l2 = Que.get_logger
+        assert_equal l1, l2
+        assert_equal l2.level, Logger::FATAL
+      end
+    end
+
     it "when passing a nonexistent log level should raise an error" do
       code = execute("./#{filename} --log-level=warning")
       assert_equal 1, code

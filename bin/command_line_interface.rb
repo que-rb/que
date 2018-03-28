@@ -172,7 +172,7 @@ OUTPUT
         end
 
         begin
-          Que.logger.level = Logger.const_get(log_level.upcase)
+          Que.get_logger.level = Logger.const_get(log_level.upcase)
         rescue NameError
           output.puts "Unsupported logging level: #{log_level} (try debug, info, warn, error, or fatal)"
           return 1
