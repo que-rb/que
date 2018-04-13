@@ -1,4 +1,4 @@
-### 1.0.0.beta2 (Unreleased)
+### 1.0.0.beta2 (2018-04-13)
 
 *   Fixed an incompatibility that caused the new locker to hang when using Rails in development mode (#213).
 

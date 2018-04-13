@@ -1,4 +1,4 @@
-### 1.0.0.beta (2017-10-25)
+### 1.0.0.beta2 (2018-04-13)
 
 *   **A schema upgrade to version 4 will be required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
 
@@ -20,7 +20,7 @@
 
         *   In particular, you may (optionally) include `Que::ActiveJob::JobExtensions` into `ApplicationJob` to get support for all of Que's job helper methods.
 
-    *   Custom middleware that wrap running jobs are now supported.
+    *   Custom middleware that wrap running jobs and executing SQL statements are now supported.
 
     *   Support for categorizing jobs with tags.
 
