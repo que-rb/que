@@ -93,7 +93,7 @@ module Que
               String,
               "Set a custom database url to connect to for locking purposes.",
             ) do |url|
-              connection_url = url
+              options[:connection_url] = url
             end
 
             opts.on(
@@ -194,19 +194,6 @@ OUTPUT
         end
 
         options[:poll_interval] = poll_interval
-
-        if connection_url
-          uri = URI.parse(connection_url)
-
-          options[:connection] =
-            PG::Connection.open(
-              host:     uri.host,
-              user:     uri.user,
-              password: uri.password,
-              port:     uri.port || 5432,
-              dbname:   uri.path[1..-1],
-            )
-        end
 
         locker =
           begin

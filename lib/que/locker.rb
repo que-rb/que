@@ -52,7 +52,7 @@ module Que
 
     def initialize(
       queues:              [Que.default_queue],
-      connection:          nil,
+      connection_url:      nil,
       listen:              true,
       poll:                true,
       poll_interval:       DEFAULT_POLL_INTERVAL,
@@ -132,13 +132,34 @@ module Que
         sleep 0.001
       end
 
-      pool =
-        if connection
-          # Wrap the given connection in a dummy connection pool.
-          ConnectionPool.new { |&block| block.call(connection) }
+      # If we weren't passed a specific connection_url, borrow a connection from
+      # the pool and derive the connection string from it.
+      connection_args =
+        if connection_url
+          uri = URI.parse(connection_url)
+
+          {
+            host:     uri.host,
+            user:     uri.user,
+            password: uri.password,
+            port:     uri.port || 5432,
+            dbname:   uri.path[1..-1],
+          }
         else
-          Que.pool
+          Que.pool.checkout do |conn|
+            c = conn.wrapped_connection
+
+            {
+              host:     c.host,
+              user:     c.user,
+              password: c.pass,
+              port:     c.port,
+              dbname:   c.db,
+            }
+          end
         end
+
+      @connection = Que::Connection.wrap(PG::Connection.open(connection_args))
 
       @thread =
         Thread.new do
@@ -149,48 +170,33 @@ module Que
           # Give this thread priority, so it can promptly respond to NOTIFYs.
           Thread.current.priority = 1
 
-          pool.checkout do |conn|
-            original_application_name =
-              conn.
-              execute("SHOW application_name").
-              first.
-              fetch(:application_name)
+          begin
+            @connection.execute(
+              "SELECT set_config('application_name', $1, false)",
+              ["Que Locker: #{@connection.backend_pid}"]
+            )
 
-            begin
-              @connection = conn
+            Poller.setup(@connection)
 
-              conn.execute(
-                "SELECT set_config('application_name', $1, false)",
-                ["Que Locker: #{conn.backend_pid}"]
-              )
+            @listener =
+              if listen
+                Listener.new(connection: @connection)
+              end
 
-              Poller.setup(conn)
-
-              @listener =
-                if listen
-                  Listener.new(connection: conn)
+            @pollers =
+              if poll
+                queues.map do |queue, interval|
+                  Poller.new(
+                    connection:    @connection,
+                    queue:         queue,
+                    poll_interval: interval || poll_interval,
+                  )
                 end
+              end
 
-              @pollers =
-                if poll
-                  queues.map do |queue, interval|
-                    Poller.new(
-                      connection:    conn,
-                      queue:         queue,
-                      poll_interval: interval || poll_interval,
-                    )
-                  end
-                end
-
-              work_loop
-            ensure
-              conn.execute(
-                "SELECT set_config('application_name', $1, false)",
-                [original_application_name]
-              )
-
-              Poller.cleanup(conn)
-            end
+            work_loop
+          ensure
+            @connection.wrapped_connection.close
           end
         end
     end
