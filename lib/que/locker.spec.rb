@@ -663,8 +663,6 @@ describe Que::Locker do
 
   describe "when receiving a mix of listened and polled jobs" do
     it "shouldn't execute the same job twice" do
-      skip "intermittently failing..."
-
       locker_settings[:poll_interval] = 0.001
 
       begin
@@ -699,13 +697,14 @@ describe Que::Locker do
         lockers.each &:stop!
 
         assert_equal(
-          (0..4).flat_map{|i| (1..10).map{|j| [i, j]}},
-          jobs_dataset.exclude(finished_at: nil).select_map(:args).map{|a| [a.first[:index], a.first[:runs]]}.sort,
-        )
-
-        assert_equal(
-          jobs_dataset.select_order_map(:id),
-          DB[:test_data].select_order_map(:job_id),
+          {
+            index_runs: (0..4).flat_map{|i| (1..10).map{|j| [i, j]}},
+            job_ids: jobs_dataset.select_order_map(:id),
+          },
+          {
+            index_runs: jobs_dataset.exclude(finished_at: nil).select_map(:args).map{|a| [a.first[:index], a.first[:runs]]}.sort,
+            job_ids: DB[:test_data].select_order_map(:job_id),
+          }
         )
 
         assert_empty jobs_dataset.where(finished_at: nil).all
