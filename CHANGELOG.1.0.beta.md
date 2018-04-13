@@ -1,5 +1,9 @@
 ### 1.0.0.beta2 (Unreleased)
 
+*   Fixed an incompatibility that caused the new locker to hang when using Rails in development mode (#213).
+
+*   Fixed a bug with setting the log level via the CLI when the configured logger was based on a callable (#210).
+
 *   Renamed Que.middleware to Que.job_middleware.
 
 *   Added Que.sql_middleware.
