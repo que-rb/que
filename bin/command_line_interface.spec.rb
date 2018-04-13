@@ -145,8 +145,8 @@ MSG
 
       assert_equal(
         [
-          "",
-          "Finishing Que's current jobs before exiting...",
+          "Que waiting for jobs...",
+          "\nFinishing Que's current jobs before exiting...",
           "Que's jobs finished, exiting...",
         ],
         output.messages,

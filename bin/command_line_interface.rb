@@ -208,13 +208,14 @@ OUTPUT
         $stop_que_executable = false
         %w[INT TERM].each { |signal| trap(signal) { $stop_que_executable = true } }
 
+        output.puts "Que waiting for jobs..."
+
         loop do
           sleep 0.01
           break if $stop_que_executable || locker.stopping?
         end
 
-        output.puts ''
-        output.puts "Finishing Que's current jobs before exiting..."
+        output.puts "\nFinishing Que's current jobs before exiting..."
 
         locker.stop!
 
