@@ -115,6 +115,17 @@ You can also add options to run the job after a specific time, or with a specifi
 ChargeCreditCard.enqueue card.id, user_id: current_user.id, run_at: 1.day.from_now, priority: 5
 ```
 
+Finally, you can work jobs using the included `que` CLI. Try running `que -h` to get a list of runtime options:
+```
+$ que -h
+usage: que [options] [file/to/require] ...
+    -h, --help                       Show this help text.
+    -i, --poll-interval [INTERVAL]   Set maximum interval between polls for available jobs, in seconds (default: 5)
+    ...
+```
+
+You may need to pass que a file path to require so that it can load your app. Que will automatically load `config/environment.rb` if it exists, so you shouldn't need an argument if you're using Rails.
+
 ## Testing
 
 There are a couple ways to do testing. You may want to set `Que::Job.run_synchronously = true`, which will cause JobClass.enqueue to simply execute the job's logic synchronously, as if you'd run JobClass.run(*your_args). Or, you may want to leave it disabled so you can assert on the job state once they are stored in the database.
