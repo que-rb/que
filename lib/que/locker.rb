@@ -144,7 +144,7 @@ module Que
             password: uri.password,
             port:     uri.port || 5432,
             dbname:   uri.path[1..-1],
-          }
+          }.merge(Hash[uri.query.split("&").map{|s| s.split('=')}.map{|a,b| [a.to_sym, b]}])
         else
           Que.pool.checkout do |conn|
             c = conn.wrapped_connection
@@ -171,10 +171,12 @@ module Que
           Thread.current.priority = 1
 
           begin
-            @connection.execute(
-              "SELECT set_config('application_name', $1, false)",
-              ["Que Locker: #{@connection.backend_pid}"]
-            )
+            unless connection_args.has_key?(:application_name)
+              @connection.execute(
+                "SELECT set_config('application_name', $1, false)",
+                ["Que Locker: #{@connection.backend_pid}"]
+              )
+            end
 
             Poller.setup(@connection)
 

@@ -341,17 +341,21 @@ MSG
     end
 
     describe "--connection-url" do
-      it "should specify a database url for the locker" do
-        assert_successful_invocation("./#{filename} --connection-url #{QUE_URL}") do
-          refute_includes DEFAULT_QUE_POOL.instance_variable_get(:@checked_out), @que_locker[:pid]
+      it "should specify a database url for the locker, so it doesn't need to hit the connection pool" do
+        assert_successful_invocation("./#{filename} --connection-url #{QUE_URL}?application_name=custom-application-name") do
+          pid = @que_locker[:pid]
+          refute_includes DEFAULT_QUE_POOL.instance_variable_get(:@checked_out), pid
+
+          assert_equal(
+            DB[:pg_stat_activity].where(pid: pid).get(:application_name),
+            "custom-application-name",
+          )
         end
       end
 
       it "when omitted should use the url from a connection from the connection pool" do
-        skip "Figure out how to test this"
-
         assert_successful_invocation("./#{filename}") do
-          assert_includes DEFAULT_QUE_POOL.instance_variable_get(:@checked_out), @que_locker[:pid]
+          refute_includes DEFAULT_QUE_POOL.instance_variable_get(:@checked_out), @que_locker[:pid]
         end
       end
     end

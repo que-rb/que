@@ -67,13 +67,13 @@ describe Que::Locker do
     end
 
     it "should allow a different PG connection_url to be specified" do
-      skip "figure out how to spec this"
-      pg = EXTRA_PG_CONNECTION
-
-      locker_settings[:connection] = pg
+      locker_settings[:connection_url] = "#{QUE_URL}?application_name=cool-application-name"
       locker
 
-      sleep_until_equal([pg.backend_pid]) { DB[:que_lockers].select_map(:pid) }
+      pid = nil
+      sleep_until { pid = DB[:que_lockers].select_map(:pid).first }
+      assert_equal 'cool-application-name', DB[:pg_stat_activity].where(pid: pid).get(:application_name)
+
       locker.stop!
     end
 
@@ -110,8 +110,6 @@ describe Que::Locker do
     end
 
     it "should clear invalid lockers from the table" do
-      skip "Figure out how to test this"
-
       # Bogus locker from a nonexistent connection.
       DB[:que_lockers].insert(
         pid:               0,
@@ -123,36 +121,16 @@ describe Que::Locker do
         listening:         true,
       )
 
-      Que.checkout do |conn|
-        # We want to spec that invalid lockers with the current backend's pid are
-        # also cleared out, so:
-        backend_pid =
-          Que.execute("select pg_backend_pid()").first[:pg_backend_pid]
+      locker
+      sleep_until_equal(0) { DB[:que_lockers].where(pid: 0).count }
+      sleep_until_equal(1) { DB[:que_lockers].count }
 
-        DB[:que_lockers].insert(
-          pid:               backend_pid,
-          ruby_pid:          0,
-          ruby_hostname:     'blah1',
-          worker_count:      4,
-          worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
-          queues:            Sequel.pg_array(['']),
-          listening:         true,
-        )
+      record = DB[:que_lockers].first
+      assert_equal Process.pid, record[:ruby_pid]
 
-        assert_equal 2, DB[:que_lockers].count
+      locker.stop!
 
-        locker_settings[:connection] = conn
-        locker
-        sleep_until_equal(1) { DB[:que_lockers].count }
-
-        record = DB[:que_lockers].first
-        assert_equal backend_pid, record[:pid]
-        assert_equal Process.pid, record[:ruby_pid]
-
-        locker.stop!
-
-        assert_equal 0, DB[:que_lockers].count
-      end
+      assert_equal 0, DB[:que_lockers].count
     end
 
     it "should run the on_worker_start callback for each worker, if passed" do
