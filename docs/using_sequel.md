@@ -7,7 +7,7 @@ DB = Sequel.connect(ENV['DATABASE_URL'])
 Que.connection = DB
 ```
 
-If you are using Sequels' migrator, you can use the following migration to create the required tables:
+If you are using Sequel's migrator, your app initialization won't happen, so you may need to tweak your migrations to `require 'que'` and set its connection:
 
 ```ruby
 require 'que'
