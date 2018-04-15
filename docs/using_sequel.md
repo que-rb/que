@@ -7,6 +7,22 @@ DB = Sequel.connect(ENV['DATABASE_URL'])
 Que.connection = DB
 ```
 
+If you are using Sequels' migrator, you can use the following migration to create the required tables:
+
+```ruby
+require 'que'
+Sequel.migration do
+  up do
+    Que.connection = self
+    Que.migrate! :version => 3
+  end
+  down do
+    Que.connection = self
+    Que.migrate! :version => 0
+  end
+end
+```
+
 Then you can safely use the same database object to transactionally protect your jobs:
 
 ```ruby
