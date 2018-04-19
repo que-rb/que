@@ -5,7 +5,7 @@ module Que
     class Railtie < ::Rails::Railtie
       config.que = Que
 
-      Que.run_asynchronously = true if ::Rails.env.test?
+      Que.run_synchronously = false if ::Rails.env.test?
 
       Que.logger     = proc { ::Rails.logger }
       Que.connection = ::ActiveRecord if defined? ::ActiveRecord
