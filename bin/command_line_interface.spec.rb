@@ -188,7 +188,7 @@ MSG
     end
 
     def assert_locker_instantiated(
-      worker_priorities: [10, 30, 50],
+      worker_priorities: [10, 30, 50, nil, nil, nil],
       poll_interval: 5,
       wait_period: 50,
       queues: ['default'],
@@ -230,12 +230,24 @@ MSG
     end
 
     ["-w", "--worker-count"].each do |command|
-      it "with #{command} to configure the worker count" do
+      it "with #{command} to increase the number of workers" do
         assert_successful_invocation "./#{filename} #{command} 10"
         assert_locker_instantiated
         assert_locker_started(
           worker_priorities: [10, 30, 50, nil, nil, nil, nil, nil, nil, nil],
         )
+      end
+
+      it "with #{command} to use a smaller number of workers" do
+        assert_successful_invocation "./#{filename} #{command} 4"
+        assert_locker_instantiated
+        assert_locker_started(worker_priorities: [50, nil, nil, nil])
+      end
+
+      it "with #{command} to use only a single worker" do
+        assert_successful_invocation "./#{filename} #{command} 1"
+        assert_locker_instantiated
+        assert_locker_started(worker_priorities: [nil])
       end
     end
 
@@ -372,12 +384,29 @@ MSG
       end
     end
 
-    it "when passing --worker-priorities to specify worker priorities" do
-      assert_successful_invocation("./#{filename} --worker-priorities 10,15,20,25")
+    describe "when passing --worker-priorities to specify worker priorities" do
+      it "should support a slightly tweaked priority order" do
+        assert_successful_invocation("./#{filename} --worker-priorities 10,15,20,25")
+        assert_locker_started(
+          worker_priorities: [10, 15, 20, 25, nil, nil],
+        )
+      end
 
-      assert_locker_started(
-        worker_priorities: [10, 15, 20, 25, nil, nil],
-      )
+      ['nil', 'null'].each do |param|
+        it "should support a set of #{param} priorities" do
+          assert_successful_invocation("./#{filename} --worker-priorities #{param}")
+          assert_locker_started(
+            worker_priorities: [nil, nil, nil, nil, nil, nil],
+          )
+        end
+      end
+
+      it "should support a mostly nil priority order" do
+        assert_successful_invocation("./#{filename} --worker-priorities 10")
+        assert_locker_started(
+          worker_priorities: [10, nil, nil, nil, nil, nil],
+        )
+      end
     end
   end
 end

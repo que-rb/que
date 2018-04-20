@@ -48,7 +48,7 @@ module Que
     DEFAULT_MINIMUM_BUFFER_SIZE = 2
     DEFAULT_MAXIMUM_BUFFER_SIZE = 8
     DEFAULT_WORKER_COUNT        = 6
-    DEFAULT_WORKER_PRIORITIES   = [10, 30, 50].freeze
+    DEFAULT_WORKER_PRIORITIES   = [10, 30, 50, nil, nil, nil].freeze
 
     def initialize(
       queues:              [Que.default_queue],
@@ -74,9 +74,14 @@ module Que
       Que.assert Integer, worker_count
 
       Que.assert Array, worker_priorities
-      worker_priorities.each { |p| Que.assert(Integer, p) }
+      worker_priorities.each { |p| Que.assert([Integer, NilClass], p) }
 
-      all_worker_priorities = worker_priorities.values_at(0...worker_count)
+      all_worker_priorities =
+        worker_priorities.
+        reverse.
+        values_at(0...worker_count).
+        reverse.
+        sort_by{|p| p.nil? ? Float::INFINITY : p}
 
       # We use a JobBuffer to track jobs and pass them to workers, and a
       # ResultQueue to receive messages from workers.
@@ -138,13 +143,20 @@ module Que
         if connection_url
           uri = URI.parse(connection_url)
 
-          {
-            host:     uri.host,
-            user:     uri.user,
-            password: uri.password,
-            port:     uri.port || 5432,
-            dbname:   uri.path[1..-1],
-          }.merge(Hash[uri.query.split("&").map{|s| s.split('=')}.map{|a,b| [a.to_sym, b]}])
+          opts =
+            {
+              host:     uri.host,
+              user:     uri.user,
+              password: uri.password,
+              port:     uri.port || 5432,
+              dbname:   uri.path[1..-1],
+            }
+
+          if uri.query
+            opts.merge!(Hash[uri.query.split("&").map{|s| s.split('=')}.map{|a,b| [a.to_sym, b]}])
+          end
+
+          opts
         else
           Que.pool.checkout do |conn|
             c = conn.wrapped_connection
