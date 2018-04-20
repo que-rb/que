@@ -13,16 +13,18 @@ usage: que [options] [file/to/require] ...
         --maximum-buffer-size [SIZE] Set maximum number of jobs to be locked and held in this process awaiting a worker (default: 8)
         --minimum-buffer-size [SIZE] Set minimum number of jobs to be locked and held in this process awaiting a worker (default: 2)
         --wait-period [PERIOD]       Set maximum interval between checks of the in-memory job queue, in milliseconds (default: 50)
-        --worker-priorities [LIST]   List of priorities to assign to workers, unspecified workers take jobs of any priority (default: 10,30,50)
+        --worker-priorities [LIST]   List of priorities to assign to workers, nil or unspecified workers take jobs of any priority (default: 10,30,50,nil,nil,nil)
 ```
 
 Some explanation of the more unusual options:
 
 ### worker-count and worker-priorities
 
-These options dictate the size and priority distribution of the worker pool. The default worker-count is 6 and the default worker-priorities is 10,30,50. This means that the default worker pool will have one worker that only works jobs with priorities under 10, one for priorities under 30, and one for priorities under 50. The leftover workers will work any job.
+These options dictate the size and priority distribution of the worker pool. The default worker-count is `6` and the default worker-priorities is `10,30,50,nil,nil,nil`. This means that the default worker pool will have one worker that only works jobs with priorities under 10, one for priorities under 30, and one for priorities under 50. The leftover workers will work any job.
 
 For example, with these defaults, you could have a large backlog of jobs of priority 100. When a more important job (priority 40) comes in, there's guaranteed to be a free worker. If the process then becomes saturated with jobs of priority 40, and then a priority 20 job comes in, there's guaranteed to be a free worker for it, and so on.
+
+If the `worker-count` is lower than the number of `worker-priorities`, the workers take their priorities from the end of the list. So if you just pass `--worker-count=1` and don't specify the `worker-priorities` argument, the single worker will take jobs of any priority.
 
 ### poll-interval
 

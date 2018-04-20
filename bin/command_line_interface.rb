@@ -135,7 +135,7 @@ module Que
               '--worker-priorities [LIST]',
               Array,
               "List of priorities to assign to workers, " \
-                "unspecified workers take jobs of any priority (default: 10,30,50)",
+                "nil or unspecified workers take jobs of any priority (default: 10,30,50,nil,nil,nil)",
             ) do |priority_array|
               options[:worker_priorities] =
                 priority_array.map do |p|
