@@ -136,8 +136,19 @@ module Que
               Array,
               "List of priorities to assign to workers, " \
                 "unspecified workers take jobs of any priority (default: 10,30,50)",
-            ) do |p|
-              options[:worker_priorities] = p.map{|i| /\An(i|ul)l\z/i === i ? nil : i.to_i}
+            ) do |priority_array|
+              options[:worker_priorities] =
+                priority_array.map do |p|
+                  case p
+                  when /\An(i|ul)l\z/i # nil/null
+                    nil
+                  when /\A\d+\z/
+                    Integer(p)
+                  else
+                    output.puts "Invalid priority option: '#{p}'. Please use an integer, or nil/null."
+                    return 1
+                  end
+                end
             end
           end
 

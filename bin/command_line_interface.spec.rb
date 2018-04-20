@@ -184,7 +184,7 @@ MSG
       assert_equal(
         {filename => true},
         LOADED_FILES
-      )
+      ) unless @skip_file_load_check
     end
 
     def assert_locker_instantiated(
@@ -413,6 +413,17 @@ MSG
         assert_locker_started(
           worker_priorities: [10, nil, nil, nil, nil, nil],
         )
+      end
+
+      it "should error clearly on invalid input" do
+        code = execute("./#{filename} --worker-priorities 10,12.0")
+        assert_equal 1, code
+        assert_equal 1, output.messages.length
+        assert_equal \
+          "Invalid priority option: '12.0'. Please use an integer, or nil/null.",
+          output.messages.first.to_s
+
+        @skip_file_load_check = true
       end
     end
   end
