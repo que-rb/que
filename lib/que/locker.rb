@@ -78,6 +78,7 @@ module Que
 
       all_worker_priorities =
         worker_priorities.
+        sort_by{|p| p.nil? ? Float::INFINITY : p}.
         reverse.
         values_at(0...worker_count).
         reverse.

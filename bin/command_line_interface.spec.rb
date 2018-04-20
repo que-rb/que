@@ -43,7 +43,7 @@ describe Que::CommandLineInterface do
     default_require_file: Que::CommandLineInterface::RAILS_ENVIRONMENT_FILE
   )
 
-    BlockJob.enqueue(queue: queue_name)
+    BlockJob.enqueue(queue: queue_name, priority: 1)
 
     thread =
       Thread.new do
@@ -389,6 +389,13 @@ MSG
         assert_successful_invocation("./#{filename} --worker-priorities 10,15,20,25")
         assert_locker_started(
           worker_priorities: [10, 15, 20, 25, nil, nil],
+        )
+      end
+
+      it "should support a slightly tweaked priority order alongside a custom worker_count" do
+        assert_successful_invocation("./#{filename} --worker-count 3 --worker-priorities 10,25,20,15")
+        assert_locker_started(
+          worker_priorities: [15, 20, 25],
         )
       end
 
