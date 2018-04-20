@@ -152,9 +152,9 @@ QUE_INTERNAL_LOGGER = DummyLogger.new
 class QueSpec < Minitest::Spec
   include Minitest::Hooks
 
-  SPEC_TIMEOUT = (ENV['SPEC_TIMEOUT'] || (ENV['CI'] ? 10 : 600)).to_i
-  TIME_SKEW = (ENV['SPEC_TIME_SKEW'] || (ENV['CI'] ? 10 : 1)).to_i
-  SLEEP_UNTIL_TIMEOUT = 2
+  SPEC_TIMEOUT        = (ENV['SPEC_TIMEOUT']       || (ENV['CI'] ? 10 : 600)).to_i
+  TIME_SKEW           = (ENV['SPEC_TIME_SKEW']     || (ENV['CI'] ? 10 :   1)).to_i
+  SLEEP_UNTIL_TIMEOUT = (ENV['SPEC_SLEEP_TIMEOUT'] || (ENV['CI'] ? 10 :   2)).to_i
 
   register_spec_type(//, self)
 

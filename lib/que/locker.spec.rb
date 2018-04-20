@@ -692,7 +692,10 @@ describe Que::Locker do
 
         5.times { |i| QueSpec::RunOnceTestJob.enqueue(runs: 1, index: i) }
 
-        sleep_until? { DB[:test_data].count >= 50 }
+        unless sleep_until? { DB[:test_data].count >= 50 }
+          pp DB[:test_data].all
+          raise "Jobs weren't completed!"
+        end
 
         lockers.each &:stop!
 
