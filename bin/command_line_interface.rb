@@ -61,36 +61,6 @@ module Que
             end
 
             opts.on(
-              '-q',
-              '--queue-name [NAME]',
-              String,
-              "Set a queue name to work jobs from. " \
-                "Can be passed multiple times. " \
-                "(default: the default queue only)",
-            ) do |queue_name|
-              queues << queue_name
-            end
-
-            opts.on(
-              '-v',
-              '--version',
-              "Print Que version and exit.",
-            ) do
-              require 'que'
-              output.puts "Que version #{Que::VERSION}"
-              return 0
-            end
-
-            opts.on(
-              '-w',
-              '--worker-count [COUNT]',
-              Integer,
-              "Set number of workers in process (default: 6)",
-            ) do |w|
-              worker_count = w
-            end
-
-            opts.on(
               '-p',
               '--worker-priorities [LIST]',
               Array,
@@ -108,6 +78,36 @@ module Que
                     return 1
                   end
                 end
+            end
+
+            opts.on(
+              '-q',
+              '--queue-name [NAME]',
+              String,
+              "Set a queue name to work jobs from. " \
+                "Can be passed multiple times. " \
+                "(default: the default queue only)",
+            ) do |queue_name|
+              queues << queue_name
+            end
+
+            opts.on(
+              '-w',
+              '--worker-count [COUNT]',
+              Integer,
+              "Set number of workers in process (default: 6)",
+            ) do |w|
+              worker_count = w
+            end
+
+            opts.on(
+              '-v',
+              '--version',
+              "Print Que version and exit.",
+            ) do
+              require 'que'
+              output.puts "Que version #{Que::VERSION}"
+              return 0
             end
 
             opts.on(

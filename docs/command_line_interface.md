@@ -5,26 +5,28 @@ usage: que [options] [file/to/require] ...
     -h, --help                       Show this help text.
     -i, --poll-interval [INTERVAL]   Set maximum interval between polls for available jobs, in seconds (default: 5)
     -l, --log-level [LEVEL]          Set level at which to log to STDOUT (debug, info, warn, error, fatal) (default: info)
+    -p, --worker-priorities [LIST]   List of priorities to assign to workers (default: 10,30,50,any,any,any)
     -q, --queue-name [NAME]          Set a queue name to work jobs from. Can be passed multiple times. (default: the default queue only)
-    -v, --version                    Print Que version and exit.
     -w, --worker-count [COUNT]       Set number of workers in process (default: 6)
+    -v, --version                    Print Que version and exit.
         --connection-url [URL]       Set a custom database url to connect to for locking purposes.
         --log-internals              Log verbosely about Que's internal state. Only recommended for debugging issues
         --maximum-buffer-size [SIZE] Set maximum number of jobs to be locked and held in this process awaiting a worker (default: 8)
         --minimum-buffer-size [SIZE] Set minimum number of jobs to be locked and held in this process awaiting a worker (default: 2)
         --wait-period [PERIOD]       Set maximum interval between checks of the in-memory job queue, in milliseconds (default: 50)
-        --worker-priorities [LIST]   List of priorities to assign to workers, nil or unspecified workers take jobs of any priority (default: 10,30,50,nil,nil,nil)
 ```
 
 Some explanation of the more unusual options:
 
-### worker-count and worker-priorities
+### worker-priorities and worker-count
 
-These options dictate the size and priority distribution of the worker pool. The default worker-count is `6` and the default worker-priorities is `10,30,50,nil,nil,nil`. This means that the default worker pool will have one worker that only works jobs with priorities under 10, one for priorities under 30, and one for priorities under 50. The leftover workers will work any job.
+These options dictate the size and priority distribution of the worker pool. The default worker-priorities is `10,30,50,any,any,any`. This means that the default worker pool will reserve one worker to only works jobs with priorities under 10, one for priorities under 30, and one for priorities under 50. Three more workers will work any job.
 
-For example, with these defaults, you could have a large backlog of jobs of priority 100. When a more important job (priority 40) comes in, there's guaranteed to be a free worker. If the process then becomes saturated with jobs of priority 40, and then a priority 20 job comes in, there's guaranteed to be a free worker for it, and so on.
+For example, with these defaults, you could have a large backlog of jobs of priority 100. When a more important job (priority 40) comes in, there's guaranteed to be a free worker. If the process then becomes saturated with jobs of priority 40, and then a priority 20 job comes in, there's guaranteed to be a free worker for it, and so on. You can pass a priority more than once to have multiple workers at that level (for example: `--worker-priorities=100,100,any,any`). This gives you a lot of freedom to manage your worker capacity at different priority levels.
 
-If the `worker-count` is lower than the number of `worker-priorities`, the workers take their priorities from the end of the list. So if you just pass `--worker-count=1` and don't specify the `worker-priorities` argument, the single worker will take jobs of any priority.
+Instead of passing worker-priorities, you can pass a `worker-count` - this is a shorthand for creating the given number of workers at the `any` priority level. So, `--worker-count=3` is just like passing equivalent to `worker-priorities=any,any,any`.
+
+If you pass both worker-count and worker-priorities, the count will trim or pad the priorities list with `any` workers. So, `--worker-priorities=20,30,40 --worker-count=6` would be the same as passing `--worker-priorities=20,30,40,any,any,any`.
 
 ### poll-interval
 
