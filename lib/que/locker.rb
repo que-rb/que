@@ -47,7 +47,6 @@ module Que
     DEFAULT_WAIT_PERIOD         = 50
     DEFAULT_MINIMUM_BUFFER_SIZE = 2
     DEFAULT_MAXIMUM_BUFFER_SIZE = 8
-    DEFAULT_WORKER_COUNT        = 6
     DEFAULT_WORKER_PRIORITIES   = [10, 30, 50, nil, nil, nil].freeze
 
     def initialize(
@@ -59,7 +58,6 @@ module Que
       wait_period:         DEFAULT_WAIT_PERIOD,
       maximum_buffer_size: DEFAULT_MAXIMUM_BUFFER_SIZE,
       minimum_buffer_size: DEFAULT_MINIMUM_BUFFER_SIZE,
-      worker_count:        DEFAULT_WORKER_COUNT,
       worker_priorities:   DEFAULT_WORKER_PRIORITIES,
       on_worker_start:     nil
     )
@@ -71,25 +69,16 @@ module Que
 
       Que.assert Numeric, poll_interval
       Que.assert Numeric, wait_period
-      Que.assert Integer, worker_count
 
       Que.assert Array, worker_priorities
       worker_priorities.each { |p| Que.assert([Integer, NilClass], p) }
-
-      all_worker_priorities =
-        worker_priorities.
-        sort_by{|p| p.nil? ? Float::INFINITY : p}.
-        reverse.
-        values_at(0...worker_count).
-        reverse.
-        sort_by{|p| p.nil? ? Float::INFINITY : p}
 
       # We use a JobBuffer to track jobs and pass them to workers, and a
       # ResultQueue to receive messages from workers.
       @job_buffer = JobBuffer.new(
         maximum_size: maximum_buffer_size,
         minimum_size: minimum_buffer_size,
-        priorities:   all_worker_priorities.uniq,
+        priorities:   worker_priorities.uniq,
       )
 
       @result_queue = ResultQueue.new
@@ -105,7 +94,6 @@ module Que
           wait_period:         wait_period,
           maximum_buffer_size: maximum_buffer_size,
           minimum_buffer_size: minimum_buffer_size,
-          worker_count:        worker_count,
           worker_priorities:   worker_priorities,
         }
       end
@@ -116,13 +104,8 @@ module Que
       @queue_names = queues.is_a?(Hash) ? queues.keys : queues
       @wait_period = wait_period.to_f / 1000 # Milliseconds to seconds.
 
-      # If the worker_count exceeds the array of priorities it'll result in
-      # extra workers that will work jobs of any priority. For example, the
-      # default worker_count of 6 and the default worker priorities of [10, 30,
-      # 50] will result in three workers that only work jobs that meet those
-      # priorities, and three workers that will work any job.
       @workers =
-        all_worker_priorities.map do |priority|
+        worker_priorities.map do |priority|
           Worker.new(
             priority:       priority,
             job_buffer:     @job_buffer,

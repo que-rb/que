@@ -18,12 +18,14 @@ module Que
         default_require_file: RAILS_ENVIRONMENT_FILE
       )
 
-        options        = {}
-        queues         = []
-        log_level      = 'info'
-        log_internals  = false
-        poll_interval  = 5
-        connection_url = nil
+        options           = {}
+        queues            = []
+        log_level         = 'info'
+        log_internals     = false
+        poll_interval     = 5
+        connection_url    = nil
+        worker_count      = nil
+        worker_priorities = nil
 
         parser =
           OptionParser.new do |opts|
@@ -85,7 +87,27 @@ module Que
               Integer,
               "Set number of workers in process (default: 6)",
             ) do |w|
-              options[:worker_count] = w
+              worker_count = w
+            end
+
+            opts.on(
+              '-p',
+              '--worker-priorities [LIST]',
+              Array,
+              "List of priorities to assign to workers (default: 10,30,50,any,any,any)",
+            ) do |priority_array|
+              worker_priorities =
+                priority_array.map do |p|
+                  case p
+                  when /\Aany\z/i
+                    nil
+                  when /\A\d+\z/
+                    Integer(p)
+                  else
+                    output.puts "Invalid priority option: '#{p}'. Please use an integer, or nil/null."
+                    return 1
+                  end
+                end
             end
 
             opts.on(
@@ -130,29 +152,20 @@ module Que
             ) do |p|
               options[:wait_period] = p
             end
-
-            opts.on(
-              '--worker-priorities [LIST]',
-              Array,
-              "List of priorities to assign to workers, " \
-                "nil or unspecified workers take jobs of any priority (default: 10,30,50,nil,nil,nil)",
-            ) do |priority_array|
-              options[:worker_priorities] =
-                priority_array.map do |p|
-                  case p
-                  when /\An(i|ul)l\z/i # nil/null
-                    nil
-                  when /\A\d+\z/
-                    Integer(p)
-                  else
-                    output.puts "Invalid priority option: '#{p}'. Please use an integer, or nil/null."
-                    return 1
-                  end
-                end
-            end
           end
 
         parser.parse!(args)
+
+        options[:worker_priorities] =
+          if worker_count && worker_priorities
+            worker_priorities.values_at(0...worker_count)
+          elsif worker_priorities
+            worker_priorities
+          elsif worker_count
+            Array.new(worker_count) { nil }
+          else
+            [10, 30, 50, nil, nil, nil]
+          end
 
         if args.length.zero?
           if File.exist?(default_require_file)

@@ -15,12 +15,11 @@ describe Que::Locker do
       sleep_until_equal(1) { DB[:que_lockers].count }
 
       record = DB[:que_lockers].first
-      assert_equal queues,                   record[:queues]
-      assert_equal Process.pid,              record[:ruby_pid]
-      assert_equal Socket.gethostname,       record[:ruby_hostname]
-      assert_equal worker_priorities.length, record[:worker_count]
-      assert_equal listen,                   record[:listening]
-      assert_equal worker_priorities,        record[:worker_priorities]
+      assert_equal queues,             record[:queues]
+      assert_equal Process.pid,        record[:ruby_pid]
+      assert_equal Socket.gethostname, record[:ruby_hostname]
+      assert_equal listen,             record[:listening]
+      assert_equal worker_priorities,  record[:worker_priorities]
 
       assert_equal worker_priorities, locker.workers.map(&:priority)
 
@@ -41,8 +40,7 @@ describe Que::Locker do
         maximum_buffer_size: 45,
         wait_period:         200,
         poll_interval:       0.4,
-        worker_priorities:   [1, 2, 3, 4],
-        worker_count:        8,
+        worker_priorities:   [1, 2, 3, 4, nil, nil, nil, nil],
       )
 
       assert_que_locker_insertion(
@@ -539,7 +537,7 @@ describe Que::Locker do
     end
 
     it "of low importance should not lock them if the local queue is full" do
-      locker_settings.replace(worker_count: 1, maximum_buffer_size: 3)
+      locker_settings.replace(worker_priorities: [10], maximum_buffer_size: 3)
       locker
 
       sleep_until_equal(1) { DB[:que_lockers].count }
@@ -559,7 +557,7 @@ describe Que::Locker do
     end
 
     it "of significant importance should lock and add it to the local queue" do
-      locker_settings.replace(worker_count: 1, maximum_buffer_size: 3)
+      locker_settings.replace(worker_priorities: [10], maximum_buffer_size: 3)
       locker
 
       sleep_until_equal(1) { DB[:que_lockers].count }

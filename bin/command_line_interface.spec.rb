@@ -56,6 +56,8 @@ describe Que::CommandLineInterface do
     unless sleep_until? { !$q1.empty? }
       puts "CLI invocation thread hung!"
       thread.join
+      puts output.messages
+      return
     end
 
     $q1.pop
@@ -232,21 +234,23 @@ MSG
     ["-w", "--worker-count"].each do |command|
       it "with #{command} to increase the number of workers" do
         assert_successful_invocation "./#{filename} #{command} 10"
-        assert_locker_instantiated
+        assert_locker_instantiated(
+          worker_priorities: [nil, nil, nil, nil, nil, nil, nil, nil, nil, nil],
+        )
         assert_locker_started(
-          worker_priorities: [10, 30, 50, nil, nil, nil, nil, nil, nil, nil],
+          worker_priorities: [nil, nil, nil, nil, nil, nil, nil, nil, nil, nil],
         )
       end
 
       it "with #{command} to use a smaller number of workers" do
         assert_successful_invocation "./#{filename} #{command} 4"
-        assert_locker_instantiated
-        assert_locker_started(worker_priorities: [50, nil, nil, nil])
+        assert_locker_instantiated(worker_priorities: [nil, nil, nil, nil])
+        assert_locker_started(worker_priorities: [nil, nil, nil, nil])
       end
 
       it "with #{command} to use only a single worker" do
         assert_successful_invocation "./#{filename} #{command} 1"
-        assert_locker_instantiated
+        assert_locker_instantiated(worker_priorities: [nil])
         assert_locker_started(worker_priorities: [nil])
       end
     end
@@ -388,30 +392,35 @@ MSG
       it "should support a slightly tweaked priority order" do
         assert_successful_invocation("./#{filename} --worker-priorities 10,15,20,25")
         assert_locker_started(
-          worker_priorities: [10, 15, 20, 25, nil, nil],
+          worker_priorities: [10, 15, 20, 25],
+        )
+      end
+
+      it "should support specifying 'any' priorities in addition to numbers" do
+        assert_successful_invocation("./#{filename} --worker-priorities 15,20,30,any,any,any")
+        assert_locker_started(
+          worker_priorities: [15, 20, 30, nil, nil, nil],
+        )
+      end
+
+      it "should support specifying only 'any' priorities" do
+        assert_successful_invocation("./#{filename} --worker-priorities any,any,any,any,any,any")
+        assert_locker_started(
+          worker_priorities: [nil, nil, nil, nil, nil, nil],
         )
       end
 
       it "should support a slightly tweaked priority order alongside a custom worker_count" do
-        assert_successful_invocation("./#{filename} --worker-count 3 --worker-priorities 10,25,20,15")
+        assert_successful_invocation("./#{filename} --worker-count 6 --worker-priorities 10,25,20,15")
         assert_locker_started(
-          worker_priorities: [15, 20, 25],
+          worker_priorities: [10, 25, 20, 15, nil, nil],
         )
       end
 
-      ['nil', 'null'].each do |param|
-        it "should support a set of #{param} priorities" do
-          assert_successful_invocation("./#{filename} --worker-priorities #{param}")
-          assert_locker_started(
-            worker_priorities: [nil, nil, nil, nil, nil, nil],
-          )
-        end
-      end
-
-      it "should support a mostly nil priority order" do
+      it "should support a single passed priority" do
         assert_successful_invocation("./#{filename} --worker-priorities 10")
         assert_locker_started(
-          worker_priorities: [10, nil, nil, nil, nil, nil],
+          worker_priorities: [10],
         )
       end
 
