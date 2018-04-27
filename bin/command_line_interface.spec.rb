@@ -429,7 +429,7 @@ MSG
         assert_equal 1, code
         assert_equal 1, output.messages.length
         assert_equal \
-          "Invalid priority option: '12.0'. Please use an integer, or nil/null.",
+          "Invalid priority option: '12.0'. Please use an integer or the word 'any'.",
           output.messages.first.to_s
 
         @skip_file_load_check = true

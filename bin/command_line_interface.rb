@@ -74,7 +74,7 @@ module Que
                   when /\A\d+\z/
                     Integer(p)
                   else
-                    output.puts "Invalid priority option: '#{p}'. Please use an integer, or nil/null."
+                    output.puts "Invalid priority option: '#{p}'. Please use an integer or the word 'any'."
                     return 1
                   end
                 end
