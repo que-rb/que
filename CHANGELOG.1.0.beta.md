@@ -1,4 +1,4 @@
-### 1.0.0.beta3 (Unreleased)
+### 1.0.0.beta3 (2018-05-18)
 
 *   Added support for customizing log levels for `job_worked` events (#217).
 
