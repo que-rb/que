@@ -98,18 +98,55 @@ describe Que::Worker do
   end
 
   describe "logging the job's completion" do
-    it "should default to logging at the debug level" do
+    def run_a_job
       WorkerJob.enqueue
       run_jobs
-
-      skip "figuring out how to test this"
     end
 
-    it "should use the output of log_level if it is defined"
+    def assert_logging(event:, level:)
+      run_a_job
+      msg, actual_level = QUE_LOGGER.messages_with_levels.first
+      msg = JSON.parse(msg)
+      assert_equal event, msg['event']
+      assert_equal level, actual_level
+      msg
+    end
 
-    it "should not log if log_level doesn't return a valid level"
+    it "should default to logging at the debug level" do
+      assert_logging(event: 'job_worked', level: :debug)
+    end
 
-    it "should log at the error level if the job fails"
+    it "should use the output of log_level if it is defined" do
+      WorkerJob.class_eval do
+        def log_level(elapsed)
+          :warn
+        end
+      end
+
+      assert_logging(event: 'job_worked', level: :warn)
+    end
+
+    it "should not log if log_level doesn't return a valid level" do
+      WorkerJob.class_eval do
+        def log_level(elapsed)
+          :blah
+        end
+      end
+
+      run_a_job
+      assert_empty QUE_LOGGER.messages
+    end
+
+    it "should log at the error level if the job fails" do
+      WorkerJob.class_eval do
+        def run(*args)
+          raise "Blah!"
+        end
+      end
+
+      msg = assert_logging(event: 'job_errored', level: :error)
+      assert_equal "RuntimeError: Blah!", msg['error']
+    end
   end
 
   describe "when given a priority requirement" do

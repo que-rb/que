@@ -303,8 +303,8 @@ class QueSpec < Minitest::Spec
     Que.run_synchronously       = false
     Que.use_prepared_statements = true
 
-    QUE_LOGGER.messages.clear
-    QUE_INTERNAL_LOGGER.messages.clear
+    QUE_LOGGER.reset
+    QUE_INTERNAL_LOGGER.reset
 
     $q1, $q2 = Queue.new, Queue.new
     $passed_args = nil
