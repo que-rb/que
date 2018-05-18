@@ -1,3 +1,13 @@
+### 1.0.0.beta3 (Unreleased)
+
+*   Added support for customizing log levels for `job_worked` events (#217).
+
+*   Began logging all `job_errored` events at the `ERROR` log level.
+
+*   Fixed the Railtie when running in test mode (#214).
+
+*   Tweaked the meanings of worker-priorities and worker-count options in the CLI, to better support use cases with low worker counts (#216).
+
 ### 1.0.0.beta2 (2018-04-13)
 
 *   Fixed an incompatibility that caused the new locker to hang when using Rails in development mode (#213).
