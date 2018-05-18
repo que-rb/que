@@ -20,6 +20,7 @@ TODO: Fix doc links.
   - [Worker States](inspecting_the_queue.md#worker-states)
   - [Custom Queries](inspecting_the_queue.md#custom-queries)
 - [Logging](logging.md#logging)
+  - [Logging Job Completion](logging.md#logging-job-completion)
 - [Managing Workers](managing_workers.md#managing-workers)
   - [Working Jobs Via Executable](managing_workers.md#working-jobs-via-executable)
   - [Thread-Unsafe Application Code](managing_workers.md#thread-unsafe-application-code)
