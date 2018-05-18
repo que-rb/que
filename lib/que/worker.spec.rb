@@ -97,6 +97,21 @@ describe Que::Worker do
     assert_equal [attrs.fetch(:id)], finished_job_ids
   end
 
+  describe "logging the job's completion" do
+    it "should default to logging at the debug level" do
+      WorkerJob.enqueue
+      run_jobs
+
+      skip "figuring out how to test this"
+    end
+
+    it "should use the output of log_level if it is defined"
+
+    it "should not log if log_level doesn't return a valid level"
+
+    it "should log at the error level if the job fails"
+  end
+
   describe "when given a priority requirement" do
     let(:priority) { 10 }
 

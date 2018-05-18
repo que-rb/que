@@ -65,6 +65,10 @@ module Que
       raise error if reraise_errors
     end
 
+    def log_level(elapsed)
+      :debug
+    end
+
     private
 
     # This method defines the object on which the various job helper methods are

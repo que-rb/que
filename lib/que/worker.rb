@@ -3,9 +3,13 @@
 # Workers wrap threads which continuously pull job pks from JobBuffer objects,
 # fetch and work those jobs, and export relevant data to ResultQueues.
 
+require 'set'
+
 module Que
   class Worker
     attr_reader :thread, :priority
+
+    VALID_LOG_LEVELS = [:debug, :info, :warn, :error, :fatal, :unknown].to_set.freeze
 
     SQL[:check_job] =
       %{
@@ -91,20 +95,31 @@ module Que
 
       Que.run_job_middleware(instance) { instance.tap(&:_run) }
 
-      log_message = {
-        level: :debug,
-        job_id: metajob.id,
-        elapsed: (Time.now - start),
-      }
+      elapsed = Time.now - start
 
-      if error = instance.que_error
-        log_message[:event] = :job_errored
-        log_message[:error] = "#{error.class}: #{error.message}".slice(0, 500)
-      else
-        log_message[:event] = :job_worked
+      log_level =
+        if instance.que_error
+          :error
+        else
+          instance.log_level(elapsed)
+        end
+
+      if VALID_LOG_LEVELS.include?(log_level)
+        log_message = {
+          level: log_level,
+          job_id: metajob.id,
+          elapsed: elapsed,
+        }
+
+        if error = instance.que_error
+          log_message[:event] = :job_errored
+          log_message[:error] = "#{error.class}: #{error.message}".slice(0, 500)
+        else
+          log_message[:event] = :job_worked
+        end
+
+        Que.log(log_message)
       end
-
-      Que.log(log_message)
 
       instance
     rescue => error
