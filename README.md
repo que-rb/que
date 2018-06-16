@@ -126,12 +126,15 @@ usage: que [options] [file/to/require] ...
 
 You may need to pass que a file path to require so that it can load your app. Que will automatically load `config/environment.rb` if it exists, so you shouldn't need an argument if you're using Rails.
 
+## Additional Rails-specific Setup
+
+If you're using ActiveRecord to dump your database's schema, please [set your schema_format to :sql](http://guides.rubyonrails.org/migrations.html#types-of-schema-dumps) so that Que's table structure is managed correctly. This is a good idea regardless, as the `:ruby` schema format doesn't support many of PostgreSQL's advanced features.
+
+Pre-1.0, the default queue name needed to be configured in order for Que to work out of the box with Rails. In 1.0 the default queue name is now 'default', as Rails expects, but when Rails enqueues some types of jobs it may try to use another queue name that isn't worked by default - in particular, ActionMailer uses a queue named 'mailers' by default, so in your app config you'll also need to set `config.action_mailer.deliver_later_queue_name = 'default'` if you're using ActionMailer.
+
 ## Testing
 
 There are a couple ways to do testing. You may want to set `Que::Job.run_synchronously = true`, which will cause JobClass.enqueue to simply execute the job's logic synchronously, as if you'd run JobClass.run(*your_args). Or, you may want to leave it disabled so you can assert on the job state once they are stored in the database.
-
-**If you're using ActiveRecord to dump your database's schema, please [set your schema_format to :sql](http://guides.rubyonrails.org/migrations.html#types-of-schema-dumps) so that Que's table structure is managed correctly.** This is a good idea regardless, as the `:ruby` schema format doesn't support many of PostgreSQL's advanced features.
-
 
 ## Community and Contributing
 
