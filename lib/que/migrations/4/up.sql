@@ -81,7 +81,7 @@ ALTER TABLE que_jobs
         AND
         (jsonb_array_length(data->'tags') <= 5)
         AND
-        (public.que_validate_tags(data->'tags'))
+        (que_validate_tags(data->'tags'))
       )
     )
   ),
@@ -145,7 +145,7 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
         SELECT *, row_number() OVER () - 1 AS row_number
         FROM (
           SELECT *
-          FROM public.que_lockers ql, generate_series(1, ql.worker_count) AS id
+          FROM que_lockers ql, generate_series(1, ql.worker_count) AS id
           WHERE listening AND queues @> ARRAY[NEW.queue]
           ORDER BY md5(pid::text || id::text)
         ) t1
@@ -182,9 +182,9 @@ LANGUAGE plpgsql;
 CREATE TRIGGER que_job_notify
   AFTER INSERT ON que_jobs
   FOR EACH ROW
-  EXECUTE PROCEDURE public.que_job_notify();
+  EXECUTE PROCEDURE que_job_notify();
 
-CREATE FUNCTION que_determine_job_state(job public.que_jobs) RETURNS text AS $$
+CREATE FUNCTION que_determine_job_state(job que_jobs) RETURNS text AS $$
   SELECT
     CASE
     WHEN job.expired_at  IS NOT NULL    THEN 'expired'
@@ -205,15 +205,15 @@ CREATE FUNCTION que_state_notify() RETURNS trigger AS $$
   BEGIN
     IF TG_OP = 'INSERT' THEN
       previous_state := 'nonexistent';
-      current_state  := public.que_determine_job_state(NEW);
+      current_state  := que_determine_job_state(NEW);
       row            := NEW;
     ELSIF TG_OP = 'DELETE' THEN
-      previous_state := public.que_determine_job_state(OLD);
+      previous_state := que_determine_job_state(OLD);
       current_state  := 'nonexistent';
       row            := OLD;
     ELSIF TG_OP = 'UPDATE' THEN
-      previous_state := public.que_determine_job_state(OLD);
-      current_state  := public.que_determine_job_state(NEW);
+      previous_state := que_determine_job_state(OLD);
+      current_state  := que_determine_job_state(NEW);
 
       -- If the state didn't change, short-circuit.
       IF previous_state = current_state THEN
@@ -262,4 +262,4 @@ LANGUAGE plpgsql;
 CREATE TRIGGER que_state_notify
   AFTER INSERT OR UPDATE OR DELETE ON que_jobs
   FOR EACH ROW
-  EXECUTE PROCEDURE public.que_state_notify();
+  EXECUTE PROCEDURE que_state_notify();
