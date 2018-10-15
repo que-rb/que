@@ -126,6 +126,19 @@ usage: que [options] [file/to/require] ...
 
 You may need to pass que a file path to require so that it can load your app. Que will automatically load `config/environment.rb` if it exists, so you shouldn't need an argument if you're using Rails.
 
+## Usage with Active Job
+
+If you would rather integrate Que with Active Job, you can do it by setting the adapter in `config/application.rb` or in a specific environment by setting it in `config/environments/production.rb`, for example:
+```ruby
+ActiveJob::Base.queue_adapter = :que
+```
+
+Que will automatically pick up the database from Active Record, so there is no need to configure anything else.
+
+You can then write your jobs as usual following the [Active Job documentation](https://guides.rubyonrails.org/active_job_basics.html). However be aware that you'll lose the ability to finish the job in the same transaction as other database operations. That happens because Active Job is a generic background job framework that doesn't benefit of the database integration Que provides.
+
+If you later decide to switch a job from Active Job to Que to have transactional integrity you can easily change the corresponding job class to inherit from `Que::Job` and follow the usage guidelines in the previous section.
+
 ## Additional Rails-specific Setup
 
 If you're using ActiveRecord to dump your database's schema, please [set your schema_format to :sql](http://guides.rubyonrails.org/migrations.html#types-of-schema-dumps) so that Que's table structure is managed correctly. This is a good idea regardless, as the `:ruby` schema format doesn't support many of PostgreSQL's advanced features.
