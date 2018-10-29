@@ -67,7 +67,7 @@ class SendVerificationEmail < Que::Job
 end
 ```
 
-In this case, we don't have any no way to prevent the occasional double-sending of an email. But, for ease of use, you can leave out the transaction and the `destroy` call entirely - Que will recognize that the job wasn't destroyed and will clean it up for you.
+In this case, we don't have a way to prevent the occasional double-sending of an email. But, for ease of use, you can leave out the transaction and the `destroy` call entirely - Que will recognize that the job wasn't destroyed and will clean it up for you.
 
 ### Timeouts
 
