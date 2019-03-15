@@ -24,7 +24,7 @@ group :test do
   gem 'm'
 
   gem 'pry'
-  gem 'pg_examiner'
+  gem 'pg_examiner', '~> 0.5.2'
 end
 
 platforms :rbx do
