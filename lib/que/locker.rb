@@ -301,12 +301,15 @@ module Que
 
     def poll
       # Only poll when there are pollers to use (that is, when polling is
-      # enabled) and when the local queue has dropped below the configured
-      # minimum size.
-      return unless pollers && job_buffer.jobs_needed?
+      # enabled).
+      return unless pollers
 
       # Figure out what job priorities we have to fill.
       priorities = job_buffer.available_priorities
+
+      # Only poll when there are workers ready for jobs.
+      return if priorities.empty?
+
       all_metajobs = []
 
       pollers.each do |poller|

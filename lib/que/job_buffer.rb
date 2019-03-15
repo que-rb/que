@@ -107,10 +107,6 @@ module Que
       end
     end
 
-    def jobs_needed?
-      minimum_size > size
-    end
-
     def waiting_count
       count = 0
       priority_queues.each_value do |pq|

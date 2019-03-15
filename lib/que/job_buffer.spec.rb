@@ -58,20 +58,6 @@ describe Que::JobBuffer do
     end
   end
 
-  describe "jobs_needed?" do
-    it "should return true iff the current size is less than the minimum" do
-      buffer = Que::JobBuffer.new(minimum_size: 2, maximum_size: 8, priorities: [10])
-
-      assert_equal true, buffer.jobs_needed?
-      buffer.push job_array.pop
-      assert_equal true, buffer.jobs_needed?
-      buffer.push job_array.pop
-      assert_equal false, buffer.jobs_needed?
-      buffer.push job_array.pop
-      assert_equal false, buffer.jobs_needed?
-    end
-  end
-
   describe "push" do
     it "should add an item and retain the sort order" do
       ids = []
