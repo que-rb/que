@@ -152,7 +152,12 @@ module Que
       },
 
       # Timestamp with time zone
-      1184 => Time.method(:parse),
+      1184 => -> (value) {
+        case value
+        when String then Time.parse(value)
+        else value
+        end
+      }
     }
 
     # JSON, JSONB
