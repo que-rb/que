@@ -34,3 +34,4 @@ TODO: Fix doc links.
 - [Using Sequel](using_sequel.md#using-sequel)
 - [Writing Reliable Jobs](writing_reliable_jobs.md#writing-reliable-jobs)
   - [Timeouts](writing_reliable_jobs.md#timeouts)
+- [Vacuuming](vacuuming.md)
