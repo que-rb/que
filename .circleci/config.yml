@@ -1,5 +1,5 @@
 default_environment: &default_environment
-  GEMFILE_VERSIONS: "4.1 4.2 5.0 5.1 5.2"
+  GEMFILE_VERSIONS: "4.1 4.2 5.0 5.1 5.2 6.0"
   PG_VERSIONS: "9.5 9.6 10"
   PG_PORTS: "5432 5433 5434"
 
