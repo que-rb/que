@@ -17,7 +17,7 @@ module Que
         (
           coalesce($1, 'default')::text,
           coalesce($2, 100)::smallint,
-          coalesce($3, now())::timestamptz,
+          greatest($3, now())::timestamptz,
           $4::text,
           coalesce($5, '[]')::jsonb,
           coalesce($6, '{}')::jsonb,
@@ -37,7 +37,7 @@ module Que
         SELECT
           coalesce($1, 'default')::text,
           coalesce($2, 100)::smallint,
-          coalesce($3, now())::timestamptz,
+          greatest($3, now())::timestamptz,
           $4::text,
           args_and_kwargs.args,
           args_and_kwargs.kwargs,
