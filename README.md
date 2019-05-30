@@ -136,6 +136,15 @@ Pre-1.0, the default queue name needed to be configured in order for Que to work
 
 There are a couple ways to do testing. You may want to set `Que::Job.run_synchronously = true`, which will cause JobClass.enqueue to simply execute the job's logic synchronously, as if you'd run JobClass.run(*your_args). Or, you may want to leave it disabled so you can assert on the job state once they are stored in the database.
 
+## Related Projects
+
+These projects are tested to be compatible with Que 1.x:
+
+- [que-web](https://github.com/statianzo/que-web) is a Sinatra-based UI for inspecting your job queue.
+- [que-scheduler](https://github.com/hlascelles/que-scheduler) lets you schedule tasks using a cron style config file. (que-1.0-compatibility branch required).
+
+If you have a project that uses or relates to Que, feel free to submit a PR adding it to the list!
+
 ## Community and Contributing
 
   * For bugs in the library, please feel free to [open an issue](https://github.com/chanks/que/issues/new).
