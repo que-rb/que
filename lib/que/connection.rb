@@ -152,7 +152,10 @@ module Que
       },
 
       # Timestamp with time zone
-      1184 => Time.method(:parse),
+      1184 => -> (value) {
+        return value if value.is_a? Time
+        Time.parse value if value.is_a? String
+      }
     }
 
     # JSON, JSONB
