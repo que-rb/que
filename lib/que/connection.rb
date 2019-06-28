@@ -153,8 +153,11 @@ module Que
 
       # Timestamp with time zone
       1184 => -> (value) {
-        return value if value.is_a? Time
-        Time.parse value if value.is_a? String
+        case value
+        when Time then value
+        when String then Time.parse(value)
+        else raise "Unexpected time class: #{value.class} (#{value.inspect})"
+        end
       }
     }
 
