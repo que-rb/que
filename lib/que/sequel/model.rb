@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+::Sequel.extension :pg_json_ops
+
 module Que
   module Sequel
     QUALIFIED_TABLE = ::Sequel.qualify(:public, :que_jobs)
@@ -26,7 +28,7 @@ module Que
           where(
             (QUALIFIED_TABLE[:job_class] =~ job_class) |
               (QUALIFIED_TABLE[:job_class] =~ "ActiveJob::QueueAdapters::QueAdapter::JobWrapper") &
-              ::Sequel[::Sequel.lit("public.que_jobs.args->0->>'job_class'") => job_class]
+              (QUALIFIED_TABLE[:args].pg_jsonb[0].get_text("job_class") =~ job_class)
           )
         end
 
@@ -35,11 +37,11 @@ module Que
         end
 
         def by_tag(tag)
-          where(::Sequel.lit("public.que_jobs.data @> ?", JSON.dump(tags: [tag])))
+          where(QUALIFIED_TABLE[:data].pg_jsonb.contains(JSON.dump(tags: [tag])))
         end
 
         def by_args(*args)
-          where(::Sequel.lit("public.que_jobs.args @> ?", JSON.dump(args)))
+          where(QUALIFIED_TABLE[:args].pg_jsonb.contains(JSON.dump(args)))
         end
       end
     end
