@@ -18,8 +18,8 @@ module Que
           subset :"not_#{name}", ~condition
         end
 
-        subset :ready,     conditions.values.map(&:~).inject{|a, b| a & b}
-        subset :not_ready, conditions.values.         inject{|a, b| a | b}
+        subset :ready,     conditions.values.map(&:~).inject(:&)
+        subset :not_ready, conditions.values.         inject(:|)
 
         def by_job_class(job_class)
           job_class = job_class.name if job_class.is_a?(Class)
