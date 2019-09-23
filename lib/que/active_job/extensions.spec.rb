@@ -54,9 +54,8 @@ if defined?(::ActiveJob)
 
       job = QueJob.first
       job.update(finished_at: Time.now)
-      gid = job.to_global_id(app: :test)
 
-      execute(job_object: gid.to_s)
+      execute(job_object: job)
 
       assert_equal(
         [{job_object: job}],
