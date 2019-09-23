@@ -6,19 +6,17 @@ $VERBOSE = nil
 # ActiveRecord and ActiveJob require ActiveSupport, which affects a bunch of
 # core classes and may change some behavior that we rely on, so only bring it in
 # in some spec runs.
-if ENV['USE_RAILS'] == 'true'
-  require 'active_record'
+require 'active_record'
 
-  begin
-    require 'active_job'
+begin
+  require 'active_job'
 
-    ActiveJob::Base.queue_adapter = :que
-    ActiveJob::Base.logger = nil
+  ActiveJob::Base.queue_adapter = :que
+  ActiveJob::Base.logger = nil
 
-    # require 'que/active_job/extensions'
-  rescue LoadError
-    # We're on an old Gemfile where ActiveJob isn't available - no biggie.
-  end
+# require 'que/active_job/extensions'
+rescue LoadError
+  # We're on an old Gemfile where ActiveJob isn't available - no biggie.
 end
 
 require 'que'
@@ -90,42 +88,41 @@ QUE_POOLS = {
   pond:            Pond.new(&NEW_PG_CONNECTION),
   connection_pool: ConnectionPool.new(&NEW_PG_CONNECTION),
 }.
-each_with_object({}) do |(name, source), hash|
+              each_with_object({}) do |(name, source), hash|
   Que.connection = source
   hash[name] = Que.pool
 end
 
-if ENV['CI']
+if ENV['GITHUB_ACTIONS']
   puts "\n" + [
-    "Ruby: #{RUBY_VERSION}",
-    "PostgreSQL: #{DB["SHOW server_version"].get}",
-    "Gemfile: #{ENV['BUNDLE_GEMFILE']}",
-    "ActiveRecord: #{defined?(ActiveRecord) ? ActiveRecord.version.to_s : 'not loaded'}",
-  ].join("\n")
+         "Ruby: #{RUBY_VERSION}",
+         "PostgreSQL: #{DB["SHOW server_version"].get}",
+         "Gemfile: #{ENV['BUNDLE_GEMFILE']}",
+         "ActiveRecord: #{defined?(ActiveRecord) ? ActiveRecord.version.to_s : 'not loaded'}",
+       ].join("\n")
 end
 
 # ActiveRecord requires ActiveSupport, which affects a bunch of core classes and
 # may change some behavior that we rely on, so only bring it in sometimes.
-if ENV['USE_RAILS'] == 'true'
-  ActiveRecord::Base.establish_connection(QUE_URL)
+ActiveRecord::Base.establish_connection(QUE_URL)
 
-  Que.connection = ActiveRecord
-  QUE_POOLS[:active_record] = Que.pool
+Que.connection = ActiveRecord
+QUE_POOLS[:active_record] = Que.pool
 
-  # We won't have GlobalID if ActiveJob isn't defined.
-  if defined?(::ActiveJob)
-    class QueJob < ActiveRecord::Base
-      include GlobalID::Identification
-    end
-
-    class TestLocator
-      def locate(gid)
-        gid.model_name.constantize.find(gid.model_id)
-      end
-    end
-
-    GlobalID::Locator.use :test, TestLocator.new
+# We won't have GlobalID if ActiveJob isn't defined.
+if defined?(::ActiveJob)
+  class QueJob < ActiveRecord::Base
+    include GlobalID::Identification
   end
+
+  class TestLocator
+    def locate(gid)
+      gid.model_name.constantize.find(gid.model_id)
+    end
+  end
+
+  GlobalID::Locator.use :test, TestLocator.new
+  GlobalID.app = :test
 end
 
 QUE_POOLS.freeze
@@ -152,9 +149,9 @@ QUE_INTERNAL_LOGGER = DummyLogger.new
 class QueSpec < Minitest::Spec
   include Minitest::Hooks
 
-  SPEC_TIMEOUT        = (ENV['SPEC_TIMEOUT']       || (ENV['CI'] ? 10 : 600)).to_i
-  TIME_SKEW           = (ENV['SPEC_TIME_SKEW']     || (ENV['CI'] ? 10 :   1)).to_i
-  SLEEP_UNTIL_TIMEOUT = (ENV['SPEC_SLEEP_TIMEOUT'] || (ENV['CI'] ? 10 :   2)).to_i
+  SPEC_TIMEOUT        = (ENV['SPEC_TIMEOUT']       || (ENV['GITHUB_ACTIONS'] ? 10 : 600)).to_i
+  TIME_SKEW           = (ENV['SPEC_TIME_SKEW']     || (ENV['GITHUB_ACTIONS'] ? 10 :   1)).to_i
+  SLEEP_UNTIL_TIMEOUT = (ENV['SPEC_SLEEP_TIMEOUT'] || (ENV['GITHUB_ACTIONS'] ? 10 :   2)).to_i
 
   register_spec_type(//, self)
 
@@ -176,8 +173,8 @@ class QueSpec < Minitest::Spec
 
   let :worker do
     Que::Worker.new \
-      job_buffer:   job_buffer,
-      result_queue: result_queue
+                  job_buffer:   job_buffer,
+    result_queue: result_queue
   end
 
   def results(message_type:)
