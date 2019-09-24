@@ -130,7 +130,7 @@ You may need to pass que a file path to require so that it can load your app. Qu
 
 If you would rather integrate Que with Active Job, you can do it by setting the adapter in `config/application.rb` or in a specific environment by setting it in `config/environments/production.rb`, for example:
 ```ruby
-ActiveJob::Base.queue_adapter = :que
+config.active_job.queue_adapter = :que
 ```
 
 Que will automatically pick up the database from Active Record, so there is no need to configure anything else.
