@@ -8,17 +8,12 @@ $VERBOSE = nil
 # in some spec runs.
 if ENV['USE_RAILS'] == 'true'
   require 'active_record'
+  require 'active_job'
 
-  begin
-    require 'active_job'
+  ActiveJob::Base.queue_adapter = :que
+  ActiveJob::Base.logger = nil
 
-    ActiveJob::Base.queue_adapter = :que
-    ActiveJob::Base.logger = nil
-
-    # require 'que/active_job/extensions'
-  rescue LoadError
-    # We're on an old Gemfile where ActiveJob isn't available - no biggie.
-  end
+  # require 'que/active_job/extensions'
 end
 
 require 'que'
@@ -89,19 +84,18 @@ QUE_POOLS = {
   sequel:          SEQUEL_TEST_DB,
   pond:            Pond.new(&NEW_PG_CONNECTION),
   connection_pool: ConnectionPool.new(&NEW_PG_CONNECTION),
-}.
-each_with_object({}) do |(name, source), hash|
+}.each_with_object({}) do |(name, source), hash|
   Que.connection = source
   hash[name] = Que.pool
 end
 
-if ENV['CI']
+if ENV['GITHUB_ACTIONS']
   puts "\n" + [
-    "Ruby: #{RUBY_VERSION}",
-    "PostgreSQL: #{DB["SHOW server_version"].get}",
-    "Gemfile: #{ENV['BUNDLE_GEMFILE']}",
-    "ActiveRecord: #{defined?(ActiveRecord) ? ActiveRecord.version.to_s : 'not loaded'}",
-  ].join("\n")
+         "Ruby: #{RUBY_VERSION}",
+         "PostgreSQL: #{DB["SHOW server_version"].get}",
+         "Gemfile: #{ENV['BUNDLE_GEMFILE']}",
+         "ActiveRecord: #{defined?(ActiveRecord) ? ActiveRecord.version.to_s : 'not loaded'}",
+       ].join("\n")
 end
 
 # ActiveRecord requires ActiveSupport, which affects a bunch of core classes and
@@ -125,6 +119,7 @@ if ENV['USE_RAILS'] == 'true'
     end
 
     GlobalID::Locator.use :test, TestLocator.new
+    GlobalID.app = :test
   end
 end
 
@@ -152,9 +147,9 @@ QUE_INTERNAL_LOGGER = DummyLogger.new
 class QueSpec < Minitest::Spec
   include Minitest::Hooks
 
-  SPEC_TIMEOUT        = (ENV['SPEC_TIMEOUT']       || (ENV['CI'] ? 10 : 600)).to_i
-  TIME_SKEW           = (ENV['SPEC_TIME_SKEW']     || (ENV['CI'] ? 10 :   1)).to_i
-  SLEEP_UNTIL_TIMEOUT = (ENV['SPEC_SLEEP_TIMEOUT'] || (ENV['CI'] ? 10 :   2)).to_i
+  SPEC_TIMEOUT        = (ENV['SPEC_TIMEOUT']       || (ENV['GITHUB_ACTIONS'] ? 10 : 600)).to_i
+  TIME_SKEW           = (ENV['SPEC_TIME_SKEW']     || (ENV['GITHUB_ACTIONS'] ? 10 :   1)).to_i
+  SLEEP_UNTIL_TIMEOUT = (ENV['SPEC_SLEEP_TIMEOUT'] || (ENV['GITHUB_ACTIONS'] ? 10 :   2)).to_i
 
   register_spec_type(//, self)
 

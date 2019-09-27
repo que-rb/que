@@ -1,0 +1,39 @@
+name: Ruby
+
+on: [pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby_version: [2.5.x, 2.6.x]
+        gemfile: ["4.2", "5.2", "6.0"]
+        postgres_version: [9, 10, 11]
+    services:
+      db:
+        image: postgres:${{ matrix.postgres_version }}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Ruby
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby_version }}
+    - name: Test with Rake
+      env:
+        PGHOST: 127.0.0.1
+        PGUSER: postgres
+        BUNDLE_GEMFILE: spec/gemfiles/Gemfile.${{ matrix.gemfile }}
+      run: |
+        sudo apt-get -yqq install libpq-dev postgresql-client
+        createdb que-test
+        gem install bundler
+        bundle install --jobs 4 --retry 3
+        USE_RAILS=true bundle exec rake test
+        bundle exec rake test
