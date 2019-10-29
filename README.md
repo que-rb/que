@@ -137,7 +137,7 @@ Also, if you would like to integrate Que with Active Job, you can do it by setti
 config.active_job.queue_adapter = :que
 ```
 
-Que will automatically pick up the database from Active Record, so there is no need to configure anything else.
+Que will automatically use the database configuration of your rails application, so there is no need to configure anything else.
 
 You can then write your jobs as usual following the [Active Job documentation](https://guides.rubyonrails.org/active_job_basics.html). However, be aware that you'll lose the ability to finish the job in the same transaction as other database operations. That happens because Active Job is a generic background job framework that doesn't benefit from the database integration Que provides.
 
