@@ -132,6 +132,17 @@ If you're using ActiveRecord to dump your database's schema, please [set your sc
 
 Pre-1.0, the default queue name needed to be configured in order for Que to work out of the box with Rails. In 1.0 the default queue name is now 'default', as Rails expects, but when Rails enqueues some types of jobs it may try to use another queue name that isn't worked by default - in particular, ActionMailer uses a queue named 'mailers' by default, so in your app config you'll also need to set `config.action_mailer.deliver_later_queue_name = 'default'` if you're using ActionMailer.
 
+Also, if you would like to integrate Que with Active Job, you can do it by setting the adapter in `config/application.rb` or in a specific environment by setting it in `config/environments/production.rb`, for example:
+```ruby
+config.active_job.queue_adapter = :que
+```
+
+Que will automatically use the database configuration of your rails application, so there is no need to configure anything else.
+
+You can then write your jobs as usual following the [Active Job documentation](https://guides.rubyonrails.org/active_job_basics.html). However, be aware that you'll lose the ability to finish the job in the same transaction as other database operations. That happens because Active Job is a generic background job framework that doesn't benefit from the database integration Que provides.
+
+If you later decide to switch a job from Active Job to Que to have transactional integrity you can easily change the corresponding job class to inherit from `Que::Job` and follow the usage guidelines in the previous section.
+
 ## Testing
 
 There are a couple ways to do testing. You may want to set `Que::Job.run_synchronously = true`, which will cause JobClass.enqueue to simply execute the job's logic synchronously, as if you'd run JobClass.run(*your_args). Or, you may want to leave it disabled so you can assert on the job state once they are stored in the database.
