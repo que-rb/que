@@ -159,7 +159,7 @@ If you have a project that uses or relates to Que, feel free to submit a PR addi
 ## Community and Contributing
 
   * For bugs in the library, please feel free to [open an issue](https://github.com/que-rb/que/issues/new).
-  * For general discussion and questions/concerns that don't relate to obvious bugs, try posting on the [que-talk Google Group](https://groups.google.com/forum/#!forum/que-talk).
+  * For general discussion and questions/concerns that don't relate to obvious bugs, join our [Discord Server](https://discord.gg/B3EW32H).
   * For contributions, pull requests submitted via Github are welcome.
 
 Regarding contributions, one of the project's priorities is to keep Que as simple, lightweight and dependency-free as possible, and pull requests that change too much or wouldn't be useful to the majority of Que's users have a good chance of being rejected. If you're thinking of submitting a pull request that adds a new feature, consider starting a discussion in [que-talk](https://groups.google.com/forum/#!forum/que-talk) first about what it would do and how it would be implemented. If it's a sufficiently large feature, or if most of Que's users wouldn't find it useful, it may be best implemented as a standalone gem, like some of the related projects above.
