@@ -22,7 +22,7 @@ ActiveRecord::Base.transaction do
 end
 ```
 
-There are other docs to read if you're using [Sequel](https://github.com/chanks/que/blob/master/docs/using_sequel.md) or [plain Postgres connections](https://github.com/chanks/que/blob/master/docs/using_plain_connections.md) (with no ORM at all) instead of ActiveRecord.
+There are other docs to read if you're using [Sequel](https://github.com/que-rb/que/blob/master/docs/using_sequel.md) or [plain Postgres connections](https://github.com/que-rb/que/blob/master/docs/using_plain_connections.md) (with no ORM at all) instead of ActiveRecord.
 
 ### Managing the Jobs Table
 
@@ -44,6 +44,6 @@ Que.clear!
 
 ### Other Setup
 
-Be sure to read the docs on [managing workers](https://github.com/chanks/que/blob/master/docs/managing_workers.md) for more information on using the worker pool.
+Be sure to read the docs on [managing workers](https://github.com/que-rb/que/blob/master/docs/managing_workers.md) for more information on using the worker pool.
 
-You'll also want to set up [logging](https://github.com/chanks/que/blob/master/docs/logging.md) and an [error handler](https://github.com/chanks/que/blob/master/docs/error_handling.md) to track errors raised by jobs.
+You'll also want to set up [logging](https://github.com/que-rb/que/blob/master/docs/logging.md) and an [error handler](https://github.com/que-rb/que/blob/master/docs/error_handling.md) to track errors raised by jobs.

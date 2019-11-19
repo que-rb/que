@@ -1,6 +1,6 @@
 ### 1.0.0.beta2 (2018-04-13)
 
-*   **A schema upgrade to version 4 will be required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
+*   **A schema upgrade to version 4 will be required for this release.** See [the migration doc](https://github.com/que-rb/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
 
     *   Please note that this migration requires a rewrite of the jobs table, which makes it O(n) with the size of the table. If you have a very large backlog of jobs you may want to schedule downtime for this migration.
 
@@ -272,7 +272,7 @@ For a detailed list of the changes between each beta release of 1.0.0, see [the 
 
 ### 0.6.0 (2014-02-04)
 
-*   **A schema upgrade to version 3 is required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
+*   **A schema upgrade to version 3 is required for this release.** See [the migration doc](https://github.com/que-rb/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
 
 *   You can now run a job's logic directly (without enqueueing it) like `MyJob.run(arg1, arg2, other_arg: arg3)`. This is useful when a job class encapsulates logic that you want to invoke without involving the entire queue.
 
@@ -284,11 +284,11 @@ For a detailed list of the changes between each beta release of 1.0.0, see [the 
 
 *   Log lines now include the machine's hostname, since a pid alone may not uniquely identify a process.
 
-*   Multiple queues are now supported. See [the docs](https://github.com/chanks/que/blob/master/docs/multiple_queues.md) for details. (chanks, joevandyk)
+*   Multiple queues are now supported. See [the docs](https://github.com/que-rb/que/blob/master/docs/multiple_queues.md) for details. (chanks, joevandyk)
 
 *   Rubinius 2.2 is now supported. (brixen)
 
-*   Job classes may now define their own logic for determining the retry interval when a job raises an error. See [error handling](https://github.com/chanks/que/blob/master/docs/error_handling.md) for more information.
+*   Job classes may now define their own logic for determining the retry interval when a job raises an error. See [error handling](https://github.com/que-rb/que/blob/master/docs/error_handling.md) for more information.
 
 ### 0.5.0 (2014-01-14)
 
@@ -302,7 +302,7 @@ For a detailed list of the changes between each beta release of 1.0.0, see [the 
 
 *   Added a migration system to make it easier to change the schema when updating Que. You can now write, for example, `Que.migrate!(version: 2)` in your migrations. Migrations are run transactionally.
 
-*   The logging format has changed to be more easily machine-readable. You can also now customize the logging format by assigning a callable to Que.log_formatter=. See the new doc on [logging](https://github.com/chanks/que/blob/master/docs/logging.md)) for details. The default logger level is INFO - for less critical information (such as when no jobs were found to be available or when a job-lock race condition has been detected and avoided) you can set the QUE_LOG_LEVEL environment variable to DEBUG.
+*   The logging format has changed to be more easily machine-readable. You can also now customize the logging format by assigning a callable to Que.log_formatter=. See the new doc on [logging](https://github.com/que-rb/que/blob/master/docs/logging.md)) for details. The default logger level is INFO - for less critical information (such as when no jobs were found to be available or when a job-lock race condition has been detected and avoided) you can set the QUE_LOG_LEVEL environment variable to DEBUG.
 
 *   MultiJson is now a soft dependency. Que will use it if it is available, but it is not required.
 

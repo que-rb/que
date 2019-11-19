@@ -17,7 +17,7 @@ module Que
 
         # Use Rails' executor (if present) to make sure that the connection
         # we're using isn't taken from us while the block runs. See
-        # https://github.com/chanks/que/issues/166#issuecomment-274218910
+        # https://github.com/que-rb/que/issues/166#issuecomment-274218910
         def wrap_in_rails_executor(&block)
           if defined?(::Rails.application.executor)
             ::Rails.application.executor.wrap(&block)

@@ -24,7 +24,7 @@
 
 ### 1.0.0.beta (2017-10-25)
 
-*   **A schema upgrade to version 4 will be required for this release.** See [the migration doc](https://github.com/chanks/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
+*   **A schema upgrade to version 4 will be required for this release.** See [the migration doc](https://github.com/que-rb/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
 
     *   Please note that this migration requires a rewrite of the jobs table, which makes it O(n) with the size of the table. If you have a very large backlog of jobs you may want to schedule downtime for this migration.
 

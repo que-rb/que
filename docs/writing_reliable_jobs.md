@@ -71,7 +71,7 @@ In this case, we don't have a way to prevent the occasional double-sending of an
 
 ### Timeouts
 
-Long-running jobs aren't necessarily a problem for the database, since the overhead of an individual job is very small (just an advisory lock held in memory). But jobs that hang indefinitely can tie up a worker and [block the Ruby process from exiting gracefully](https://github.com/chanks/que/blob/master/docs/shutting_down_safely.md), which is a pain.
+Long-running jobs aren't necessarily a problem for the database, since the overhead of an individual job is very small (just an advisory lock held in memory). But jobs that hang indefinitely can tie up a worker and [block the Ruby process from exiting gracefully](https://github.com/que-rb/que/blob/master/docs/shutting_down_safely.md), which is a pain.
 
 If there's part of your job that is prone to hang (due to an API call or other HTTP request that never returns, for example), you can (and should) timeout those parts of your job. For example, consider a job that needs to make an HTTP request and then write to the database:
 

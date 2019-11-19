@@ -1,6 +1,6 @@
 # Que
 
-**This README and the rest of the docs on the master branch all refer to Que 1.0, which is currently in beta. If you're using version 0.x, please refer to the docs on [the 0.x branch](https://github.com/chanks/que/tree/0.x).**
+**This README and the rest of the docs on the master branch all refer to Que 1.0, which is currently in beta. If you're using version 0.x, please refer to the docs on [the 0.x branch](https://github.com/que-rb/que/tree/0.x).**
 
 *TL;DR: Que is a high-performance job queue that improves the reliability of your application by protecting your jobs with the same [ACID guarantees](https://en.wikipedia.org/wiki/ACID) as the rest of your data.*
 
@@ -17,7 +17,7 @@ Additionally, there are the general benefits of storing jobs in Postgres, alongs
   * **Fewer Dependencies** - If you're already using Postgres (and you probably should be), a separate queue is another moving part that can break.
   * **Security** - Postgres' support for SSL connections keeps your data safe in transport, for added protection when you're running workers on cloud platforms that you can't completely control.
 
-Que's primary goal is reliability. You should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que does everything it can to ensure that jobs you queue are performed exactly once (though the occasional repetition of a job can be impossible to avoid - see the docs on [how to write a reliable job](https://github.com/chanks/que/blob/master/docs/writing_reliable_jobs.md)).
+Que's primary goal is reliability. You should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que does everything it can to ensure that jobs you queue are performed exactly once (though the occasional repetition of a job can be impossible to avoid - see the docs on [how to write a reliable job](https://github.com/que-rb/que/blob/master/docs/writing_reliable_jobs.md)).
 
 Que's secondary goal is performance. The worker process is multithreaded, so that a single process can run many jobs simultaneously.
 
@@ -158,7 +158,7 @@ If you have a project that uses or relates to Que, feel free to submit a PR addi
 
 ## Community and Contributing
 
-  * For bugs in the library, please feel free to [open an issue](https://github.com/chanks/que/issues/new).
+  * For bugs in the library, please feel free to [open an issue](https://github.com/que-rb/que/issues/new).
   * For general discussion and questions/concerns that don't relate to obvious bugs, try posting on the [que-talk Google Group](https://groups.google.com/forum/#!forum/que-talk).
   * For contributions, pull requests submitted via Github are welcome.
 
