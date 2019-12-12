@@ -1,34 +1,51 @@
 Docs Index
 ===============
 
-TODO: Fix doc links.
-
 - [Command Line Interface](#command-line-interface)
+  * [worker-priorities and worker-count](#worker-priorities-and-worker-count)
+  * [poll-interval](#poll-interval)
+  * [minimum-buffer-size and maximum-buffer-size](#minimum-buffer-size-and-maximum-buffer-size)
+  * [connection-url](#connection-url)
+  * [wait-period](#wait-period)
+  * [log-internals](#log-internals)
 - [Advanced Setup](#advanced-setup)
-  - [Using ActiveRecord Without Rails](#using-activerecord-without-rails)
-  - [Managing the Jobs Table](#managing-the-jobs-table)
-  - [Other Setup](#other-setup)
+  * [Using ActiveRecord Without Rails](#using-activerecord-without-rails)
+  * [Managing the Jobs Table](#managing-the-jobs-table)
+  * [Other Setup](#other-setup)
 - [Error Handling](#error-handling)
+  * [Error Notifications](#error-notifications)
+  * [Error-Specific Handling](#error-specific-handling)
 - [Inspecting the Queue](#inspecting-the-queue)
-  - [Job Stats](#job-stats)
-  - [Worker States](#worker-states)
-  - [Custom Queries](#custom-queries)
-- [Logging](#logging)
-  - [Logging Job Completion](#logging-job-completion)
+  * [Job Stats](#job-stats)
+  * [Custom Queries](#custom-queries)
+    + [ActiveRecord Example](#activerecord-example)
+    + [Sequel Example](#sequel-example)
 - [Managing Workers](#managing-workers)
-  - [Working Jobs Via Executable](#working-jobs-via-executable)
-  - [Thread-Unsafe Application Code](#thread-unsafe-application-code)
-  - [The Wake Interval](#the-wake-interval)
-  - [Manually Waking Workers](#manually-waking-workers)
-  - [Connection Pool Size](#connection-pool-size)
+  * [Working Jobs Via Executable](#working-jobs-via-executable)
+  * [Thread-Unsafe Application Code](#thread-unsafe-application-code)
+- [Logging](#logging)
+  * [Logging Job Completion](#logging-job-completion)
 - [Migrating](#migrating)
 - [Multiple Queues](#multiple-queues)
 - [Shutting Down Safely](#shutting-down-safely)
 - [Using Plain Postgres Connections](#using-plain-postgres-connections)
+  * [Using ConnectionPool or Pond](#using-connectionpool-or-pond)
+  * [Using Any Other Connection Pool](#using-any-other-connection-pool)
 - [Using Sequel](#using-sequel)
+- [Using Que With ActiveJob](#using-que-with-activejob)
+- [Job Helper Methods](#job-helper-methods)
+  * [destroy](#destroy)
+  * [finish](#finish)
+  * [expire](#expire)
+  * [retry_in](#retry-in)
+  * [error_count](#error-count)
+  * [default_resolve_action](#default-resolve-action)
 - [Writing Reliable Jobs](#writing-reliable-jobs)
-  - [Timeouts](#timeouts)
-- [Vacuuming]()
+  * [Timeouts](#timeouts)
+- [Middleware](#middleware)
+  * [Defining Middleware For Jobs](#defining-middleware-for-jobs)
+  * [Defining Middleware For SQL statements](#defining-middleware-for-sql-statements)
+- [Vacuuming](#vacuuming)
 
 
 ## Command Line Interface
@@ -350,7 +367,7 @@ Que.log_formatter = proc do |data|
 end
 ```
 
-## Logging Job Completion
+### Logging Job Completion
 
 Que logs a `job_worked` event whenever a job completes, though by default this event is logged at the `DEBUG` level. Since people often run their applications at the `INFO` level or above, this can make the logs too silent for some use cases. Similarly, you may want to log at a higher level if a time-sensitive job begins taking too long to run.
 
