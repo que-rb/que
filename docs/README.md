@@ -122,7 +122,7 @@ ActiveRecord::Base.transaction do
 end
 ```
 
-There are other docs to read if you're using [Sequel](https://github.com/que-rb/que/blob/master/docs/) or [plain Postgres connections](https://github.com/que-rb/que/blob/master/docs/using_plain_connections.md) (with no ORM at all) instead of ActiveRecord.
+There are other docs to read if you're using [Sequel](#using-sequel) or [plain Postgres connections](#using-plain-connections) (with no ORM at all) instead of ActiveRecord.
 
 ### Managing the Jobs Table
 
@@ -144,9 +144,9 @@ Que.clear!
 
 ### Other Setup
 
-Be sure to read the docs on [managing workers](https://github.com/que-rb/que/blob/master/docs/managing_workers.md) for more information on using the worker pool.
+Be sure to read the docs on [managing workers](#managing-workers) for more information on using the worker pool.
 
-You'll also want to set up [logging](https://github.com/que-rb/que/blob/master/docs/logging.md) and an [error handler](https://github.com/que-rb/que/blob/master/docs/error_handling.md) to track errors raised by jobs.
+You'll also want to set up [logging](#logging) and an [error handler](#error-handling) to track errors raised by jobs.
 
 
 ## Error Handling
@@ -463,7 +463,7 @@ Que.enqueue current_user.id, job_class: 'ProcessCreditCard', queue: 'credit_card
 
 To ensure safe operation, Que needs to be very careful in how it shuts down. When a Ruby process ends normally, it calls Thread#kill on any threads that are still running - unfortunately, if a thread is in the middle of a transaction when this happens, there is a risk that it will be prematurely commited, resulting in data corruption. See [here](http://blog.headius.com/2008/02/ruby-threadraise-threadkill-timeoutrb.html) and [here](http://coderrr.wordpress.com/2011/05/03/beware-of-threadkill-or-your-activerecord-transactions-are-in-danger-of-being-partially-committed/) for more detail on this.
 
-To prevent this, Que will block the worker process from exiting until all jobs it is working have completed normally. Unfortunately, if you have long-running jobs, this may take a very long time (and if something goes wrong with a job's logic, it may never happen). The solution in this case is SIGKILL - luckily, Ruby processes that are killed via SIGKILL will end without using Thread#kill on its running threads. This is safer than exiting normally - when PostgreSQL loses the connection it will simply roll back the open transaction, if any, and unlock the job so it can be retried later by another worker. Be sure to read [Writing Reliable Jobs](https://github.com/que-rb/que/blob/master/docs/writing_reliable_jobs.md) for information on how to design your jobs to fail safely.
+To prevent this, Que will block the worker process from exiting until all jobs it is working have completed normally. Unfortunately, if you have long-running jobs, this may take a very long time (and if something goes wrong with a job's logic, it may never happen). The solution in this case is SIGKILL - luckily, Ruby processes that are killed via SIGKILL will end without using Thread#kill on its running threads. This is safer than exiting normally - when PostgreSQL loses the connection it will simply roll back the open transaction, if any, and unlock the job so it can be retried later by another worker. Be sure to read [Writing Reliable Jobs](#writing-reliable-jobs.md) for information on how to design your jobs to fail safely.
 
 So, be prepared to use SIGKILL on your Ruby processes if they run for too long. For example, Heroku takes a good approach to this - when Heroku's platform is shutting down a process, it sends SIGTERM, waits ten seconds, then sends SIGKILL if the process still hasn't exited. This is a nice compromise - it will give each of your currently running jobs ten seconds to complete, and any jobs that haven't finished by then will be interrupted and retried later.
 
@@ -587,7 +587,7 @@ Sequel automatically wraps model persistance actions (create, update, destroy) i
 ## Using Que With ActiveJob
 
 You can include `Que::ActiveJob::JobExtensions` into your `ApplicationJob` subclass to get support for all of Que's 
-[helper methods](/docs/job_helper_methods.md). These methods will become no-ops if you use a queue adapter that isn't Que, so if you like to use a different adapter in development they shouldn't interfere.
+[helper methods](#job-helper-methods). These methods will become no-ops if you use a queue adapter that isn't Que, so if you like to use a different adapter in development they shouldn't interfere.
 
 Additionally, including `Que::ActiveJob::JobExtensions` lets you define a run() method that supports keyword arguments.
 
@@ -692,7 +692,7 @@ In this case, we don't have a way to prevent the occasional double-sending of an
 
 ### Timeouts
 
-Long-running jobs aren't necessarily a problem for the database, since the overhead of an individual job is very small (just an advisory lock held in memory). But jobs that hang indefinitely can tie up a worker and [block the Ruby process from exiting gracefully](https://github.com/que-rb/que/blob/master/docs/shutting_down_safely.md), which is a pain.
+Long-running jobs aren't necessarily a problem for the database, since the overhead of an individual job is very small (just an advisory lock held in memory). But jobs that hang indefinitely can tie up a worker and [block the Ruby process from exiting gracefully](#shutting-down-safely), which is a pain.
 
 If there's part of your job that is prone to hang (due to an API call or other HTTP request that never returns, for example), you can (and should) timeout those parts of your job. For example, consider a job that needs to make an HTTP request and then write to the database:
 
