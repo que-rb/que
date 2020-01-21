@@ -17,7 +17,7 @@ Additionally, there are the general benefits of storing jobs in Postgres, alongs
   * **Fewer Dependencies** - If you're already using Postgres (and you probably should be), a separate queue is another moving part that can break.
   * **Security** - Postgres' support for SSL connections keeps your data safe in transport, for added protection when you're running workers on cloud platforms that you can't completely control.
 
-Que's primary goal is reliability. You should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que does everything it can to ensure that jobs you queue are performed exactly once (though the occasional repetition of a job can be impossible to avoid - see the docs on [how to write a reliable job](https://github.com/que-rb/que/blob/master/docs/writing_reliable_jobs.md)).
+Que's primary goal is reliability. You should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que does everything it can to ensure that jobs you queue are performed exactly once (though the occasional repetition of a job can be impossible to avoid - see the docs on [how to write a reliable job](/docs/README.md#writing-reliable-jobs)).
 
 Que's secondary goal is performance. The worker process is multithreaded, so that a single process can run many jobs simultaneously.
 
