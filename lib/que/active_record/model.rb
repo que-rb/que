@@ -3,7 +3,7 @@
 module Que
   module ActiveRecord
     class Model < ::ActiveRecord::Base
-      self.table_name = :que_jobs
+      self.table_name = 'public.que_jobs'
 
       t = arel_table
 
