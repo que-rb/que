@@ -1,4 +1,4 @@
-# Que
+# Que ![tests](https://github.com/que-rb/que/workflows/tests/badge.svg)
 
 **This README and the rest of the docs on the master branch all refer to Que 1.0, which is currently in beta. If you're using version 0.x, please refer to the docs on [the 0.x branch](https://github.com/que-rb/que/tree/0.x).**
 
