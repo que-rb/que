@@ -232,6 +232,7 @@ OUTPUT
         $stop_que_executable = false
         %w[INT TERM].each { |signal| trap(signal) { $stop_que_executable = true } }
 
+        output.puts "Que started with #{locker.workers.length} workers (priorities: #{locker.workers.map(&:priority)})"
         output.puts "Que waiting for jobs..."
 
         loop do

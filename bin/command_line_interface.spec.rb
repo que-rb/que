@@ -147,6 +147,7 @@ MSG
 
       assert_equal(
         [
+          "Que started with 6 workers (priorities: [10, 30, 50, nil, nil, nil])",
           "Que waiting for jobs...",
           "\nFinishing Que's current jobs before exiting...",
           "Que's jobs finished, exiting...",
