@@ -25,9 +25,10 @@ module Que
       class << self
         def by_job_class(job_class)
           job_class = job_class.name if job_class.is_a?(Class)
+          job_class_doc = "[{\"job_class\": \"#{job_class}\"}]"
           where(
-            "que_jobs.job_class = ? OR (que_jobs.job_class = 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper' AND que_jobs.args->0->>'job_class' = ?)",
-            job_class, job_class,
+            "que_jobs.job_class = ? OR (que_jobs.job_class = 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper' AND que_jobs.args @> ?)",
+            job_class, job_class_doc,
           )
         end
 
