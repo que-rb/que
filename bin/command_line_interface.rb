@@ -183,8 +183,8 @@ OUTPUT
         args.each do |file|
           begin
             require file
-          rescue LoadError
-            output.puts "Could not load file '#{file}'"
+          rescue LoadError => e
+            output.puts "Could not load file '#{file}': #{e}"
             return 1
           end
         end
