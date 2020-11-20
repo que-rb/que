@@ -136,7 +136,21 @@ You may need to pass que a file path to require so that it can load your app. Qu
 
 If you're using ActiveRecord to dump your database's schema, please [set your schema_format to :sql](http://guides.rubyonrails.org/migrations.html#types-of-schema-dumps) so that Que's table structure is managed correctly. This is a good idea regardless, as the `:ruby` schema format doesn't support many of PostgreSQL's advanced features.
 
-Pre-1.0, the default queue name needed to be configured in order for Que to work out of the box with Rails. In 1.0 the default queue name is now 'default', as Rails expects, but when Rails enqueues some types of jobs it may try to use another queue name that isn't worked by default - in particular, ActionMailer uses a queue named 'mailers' by default, so in your app config you'll also need to set `config.action_mailer.deliver_later_queue_name = 'default'` if you're using ActionMailer.
+Pre-1.0, the default queue name needed to be configured in order for Que to work out of the box with Rails. In 1.0 the default queue name is now 'default', as Rails expects, but when Rails enqueues some types of jobs it may try to use another queue name that isn't worked by default. You can either:
+
+* [Configure Rails](https://guides.rubyonrails.org/configuring.html) to send all internal job types to the 'default' queue by adding the following to `config/application.rb`:
+```ruby
+config.action_mailer.deliver_later_queue_name = :default
+config.action_mailbox.queues.incineration = :default
+config.action_mailbox.queues.routing = :default
+config.active_storage.queues.analysis = :default
+config.active_storage.queues.purge = :default
+```
+
+* [Tell que](/docs#multiple-queues) to work all of these queues (less efficient because it requires polling all of them):
+```
+que -q default -q mailers -q action_mailbox_incineration -q action_mailbox_routing -q active_storage_analysis -q active_storage_purge
+```
 
 Also, if you would like to integrate Que with Active Job, you can do it by setting the adapter in `config/application.rb` or in a specific environment by setting it in `config/environments/production.rb`, for example:
 ```ruby
