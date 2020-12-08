@@ -9,7 +9,7 @@ jobs:
       matrix:
         ruby_version: [2.5.x, 2.6.x, 2.7.x]
         gemfile: ["4.2", "5.2", "6.0"]
-        postgres_version: [9, 10, 11]
+        postgres_version: [9, 10, 11, 12]
         exclude:
           - { gemfile: "4.2", ruby_version: "2.7.x" }
     services:
