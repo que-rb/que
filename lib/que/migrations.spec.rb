@@ -9,7 +9,7 @@ describe Que::Migrations do
 
     default = proc do
       result = Que.execute <<-SQL
-        select adsrc::integer
+        select pg_get_expr(adbin, adrelid)::integer AS adsrc
         from pg_attribute a
         join pg_class c on c.oid = a.attrelid
         join pg_attrdef on adrelid = attrelid AND adnum = attnum
