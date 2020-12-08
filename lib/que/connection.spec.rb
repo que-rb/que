@@ -45,6 +45,14 @@ describe Que::Connection do
         end
       end
 
+      describe "server_version" do
+        it "returns the PostgreSQL server version" do
+          assert_instance_of Integer, connection.server_version
+          assert_operator connection.server_version, :>=, 9_06_00
+          assert_operator connection.server_version, :<, 99_00_00
+        end
+      end
+
       describe "in_transaction?" do
         it "should know when it is in a transaction" do
           refute connection.in_transaction?

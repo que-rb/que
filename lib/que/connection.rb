@@ -119,6 +119,10 @@ module Que
       loop { break if next_notification.nil? }
     end
 
+    def server_version
+      wrapped_connection.server_version
+    end
+
     def in_transaction?
       wrapped_connection.transaction_status != ::PG::PQTRANS_IDLE
     end
