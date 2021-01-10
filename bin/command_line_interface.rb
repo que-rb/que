@@ -219,13 +219,7 @@ OUTPUT
 
         options[:poll_interval] = poll_interval
 
-        locker =
-          begin
-            Que::Locker.new(options)
-          rescue => e
-            output.puts(e.message)
-            return 1
-          end
+        locker = Que::Locker.new(**options)
 
         # It's a bit sloppy to use a global for this when a local variable would
         # do, but we want to stop the locker from the CLI specs, so...
