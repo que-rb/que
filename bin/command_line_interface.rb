@@ -221,7 +221,7 @@ OUTPUT
 
         locker =
           begin
-            Que::Locker.new(options)
+            Que::Locker.new(**options)
           rescue => e
             output.puts(e.message)
             return 1
