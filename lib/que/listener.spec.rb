@@ -117,7 +117,7 @@ describe Que::Listener do
       q = Queue.new
       Que.error_notifier = proc { |e| q.push(e) }
 
-      notify(message_type: 'job_available', priority: 2, id: 4)
+      notify({ message_type: 'job_available', priority: 2, id: 4 })
       assert_equal({}, listener.wait_for_grouped_messages(10))
 
       error = q.pop

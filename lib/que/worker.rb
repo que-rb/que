@@ -125,7 +125,7 @@ module Que
           log_message[:event] = :job_worked
         end
 
-        Que.log(log_message)
+        Que.log(**log_message)
       end
 
       instance

@@ -158,7 +158,7 @@ class QueSpec < Minitest::Spec
   end
 
   let :locker do
-    Que::Locker.new(locker_settings)
+    Que::Locker.new(**locker_settings)
   end
 
   let :job_buffer do
@@ -192,8 +192,8 @@ class QueSpec < Minitest::Spec
     end || raise("sleep_until_equal: expected #{expected.inspect}, got #{actual.inspect}")
   end
 
-  def sleep_until(*args, &block)
-    sleep_until?(*args, &block) || raise("sleep_until timeout reached")
+  def sleep_until(**args, &block)
+    sleep_until?(**args, &block) || raise("sleep_until timeout reached")
   end
 
   def sleep_until?(timeout: SLEEP_UNTIL_TIMEOUT)
