@@ -7,13 +7,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        ruby_version: [2.5.x, 2.6.x, 2.7.x, 3.0.x]
+        ruby_version: ["2.5", "2.6", "2.7", "3.0"]
         gemfile: ["4.2", "5.2", "6.0"]
         postgres_version: [9, 10, 11]
         exclude:
-          - { gemfile: "4.2", ruby_version: "2.7.x" }
-          - { gemfile: "4.2", ruby_version: "3.0.x" }
-          - { gemfile: "5.2", ruby_version: "3.0.x" }
+          - { gemfile: "4.2", ruby_version: "2.7" }
+          - { gemfile: "4.2", ruby_version: "3.0" }
+          - { gemfile: "5.2", ruby_version: "3.0" }
     services:
       db:
         image: postgres:${{ matrix.postgres_version }}
@@ -26,9 +26,9 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Set up Ruby
-      uses: actions/setup-ruby@v1
+      uses: ruby/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby_version }}
     - name: Test with Rake
