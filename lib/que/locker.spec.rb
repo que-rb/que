@@ -239,6 +239,23 @@ describe Que::Locker do
       locker.stop!
     end
 
+    it "locks only accepted jobs in a listen batch" do
+      locker_settings[:poll] = false
+      locker
+      sleep_until_equal(1) { DB[:que_lockers].count }
+
+      Que.execute <<~SQL
+        INSERT INTO que_jobs (job_class, priority)
+        SELECT 'Que::Job', 1
+        FROM generate_series(1, 10) AS i;
+      SQL
+
+      sleep_until_equal(2) { active_jobs_dataset.count }
+      sleep_until_equal(0) { locked_ids.size }
+
+      locker.stop!
+    end
+
     it "should repeat batch polls until there are no more available jobs" do
       Que.execute <<-SQL
         INSERT INTO que_jobs (job_class, priority)

@@ -393,10 +393,12 @@ module Que
         }
       end
 
+      materalize_cte = connection.server_version >= 12_00_00
+
       jobs =
         connection.execute \
           <<-SQL
-            WITH jobs AS (SELECT * FROM que_jobs WHERE id IN (#{ids.join(', ')}))
+            WITH jobs AS #{materalize_cte ? 'MATERIALIZED' : ''} (SELECT * FROM que_jobs WHERE id IN (#{ids.join(', ')}))
             SELECT * FROM jobs WHERE pg_try_advisory_lock(id)
           SQL
 
