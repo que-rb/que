@@ -686,7 +686,7 @@ describe Que::Locker do
           end
         end
 
-        lockers = 4.times.map { Que::Locker.new(locker_settings) }
+        lockers = 4.times.map { Que::Locker.new(**locker_settings) }
 
         5.times { |i| QueSpec::RunOnceTestJob.enqueue(runs: 1, index: i) }
 

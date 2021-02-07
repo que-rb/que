@@ -158,7 +158,7 @@ class QueSpec < Minitest::Spec
   end
 
   let :locker do
-    Que::Locker.new(locker_settings)
+    Que::Locker.new(**locker_settings)
   end
 
   let :job_buffer do
