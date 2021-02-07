@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         ruby_version: ["2.5", "2.6", "2.7", "3.0"]
-        gemfile: ["4.2", "5.2", "6.0"]
+        gemfile: ["4.2", "5.2", "6.0", "6.1"]
         postgres_version: [9, 10, 11, 12]
         exclude:
           - { gemfile: "4.2", ruby_version: "2.7" }
