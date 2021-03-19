@@ -188,6 +188,7 @@ MSG
     def assert_locker_instantiated(
       worker_priorities: [10, 30, 50, nil, nil, nil],
       poll_interval: 5,
+      listen: true,
       wait_period: 50,
       queues: ['default'],
       maximum_buffer_size: 8
@@ -198,7 +199,7 @@ MSG
 
       locker_instantiate = locker_instantiates.first
 
-      assert_equal true,                locker_instantiate[:listen]
+      assert_equal listen,              locker_instantiate[:listen]
       assert_equal true,                locker_instantiate[:poll]
       assert_equal queues,              locker_instantiate[:queues]
       assert_equal poll_interval,       locker_instantiate[:poll_interval]
@@ -255,6 +256,12 @@ MSG
         assert_locker_instantiated(poll_interval: 10)
         assert_locker_started
       end
+    end
+
+    it "with --listen false to disable listen mode" do
+      assert_successful_invocation "./#{filename} --listen false"
+      assert_locker_instantiated(listen: false)
+      assert_locker_started
     end
 
     it "with --wait-period to configure the wait period" do

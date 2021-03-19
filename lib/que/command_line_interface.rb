@@ -51,6 +51,14 @@ module Que
             end
 
             opts.on(
+              '--listen [LISTEN]',
+              String,
+              "Set to false to disable listen mode (default: true)"
+            ) do |listen|
+              options[:listen] = listen != "false"
+            end
+
+            opts.on(
               '-l',
               '--log-level [LEVEL]',
               String,
