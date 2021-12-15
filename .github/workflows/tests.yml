@@ -8,8 +8,9 @@ jobs:
     strategy:
       matrix:
         ruby_version: ["2.7"]
-        rails_gemfile: ["6.0"]
-        postgres_version: [9, 10, 11, 12]
+        rails_gemfile: ["6.0", "6.1"]
+        postgres_version: [9, 10, 11, 12, 13, 14]
+        exclude: []
     services:
       db:
         image: postgres:${{ matrix.postgres_version }}
