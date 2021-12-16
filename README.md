@@ -23,9 +23,9 @@ Que's secondary goal is performance. The worker process is multithreaded, so tha
 
 Compatibility:
 
-- MRI Ruby 2.2+
+- MRI Ruby 2.7+
 - PostgreSQL 9.5+
-- Rails 4.1+ (optional)
+- Rails 6.0+ (optional)
 
 **Please note** - Que's job table undergoes a lot of churn when it is under high load, and like any heavily-written table, is susceptible to bloat and slowness if Postgres isn't able to clean it up. The most common cause of this is long-running transactions, so it's recommended to try to keep all transactions against the database housing Que's job table as short as possible. This is good advice to remember for any high-activity database, but bears emphasizing when using tables that undergo a lot of writes.
 

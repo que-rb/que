@@ -7,11 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        ruby_version: [2.5.x, 2.6.x, 2.7.x]
-        gemfile: ["4.2", "5.2", "6.0"]
+        ruby_version: ["2.7"]
+        rails_gemfile: ["6.0"]
         postgres_version: [9, 10, 11, 12]
-        exclude:
-          - { gemfile: "4.2", ruby_version: "2.7.x" }
     services:
       db:
         image: postgres:${{ matrix.postgres_version }}
@@ -33,7 +31,7 @@ jobs:
       env:
         PGHOST: 127.0.0.1
         PGUSER: postgres
-        BUNDLE_GEMFILE: spec/gemfiles/Gemfile.${{ matrix.gemfile }}
+        BUNDLE_GEMFILE: spec/gemfiles/Gemfile-rails-${{ matrix.rails_gemfile }}
       run: |
         sudo apt-get -yqq install libpq-dev postgresql-client
         createdb que-test

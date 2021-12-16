@@ -13,6 +13,8 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://github.com/que-rb/que'
   spec.license       = 'MIT'
 
+  spec.required_ruby_version = '>= 2.7.0'
+
   files_to_exclude = [
     /\A\.circleci/,
     /\AGemfile/,
