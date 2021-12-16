@@ -109,7 +109,7 @@ describe Que::Migrations do
     end
 
     after do
-      # DB[:que_jobs].delete
+      DB[:que_jobs].delete
       Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
     end
 
