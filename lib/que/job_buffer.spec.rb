@@ -8,11 +8,12 @@ describe Que::JobBuffer do
 
   let :job_buffer do
     Que::JobBuffer.new(
-      maximum_size: 8,
+      maximum_size: maximum_size,
       minimum_size: 0,
       priorities: [10, 30, 50, nil].shuffle,
     )
   end
+  let(:maximum_size) { 8 }
 
   let :job_array do
     [
@@ -198,6 +199,48 @@ describe Que::JobBuffer do
       sleep_until_equal(['sleep', 'sleep', false]) { threads.map(&:status) }
 
       assert_equal value, threads[2][:job]
+    end
+  end
+
+  describe "push and shift" do
+    # Prevent dropping excess jobs
+    let(:maximum_size) { 100_000 }
+
+    it "should not deadlock" do
+      job_buffer # Pre-initialize to avoid race conditions.
+
+      concurrency = 4
+      jobs_count_per_thread = 10_000
+
+      push_thread = Thread.new do
+        (concurrency * jobs_count_per_thread).times do
+          job_buffer.push(*job_array[0])
+        end
+      end
+
+      shift_threads = concurrency.times.map do
+        Thread.new do
+          jobs_count_per_thread.times do
+            job_buffer.shift
+          end
+        end
+      end
+
+      deadlock_detected = false
+      deadlock_detector_thread = Thread.new do
+        sleep 5
+        deadlock_detected = true
+        push_thread.kill
+        shift_threads.each(&:kill)
+      end
+
+      push_thread.join
+      shift_threads.each(&:join)
+      deadlock_detector_thread.kill
+
+      if deadlock_detected
+        raise "Deadlock"
+      end
     end
   end
 
