@@ -209,8 +209,8 @@ describe Que::JobBuffer do
     it "should not deadlock" do
       job_buffer # Pre-initialize to avoid race conditions.
 
-      concurrency = 2
-      jobs_count_per_thread = 500
+      concurrency = 4
+      jobs_count_per_thread = 10_000
 
       push_thread = Thread.new do
         (concurrency * jobs_count_per_thread).times do
