@@ -59,10 +59,8 @@ module Que
 
         # Relying on the hash's contents being sorted, here.
         priority_queues.reverse_each do |_, pq|
-          pq.waiting_count.times do
-            job = _shift_job(pq.priority)
-            break if job.nil? # False would mean we're stopping.
-            pq.push(job)
+          pq.populate do
+            _shift_job(pq.priority)
           end
         end
 
@@ -229,18 +227,20 @@ module Que
         end
       end
 
-      def push(item)
-        sync do
-          Que.assert(waiting_count > 0)
-          @items << item
-          @cv.signal
-        end
-      end
-
       def stop
         sync do
           @stopping = true
           @cv.broadcast
+        end
+      end
+
+      def populate
+        sync do
+          waiting_count.times do
+            job = yield
+            break if job.nil? # False would mean we're stopping.
+            _push(job)
+          end
         end
       end
 
@@ -252,6 +252,12 @@ module Que
 
       def sync(&block)
         mutex.synchronize(&block)
+      end
+
+      def _push(item)
+        Que.assert(waiting_count > 0)
+        @items << item
+        @cv.signal
       end
     end
   end
