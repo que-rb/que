@@ -54,10 +54,17 @@ module Que
     private
 
     def work_loop
-      # Blocks until a job of the appropriate priority is available. If the
-      # queue is shutting down this will return nil, which breaks the loop and
+      # Blocks until a job of the appropriate priority is available.
+      # `fetch_next_metajob` normally returns a job to be processed.
+      # If the queue is shutting down it will return false, which breaks the loop and
       # lets the thread finish.
-      while metajob = fetch_next_metajob
+      while (metajob = fetch_next_metajob) != false
+        # If metajob is nil instead of false, we've hit a rare race condition where
+        # there was a job in the buffer when the worker code checked, but the job was
+        # picked up by the time we got around to shifting it off the buffer.
+        # Letting this case go unhandled leads to worker threads exiting pre-maturely, so
+        # we check explicitly and continue the loop.
+        next if metajob.nil?
         id = metajob.id
 
         Que.internal_log(:worker_received_job, self) { {id: id} }
