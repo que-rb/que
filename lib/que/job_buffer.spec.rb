@@ -201,6 +201,50 @@ describe Que::JobBuffer do
     end
   end
 
+  describe "push and shift" do
+    it "should not deadlock" do
+      job_buffer # Pre-initialize to avoid race conditions.
+
+      concurrency = 4
+      jobs_count_per_thread = 10_000
+
+      push_thread = Thread.new do
+        (concurrency * jobs_count_per_thread).times do
+          job_buffer.push(*job_array[0])
+        end
+      end
+
+      shift_threads = concurrency.times.map do
+        Thread.new do
+          jobs_count_per_thread.times do
+            job_buffer.shift
+          end
+        end
+      end
+
+      deadlock_detected = false
+      unlock_thread = Thread.new do
+        sleep 10
+
+        deadlock_detected = true
+        push_thread.kill
+        shift_threads.each { |t| t.kill }
+      end
+
+      push_thread.join
+      (concurrency * jobs_count_per_thread).times do
+        job_buffer.push(*job_array[0])
+      end
+
+      shift_threads.each { |t| t.join }
+      unlock_thread.kill
+
+      if deadlock_detected
+        raise "Deadlock"
+      end
+    end
+  end
+
   describe "accept?" do
     it "should return the array of sort keys that would be accepted to the queue" do
       # This is a fuzz test, basically, so try bumping this iteration count up
