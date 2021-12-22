@@ -75,7 +75,7 @@ module Que
 
     def shift(priority = nil)
       queue = priority_queues.fetch(priority) { raise Error, "not a permitted priority! #{priority}" }
-      queue.pop
+      queue.pop || shift_job(priority)
     end
 
     def shift_job(priority = nil)
@@ -158,6 +158,10 @@ module Que
       sync { _stopping? }
     end
 
+    def job_available?(priority)
+      (job = @array.first) && job.priority_sufficient?(priority)
+    end
+
     private
 
     def _buffer_space
@@ -210,14 +214,13 @@ module Que
       def pop
         sync do
           loop do
-            return false if @stopping
-
-            if item = @items.pop
+            if @stopping
+              return false
+            elsif item = @items.pop
               return item
+            elsif job_buffer.job_available?(priority)
+              return false
             end
-
-            job = job_buffer.shift_job(priority)
-            return job unless job.nil? # False means we're stopping.
 
             @waiting += 1
             @cv.wait(mutex)
