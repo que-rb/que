@@ -167,6 +167,10 @@ If you later decide to switch a job from Active Job to Que to have transactional
 
 There are a couple ways to do testing. You may want to set `Que::Job.run_synchronously = true`, which will cause JobClass.enqueue to simply execute the job's logic synchronously, as if you'd run JobClass.run(*your_args). Or, you may want to leave it disabled so you can assert on the job state once they are stored in the database.
 
+## Documentation
+
+**For full documentation, see [here](docs/README.md)**.
+
 ## Related Projects
 
 These projects are tested to be compatible with Que 1.x:
@@ -184,7 +188,6 @@ If you have a project that uses or relates to Que, feel free to submit a PR addi
   * For contributions, pull requests submitted via Github are welcome.
 
 Regarding contributions, one of the project's priorities is to keep Que as simple, lightweight and dependency-free as possible, and pull requests that change too much or wouldn't be useful to the majority of Que's users have a good chance of being rejected. If you're thinking of submitting a pull request that adds a new feature, consider starting a discussion in [que-talk](https://groups.google.com/forum/#!forum/que-talk) first about what it would do and how it would be implemented. If it's a sufficiently large feature, or if most of Que's users wouldn't find it useful, it may be best implemented as a standalone gem, like some of the related projects above.
-
 
 ### Specs
 
