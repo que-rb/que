@@ -40,8 +40,6 @@ module Que
           where(QUALIFIED_TABLE[:data].pg_jsonb.contains(JSON.dump(tags: [tag])))
         end
 
-        # TODO: Call out in the changelog that the keyword arguments supplied to this method now match as a subset instead of an exact match
-        # on the keyword arguments the job was scheduled with
         def by_args(*args, **kwargs)
           where(
             QUALIFIED_TABLE[:args].pg_jsonb.contains(JSON.dump(args)) &

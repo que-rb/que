@@ -1,6 +1,6 @@
 # Que ![tests](https://github.com/que-rb/que/workflows/tests/badge.svg)
 
-**This README and the rest of the docs on the master branch all refer to Que 1.0. If you're using version 0.x, please refer to the docs on [the 0.x branch](https://github.com/que-rb/que/tree/0.x).**
+**This README and the rest of the docs on the master branch all refer to Que 2.x. For older versions, please refer to the docs on the respective branches: [1.x](https://github.com/que-rb/que/tree/1.x), or [0.x](https://github.com/que-rb/que/tree/0.x).**
 
 *TL;DR: Que is a high-performance job queue that improves the reliability of your application by protecting your jobs with the same [ACID guarantees](https://en.wikipedia.org/wiki/ACID) as the rest of your data.*
 

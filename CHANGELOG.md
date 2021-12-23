@@ -2,6 +2,7 @@
 
 <!-- MarkdownTOC autolink=true -->
 
+- [2.0.0.beta1](#200beta1)
 - [1.4.0 \(2022-03-23\)](#140-2022-03-23)
 - [1.3.1 \(2022-02-25\)](#131-2022-02-25)
 - [1.3.0 \(2022-02-25\)](#130-2022-02-25)
@@ -50,6 +51,43 @@
 - [0.0.1 \(2013-11-07\)](#001-2013-11-07)
 
 <!-- /MarkdownTOC -->
+
+## 2.0.0.beta1
+
+**Preliminary release of Ruby 3 support**
+
+**Notable changes**:
+
+* Database schema has changed to split job arguments into args and kwargs.
+* It's no longer possible to pass keyword arguments whose keys conflict with job option keys.
+* Passing a hash literal as the last job argument to be splatted into job keyword arguments is no longer supported.
+* Dropped support for ruby < 2.7
+* Dropped support for rails < 6.0
+* The `#by_args` method on the Job model (for both Sequel and ActiveRecord) now searches based on both args and kwargs, but it performs a subset match instead of an exact match. For instance, if your job was scheduled with `'a', 'b', 'c', foo: 'bar', baz: 1`, `by_args('a', 'b', baz: 1)` would find and return the job.
+* This release contains database migrations. You will need to migrate Que to the latest version (5). For instance, on ActiveRecord and Rails 6:
+
+```ruby
+class UpdateQueTables < ActiveRecord::Migration[6.0]
+  def up
+    Que.migrate!(version: 5)
+  end
+
+  def down
+    Que.migrate!(version: 4)
+  end
+end
+```
+
+**Upgrade process**:
+
+* If you were already running Ruby 2.7 and were not passing a hash literal as the last job argument, you may be able to upgrade a running system without draining the queue.
+* For all other cases, you will need to first drain the queue (stop enqueuing new jobs and finish processing any jobs in the database, including cleaning out any expired jobs) before upgrading.
+
+A job enqueued with ruby 2.7, que 2.x should be fine to run in ruby 3.0, que 2.x. We recommend:
+
+1. Upgrade your project to ruby 2.7 and Rails 6.x if it is not already, but continue to use Que 1.x
+2. Upgrade your project to Que 2.x but stay on Ruby 2.7
+3. Upgrade your project to Ruby 3
 
 ## 1.4.0 (2022-03-23)
 
