@@ -206,7 +206,7 @@ describe Que::JobBuffer do
     # Prevent dropping excess jobs
     let(:maximum_size) { 100_000 }
 
-    it "should not deadlock" do
+    it "should not deadlock or time out" do
       job_buffer # Pre-initialize to avoid race conditions.
 
       concurrency = 4
@@ -227,9 +227,14 @@ describe Que::JobBuffer do
       end
 
       deadlock_detected = false
+      timeout_detected = false
       deadlock_detector_thread = Thread.new do
         sleep 5
-        deadlock_detected = true
+        if push_thread.status == 'sleep' && shift_threads.any? { |t| t.status == 'sleep' }
+          deadlock_detected = true
+        else
+          timeout_detected = true
+        end
         push_thread.kill
         shift_threads.each(&:kill)
       end
@@ -240,6 +245,8 @@ describe Que::JobBuffer do
 
       if deadlock_detected
         raise "Deadlock"
+      elsif timeout_detected
+        raise "Timeout"
       end
     end
   end
