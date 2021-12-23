@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -Eeuo pipefail
+
+# For using your own dotfiles within the Docker container
+if [ -f /.docker-rc.d/.docker-bashrc ]; then
+  echo "source /.docker-rc.d/.docker-bashrc" >> ~/.bashrc
+fi
+
+gem list -i -e bundler -v "$RUBY_BUNDLER_VERSION" >/dev/null || gem install bundler -v "$RUBY_BUNDLER_VERSION"
+
+bundle check || bundle install
+
+exec bundle exec "${@-bash}"

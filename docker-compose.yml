@@ -1,0 +1,46 @@
+version: "3.7"
+
+services:
+
+  dev:
+    build:
+      context: .
+      target: dev-environment
+    depends_on:
+      - db
+    volumes:
+      - .:/work
+      - ruby-2.7.5-gem-cache:/usr/local/bundle
+      - ~/.docker-rc.d/:/.docker-rc.d/:ro
+    working_dir: /work
+    entrypoint: /work/scripts/docker-entrypoint
+    command: bash
+    environment:
+      DATABASE_URL: postgres://que:que@db/que-test
+
+  db:
+    image: "postgres:${POSTGRES_VERSION-13}"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: que
+      POSTGRES_PASSWORD: que
+      POSTGRES_DB: que-test
+    ports:
+      - 5697:5432
+
+  pg-dev:
+    image: "postgres:${POSTGRES_VERSION-13}"
+    depends_on:
+      - db
+    entrypoint: []
+    command: psql
+    environment:
+      PGHOST: db
+      PGUSER: que
+      PGPASSWORD: que
+      PGDATABASE: que-test
+
+volumes:
+  db-data: ~
+  ruby-2.7.5-gem-cache: ~

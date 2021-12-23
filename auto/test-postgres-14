@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -Eeuo pipefail
+
+export POSTGRES_VERSION=14
+
+delete_db() {
+  docker-compose down
+  docker volume rm -f que_db-data
+}
+
+trap delete_db EXIT
+
+# pre-test cleanup is necessary as the existing db container will be used if it's running (potentially with the wrong PG version)
+delete_db
+"$(dirname "$0")"/test "$@"
+delete_db

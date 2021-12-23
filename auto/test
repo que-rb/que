@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -Eeuo pipefail
+
+"$(dirname "$0")"/dev ./scripts/test "$@"

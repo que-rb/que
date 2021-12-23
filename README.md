@@ -191,6 +191,10 @@ Regarding contributions, one of the project's priorities is to keep Que as simpl
 
 ### Specs
 
+To run the specs using Docker (avoiding manual setup), use:
+
+    ./auto/test
+
 A note on running specs - Que's worker system is multithreaded and therefore prone to race conditions. As such, if you've touched that code, a single spec run passing isn't a guarantee that any changes you've made haven't introduced bugs. One thing I like to do before pushing changes is rerun the specs many times and watching for hangs. You can do this from the command line with something like:
 
     for i in {1..1000}; do SEED=$i bundle exec rake; done

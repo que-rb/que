@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# Operate in development environment
+
+set -Eeuo pipefail
+
+cd "$(dirname "$0")/.."
+
+docker-compose build dev
+
+# Delete containers and DB volume afterwards on CI
+if [[ "${CI-}" == "true" ]]; then
+  trap '{
+    echo "Stopping containers..."
+    docker-compose down
+    docker volume rm -f que_db-data
+  }' EXIT
+fi
+
+set -x
+docker-compose run --rm dev "${@-bash}"
