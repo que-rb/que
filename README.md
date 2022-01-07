@@ -191,10 +191,6 @@ Regarding contributions, one of the project's priorities is to keep Que as simpl
 
 ### Specs
 
-To run the specs using Docker (avoiding manual setup), use:
-
-    ./auto/test
-
 A note on running specs - Que's worker system is multithreaded and therefore prone to race conditions. As such, if you've touched that code, a single spec run passing isn't a guarantee that any changes you've made haven't introduced bugs. One thing I like to do before pushing changes is rerun the specs many times and watching for hangs. You can do this from the command line with something like:
 
     for i in {1..1000}; do SEED=$i bundle exec rake; done
@@ -206,3 +202,23 @@ This will iterate the specs one thousand times, each with a different ordering. 
 Note that we iterate because there's no guarantee that the hang would reappear with a single additional run, so we need to rerun the specs until it reappears. The LOG_SPEC parameter will output the name and file location of each spec before it is run, so you can easily tell which spec is hanging, and you can continue narrowing things down from there.
 
 Another helpful technique is to replace an `it` spec declaration with `hit` - this will run that particular spec 100 times during the run.
+
+#### **With docker-compose**
+To run the specs using Docker/`docker-compose` (avoiding manual setup), use:
+
+    ./auto/test
+The `docker-compose` file provides a convenience method for injecting your local shell aliases into the Docker container. Simply drop a file containing your alias definitions into `~/.docker-rc.d/`, and they will be available inside the container. This is helpful if you're doing interactive running/debugging with `auto/dev`.
+
+#### **Without docker-compose**
+
+You'll need to have Postgres running locally.
+Assuming you have a local Postgres database set up with username and password `que`, you can run
+
+```
+DATABASE_URL=postgres://que:que@localhost/que bundle exec rake spec
+```
+
+If for some reason you have Docker installed without `docker-compose`, a quick way to set up said database is to spin up a Docker image of your preferred Postgres version, e.g.
+```
+docker run -e POSTGRES_PASSWORD=que -e POSTGRES_USER=que -p 5432:5432 -d postgres:11.0
+```
