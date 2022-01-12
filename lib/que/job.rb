@@ -112,6 +112,7 @@ module Que
         # Should not fail if there's no DB connection.
         _run_attrs(args: args, kwargs: kwargs)
       end
+      ruby2_keywords(:run) if respond_to?(:ruby2_keywords, true)
 
       def resolve_que_setting(setting, *args)
         value = send(setting) if respond_to?(setting)
