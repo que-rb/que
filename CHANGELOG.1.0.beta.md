@@ -1,3 +1,39 @@
+### 1.0.0.beta5 (2021-12-23)
+
+**Documentation:**
+* Add link to que-locks for exclusive job locking by @airhorns in https://github.com/que-rb/que/pull/263
+https://github.com/que-rb/que/commit/52593031a7eef2d52ac38eceb2d8df776ec74090
+* Fix links to Writing Reliable Jobs by @nikitug in https://github.com/que-rb/que/pull/273
+* Add build badge to README by @jonathanhefner in https://github.com/que-rb/que/pull/278
+* Fix ToC links in docs by @swrobel in https://github.com/que-rb/que/pull/287
+* Note all Rails queue names that must be changed by @swrobel in https://github.com/que-rb/que/pull/296
+* Add instructions for how to start Que by @xcskier56 in https://github.com/que-rb/que/pull/292
+---
+**Rails fixes:**
+* Set schema in table_name for ActiveRecord model by @nikitug in https://github.com/que-rb/que/pull/274
+---
+**CI/tests**
+* Fix CI failure from Docker Postgres image by @jonathanhefner in https://github.com/que-rb/que/pull/275
+* Test with Ruby 2.7 by @jonathanhefner in https://github.com/que-rb/que/pull/276
+* Run GitHub build workflow on push by @jonathanhefner in https://github.com/que-rb/que/pull/277
+---
+**Other fixes/improvements**
+* Add more context to error message when config files fail to load. by @trammel in https://github.com/que-rb/que/pull/293
+* Fix lock leak on PostgreSQL 12 and later by @jasoncodes in https://github.com/que-rb/que/pull/298
+* Fix deadlock issue https://github.com/que-rb/que/pull/318
+* Fix thread attrition issue https://github.com/que-rb/que/pull/321
+
+Unless an issue is found we intend for this release to become v1.0.0 proper.
+
+
+
+**Full Changelog**: https://github.com/que-rb/que/compare/v1.0.0.beta4...v1.0.0.beta5
+
+### 1.0.0.beta4 (2020-01-17)
+- Rails 6 compatibility: Fix time parsing #249 and https://github.com/que-rb/que/commit/5ddddd5ebac6153d7a683ef08c86bced8e03fb51
+- Cleaner sequel usage #257
+- Documentation improvements #264 #269 #261 #231
+
 ### 1.0.0.beta3 (2018-05-18)
 
 *   Added support for customizing log levels for `job_worked` events (#217).
