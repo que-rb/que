@@ -1,35 +1,44 @@
 ### 1.0.0.beta5 (2021-12-23)
 
 **Documentation:**
-* Add link to que-locks for exclusive job locking by @airhorns in https://github.com/que-rb/que/pull/263
-https://github.com/que-rb/que/commit/52593031a7eef2d52ac38eceb2d8df776ec74090
-* Fix links to Writing Reliable Jobs by @nikitug in https://github.com/que-rb/que/pull/273
-* Add build badge to README by @jonathanhefner in https://github.com/que-rb/que/pull/278
-* Fix ToC links in docs by @swrobel in https://github.com/que-rb/que/pull/287
-* Note all Rails queue names that must be changed by @swrobel in https://github.com/que-rb/que/pull/296
-* Add instructions for how to start Que by @xcskier56 in https://github.com/que-rb/que/pull/292
+
+* Add link to que-locks for exclusive job locking by [@airhorns](https://github.com/airhorns) in [#263](https://github.com/que-rb/que/pull/263)
+[`5259303`](https://github.com/que-rb/que/commit/52593031a7eef2d52ac38eceb2d8df776ec74090)
+* Fix links to Writing Reliable Jobs by [@nikitug](https://github.com/nikitug) in [#273](https://github.com/que-rb/que/pull/273)
+* Add build badge to README by [@jonathanhefner](https://github.com/jonathanhefner) in [#278](https://github.com/que-rb/que/pull/278)
+* Fix ToC links in docs by [@swrobel](https://github.com/swrobel) in [#287](https://github.com/que-rb/que/pull/287)
+* Note all Rails queue names that must be changed by [@swrobel](https://github.com/swrobel) in [#296](https://github.com/que-rb/que/pull/296)
+* Add instructions for how to start Que by [@xcskier56](https://github.com/xcskier56) in [#292](https://github.com/que-rb/que/pull/292)
+
 ---
+
 **Rails fixes:**
-* Set schema in table_name for ActiveRecord model by @nikitug in https://github.com/que-rb/que/pull/274
+
+* Set schema in table_name for ActiveRecord model by [@nikitug](https://github.com/nikitug) in [#274](https://github.com/que-rb/que/pull/274)
+
 ---
+
 **CI/tests**
-* Fix CI failure from Docker Postgres image by @jonathanhefner in https://github.com/que-rb/que/pull/275
-* Test with Ruby 2.7 by @jonathanhefner in https://github.com/que-rb/que/pull/276
-* Run GitHub build workflow on push by @jonathanhefner in https://github.com/que-rb/que/pull/277
+
+* Fix CI failure from Docker Postgres image by [@jonathanhefner](https://github.com/jonathanhefner) in [#275](https://github.com/que-rb/que/pull/275)
+* Test with Ruby 2.7 by [@jonathanhefner](https://github.com/jonathanhefner) in [#276](https://github.com/que-rb/que/pull/276)
+* Run GitHub build workflow on push by [@jonathanhefner](https://github.com/jonathanhefner) in [#277](https://github.com/que-rb/que/pull/277)
+
 ---
+
 **Other fixes/improvements**
-* Add more context to error message when config files fail to load. by @trammel in https://github.com/que-rb/que/pull/293
-* Fix lock leak on PostgreSQL 12 and later by @jasoncodes in https://github.com/que-rb/que/pull/298
-* Fix deadlock issue https://github.com/que-rb/que/pull/318
-* Fix thread attrition issue https://github.com/que-rb/que/pull/321
+
+* Add more context to error message when config files fail to load. by [@trammel](https://github.com/trammel) in [#293](https://github.com/que-rb/que/pull/293)
+* Fix lock leak on PostgreSQL 12 and later by [@jasoncodes](https://github.com/jasoncodes) in [#298](https://github.com/que-rb/que/pull/298)
+* Fix deadlock issue [#318](https://github.com/que-rb/que/pull/318)
+* Fix thread attrition issue [#321](https://github.com/que-rb/que/pull/321)
 
 Unless an issue is found we intend for this release to become v1.0.0 proper.
 
-
-
-**Full Changelog**: https://github.com/que-rb/que/compare/v1.0.0.beta4...v1.0.0.beta5
+**Full Changelog**: [`v1.0.0.beta4...v1.0.0.beta5`](https://github.com/que-rb/que/compare/v1.0.0.beta4...v1.0.0.beta5)
 
 ### 1.0.0.beta4 (2020-01-17)
+
 - Rails 6 compatibility: Fix time parsing #249 and https://github.com/que-rb/que/commit/5ddddd5ebac6153d7a683ef08c86bced8e03fb51
 - Cleaner sequel usage #257
 - Documentation improvements #264 #269 #261 #231
