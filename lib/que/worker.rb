@@ -138,7 +138,6 @@ module Que
           class:   error.class.to_s,
           message: error.message,
           backtrace: (error.backtrace || []).join("\n").slice(0, 10000),
-          cause: error.cause,
           full_message: error.full_message,
         },
       )
