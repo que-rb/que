@@ -216,17 +216,17 @@ Note that we iterate because there's no guarantee that the hang would reappear w
 
 Another helpful technique is to replace an `it` spec declaration with `hit` - this will run that particular spec 100 times during the run.
 
-#### **With docker-compose**
+#### **With docker compose**
 
-To run the specs using Docker/`docker-compose` (avoiding manual setup), use:
+To run the specs using Docker / Docker Compose (avoiding manual setup), use:
 
 ```bash
 ./auto/test
 ```
 
-The `docker-compose` file provides a convenience method for injecting your local shell aliases into the Docker container. Simply drop a file containing your alias definitions into `~/.docker-rc.d/`, and they will be available inside the container. This is helpful if you're doing interactive running/debugging with `auto/dev`.
+The [Docker Compose config](docker-compose.yml) provides a convenience method for injecting your local shell aliases into the Docker container. Simply drop a file containing your alias definitions into `~/.docker-rc.d/`, and they will be available inside the container. This is helpful if you're doing interactive running/debugging with `auto/dev`.
 
-#### **Without docker-compose**
+#### **Without docker compose**
 
 You'll need to have Postgres running locally.
 
@@ -236,7 +236,7 @@ Assuming you have a local Postgres database set up with username and password `q
 DATABASE_URL=postgres://que:que@localhost/que bundle exec rake spec
 ```
 
-If for some reason you have Docker installed without `docker-compose`, a quick way to set up said database is to spin up a Docker image of your preferred Postgres version, e.g.
+If for some reason you have Docker installed without Docker Compose, a quick way to set up said database is to spin up a Docker image of your preferred Postgres version, e.g.
 
 ```bash
 docker run -e POSTGRES_PASSWORD=que -e POSTGRES_USER=que -p 5432:5432 -d postgres:11.0

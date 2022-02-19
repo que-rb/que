@@ -6,4 +6,4 @@ set -Eeuo pipefail
 
 cd "$(dirname "$0")/.."
 
-docker-compose run --rm pg-dev psql "${@-}"
+docker compose run --rm pg-dev psql "${@-}"

@@ -5,7 +5,7 @@ set -Eeuo pipefail
 export POSTGRES_VERSION=14
 
 delete_db() {
-  docker-compose down
+  docker compose down
   docker volume rm -f que_db-data
 }
 
