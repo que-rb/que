@@ -236,10 +236,10 @@ The [Docker Compose config](docker-compose.yml) provides a convenient way to inj
 
 #### Without Docker
 
-You'll need to have Postgres running. Assuming you have a local database set up with a username and password of `que`, you can run:
+You'll need to have Postgres running. Assuming you have it running on port 5697, with a `que-test` database, and a username & password of `que`, you can run:
 
 ```bash
-DATABASE_URL=postgres://que:que@localhost/que bundle exec rake
+DATABASE_URL=postgres://que:que@localhost:5697/que-test bundle exec rake
 ```
 
 If you don't already have Postgres, you could use Docker Compose to run just the database:
