@@ -218,7 +218,7 @@ Another helpful technique is to replace an `it` spec declaration with `hit` - th
 
 #### With Docker
 
-We've provided a Docker environment using Docker Compose, which avoids the need to manually: install Ruby, install the gem bundle, set up Postgres, and connect to the database.
+We've provided a Dockerised environment to avoid the need to manually: install Ruby, install the gem bundle, set up Postgres, and connect to the database.
 
 To run the specs using this environment, run:
 
@@ -252,10 +252,4 @@ If you want to try a different version of Postgres, e.g. 12:
 
 ```bash
 export POSTGRES_VERSION=12
-```
-
-Or, if for some reason, you have Docker installed without Docker Compose, a quick way to set up said database is to spin up a Docker container of your preferred Postgres version, e.g.:
-
-```bash
-docker run -e POSTGRES_PASSWORD=que -e POSTGRES_USER=que -p 5432:5432 -d postgres:13
 ```
