@@ -9,6 +9,6 @@ fi
 
 gem list -i -e bundler -v "$RUBY_BUNDLER_VERSION" >/dev/null || gem install bundler -v "$RUBY_BUNDLER_VERSION"
 
-bundle check || bundle install
+bundle check --dry-run || bundle install
 
 exec "${@-bash}"
