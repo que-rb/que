@@ -11,4 +11,4 @@ gem list -i -e bundler -v "$RUBY_BUNDLER_VERSION" >/dev/null || gem install bund
 
 bundle check || bundle install
 
-exec bundle exec "${@-bash}"
+exec "${@-bash}"
