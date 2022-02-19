@@ -216,28 +216,46 @@ Note that we iterate because there's no guarantee that the hang would reappear w
 
 Another helpful technique is to replace an `it` spec declaration with `hit` - this will run that particular spec 100 times during the run.
 
-#### **With docker compose**
+#### With Docker
 
-To run the specs using Docker / Docker Compose (avoiding manual setup), use:
+We've provided a Docker environment using Docker Compose, which avoids the need to manually: install Ruby, install the gem bundle, set up Postgres, and connect to the database.
+
+To run the specs using this environment, run:
 
 ```bash
 ./auto/test
 ```
 
-The [Docker Compose config](docker-compose.yml) provides a convenience method for injecting your local shell aliases into the Docker container. Simply drop a file containing your alias definitions into `~/.docker-rc.d/`, and they will be available inside the container. This is helpful if you're doing interactive running/debugging with `auto/dev`.
-
-#### **Without docker compose**
-
-You'll need to have Postgres running locally.
-
-Assuming you have a local Postgres database set up with username and password `que`, you can run
+To get a shell in the environment, run:
 
 ```bash
-DATABASE_URL=postgres://que:que@localhost/que bundle exec rake spec
+./auto/dev
 ```
 
-If for some reason you have Docker installed without Docker Compose, a quick way to set up said database is to spin up a Docker image of your preferred Postgres version, e.g.
+The [Docker Compose config](docker-compose.yml) provides a convenient way to inject your local shell aliases into the Docker container. Simply create a file containing your alias definitions (or which sources them from other files) at `~/.docker-rc.d/.docker-bashrc`, and they will be available inside the container.
+
+#### Without Docker
+
+You'll need to have Postgres running. Assuming you have a local database set up with a username and password of `que`, you can run:
 
 ```bash
-docker run -e POSTGRES_PASSWORD=que -e POSTGRES_USER=que -p 5432:5432 -d postgres:11.0
+DATABASE_URL=postgres://que:que@localhost/que bundle exec rake
+```
+
+If you don't already have Postgres, you could use Docker Compose to run just the database:
+
+```bash
+docker compose up -d db
+```
+
+If you want to try a different version of Postgres, e.g. 12:
+
+```bash
+export POSTGRES_VERSION=12
+```
+
+Or, if for some reason, you have Docker installed without Docker Compose, a quick way to set up said database is to spin up a Docker container of your preferred Postgres version, e.g.:
+
+```bash
+docker run -e POSTGRES_PASSWORD=que -e POSTGRES_USER=que -p 5432:5432 -d postgres:13
 ```
