@@ -144,7 +144,7 @@ If you're using ActiveRecord to dump your database's schema, please [set your sc
 
 Pre-1.0, the default queue name needed to be configured in order for Que to work out of the box with Rails. In 1.0 the default queue name is now 'default', as Rails expects, but when Rails enqueues some types of jobs it may try to use another queue name that isn't worked by default. You can either:
 
-* [Configure Rails](https://guides.rubyonrails.org/configuring.html) to send all internal job types to the 'default' queue by adding the following to `config/application.rb`:
+- [Configure Rails](https://guides.rubyonrails.org/configuring.html) to send all internal job types to the 'default' queue by adding the following to `config/application.rb`:
 
     ```ruby
     config.action_mailer.deliver_later_queue_name = :default
@@ -154,7 +154,7 @@ Pre-1.0, the default queue name needed to be configured in order for Que to work
     config.active_storage.queues.purge = :default
     ```
 
-* [Tell que](/docs#multiple-queues) to work all of these queues (less efficient because it requires polling all of them):
+- [Tell que](/docs#multiple-queues) to work all of these queues (less efficient because it requires polling all of them):
 
     ```bash
     que -q default -q mailers -q action_mailbox_incineration -q action_mailbox_routing -q active_storage_analysis -q active_storage_purge
@@ -192,9 +192,9 @@ If you have a project that uses or relates to Que, feel free to submit a PR addi
 
 ## Community and Contributing
 
-  * For bugs in the library, please feel free to [open an issue](https://github.com/que-rb/que/issues/new).
-  * For general discussion and questions/concerns that don't relate to obvious bugs, join our [Discord Server](https://discord.gg/B3EW32H).
-  * For contributions, pull requests submitted via Github are welcome.
+- For bugs in the library, please feel free to [open an issue](https://github.com/que-rb/que/issues/new).
+- For general discussion and questions/concerns that don't relate to obvious bugs, join our [Discord Server](https://discord.gg/B3EW32H).
+- For contributions, pull requests submitted via Github are welcome.
 
 Regarding contributions, one of the project's priorities is to keep Que as simple, lightweight and dependency-free as possible, and pull requests that change too much or wouldn't be useful to the majority of Que's users have a good chance of being rejected. If you're thinking of submitting a pull request that adds a new feature, consider starting a discussion in [que-talk](https://groups.google.com/forum/#!forum/que-talk) first about what it would do and how it would be implemented. If it's a sufficiently large feature, or if most of Que's users wouldn't find it useful, it may be best implemented as a standalone gem, like some of the related projects above.
 
