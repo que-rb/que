@@ -6,49 +6,54 @@
 
 Que ("keɪ", or "kay") is a queue for Ruby and PostgreSQL that manages jobs using [advisory locks](http://www.postgresql.org/docs/current/static/explicit-locking.html#ADVISORY-LOCKS), which gives it several advantages over other RDBMS-backed queues:
 
-  * **Concurrency** - Workers don't block each other when trying to lock jobs, as often occurs with "SELECT FOR UPDATE"-style locking. This allows for very high throughput with a large number of workers.
-  * **Efficiency** - Locks are held in memory, so locking a job doesn't incur a disk write. These first two points are what limit performance with other queues. Under heavy load, Que's bottleneck is CPU, not I/O.
-  * **Safety** - If a Ruby process dies, the jobs it's working won't be lost, or left in a locked or ambiguous state - they immediately become available for any other worker to pick up.
+- **Concurrency** - Workers don't block each other when trying to lock jobs, as often occurs with "SELECT FOR UPDATE"-style locking. This allows for very high throughput with a large number of workers.
+- **Efficiency** - Locks are held in memory, so locking a job doesn't incur a disk write. These first two points are what limit performance with other queues. Under heavy load, Que's bottleneck is CPU, not I/O.
+- **Safety** - If a Ruby process dies, the jobs it's working won't be lost, or left in a locked or ambiguous state - they immediately become available for any other worker to pick up.
 
 Additionally, there are the general benefits of storing jobs in Postgres, alongside the rest of your data, rather than in Redis or a dedicated queue:
 
-  * **Transactional Control** - Queue a job along with other changes to your database, and it'll commit or rollback with everything else. If you're using ActiveRecord or Sequel, Que can piggyback on their connections, so setup is simple and jobs are protected by the transactions you're already using.
-  * **Atomic Backups** - Your jobs and data can be backed up together and restored as a snapshot. If your jobs relate to your data (and they usually do), there's no risk of jobs falling through the cracks during a recovery.
-  * **Fewer Dependencies** - If you're already using Postgres (and you probably should be), a separate queue is another moving part that can break.
-  * **Security** - Postgres' support for SSL connections keeps your data safe in transport, for added protection when you're running workers on cloud platforms that you can't completely control.
+- **Transactional Control** - Queue a job along with other changes to your database, and it'll commit or rollback with everything else. If you're using ActiveRecord or Sequel, Que can piggyback on their connections, so setup is simple and jobs are protected by the transactions you're already using.
+- **Atomic Backups** - Your jobs and data can be backed up together and restored as a snapshot. If your jobs relate to your data (and they usually do), there's no risk of jobs falling through the cracks during a recovery.
+- **Fewer Dependencies** - If you're already using Postgres (and you probably should be), a separate queue is another moving part that can break.
+- **Security** - Postgres' support for SSL connections keeps your data safe in transport, for added protection when you're running workers on cloud platforms that you can't completely control.
 
 Que's primary goal is reliability. You should be able to leave your application running indefinitely without worrying about jobs being lost due to a lack of transactional support, or left in limbo due to a crashing process. Que does everything it can to ensure that jobs you queue are performed exactly once (though the occasional repetition of a job can be impossible to avoid - see the docs on [how to write a reliable job](/docs/README.md#writing-reliable-jobs)).
 
 Que's secondary goal is performance. The worker process is multithreaded, so that a single process can run many jobs simultaneously.
 
 Compatibility:
+
 - MRI Ruby 2.2+
 - PostgreSQL 9.5+
 - Rails 4.1+ (optional)
 
 **Please note** - Que's job table undergoes a lot of churn when it is under high load, and like any heavily-written table, is susceptible to bloat and slowness if Postgres isn't able to clean it up. The most common cause of this is long-running transactions, so it's recommended to try to keep all transactions against the database housing Que's job table as short as possible. This is good advice to remember for any high-activity database, but bears emphasizing when using tables that undergo a lot of writes.
 
-
 ## Installation
 
 Add this line to your application's Gemfile:
 
-    gem 'que'
+```ruby
+gem 'que'
+```
 
 And then execute:
 
-    $ bundle
+```bash
+bundle
+```
 
 Or install it yourself as:
 
-    $ gem install que
-
+```bash
+gem install que
+```
 
 ## Usage
 
 First, create the queue schema in a migration. For example:
 
-``` ruby
+```ruby
 class CreateQueSchema < ActiveRecord::Migration[5.0]
   def up
     # Whenever you use Que in a migration, always specify the version you're
@@ -66,7 +71,7 @@ end
 
 Create a class for each type of job you want to run:
 
-``` ruby
+```ruby
 # app/jobs/charge_credit_card.rb
 class ChargeCreditCard < Que::Job
   # Default settings for this job. These are optional - without them, jobs
@@ -101,7 +106,7 @@ end
 
 Queue your job. Again, it's best to do this in a transaction with other changes you're making. Also note that any arguments you pass will be serialized to JSON and back again, so stick to simple types (strings, integers, floats, hashes, and arrays).
 
-``` ruby
+```ruby
 CreditCard.transaction do
   # Persist credit card information
   card = CreditCard.create(params[:credit_card])
@@ -111,17 +116,18 @@ end
 
 You can also add options to run the job after a specific time, or with a specific priority:
 
-``` ruby
+```ruby
 ChargeCreditCard.enqueue card.id, user_id: current_user.id, run_at: 1.day.from_now, priority: 5
 ```
 ## Running the Que Worker
 In order to process jobs, you must start a separate worker process outside of your main server. 
 
-```
+```bash
 bundle exec que
 ```
 
 Try running `que -h` to get a list of runtime options:
+
 ```
 $ que -h
 usage: que [options] [file/to/require] ...
@@ -138,21 +144,24 @@ If you're using ActiveRecord to dump your database's schema, please [set your sc
 
 Pre-1.0, the default queue name needed to be configured in order for Que to work out of the box with Rails. In 1.0 the default queue name is now 'default', as Rails expects, but when Rails enqueues some types of jobs it may try to use another queue name that isn't worked by default. You can either:
 
-* [Configure Rails](https://guides.rubyonrails.org/configuring.html) to send all internal job types to the 'default' queue by adding the following to `config/application.rb`:
-```ruby
-config.action_mailer.deliver_later_queue_name = :default
-config.action_mailbox.queues.incineration = :default
-config.action_mailbox.queues.routing = :default
-config.active_storage.queues.analysis = :default
-config.active_storage.queues.purge = :default
-```
+- [Configure Rails](https://guides.rubyonrails.org/configuring.html) to send all internal job types to the 'default' queue by adding the following to `config/application.rb`:
 
-* [Tell que](/docs#multiple-queues) to work all of these queues (less efficient because it requires polling all of them):
-```
-que -q default -q mailers -q action_mailbox_incineration -q action_mailbox_routing -q active_storage_analysis -q active_storage_purge
-```
+    ```ruby
+    config.action_mailer.deliver_later_queue_name = :default
+    config.action_mailbox.queues.incineration = :default
+    config.action_mailbox.queues.routing = :default
+    config.active_storage.queues.analysis = :default
+    config.active_storage.queues.purge = :default
+    ```
+
+- [Tell que](/docs#multiple-queues) to work all of these queues (less efficient because it requires polling all of them):
+
+    ```bash
+    que -q default -q mailers -q action_mailbox_incineration -q action_mailbox_routing -q active_storage_analysis -q active_storage_purge
+    ```
 
 Also, if you would like to integrate Que with Active Job, you can do it by setting the adapter in `config/application.rb` or in a specific environment by setting it in `config/environments/production.rb`, for example:
+
 ```ruby
 config.active_job.queue_adapter = :que
 ```
@@ -183,9 +192,9 @@ If you have a project that uses or relates to Que, feel free to submit a PR addi
 
 ## Community and Contributing
 
-  * For bugs in the library, please feel free to [open an issue](https://github.com/que-rb/que/issues/new).
-  * For general discussion and questions/concerns that don't relate to obvious bugs, join our [Discord Server](https://discord.gg/B3EW32H).
-  * For contributions, pull requests submitted via Github are welcome.
+- For bugs in the library, please feel free to [open an issue](https://github.com/que-rb/que/issues/new).
+- For general discussion and questions/concerns that don't relate to obvious bugs, join our [Discord Server](https://discord.gg/B3EW32H).
+- For contributions, pull requests submitted via Github are welcome.
 
 Regarding contributions, one of the project's priorities is to keep Que as simple, lightweight and dependency-free as possible, and pull requests that change too much or wouldn't be useful to the majority of Que's users have a good chance of being rejected. If you're thinking of submitting a pull request that adds a new feature, consider starting a discussion in [que-talk](https://groups.google.com/forum/#!forum/que-talk) first about what it would do and how it would be implemented. If it's a sufficiently large feature, or if most of Que's users wouldn't find it useful, it may be best implemented as a standalone gem, like some of the related projects above.
 
@@ -193,12 +202,54 @@ Regarding contributions, one of the project's priorities is to keep Que as simpl
 
 A note on running specs - Que's worker system is multithreaded and therefore prone to race conditions. As such, if you've touched that code, a single spec run passing isn't a guarantee that any changes you've made haven't introduced bugs. One thing I like to do before pushing changes is rerun the specs many times and watching for hangs. You can do this from the command line with something like:
 
-    for i in {1..1000}; do SEED=$i bundle exec rake; done
+```bash
+for i in {1..1000}; do SEED=$i bundle exec rake; done
+```
 
 This will iterate the specs one thousand times, each with a different ordering. If the specs hang, note what the seed number was on that iteration. For example, if the previous specs finished with a "Randomized with seed 328", you know that there's a hang with seed 329, and you can narrow it down to a specific spec with:
 
-    for i in {1..1000}; do LOG_SPEC=true SEED=328 bundle exec rake; done
+```bash
+for i in {1..1000}; do LOG_SPEC=true SEED=328 bundle exec rake; done
+```
 
 Note that we iterate because there's no guarantee that the hang would reappear with a single additional run, so we need to rerun the specs until it reappears. The LOG_SPEC parameter will output the name and file location of each spec before it is run, so you can easily tell which spec is hanging, and you can continue narrowing things down from there.
 
 Another helpful technique is to replace an `it` spec declaration with `hit` - this will run that particular spec 100 times during the run.
+
+#### With Docker
+
+We've provided a Dockerised environment to avoid the need to manually: install Ruby, install the gem bundle, set up Postgres, and connect to the database.
+
+To run the specs using this environment, run:
+
+```bash
+./auto/test
+```
+
+To get a shell in the environment, run:
+
+```bash
+./auto/dev
+```
+
+The [Docker Compose config](docker-compose.yml) provides a convenient way to inject your local shell aliases into the Docker container. Simply create a file containing your alias definitions (or which sources them from other files) at `~/.docker-rc.d/.docker-bashrc`, and they will be available inside the container.
+
+#### Without Docker
+
+You'll need to have Postgres running. Assuming you have it running on port 5697, with a `que-test` database, and a username & password of `que`, you can run:
+
+```bash
+DATABASE_URL=postgres://que:que@localhost:5697/que-test bundle exec rake
+```
+
+If you don't already have Postgres, you could use Docker Compose to run just the database:
+
+```bash
+docker compose up -d db
+```
+
+If you want to try a different version of Postgres, e.g. 12:
+
+```bash
+export POSTGRES_VERSION=12
+```
