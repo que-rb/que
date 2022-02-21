@@ -137,6 +137,7 @@ module Que
         error: {
           class:   error.class.to_s,
           message: error.message,
+          backtrace: (error.backtrace || []).join("\n").slice(0, 10000),
         },
       )
 
@@ -164,7 +165,7 @@ module Que
           Que.execute :set_error, [
             delay,
             "#{error.class}: #{error.message}".slice(0, 500),
-            error.backtrace.join("\n").slice(0, 10000),
+            (error.backtrace || []).join("\n").slice(0, 10000),
             job.fetch(:id),
           ]
         end
