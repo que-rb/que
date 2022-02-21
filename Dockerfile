@@ -1,4 +1,4 @@
-FROM ruby:2.7.5-slim-buster@sha256:4cbbe2fba099026b243200aa8663f56476950cc64ccd91d7aaccddca31e445b5 AS base
+FROM ruby:3.1.1-slim-buster@sha256:2ada3e4fe7b1703c9333ad4eb9fc12c1d4d60bce0f981281b2151057e928d9ad AS base
 
 # Install libpq-dev in our base layer, as it's needed in all environments
 RUN apt-get update \
