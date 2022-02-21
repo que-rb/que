@@ -1,4 +1,12 @@
+### 1.1.0 (2022-02-21)
+
+- **Features**:
+    + Add backtrace to errors, by [@trammel](https://github.com/trammel) in [#328](https://github.com/que-rb/que/pull/328)
+- **Internal**:
+    + Add Dockerised development environment, in [#324](https://github.com/que-rb/que/pull/324)
+
 ### 1.0.0 (2022-01-24)
+
 _This release does not add any changes on top of 1.0.0.beta5._
 
 ### 1.0.0.beta5 (2021-12-23)
