@@ -27,6 +27,26 @@ module Que
         RETURNING *
       }
 
+    SQL[:bulk_insert_jobs] =
+      %{
+        WITH args_and_kwargs as (
+          SELECT * from json_to_recordset(coalesce($5, '[{args:{},kwargs:{}}]')::json) as x(args jsonb, kwargs jsonb)
+        )
+        INSERT INTO public.que_jobs
+        (queue, priority, run_at, job_class, args, kwargs, data, job_schema_version)
+        SELECT
+          coalesce($1, 'default')::text,
+          coalesce($2, 100)::smallint,
+          coalesce($3, now())::timestamptz,
+          $4::text,
+          args_and_kwargs.args,
+          args_and_kwargs.kwargs,
+          coalesce($6, '{}')::jsonb,
+          #{Que.job_schema_version}
+        FROM args_and_kwargs
+        RETURNING *
+      }
+
     attr_reader :que_attrs
     attr_accessor :que_error, :que_resolved
 
@@ -101,6 +121,47 @@ module Que
         end
       end
       ruby2_keywords(:enqueue) if respond_to?(:ruby2_keywords, true)
+
+      def bulk_enqueue(args_and_kwargs_array, job_options: {})
+        raise 'Unexpected bulk args format' if !args_and_kwargs_array.is_a?(Array) || !args_and_kwargs_array.all? { |a| a.is_a?(Hash) }
+
+        if job_options[:tags]
+          if job_options[:tags].length > MAXIMUM_TAGS_COUNT
+            raise Que::Error, "Can't enqueue a job with more than #{MAXIMUM_TAGS_COUNT} tags! (passed #{job_options[:tags].length})"
+          end
+
+          job_options[:tags].each do |tag|
+            if tag.length > MAXIMUM_TAG_LENGTH
+              raise Que::Error, "Can't enqueue a job with a tag longer than 100 characters! (\"#{tag}\")"
+            end
+          end
+        end
+
+        attrs = {
+          queue:    job_options[:queue]    || resolve_que_setting(:queue) || Que.default_queue,
+          priority: job_options[:priority] || resolve_que_setting(:priority),
+          run_at:   job_options[:run_at]   || resolve_que_setting(:run_at),
+          args:     Que.serialize_json(args_and_kwargs_array),
+          data:     job_options[:tags] ? Que.serialize_json(tags: job_options[:tags]) : "{}",
+          job_class: \
+            job_options[:job_class] || name ||
+              raise(Error, "Can't enqueue an anonymous subclass of Que::Job"),
+        }
+
+        if attrs[:run_at].nil? && resolve_que_setting(:run_synchronously)
+          attrs[:args] = Que.deserialize_json(attrs[:args])
+          attrs[:kwargs] = Que.deserialize_json(attrs[:kwargs])
+          attrs[:data] = Que.deserialize_json(attrs[:data])
+          _run_attrs(attrs)
+        else
+          values_array =
+            Que.execute(
+              :bulk_insert_jobs,
+              attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :data),
+            )
+          values_array.map(&method(:new))
+        end
+      end
 
       def run(*args)
         # Make sure things behave the same as they would have with a round-trip
