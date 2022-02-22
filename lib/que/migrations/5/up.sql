@@ -1,0 +1,2 @@
+ALTER TABLE que_jobs
+  ADD COLUMN que_version INTEGER DEFAULT 1;

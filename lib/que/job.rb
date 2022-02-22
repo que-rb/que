@@ -12,7 +12,7 @@ module Que
     SQL[:insert_job] =
       %{
         INSERT INTO public.que_jobs
-        (queue, priority, run_at, job_class, args, data)
+        (queue, priority, run_at, job_class, args, data, que_version)
         VALUES
         (
           coalesce($1, 'default')::text,
@@ -20,7 +20,8 @@ module Que
           coalesce($3, now())::timestamptz,
           $4::text,
           coalesce($5, '[]')::jsonb,
-          coalesce($6, '{}')::jsonb
+          coalesce($6, '{}')::jsonb,
+          1
         )
         RETURNING *
       }
