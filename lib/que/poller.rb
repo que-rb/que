@@ -68,6 +68,7 @@ module Que
             SELECT j
             FROM public.que_jobs AS j
             WHERE queue = $1::text
+              AND que_version = 1
               AND NOT id = ANY($2::bigint[])
               AND priority <= pg_temp.que_highest_remaining_priority($3::jsonb)
               AND run_at <= now()
@@ -88,6 +89,7 @@ module Que
                   SELECT j
                   FROM public.que_jobs AS j
                   WHERE queue = $1::text
+                    AND que_version = 1
                     AND NOT id = ANY($2::bigint[])
                     AND priority <= pg_temp.que_highest_remaining_priority(jobs.remaining_priorities)
                     AND run_at <= now()
