@@ -57,22 +57,18 @@ module Que
 
       def enqueue(
         *args,
-        queue:     nil,
-        priority:  nil,
-        run_at:    nil,
-        job_class: nil,
-        tags:      nil,
+        job_options: {},
         **arg_opts
       )
-
+        arg_opts, job_options = _extract_job_options(arg_opts, job_options.dup)
         args << arg_opts if arg_opts.any?
 
-        if tags
-          if tags.length > MAXIMUM_TAGS_COUNT
-            raise Que::Error, "Can't enqueue a job with more than #{MAXIMUM_TAGS_COUNT} tags! (passed #{tags.length})"
+        if job_options[:tags]
+          if job_options[:tags].length > MAXIMUM_TAGS_COUNT
+            raise Que::Error, "Can't enqueue a job with more than #{MAXIMUM_TAGS_COUNT} tags! (passed #{job_options[:tags].length})"
           end
 
-          tags.each do |tag|
+          job_options[:tags].each do |tag|
             if tag.length > MAXIMUM_TAG_LENGTH
               raise Que::Error, "Can't enqueue a job with a tag longer than 100 characters! (\"#{tag}\")"
             end
@@ -80,13 +76,13 @@ module Que
         end
 
         attrs = {
-          queue:    queue    || resolve_que_setting(:queue) || Que.default_queue,
-          priority: priority || resolve_que_setting(:priority),
-          run_at:   run_at   || resolve_que_setting(:run_at),
+          queue:    job_options[:queue]    || resolve_que_setting(:queue) || Que.default_queue,
+          priority: job_options[:priority] || resolve_que_setting(:priority),
+          run_at:   job_options[:run_at]   || resolve_que_setting(:run_at),
           args:     Que.serialize_json(args),
-          data:     tags ? Que.serialize_json(tags: tags) : "{}",
+          data:     job_options[:tags] ? Que.serialize_json(tags: job_options[:tags]) : "{}",
           job_class: \
-            job_class || name ||
+            job_options[:job_class] || name ||
               raise(Error, "Can't enqueue an anonymous subclass of Que::Job"),
         }
 
@@ -138,6 +134,27 @@ module Que
             job._run(reraise_errors: true)
           end
         end
+      end
+
+      def _extract_job_options(arg_opts, job_options)
+        deprecated_job_option_names = []
+
+        %i[queue priority run_at job_class tags].each do |option_name|
+          next unless arg_opts.key?(option_name) && job_options[option_name].nil?
+
+          job_options[option_name] = arg_opts.delete(option_name)
+          deprecated_job_option_names << option_name
+        end
+
+        _log_job_options_deprecation(deprecated_job_option_names)
+
+        [arg_opts, job_options]
+      end
+
+      def _log_job_options_deprecation(deprecated_job_option_names)
+        return unless deprecated_job_option_names.any?
+
+        warn "Passing job options like (#{deprecated_job_option_names.join(', ')}) to `JobClass.enqueue` as top level keyword args has been deprecated and will be removed in version 2.0. Please wrap job options in an explicit `job_options` keyword arg instead."
       end
     end
 
