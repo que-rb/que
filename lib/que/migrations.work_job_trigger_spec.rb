@@ -12,6 +12,7 @@ describe Que::Migrations, "job_available trigger" do
       ruby_hostname:     Socket.gethostname,
       queues:            Sequel.pg_array(['default']),
       listening:         true,
+      que_version:       que_major_version,
     }
   end
 

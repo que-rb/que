@@ -218,6 +218,10 @@ class QueSpec < Minitest::Spec
     end
   end
 
+  def que_major_version
+    Gem::Version.new(Que::VERSION).segments.first
+  end
+
   def jobs_dataset
     DB[:que_jobs]
   end

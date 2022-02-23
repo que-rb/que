@@ -124,7 +124,7 @@ describe Que::Poller do
       [10, 20, 30, 40, 50].each {|p| priorities += ([p] * 10)}
       priorities.shuffle!
 
-      jobs_dataset.import([:job_class, :priority], priorities.map{|p| ["Que::Job", p]})
+      jobs_dataset.import([:job_class, :priority, :que_version], priorities.map{|p| ["Que::Job", p, que_major_version]})
     end
 
     def assert_poll(priorities:, locked:)
@@ -221,8 +221,8 @@ describe Que::Poller do
     4.times { q1.pop }
 
     Que.execute <<-SQL
-      INSERT INTO que_jobs (job_class, priority)
-      SELECT 'Que::Job', 1
+      INSERT INTO que_jobs (job_class, priority, que_version)
+      SELECT 'Que::Job', 1, #{que_major_version}
       FROM generate_series(1, 100) AS i;
     SQL
 

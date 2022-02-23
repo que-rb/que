@@ -12,7 +12,7 @@ describe Que::Job, '.enqueue' do
     expected_result_class: nil,
     expected_args: [],
     expected_tags: nil,
-    expected_que_version: 1
+    expected_que_version: que_major_version
   )
 
     assert_equal 0, jobs_dataset.count
