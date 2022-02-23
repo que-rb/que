@@ -24,8 +24,8 @@ module Que
 
   SQL[:register_locker] =
     %{
-      INSERT INTO public.que_lockers (pid, worker_count, worker_priorities, ruby_pid, ruby_hostname, listening, queues)
-      VALUES (pg_backend_pid(), $1::integer, $2::integer[], $3::integer, $4::text, $5::boolean, $6::text[])
+      INSERT INTO public.que_lockers (pid, worker_count, worker_priorities, ruby_pid, ruby_hostname, listening, queues, que_version)
+      VALUES (pg_backend_pid(), $1::integer, $2::integer[], $3::integer, $4::text, $5::boolean, $6::text[], $7::integer)
     }
 
   class Locker
@@ -279,6 +279,7 @@ module Que
         CURRENT_HOSTNAME,
         !!@listener,
         "{\"#{@queue_names.join('","')}\"}",
+        Gem::Version.new(Que::VERSION).segments.first,
       ]
     end
 
