@@ -146,7 +146,7 @@ MSG
       assert_successful_invocation "./#{files[0]} ./#{files[1]}"
 
       assert_match(
-        %r{Que started worker process with:\n(.*\n)+Finishing Que's current jobs before exiting\.\.\.\nQue's jobs finished, exiting\.\.\.},
+        %r{Que #{Que::VERSION} started worker process with:\n(.*\n)+Finishing Que's current jobs before exiting\.\.\.\nQue's jobs finished, exiting\.\.\.},
         output.messages.join("\n"),
       )
 
@@ -445,7 +445,7 @@ MSG
       [
         (
           <<~STARTUP
-            Que started worker process with:
+            Que #{Que::VERSION} started worker process with:
               Worker threads: 6 (priorities: 1, 2, 3, 4, any, any)
               Buffer size: 0-1
               Queues:

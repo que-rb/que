@@ -234,7 +234,7 @@ OUTPUT
 
         output.puts(
           <<~STARTUP
-            Que started worker process with:
+            Que #{Que::VERSION} started worker process with:
               Worker threads: #{locker.workers.length} (priorities: #{locker.workers.map { |w| w.priority || 'any' }.join(', ')})
               Buffer size: #{locker.job_buffer.minimum_size}-#{locker.job_buffer.maximum_size}
               Queues:
