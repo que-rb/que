@@ -232,8 +232,16 @@ OUTPUT
         $stop_que_executable = false
         %w[INT TERM].each { |signal| trap(signal) { $stop_que_executable = true } }
 
-        output.puts "Que started with #{locker.workers.length} workers (priorities: #{locker.workers.map(&:priority)})"
-        output.puts "Que waiting for jobs..."
+        output.puts(
+          <<~STARTUP
+            Que started worker process with:
+              Worker threads: #{locker.workers.length} (priorities: #{locker.workers.map { |w| w.priority || 'any' }.join(', ')})
+              Buffer size: #{locker.job_buffer.minimum_size}-#{locker.job_buffer.maximum_size}
+              Queues:
+            #{locker.queues.map { |queue, interval| "    - #{queue} (poll interval: #{interval}s)" }.join("\n")}
+            Que waiting for jobs...
+          STARTUP
+        )
 
         loop do
           sleep 0.01

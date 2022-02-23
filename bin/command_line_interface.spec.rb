@@ -145,14 +145,9 @@ MSG
 
       assert_successful_invocation "./#{files[0]} ./#{files[1]}"
 
-      assert_equal(
-        [
-          "Que started with 6 workers (priorities: [10, 30, 50, nil, nil, nil])",
-          "Que waiting for jobs...",
-          "\nFinishing Que's current jobs before exiting...",
-          "Que's jobs finished, exiting...",
-        ],
-        output.messages,
+      assert_match(
+        %r{Que started worker process with:\n(.*\n)+Finishing Que's current jobs before exiting\.\.\.\nQue's jobs finished, exiting\.\.\.},
+        output.messages.join("\n"),
       )
 
       assert_equal(
@@ -436,5 +431,36 @@ MSG
         @skip_file_load_check = true
       end
     end
+  end
+
+  it "should log its configuration" do
+    file_name = write_file
+
+    assert_successful_invocation(
+      "./#{file_name} -w 5 -p 1,2,3,4,5,6,7 -i 1.2 -q a=10 -q b=20.05 -q c --minimum-buffer-size 0 --maximum-buffer-size 1",
+      queue_name: 'a',
+    )
+
+    assert_equal(
+      [
+        (
+          <<~STARTUP
+            Que started worker process with:
+              Worker threads: 5 (priorities: 1, 2, 3, 4, 5)
+              Buffer size: 0-1
+              Queues:
+                - a (poll interval: 10.0s)
+                - b (poll interval: 20.05s)
+                - c (poll interval: 1.2s)
+            Que waiting for jobs...
+          STARTUP
+        ),
+        "\nFinishing Que's current jobs before exiting...",
+        "Que's jobs finished, exiting...",
+      ],
+      output.messages,
+    )
+
+    assert_equal({ file_name => true }, LOADED_FILES)
   end
 end

@@ -29,7 +29,7 @@ module Que
     }
 
   class Locker
-    attr_reader :thread, :workers, :job_buffer, :locks
+    attr_reader :thread, :workers, :job_buffer, :locks, :queues, :poll_interval
 
     MESSAGE_RESOLVERS = {}
     RESULT_RESOLVERS  = {}
@@ -101,7 +101,20 @@ module Que
       # Local cache of which advisory locks are held by this connection.
       @locks = Set.new
 
-      @queue_names = queues.is_a?(Hash) ? queues.keys : queues
+      @poll_interval = poll_interval
+
+      if queues.is_a?(Hash)
+        @queue_names = queues.keys
+        @queues = queues.transform_values do |interval|
+          interval || poll_interval
+        end
+      else
+        @queue_names = queues
+        @queues = queues.map do |queue_name|
+          [queue_name, poll_interval]
+        end.to_h
+      end
+
       @wait_period = wait_period.to_f / 1000 # Milliseconds to seconds.
 
       @workers =
@@ -183,11 +196,11 @@ module Que
 
             @pollers =
               if poll
-                queues.map do |queue, interval|
+                @queues.map do |queue_name, interval|
                   Poller.new(
                     connection:    @connection,
-                    queue:         queue,
-                    poll_interval: interval || poll_interval,
+                    queue:         queue_name,
+                    poll_interval: interval,
                   )
                 end
               end
