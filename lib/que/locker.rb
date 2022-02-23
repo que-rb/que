@@ -279,7 +279,7 @@ module Que
         CURRENT_HOSTNAME,
         !!@listener,
         "{\"#{@queue_names.join('","')}\"}",
-        Gem::Version.new(Que::VERSION).segments.first,
+        Que.major_version,
       ]
     end
 

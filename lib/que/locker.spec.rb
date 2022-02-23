@@ -117,7 +117,7 @@ describe Que::Locker do
         worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
         queues:            Sequel.pg_array(['']),
         listening:         true,
-        que_version:       que_major_version,
+        que_version:       Que.major_version,
       )
 
       locker
@@ -247,7 +247,7 @@ describe Que::Locker do
 
       Que.execute <<~SQL
         INSERT INTO que_jobs (job_class, priority, que_version)
-        SELECT 'Que::Job', 1, #{que_major_version}
+        SELECT 'Que::Job', 1, #{Que.major_version}
         FROM generate_series(1, 10) AS i;
       SQL
 
@@ -260,7 +260,7 @@ describe Que::Locker do
     it "should repeat batch polls until there are no more available jobs" do
       Que.execute <<-SQL
         INSERT INTO que_jobs (job_class, priority, que_version)
-        SELECT 'Que::Job', 1, #{que_major_version}
+        SELECT 'Que::Job', 1, #{Que.major_version}
         FROM generate_series(1, 100) AS i;
       SQL
 
@@ -360,11 +360,11 @@ describe Que::Locker do
 
       Que.execute <<-SQL
         INSERT INTO que_jobs (job_class, priority, queue, que_version)
-        SELECT 'BlockJob', 60, 'queue_1', #{que_major_version}
+        SELECT 'BlockJob', 60, 'queue_1', #{Que.major_version}
         FROM generate_series(1, 100) AS i;
 
         INSERT INTO que_jobs (job_class, priority, queue, que_version)
-        SELECT 'BlockJob', 10, 'queue_2', #{que_major_version}
+        SELECT 'BlockJob', 10, 'queue_2', #{Que.major_version}
         FROM generate_series(1, 100) AS i;
       SQL
 
@@ -432,7 +432,7 @@ describe Que::Locker do
       sleep_until_equal(1) { DB[:que_lockers].count }
 
       DB.transaction do
-        id = jobs_dataset.insert(job_class: "BlockJob", que_version: que_major_version)
+        id = jobs_dataset.insert(job_class: "BlockJob", que_version: Que.major_version)
         assert_equal 1, jobs_dataset.where(id: id).delete
       end
 
@@ -446,7 +446,7 @@ describe Que::Locker do
       sleep_until_equal(1) { DB[:que_lockers].count }
 
       DB.transaction do
-        id = jobs_dataset.insert(job_class: "BlockJob", que_version: que_major_version)
+        id = jobs_dataset.insert(job_class: "BlockJob", que_version: Que.major_version)
         assert_equal 1, jobs_dataset.where(id: id).update(finished_at: Time.now)
       end
 
@@ -459,7 +459,7 @@ describe Que::Locker do
       sleep_until_equal(1) { DB[:que_lockers].count }
 
       DB.transaction do
-        id = jobs_dataset.insert(job_class: "BlockJob", que_version: que_major_version)
+        id = jobs_dataset.insert(job_class: "BlockJob", que_version: Que.major_version)
         assert_equal 1, jobs_dataset.where(id: id).update(expired_at: Time.now)
       end
 
@@ -604,7 +604,7 @@ describe Que::Locker do
       sleep_until_equal(1) { DB[:que_lockers].count }
 
       id_other = jobs_dataset.insert(job_class: "BlockJob", que_version: 999_999)
-      id_current = jobs_dataset.insert(job_class: "BlockJob", que_version: que_major_version)
+      id_current = jobs_dataset.insert(job_class: "BlockJob", que_version: Que.major_version)
 
       sleep_until { locked_ids.include?(id_current) }
 
@@ -621,7 +621,7 @@ describe Que::Locker do
       sleep_until_equal(1) { DB[:que_lockers].count }
 
       id_other = jobs_dataset.insert(job_class: "BlockJob", que_version: 999_999)
-      id_current = jobs_dataset.insert(job_class: "BlockJob", que_version: que_major_version)
+      id_current = jobs_dataset.insert(job_class: "BlockJob", que_version: Que.major_version)
 
       sleep_until { locked_ids.include?(id_current) }
 
@@ -729,11 +729,9 @@ describe Que::Locker do
               conn.execute "BEGIN"
               conn.execute "INSERT INTO test_data (job_id, count) VALUES (#{que_attrs[:id]}, 1) ON CONFLICT (job_id) DO UPDATE SET count = test_data.count + 1"
 
-              que_major_version = Gem::Version.new(Que::VERSION).segments.first
-
               if runs < 10
                 delay = rand > 0.5 ? 1 : 0
-                conn.execute(%(INSERT INTO que_jobs (job_class, args, run_at, que_version) VALUES ('QueSpec::RunOnceTestJob', '[{"runs":#{runs + 1},"index":#{index}}]', now() + '#{delay} microseconds', #{que_major_version})))
+                conn.execute(%(INSERT INTO que_jobs (job_class, args, run_at, que_version) VALUES ('QueSpec::RunOnceTestJob', '[{"runs":#{runs + 1},"index":#{index}}]', now() + '#{delay} microseconds', #{Que.major_version})))
               end
 
               finish

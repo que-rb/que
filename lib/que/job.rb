@@ -21,7 +21,7 @@ module Que
           $4::text,
           coalesce($5, '[]')::jsonb,
           coalesce($6, '{}')::jsonb,
-          #{Gem::Version.new(Que::VERSION).segments.first}
+          #{Que.major_version}
         )
         RETURNING *
       }
