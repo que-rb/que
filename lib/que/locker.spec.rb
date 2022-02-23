@@ -595,6 +595,42 @@ describe Que::Locker do
     end
   end
 
+  describe "when receiving jobs enqueued with different versions of Que, should only lock jobs enqueued with the current version" do
+    it "with polling only" do
+      locker_settings.clear
+      locker_settings.merge!(poll: true, listen: false, poll_interval: 0.01)
+      locker
+      sleep_until_equal(1) { DB[:que_lockers].count }
+
+      id_other = jobs_dataset.insert(job_class: "BlockJob", que_version: 999_999)
+      id_current = jobs_dataset.insert(job_class: "BlockJob", que_version: 1)
+
+      sleep_until { locked_ids.include?(id_current) }
+
+      refute_includes locked_ids, id_other
+
+      locked_ids.each { $q1.pop; $q2.push nil }
+      locker.stop!
+    end
+
+    it "with listen only" do
+      locker_settings.clear
+      locker_settings.merge!(poll: false, listen: true)
+      locker
+      sleep_until_equal(1) { DB[:que_lockers].count }
+
+      id_other = jobs_dataset.insert(job_class: "BlockJob", que_version: 999_999)
+      id_current = jobs_dataset.insert(job_class: "BlockJob", que_version: 1)
+
+      sleep_until { locked_ids.include?(id_current) }
+
+      refute_includes locked_ids, id_other
+
+      locked_ids.each { $q1.pop; $q2.push nil }
+      locker.stop!
+    end
+  end
+
   describe "when told to shut down" do
     it "with #stop should inform its workers to stop" do
       BlockJob.enqueue
