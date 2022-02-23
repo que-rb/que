@@ -129,11 +129,11 @@ There are other docs to read if you're using [Sequel](#using-sequel) or [plain P
 After you've connected Que to the database, you can manage the jobs table. You'll want to migrate to a specific version in a migration file, to ensure that they work the same way even when you upgrade Que in the future:
 
 ```ruby
-# Update the schema to version #4.
-Que.migrate! version: 4
+# Update the schema to version #5.
+Que.migrate!(version: 5)
 
 # Remove Que's jobs table entirely.
-Que.migrate! version: 0
+Que.migrate!(version: 0)
 ```
 
 There's also a helper method to clear all jobs from the jobs table:
@@ -405,11 +405,11 @@ Some new releases of Que may require updates to the database schema. It's recomm
 ```ruby
 class UpdateQue < ActiveRecord::Migration[5.0]
   def self.up
-    Que.migrate! version: 3
+    Que.migrate!(version: 3)
   end
 
   def self.down
-    Que.migrate! version: 2
+    Que.migrate!(version: 2)
   end
 end
 ```
@@ -418,7 +418,7 @@ This will make sure that your database schema stays consistent with your codebas
 
 ```ruby
 # Change schema to version 3.
-Que.migrate! version: 3
+Que.migrate!(version: 3)
 
 # Check your current schema version.
 Que.db_version #=> 3
@@ -550,11 +550,11 @@ require 'que'
 Sequel.migration do
   up do
     Que.connection = self
-    Que.migrate! :version => 3
+    Que.migrate!(version: 5)
   end
   down do
     Que.connection = self
-    Que.migrate! :version => 0
+    Que.migrate!(version: 0)
   end
 end
 ```
