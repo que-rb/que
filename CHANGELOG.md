@@ -1,3 +1,8 @@
+### 1.2.0 (2022-02-23)
+
+- **Deprecated**
+    + Providing job options as top level keyword arguments to Job.enqueue is now deprecated. Support will be dropped in `2.0`. Job options should be nested under the `job_options` keyword arg instead. See [#336](https://github.com/que-rb/que/pull/336)
+
 ### 1.1.0 (2022-02-21)
 
 - **Features**:
