@@ -58,7 +58,7 @@ describe Que::Job, '.enqueue' do
 
   it "should be able to queue a job with complex arguments" do
     assert_enqueue [
-      1, 
+      1,
       'two',
       {
         string: "string",
@@ -122,6 +122,21 @@ describe Que::Job, '.enqueue' do
       expected_priority: 4
   end
 
+  it "should be able to use an explicit `job_options` keyword to avoid conflicts with job keyword args" do
+    assert_enqueue \
+      [1, {string: "string", priority: 10, job_options: { priority: 15 }}],
+      expected_args: [1, {string: "string", priority: 10}],
+      expected_priority: 15
+  end
+
+  it "should fall back to using job options specified at the top level if not specified in job_options" do
+    assert_enqueue \
+      [1, {string: "string", run_at: Time.now + 60, priority: 10, job_options: { priority: 15 }}],
+      expected_args: [1, {string: "string", priority: 10}],
+      expected_run_at: Time.now + 60,
+      expected_priority: 15
+  end
+
   describe "when enqueuing a job with tags" do
     it "should be able to specify tags on a case-by-case basis" do
       assert_enqueue \
@@ -135,6 +150,13 @@ describe Que::Job, '.enqueue' do
         [1, {string: "string", tags: ["tag_1", "tag_2"]}, {}],
         expected_args: [1, {string: "string", tags: ["tag_1", "tag_2"]}],
         expected_tags: nil
+    end
+
+    it "should be able to use an explicit `job_options` keyword to avoid conflicts with job keyword args" do
+      assert_enqueue \
+        [1, {string: "string", tags: ["tag_1", "tag_2"], job_options: { tags: ["tag_3", "tag_4"] }}],
+        expected_args: [1, {string: "string", tags: ["tag_1", "tag_2"]}],
+        expected_tags: ["tag_3", "tag_4"]
     end
 
     it "should raise an error if passing too many tags" do
