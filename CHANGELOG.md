@@ -59,12 +59,12 @@
 **Notable changes**:
 
 * Database schema has changed to split job arguments into args and kwargs.
-* It's no longer possible to pass keyword arguments whose keys conflict with job option keys.
+* Support for providing job options as top-level keyword arguments to `Job.enqueue` has been removed. See the deprecation in the previous release.
 * Passing a hash literal as the last job argument to be splatted into job keyword arguments is no longer supported.
-* Dropped support for ruby < 2.7
-* Dropped support for rails < 6.0
+* Dropped support for Ruby < 2.7
+* Dropped support for Rails < 6.0
 * The `#by_args` method on the Job model (for both Sequel and ActiveRecord) now searches based on both args and kwargs, but it performs a subset match instead of an exact match. For instance, if your job was scheduled with `'a', 'b', 'c', foo: 'bar', baz: 1`, `by_args('a', 'b', baz: 1)` would find and return the job.
-* This release contains database migrations. You will need to migrate Que to the latest version (5). For instance, on ActiveRecord and Rails 6:
+* This release contains a database migration. You will need to migrate Que to the latest version (5). For instance, on ActiveRecord and Rails 6:
 
 ```ruby
 class UpdateQueTables < ActiveRecord::Migration[6.0]
