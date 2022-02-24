@@ -1,13 +1,13 @@
 DROP TRIGGER que_job_notify ON que_jobs;
 DROP FUNCTION que_job_notify();
 
-DROP INDEX que_poll_idx_with_que_version;
+DROP INDEX que_poll_idx_with_job_schema_version;
 
 ALTER TABLE que_jobs
-  DROP COLUMN que_version;
+  DROP COLUMN job_schema_version;
 
 ALTER TABLE que_lockers
-  DROP COLUMN que_version;
+  DROP COLUMN job_schema_version;
 
 CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
   DECLARE

@@ -2,13 +2,13 @@ DROP TRIGGER que_job_notify ON que_jobs;
 DROP FUNCTION que_job_notify();
 
 ALTER TABLE que_jobs
-  ADD COLUMN que_version INTEGER DEFAULT 1;
+  ADD COLUMN job_schema_version INTEGER DEFAULT 1;
 
 ALTER TABLE que_lockers
-  ADD COLUMN que_version INTEGER DEFAULT 1;
+  ADD COLUMN job_schema_version INTEGER DEFAULT 1;
 
-CREATE INDEX que_poll_idx_with_que_version
-  ON que_jobs (que_version, queue, priority, run_at, id)
+CREATE INDEX que_poll_idx_with_job_schema_version
+  ON que_jobs (job_schema_version, queue, priority, run_at, id)
   WHERE (finished_at IS NULL AND expired_at IS NULL);
 
 CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
@@ -37,7 +37,7 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
           WHERE
             listening AND
             queues @> ARRAY[NEW.queue] AND
-            ql.que_version = NEW.que_version
+            ql.job_schema_version = NEW.job_schema_version
           ORDER BY md5(pid::text || id::text)
         ) t1
       ) t2

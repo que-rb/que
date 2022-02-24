@@ -12,7 +12,7 @@ module Que
     SQL[:insert_job] =
       %{
         INSERT INTO public.que_jobs
-        (queue, priority, run_at, job_class, args, data, que_version)
+        (queue, priority, run_at, job_class, args, data, job_schema_version)
         VALUES
         (
           coalesce($1, 'default')::text,

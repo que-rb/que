@@ -24,7 +24,7 @@ module Que
 
   SQL[:register_locker] =
     %{
-      INSERT INTO public.que_lockers (pid, worker_count, worker_priorities, ruby_pid, ruby_hostname, listening, queues, que_version)
+      INSERT INTO public.que_lockers (pid, worker_count, worker_priorities, ruby_pid, ruby_hostname, listening, queues, job_schema_version)
       VALUES (pg_backend_pid(), $1::integer, $2::integer[], $3::integer, $4::text, $5::boolean, $6::text[], $7::integer)
     }
 
