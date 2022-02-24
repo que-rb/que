@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -Eeuo pipefail
+
+cd "$(dirname "$0")/.."
+
+green='\e[32m'; blue='\e[36m'; red='\e[31m'; bold='\e[1m'; reset='\e[0m'
+coloured-arrow() { printf "$bold$1==> $2$reset\n"; }
+success() { coloured-arrow "$green" "$1"; }
+info() { coloured-arrow "$blue" "$1"; }
+err() { coloured-arrow "$red" "$1"; exit 1; }
+
+info 'Running pre-push hook...'
+
+on-exit() {
+  [[ -n "${succeeded-}" ]] || err 'Pre-push checks failed'
+}
+trap on-exit EXIT
+
+info 'Checking for uncommitted changes...'
+[[ -z $(git status -s) ]] || err 'ERROR: You have uncommited changes'
+
+info 'Checking bundle...'
+bundle check --dry-run || bundle install
+
+info 'Specs...'
+auto/test
+
+succeeded=true
+success 'All pre-push checks passed! =)'

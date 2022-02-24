@@ -253,3 +253,14 @@ If you want to try a different version of Postgres, e.g. 12:
 ```bash
 export POSTGRES_VERSION=12
 ```
+
+### Git pre-push hook
+
+So we can avoid breaking the build, we've created Git pre-push hooks to verify everything is ok before pushing.
+
+To set up the pre-push hook locally, run:
+
+```bash
+echo -e "#\!/bin/bash\n\$(dirname \$0)/../../auto/pre-push-hook" > .git/hooks/pre-push
+chmod +x .git/hooks/pre-push
+```
