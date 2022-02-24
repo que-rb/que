@@ -59,10 +59,9 @@ module Que
       def enqueue(
         *args,
         job_options: {},
-        **arg_opts
+        **kwargs
       )
-        arg_opts, job_options = _extract_job_options(arg_opts, job_options.dup)
-        args << arg_opts if arg_opts.any?
+        args << kwargs if kwargs.any?
 
         if job_options[:tags]
           if job_options[:tags].length > MAXIMUM_TAGS_COUNT
@@ -135,27 +134,6 @@ module Que
             job._run(reraise_errors: true)
           end
         end
-      end
-
-      def _extract_job_options(arg_opts, job_options)
-        deprecated_job_option_names = []
-
-        %i[queue priority run_at job_class tags].each do |option_name|
-          next unless arg_opts.key?(option_name) && job_options[option_name].nil?
-
-          job_options[option_name] = arg_opts.delete(option_name)
-          deprecated_job_option_names << option_name
-        end
-
-        _log_job_options_deprecation(deprecated_job_option_names)
-
-        [arg_opts, job_options]
-      end
-
-      def _log_job_options_deprecation(deprecated_job_option_names)
-        return unless deprecated_job_option_names.any?
-
-        warn "Passing job options like (#{deprecated_job_option_names.join(', ')}) to `JobClass.enqueue` as top level keyword args has been deprecated and will be removed in version 2.0. Please wrap job options in an explicit `job_options` keyword arg instead."
       end
     end
 

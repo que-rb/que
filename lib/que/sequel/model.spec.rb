@@ -7,8 +7,8 @@ describe 'Que::Sequel::Model' do
     require "que/sequel/model"
   end
 
-  def enqueue_job(*args)
-    Que::Job.enqueue(*args).que_attrs[:id]
+  def enqueue_job(*args, **kwargs)
+    Que::Job.enqueue(*args, **kwargs).que_attrs[:id]
   end
 
   def assert_ids(*expected)
@@ -101,8 +101,8 @@ describe 'Que::Sequel::Model' do
 
   describe "by_job_class" do
     it "should return a dataset of jobs with that job class" do
-      a = enqueue_job(job_class: "CustomJobClass")
-      b = enqueue_job(job_class: "BlockJob")
+      a = enqueue_job(job_options: { job_class: "CustomJobClass" })
+      b = enqueue_job(job_options: { job_class: "BlockJob" })
       c = enqueue_job
 
       assert_ids(a) { |ds| ds.by_job_class("CustomJobClass") }
@@ -113,8 +113,8 @@ describe 'Que::Sequel::Model' do
     end
 
     it "should be compatible with ActiveModel job classes" do
-      a = enqueue_job({job_class: "WrappedJobClass"}, {job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper"})
-      b = enqueue_job({job_class: "OtherWrappedJobClass"}, {job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper"})
+      a = enqueue_job({job_class: "WrappedJobClass"}, job_options: { job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper" })
+      b = enqueue_job({job_class: "OtherWrappedJobClass"}, job_options: { job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper" })
       c = enqueue_job
 
       assert_ids(a) { |ds| ds.by_job_class("WrappedJobClass") }
@@ -126,7 +126,7 @@ describe 'Que::Sequel::Model' do
   describe "by_queue" do
     it "should return a dataset of jobs in that queue" do
       a = enqueue_job
-      b = enqueue_job(queue: "other_queue")
+      b = enqueue_job(job_options: { queue: "other_queue" })
 
       assert_ids(a) { |ds| ds.by_queue("default") }
       assert_ids(b) { |ds| ds.by_queue("other_queue") }
@@ -136,8 +136,8 @@ describe 'Que::Sequel::Model' do
 
   describe "by_tag" do
     it "should return a dataset of jobs with the given tag" do
-      a = enqueue_job(tags: ["tag_1"])
-      b = enqueue_job(tags: ["tag_2"])
+      a = enqueue_job(job_options: { tags: ["tag_1"] })
+      b = enqueue_job(job_options: { tags: ["tag_2"] })
 
       assert_ids(a) { |ds| ds.by_tag("tag_1") }
       assert_ids(b) { |ds| ds.by_tag("tag_2") }

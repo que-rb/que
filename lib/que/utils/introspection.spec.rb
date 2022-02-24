@@ -49,7 +49,7 @@ describe Que::Utils::Introspection do
 
   describe 'job_states' do
     it "should return a list of the jobs currently being run" do
-      BlockJob.enqueue priority: 2
+      BlockJob.enqueue(job_options: { priority: 2 })
 
       # Ensure that the portion of the SQL query that accounts for bigint
       # job_ids functions correctly.

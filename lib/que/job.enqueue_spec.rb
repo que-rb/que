@@ -96,21 +96,21 @@ describe Que::Job, '.enqueue' do
     assert_enqueue(
       expected_args: [1],
       expected_queue: 'special_queue_name',
-    ) { Que.enqueue(1, queue: 'special_queue_name') }
+    ) { Que.enqueue(1, job_options: { queue: 'special_queue_name' }) }
   end
 
   it "should be able to queue a job with a specific time to run" do
     assert_enqueue(
       expected_args: [1],
       expected_run_at: Time.now + 60,
-    ) { Que.enqueue(1, run_at: Time.now + 60) }
+    ) { Que.enqueue(1, job_options: { run_at: Time.now + 60 }) }
   end
 
   it "should be able to queue a job with a specific priority" do
     assert_enqueue(
       expected_args: [1],
       expected_priority: 4,
-    ) { Que.enqueue(1, priority: 4) }
+    ) { Que.enqueue(1, job_options: { priority: 4 }) }
   end
 
   it "should be able to queue a job with options in addition to args and kwargs" do
@@ -118,22 +118,22 @@ describe Que::Job, '.enqueue' do
       expected_args: [1, { string: "string" }],
       expected_run_at: Time.now + 60,
       expected_priority: 4,
-    ) { Que.enqueue(1, string: "string", run_at: Time.now + 60, priority: 4) }
+    ) { Que.enqueue(1, string: "string", job_options: { run_at: Time.now + 60, priority: 4 }) }
   end
 
   it "should be able to use an explicit `job_options` keyword to avoid conflicts with job keyword args" do
     assert_enqueue(
-      expected_args: [1, {string: "string", priority: 10}],
+      expected_args: [1, { string: "string", priority: 10 }],
       expected_priority: 15,
     ) { Que.enqueue(1, { string: "string", priority: 10, job_options: { priority: 15 } }) }
   end
 
-  it "should fall back to using job options specified at the top level if not specified in job_options" do
+  it "should no longer fall back to using job options specified at the top level if not specified in job_options" do
     assert_enqueue(
-      expected_args: [1, {string: "string", priority: 10}],
-      expected_run_at: Time.now + 60,
+      expected_args: [1, { string: "string", run_at: Time.utc(2050).to_s, priority: 10 }],
+      expected_run_at: Time.now,
       expected_priority: 15,
-    ) { Que.enqueue(1, { string: "string", run_at: Time.now + 60, priority: 10, job_options: { priority: 15 } }) }
+    ) { Que.enqueue(1, string: "string", run_at: Time.utc(2050), priority: 10, job_options: { priority: 15 }) }
   end
 
   describe "when enqueuing a job with tags" do
@@ -141,33 +141,20 @@ describe Que::Job, '.enqueue' do
       assert_enqueue(
         expected_args: [1, { string: "string" }],
         expected_tags: ["tag_1", "tag_2"],
-      ) { Que.enqueue(1, string: "string", tags: ["tag_1", "tag_2"]) }
+      ) { Que.enqueue(1, string: "string", job_options: { tags: ["tag_1", "tag_2"] }) }
     end
 
-    it "should be able to use multiple hashes to help avoid conflicts between args and job options" do
+    it "should no longer fall back to using tags specified at the top level if not specified in job_options" do
       assert_enqueue(
         expected_args: [1, { string: "string", tags: ["tag_1", "tag_2"] }],
-        expected_tags: ["tag_3", "tag_4"],
-      ) do
-        Que.enqueue(
-          1,
-          { string: "string", tags: ["tag_1", "tag_2"] },
-          tags: ["tag_3", "tag_4"],
-        )
-      end
-    end
-
-    it "should be able to use an explicit `job_options` keyword to avoid conflicts with job keyword args" do
-      assert_enqueue(
-        expected_args: [1, {string: "string", tags: ["tag_1", "tag_2"]}],
-        expected_tags: ["tag_3", "tag_4"]
-      ) { Que.enqueue(1, {string: "string", tags: ["tag_1", "tag_2"], job_options: { tags: ["tag_3", "tag_4"] }}) }
+        expected_tags: nil,
+      ) { Que.enqueue(1, { string: "string", tags: ["tag_1", "tag_2"] }) }
     end
 
     it "should raise an error if passing too many tags" do
       error =
         assert_raises(Que::Error) do
-          Que::Job.enqueue 1, string: "string", tags: %w[a b c d e f]
+          Que::Job.enqueue 1, string: "string", job_options: { tags: %w[a b c d e f] }
         end
 
       assert_equal \
@@ -178,7 +165,7 @@ describe Que::Job, '.enqueue' do
     it "should raise an error if any of the tags are too long" do
       error =
         assert_raises(Que::Error) do
-          Que::Job.enqueue 1, string: "string", tags: ["a" * 101]
+          Que::Job.enqueue 1, string: "string", job_options: { tags: ["a" * 101] }
         end
 
       assert_equal \
@@ -194,7 +181,7 @@ describe Que::Job, '.enqueue' do
       expected_args: ['argument', { other_arg: "other_arg" }],
       expected_job_class: MyJobClass,
       expected_result_class: Que::Job
-    ) { Que.enqueue('argument', other_arg: "other_arg", job_class: 'MyJobClass') }
+    ) { Que.enqueue('argument', other_arg: "other_arg", job_options: { job_class: 'MyJobClass' }) }
   end
 
   describe "when there's a hierarchy of job classes" do
@@ -232,7 +219,7 @@ describe Que::Job, '.enqueue' do
           expected_args: [1],
           expected_priority: 4,
           expected_job_class: PriorityDefaultJob
-        ) { PriorityDefaultJob.enqueue(1, priority: 4) }
+        ) { PriorityDefaultJob.enqueue(1, job_options: { priority: 4 }) }
       end
 
       it "should respect an inherited priority in a job class" do
@@ -246,7 +233,7 @@ describe Que::Job, '.enqueue' do
           expected_args: [1],
           expected_priority: 4,
           expected_job_class: PrioritySubclassJob
-        ) { PrioritySubclassJob.enqueue(1, priority: 4) }
+        ) { PrioritySubclassJob.enqueue(1, job_options: { priority: 4 }) }
       end
 
       it "should respect an overridden priority in a job class" do
@@ -263,7 +250,7 @@ describe Que::Job, '.enqueue' do
             expected_args: [1],
             expected_priority: 4,
             expected_job_class: PrioritySubclassJob
-          ) { PrioritySubclassJob.enqueue(1, priority: 4) }
+          ) { PrioritySubclassJob.enqueue(1, job_options: { priority: 4 }) }
         ensure
           PrioritySubclassJob.remove_instance_variable(:@priority)
         end
@@ -282,7 +269,7 @@ describe Que::Job, '.enqueue' do
           expected_args: [1],
           expected_run_at: Time.now + 60,
           expected_job_class: RunAtDefaultJob
-        ) { RunAtDefaultJob.enqueue(1, run_at: Time.now + 60) }
+        ) { RunAtDefaultJob.enqueue(1, job_options: { run_at: Time.now + 60 }) }
       end
 
       it "should respect an inherited run_at in a job class" do
@@ -296,7 +283,7 @@ describe Que::Job, '.enqueue' do
           expected_args: [1],
           expected_run_at: Time.now + 60,
           expected_job_class: RunAtSubclassJob
-        ) { RunAtSubclassJob.enqueue(1, run_at: Time.now + 60) }
+        ) { RunAtSubclassJob.enqueue(1, job_options: { run_at: Time.now + 60 }) }
       end
 
       it "should respect an overridden run_at in a job class" do
@@ -313,7 +300,7 @@ describe Que::Job, '.enqueue' do
             expected_args: [1],
             expected_run_at: Time.now + 60,
             expected_job_class: RunAtSubclassJob
-          ) { RunAtSubclassJob.enqueue(1, run_at: Time.now + 60) }
+          ) { RunAtSubclassJob.enqueue(1, job_options: { run_at: Time.now + 60 }) }
         ensure
           RunAtSubclassJob.remove_instance_variable(:@run_at)
         end
@@ -332,7 +319,7 @@ describe Que::Job, '.enqueue' do
           expected_args: [1],
           expected_queue: 'queue_3',
           expected_job_class: QueueDefaultJob
-        ) { QueueDefaultJob.enqueue(1, queue: 'queue_3') }
+        ) { QueueDefaultJob.enqueue(1, job_options: { queue: 'queue_3' }) }
       end
 
       it "should respect an inherited queue in a job class" do
@@ -346,7 +333,7 @@ describe Que::Job, '.enqueue' do
           expected_args: [1],
           expected_queue: 'queue_3',
           expected_job_class: QueueSubclassJob
-        ) { QueueSubclassJob.enqueue(1, queue: 'queue_3') }
+        ) { QueueSubclassJob.enqueue(1, job_options: { queue: 'queue_3' }) }
       end
 
       it "should respect an overridden queue in a job class" do
@@ -363,7 +350,7 @@ describe Que::Job, '.enqueue' do
             expected_args: [1],
             expected_queue: 'queue_3',
             expected_job_class: QueueSubclassJob
-          ) { QueueSubclassJob.enqueue(1, queue: 'queue_3') }
+          ) { QueueSubclassJob.enqueue(1, job_options: { queue: 'queue_3' }) }
         ensure
           QueueSubclassJob.remove_instance_variable(:@queue)
         end

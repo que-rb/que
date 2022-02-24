@@ -43,7 +43,7 @@ describe Que::CommandLineInterface do
     default_require_file: Que::CommandLineInterface::RAILS_ENVIRONMENT_FILE
   )
 
-    BlockJob.enqueue(queue: queue_name, priority: 1)
+    BlockJob.enqueue(job_options: { queue: queue_name, priority: 1 })
 
     thread =
       Thread.new do

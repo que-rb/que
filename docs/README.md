@@ -441,7 +441,7 @@ que -q default -q credit_cards
 Then you can set jobs to be enqueued in that queue specifically:
 
 ```ruby
-ProcessCreditCard.enqueue current_user.id, queue: 'credit_cards'
+ProcessCreditCard.enqueue(current_user.id, job_options: { queue: 'credit_cards' })
 
 # Or:
 
@@ -455,7 +455,7 @@ end
 In some cases, the ProcessCreditCard class may not be defined in the application that is enqueueing the job. In that case, you can specify the job class as a string:
 
 ```ruby
-Que.enqueue current_user.id, job_class: 'ProcessCreditCard', queue: 'credit_cards'
+Que.enqueue(current_user.id, job_options: { job_class: 'ProcessCreditCard', queue: 'credit_cards' })
 ```
 
 ## Shutting Down Safely

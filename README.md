@@ -117,7 +117,7 @@ end
 You can also add options to run the job after a specific time, or with a specific priority:
 
 ```ruby
-ChargeCreditCard.enqueue card.id, user_id: current_user.id, run_at: 1.day.from_now, priority: 5
+ChargeCreditCard.enqueue(card.id, user_id: current_user.id, job_options: { run_at: 1.day.from_now, priority: 5 })
 ```
 ## Running the Que Worker
 In order to process jobs, you must start a separate worker process outside of your main server. 

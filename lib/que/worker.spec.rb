@@ -65,7 +65,7 @@ describe Que::Worker do
       end
     end
 
-    [1, 2, 3].each { |i| WorkerJob.enqueue i, priority: i }
+    [1, 2, 3].each { |i| WorkerJob.enqueue(i, job_options: { priority: i }) }
     job_ids = jobs_dataset.order_by(:priority).select_map(:id)
     run_jobs
 
@@ -155,7 +155,7 @@ describe Que::Worker do
     it "should only take jobs that meet it priority requirement" do
       jobs =
         (1..20).map do |i|
-          Que::Job.enqueue(i, priority: i).que_attrs
+          Que::Job.enqueue(i, job_options: { priority: i }).que_attrs
         end
 
       job_ids = jobs.map { |j| j[:id] }
@@ -216,8 +216,8 @@ describe Que::Worker do
     it "should record/report the error and not crash the worker" do
       # First job should error, second job should still be worked.
       job_ids = [
-        WorkerJob.enqueue(priority: 1),
-        Que::Job.enqueue(priority: 2),
+        WorkerJob.enqueue(job_options: { priority: 1 }),
+        Que::Job.enqueue(job_options: { priority: 2 }),
       ].map{|j| j.que_attrs[:id]}
 
       run_jobs
@@ -369,7 +369,7 @@ describe Que::Worker do
         end
 
         it "when it reaches a maximum should mark the job as expired" do
-          job = Que.enqueue(job_class: "NonexistentJobClass")
+          job = Que.enqueue(job_options: { job_class: "NonexistentJobClass" })
           ds = jobs_dataset.where(id: job.que_attrs[:id])
 
           assert_equal 1, ds.update(error_count: 15)
