@@ -17,6 +17,7 @@ services:
     command: bash
     environment:
       DATABASE_URL: postgres://que:que@db/que-test
+      USE_RAILS: ~
 
   db:
     image: "postgres:${POSTGRES_VERSION-13}"
