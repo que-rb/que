@@ -437,7 +437,7 @@ MSG
     file_name = write_file
 
     assert_successful_invocation(
-      "./#{file_name} -w 5 -p 1,2,3,4,5,6,7 -i 1.2 -q a=10 -q b=20.05 -q c --minimum-buffer-size 0 --maximum-buffer-size 1",
+      "./#{file_name} -w 6 -p 1,2,3,4 -i 1.2 -q a=10 -q b=20.05 -q c --minimum-buffer-size 0 --maximum-buffer-size 1",
       queue_name: 'a',
     )
 
@@ -446,7 +446,7 @@ MSG
         (
           <<~STARTUP
             Que started worker process with:
-              Worker threads: 5 (priorities: 1, 2, 3, 4, 5)
+              Worker threads: 6 (priorities: 1, 2, 3, 4, any, any)
               Buffer size: 0-1
               Queues:
                 - a (poll interval: 10.0s)
