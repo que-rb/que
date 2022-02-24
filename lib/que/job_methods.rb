@@ -39,12 +39,16 @@ module Que
     # Run the job with error handling and cleanup logic. Optionally support
     # overriding the args, because it's necessary when jobs are invoked from
     # ActiveJob.
-    def _run(args: nil, reraise_errors: false)
+    def _run(args: nil, kwargs: nil, reraise_errors: false)
       if args.nil? && que_target
         args = que_target.que_attrs.fetch(:args)
       end
 
-      run(*args)
+      if kwargs.nil? && que_target
+        kwargs = que_target.que_attrs.fetch(:kwargs)
+      end
+
+      run(*args, **kwargs)
       default_resolve_action if que_target && !que_target.que_resolved
     rescue => error
       raise error unless que_target

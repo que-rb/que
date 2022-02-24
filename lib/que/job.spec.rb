@@ -9,8 +9,9 @@ describe Que::Job do
     Que.error_notifier = proc { |e| notified_errors << e }
 
     class TestJobClass < Que::Job
-      def run(*args)
+      def run(*args, **kwargs)
         $args = args
+        $kwargs = kwargs
       end
     end
   end
@@ -18,6 +19,7 @@ describe Que::Job do
   after do
     Object.send :remove_const, :TestJobClass
     $args = nil
+    $kwargs = nil
   end
 
   module ActsLikeAJob
@@ -29,42 +31,74 @@ describe Que::Job do
 
         it "should pass its arguments to the run method" do
           execute(1, 2)
-          assert_equal [1, 2], $args
+          assert_equal([1, 2], $args)
+        end
+
+        it "should pass its keyword arguments to the run method" do
+          execute(a: 1, b: 2)
+          assert_equal({ a: 1, b: 2 }, $kwargs)
         end
 
         it "should deep-freeze its arguments" do
+          execute([], {}, 'blah'.dup)
+
+          assert_equal([[], {}, 'blah'.dup], $args)
+
+          array = $args
+          assert array[0].frozen?
+          assert array[1].frozen?
+          assert array[2].frozen?
+        end
+
+        it "should deep-freeze its keyword arguments" do
           execute(array: [], hash: {}, string: 'blah'.dup)
 
-          assert_equal([{array: [], hash: {}, string: 'blah'.dup}], $args)
+          assert_equal({array: [], hash: {}, string: 'blah'.dup}, $kwargs)
 
-          hash = $args.first
-          assert hash.frozen?
+          hash = $kwargs
           assert hash[:array].frozen?
           assert hash[:hash].frozen?
           assert hash[:string].frozen?
         end
 
-        it "should symbolize argument hashes" do
-          execute(a: 1, b: 2)
+        it "treats the last hash literal as a positional argument" do
+          execute({a: 1, b: 2})
           assert_equal([{a: 1, b: 2}], $args)
         end
 
-        it "should symbolize argument hashes even if they were originally passed as strings" do
+        it "should symbolize hash argument keys" do
+          execute({a: 1, b: 2}, c: 3, d: 4)
+          assert_equal([{a: 1, b: 2}], $args)
+        end
+
+        it "should symbolize hash argument keys even if they were originally passed as strings" do
+          # The run() helper should convert these to symbols, just as if they'd
+          # been passed through the DB.
+          execute({'a' => 1, 'b' => 2}, c: 3, d: 4)
+          assert_equal([{a: 1, b: 2}], $args)
+        end
+
+        it "should symbolize keyword argument keys" do
+          execute(a: 1, b: 2)
+          assert_equal({a: 1, b: 2}, $kwargs)
+        end
+
+        it "should symbolize keyword argument keys even if they were originally passed as strings" do
           # The run() helper should convert these to symbols, just as if they'd
           # been passed through the DB.
           execute('a' => 1, 'b' => 2)
-          assert_equal([{a: 1, b: 2}], $args)
+          assert_equal({a: 1, b: 2}, $kwargs)
         end
 
         it "should handle keyword arguments just fine" do
           TestJobClass.class_eval do
             def run(a:, b: 4, c: 3)
-              $args = [a, b, c]
+              $kwargs = [a, b, c]
             end
           end
 
           execute(a: 1, b: 2)
-          assert_equal [1, 2, 3], $args
+          assert_equal [1, 2, 3], $kwargs
         end
 
         it "should handle keyword arguments even if they were originally passed as strings" do
@@ -349,6 +383,7 @@ describe Que::Job do
     def execute(*args)
       TestJobClass.run(*args)
     end
+    ruby2_keywords(:execute) if respond_to?(:ruby2_keywords, true)
   end
 
   describe "the JobClass.enqueue() method when run_synchronously is set" do
@@ -361,6 +396,7 @@ describe Que::Job do
       TestJobClass.run_synchronously = true
       TestJobClass.enqueue(*args)
     end
+    ruby2_keywords(:execute) if respond_to?(:ruby2_keywords, true)
   end
 
   describe "running jobs from the DB" do
@@ -385,6 +421,7 @@ describe Que::Job do
 
       job
     end
+    ruby2_keywords(:execute) if respond_to?(:ruby2_keywords, true)
 
     it "should handle subclassed jobs" do
       Object.send :remove_const, :TestJobClass
@@ -424,8 +461,9 @@ describe Que::Job do
         end
 
         class TestJobClass < ApplicationJob
-          def run(*args)
+          def run(*args, **kwargs)
             $args = args
+            $kwargs = kwargs
           end
         end
       end
@@ -453,6 +491,7 @@ describe Que::Job do
 
         ActiveJob::QueueAdapters::QueAdapter::JobWrapper.new(attrs)
       end
+      ruby2_keywords(:execute) if respond_to?(:ruby2_keywords, true)
 
       it "should still support using the perform method" do
         TestJobClass.send :undef_method, :run

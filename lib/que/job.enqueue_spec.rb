@@ -10,6 +10,7 @@ describe Que::Job, '.enqueue' do
     expected_job_class: Que::Job,
     expected_result_class: nil,
     expected_args: [],
+    expected_kwargs: {},
     expected_tags: nil,
     expected_job_schema_version: Que.job_schema_version,
     &enqueue_block
@@ -23,6 +24,7 @@ describe Que::Job, '.enqueue' do
 
     assert_equal expected_priority, result.que_attrs[:priority]
     assert_equal expected_args, result.que_attrs[:args]
+    assert_equal expected_kwargs, result.que_attrs[:kwargs]
 
     if expected_tags.nil?
       assert_equal({}, result.que_attrs[:data])
@@ -54,23 +56,21 @@ describe Que::Job, '.enqueue' do
       expected_args: [
         1,
         'two',
-        {
-          string: "string",
-          integer: 5,
-          array: [1, "two", {three: 3}],
-          hash: {one: 1, two: 'two', three: [3]},
-        },
       ],
+      expected_kwargs: {
+        string: "string",
+        integer: 5,
+        array: [1, "two", {three: 3}],
+        hash: {one: 1, two: 'two', three: [3]},
+      },
     ) do
       Que.enqueue(
         1,
         'two',
-        {
-          string: "string",
-          integer: 5,
-          array: [1, "two", {three: 3}],
-          hash: {one: 1, two: 'two', three: [3]},
-        },
+        string: "string",
+        integer: 5,
+        array: [1, "two", {three: 3}],
+        hash: {one: 1, two: 'two', three: [3]},
       )
     end
   end
@@ -115,22 +115,17 @@ describe Que::Job, '.enqueue' do
 
   it "should be able to queue a job with options in addition to args and kwargs" do
     assert_enqueue(
-      expected_args: [1, { string: "string" }],
+      expected_args: [1],
+      expected_kwargs: { string: "string" },
       expected_run_at: Time.now + 60,
       expected_priority: 4,
     ) { Que.enqueue(1, string: "string", job_options: { run_at: Time.now + 60, priority: 4 }) }
   end
 
-  it "should be able to use an explicit `job_options` keyword to avoid conflicts with job keyword args" do
-    assert_enqueue(
-      expected_args: [1, { string: "string", priority: 10 }],
-      expected_priority: 15,
-    ) { Que.enqueue(1, { string: "string", priority: 10, job_options: { priority: 15 } }) }
-  end
-
   it "should no longer fall back to using job options specified at the top level if not specified in job_options" do
     assert_enqueue(
-      expected_args: [1, { string: "string", run_at: Time.utc(2050).to_s, priority: 10 }],
+      expected_args: [1],
+      expected_kwargs: { string: "string", run_at: Time.utc(2050).to_s, priority: 10 },
       expected_run_at: Time.now,
       expected_priority: 15,
     ) { Que.enqueue(1, string: "string", run_at: Time.utc(2050), priority: 10, job_options: { priority: 15 }) }
@@ -139,16 +134,18 @@ describe Que::Job, '.enqueue' do
   describe "when enqueuing a job with tags" do
     it "should be able to specify tags on a case-by-case basis" do
       assert_enqueue(
-        expected_args: [1, { string: "string" }],
+        expected_args: [1],
+        expected_kwargs: { string: "string" },
         expected_tags: ["tag_1", "tag_2"],
       ) { Que.enqueue(1, string: "string", job_options: { tags: ["tag_1", "tag_2"] }) }
     end
 
     it "should no longer fall back to using tags specified at the top level if not specified in job_options" do
       assert_enqueue(
-        expected_args: [1, { string: "string", tags: ["tag_1", "tag_2"] }],
+        expected_args: [1],
+        expected_kwargs: { string: "string", tags: ["tag_1", "tag_2"] },
         expected_tags: nil,
-      ) { Que.enqueue(1, { string: "string", tags: ["tag_1", "tag_2"] }) }
+      ) { Que.enqueue(1, string: "string", tags: ["tag_1", "tag_2"]) }
     end
 
     it "should raise an error if passing too many tags" do
@@ -178,7 +175,8 @@ describe Que::Job, '.enqueue' do
     class MyJobClass < Que::Job; end
 
     assert_enqueue(
-      expected_args: ['argument', { other_arg: "other_arg" }],
+      expected_args: ['argument'],
+      expected_kwargs: { other_arg: "other_arg" },
       expected_job_class: MyJobClass,
       expected_result_class: Que::Job
     ) { Que.enqueue('argument', other_arg: "other_arg", job_options: { job_class: 'MyJobClass' }) }
@@ -208,7 +206,6 @@ describe Que::Job, '.enqueue' do
 
     describe "priority" do
       it "should respect a default priority in a job class" do
-
         assert_enqueue(
           expected_args: [1],
           expected_priority: 3,

@@ -39,8 +39,10 @@ module Que
           where("que_jobs.data @> ?", JSON.dump(tags: [tag]))
         end
 
-        def by_args(*args)
-          where("que_jobs.args @> ?", JSON.dump(args))
+        # TODO: Call out in the changelog that the keyword arguments supplied to this method now match as a subset instead of an exact match
+        # on the keyword arguments the job was scheduled with
+        def by_args(*args, **kwargs)
+          where("que_jobs.args @> ? AND que_jobs.kwargs @> ?", JSON.dump(args), JSON.dump(kwargs))
         end
       end
     end

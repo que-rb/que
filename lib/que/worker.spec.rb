@@ -394,7 +394,7 @@ describe Que::Worker do
           4, 19, 84, 259,
           job_class: "J",
           expected_error_message: /undefined method/,
-          expected_backtrace: /que\/worker\.rb/
+          expected_backtrace: false
 
         assert_instance_of NoMethodError, notified_errors.first[:error]
       end

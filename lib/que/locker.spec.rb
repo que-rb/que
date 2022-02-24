@@ -730,7 +730,7 @@ describe Que::Locker do
 
               if runs < 10
                 delay = rand > 0.5 ? 1 : 0
-                conn.execute(%(INSERT INTO que_jobs (job_class, args, run_at, job_schema_version) VALUES ('QueSpec::RunOnceTestJob', '[{"runs":#{runs + 1},"index":#{index}}]', now() + '#{delay} microseconds', #{Que.job_schema_version})))
+                conn.execute(%(INSERT INTO que_jobs (job_class, kwargs, run_at, job_schema_version) VALUES ('QueSpec::RunOnceTestJob', '{"runs":#{runs + 1},"index":#{index}}', now() + '#{delay} microseconds', #{Que.job_schema_version})))
               end
 
               finish
@@ -756,7 +756,7 @@ describe Que::Locker do
             job_ids: jobs_dataset.select_order_map(:id),
           },
           {
-            index_runs: jobs_dataset.exclude(finished_at: nil).select_map(:args).map{|a| [a.first[:index], a.first[:runs]]}.sort,
+            index_runs: jobs_dataset.exclude(finished_at: nil).select_map(:kwargs).map{ |a| [a[:index], a[:runs]]}.sort,
             job_ids: DB[:test_data].select_order_map(:job_id),
           }
         )

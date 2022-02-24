@@ -12,7 +12,7 @@ module Que
     SQL[:insert_job] =
       %{
         INSERT INTO public.que_jobs
-        (queue, priority, run_at, job_class, args, data, job_schema_version)
+        (queue, priority, run_at, job_class, args, kwargs, data, job_schema_version)
         VALUES
         (
           coalesce($1, 'default')::text,
@@ -21,6 +21,7 @@ module Que
           $4::text,
           coalesce($5, '[]')::jsonb,
           coalesce($6, '{}')::jsonb,
+          coalesce($7, '{}')::jsonb,
           #{Que.job_schema_version}
         )
         RETURNING *
@@ -56,12 +57,10 @@ module Que
         :priority,
         :run_at
 
-      def enqueue(
-        *args,
-        job_options: {},
-        **kwargs
-      )
-        args << kwargs if kwargs.any?
+      def enqueue(*args)
+        args, kwargs = Que.split_out_ruby2_keywords(args)
+
+        job_options = kwargs.delete(:job_options) || {}
 
         if job_options[:tags]
           if job_options[:tags].length > MAXIMUM_TAGS_COUNT
@@ -80,6 +79,7 @@ module Que
           priority: job_options[:priority] || resolve_que_setting(:priority),
           run_at:   job_options[:run_at]   || resolve_que_setting(:run_at),
           args:     Que.serialize_json(args),
+          kwargs:   Que.serialize_json(kwargs),
           data:     job_options[:tags] ? Que.serialize_json(tags: job_options[:tags]) : "{}",
           job_class: \
             job_options[:job_class] || name ||
@@ -88,26 +88,29 @@ module Que
 
         if attrs[:run_at].nil? && resolve_que_setting(:run_synchronously)
           attrs[:args] = Que.deserialize_json(attrs[:args])
+          attrs[:kwargs] = Que.deserialize_json(attrs[:kwargs])
           attrs[:data] = Que.deserialize_json(attrs[:data])
           _run_attrs(attrs)
         else
           values =
             Que.execute(
               :insert_job,
-              attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :data),
+              attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :kwargs, :data),
             ).first
-
           new(values)
         end
       end
+      ruby2_keywords(:enqueue) if respond_to?(:ruby2_keywords, true)
 
       def run(*args)
         # Make sure things behave the same as they would have with a round-trip
         # to the DB.
+        args, kwargs = Que.split_out_ruby2_keywords(args)
         args = Que.deserialize_json(Que.serialize_json(args))
+        kwargs = Que.deserialize_json(Que.serialize_json(kwargs))
 
         # Should not fail if there's no DB connection.
-        _run_attrs(args: args)
+        _run_attrs(args: args, kwargs: kwargs)
       end
 
       def resolve_que_setting(setting, *args)

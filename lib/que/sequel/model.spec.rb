@@ -7,8 +7,8 @@ describe 'Que::Sequel::Model' do
     require "que/sequel/model"
   end
 
-  def enqueue_job(*args, **kwargs)
-    Que::Job.enqueue(*args, **kwargs).que_attrs[:id]
+  ruby2_keywords def enqueue_job(*args)
+    Que::Job.enqueue(*args).que_attrs[:id]
   end
 
   def assert_ids(*expected)
@@ -151,6 +151,7 @@ describe 'Que::Sequel::Model' do
       b = enqueue_job arg: "arg_string"
       c = enqueue_job arg_hash: {arg: "arg_string"}
       d = enqueue_job
+      e = enqueue_job 'an argument', a_keyword: 'another_argument'
 
       assert_ids(a) { |ds| ds.by_args("arg_string") }
       assert_ids    { |ds| ds.by_args("nonexistent_arg_string") }
@@ -158,6 +159,9 @@ describe 'Que::Sequel::Model' do
       assert_ids    { |ds| ds.by_args(arg: "nonexistent_arg_string") }
       assert_ids(c) { |ds| ds.by_args(arg_hash: {arg: "arg_string"}) }
       assert_ids    { |ds| ds.by_args(arg_hash: {arg: "nonexistent_arg_string"}) }
+      assert_ids(e) { |ds| ds.by_args('an argument', a_keyword: 'another_argument') }
+      assert_ids { |ds| ds.by_args('an argument', a_keyword: 'blah') }
+      assert_ids { |ds| ds.by_args('a very heated argument', a_keyword: 'another_argument') }
     end
   end
 end

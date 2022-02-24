@@ -12,8 +12,10 @@ module Que
       end
 
       def perform(*args)
+        args, kwargs = Que.split_out_ruby2_keywords(args)
+
         Que.internal_log(:active_job_perform, self) do
-          {args: args}
+          {args: args, kwargs: kwargs}
         end
 
         _run(
@@ -21,7 +23,12 @@ module Que
             que_filter_args(
               args.map { |a| a.is_a?(Hash) ? a.deep_symbolize_keys : a }
             )
-          )
+          ),
+          kwargs: Que.recursively_freeze(
+            que_filter_args(
+              kwargs.deep_symbolize_keys,
+            )
+          ),
         )
       end
 
