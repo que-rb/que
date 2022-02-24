@@ -21,7 +21,7 @@ module Que
           $4::text,
           coalesce($5, '[]')::jsonb,
           coalesce($6, '{}')::jsonb,
-          #{Que.major_version}
+          #{Que.job_schema_version}
         )
         RETURNING *
       }

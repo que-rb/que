@@ -3,7 +3,7 @@
 module Que
   VERSION = '1.2.0'
 
-  def self.major_version
+  def self.job_schema_version
     Gem::Version.new(Que::VERSION).segments.first
   end
 end

@@ -279,7 +279,7 @@ module Que
         CURRENT_HOSTNAME,
         !!@listener,
         "{\"#{@queue_names.join('","')}\"}",
-        Que.major_version,
+        Que.job_schema_version,
       ]
     end
 
