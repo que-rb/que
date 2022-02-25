@@ -31,6 +31,14 @@ No further action is required from you at this stage. The Que 2 release changelo
 
 If you use any Que plugins or custom code that interacts with the `que_jobs` table, before you can upgrade to Que 2, you will need to make sure they are updated for compatibility with Que 2: They'll need to make use of the `kwargs` column, and when inserting jobs, put the result of `Que.job_schema_version` into the `job_schema_version` column rather than continue to rely on its default of `1`.
 
+**Other improvements**:
+
+- **Features**:
+    + Log config on startup, in [#337](https://github.com/que-rb/que/pull/337)
+- **Internal**:
+    + Added Git pre-push hook, in [#338](https://github.com/que-rb/que/pull/338)
+    + Documented our gem release process, in [#341](https://github.com/que-rb/que/pull/341)
+
 ### 1.2.0 (2022-02-23)
 
 - **Deprecated**
