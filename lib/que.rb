@@ -31,6 +31,8 @@ module Que
   require_relative 'que/utils/queue_management'
   require_relative 'que/utils/transactions'
 
+  require_relative 'que/version'
+
   require_relative 'que/connection'
   require_relative 'que/connection_pool'
   require_relative 'que/job_methods'
@@ -41,7 +43,6 @@ module Que
   require_relative 'que/migrations'
   require_relative 'que/poller'
   require_relative 'que/result_queue'
-  require_relative 'que/version'
   require_relative 'que/worker'
 
   class << self
