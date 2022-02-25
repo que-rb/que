@@ -264,3 +264,18 @@ To set up the pre-push hook locally, run:
 echo -e "#\!/bin/bash\n\$(dirname \$0)/../../auto/pre-push-hook" > .git/hooks/pre-push
 chmod +x .git/hooks/pre-push
 ```
+
+### Release process
+
+The process for releasing a new version of the gem is:
+
+- Merge PR(s)
+- Git pull locally
+- Update the version number, bundle install, and commit
+- Update `CHANGELOG.md`, and commit
+- Tag the commit with the version number, prefixed by `v`
+- Git push to master
+- Git push the tag
+- Publish the new version of the gem to RubyGems: `gem build -o que.gem && gem push que.gem`
+- Create a GitHub release - rather than describe anything there, link to the heading for the release in `CHANGELOG.md`
+- Post on the Que Discord in `#announcements`
