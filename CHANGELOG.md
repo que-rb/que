@@ -1,3 +1,10 @@
+### 1.3.1 (2022-02-25)
+
+Unfortunately, v1.3.0 was broken. Follow its upgrade instructions, but use this version instead.
+
+- **Fixed**
+    + Fixed startup error: `undefined method 'job_schema_version' for Que:Module`, in [#343](https://github.com/que-rb/que/pull/343)
+
 ### 1.3.0 (2022-02-25)
 
 **ACTION REQUIRED**
