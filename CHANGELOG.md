@@ -29,7 +29,7 @@ You must apply the schema migration and deploy to upgrade all workers.
 
 No further action is required from you at this stage. The Que 2 release changelog will provide full upgrade instructions for the process briefly described above of simultaneously running both Que 1 & 2 workers. Note that you won't be required to upgrade from Ruby 2.7 to Ruby 3 at the same time as upgrading to Que 2.
 
-If you use any Que plugins or custom code that interacts with the `que_jobs` table, before you can upgrade to Que 2, you will need to make sure they are updated for compatibility with Que 2: They'll need to make use of the `kwargs` column, and when inserting jobs, put the result of `Que.job_schema_version` into the `job_schema_version` column rather than continue to rely on its default of `1`.
+If you use any Que plugins or custom code that interacts with the `que_jobs` table, before you can upgrade to Que 2, you will need to make sure they are updated for compatibility with Que 2: They'll need to make use of the `kwargs` column, and when inserting jobs, put a `2` into the `job_schema_version` column rather than continue to rely on its soon-to-be-removed default of `1`.
 
 **Other improvements**:
 
