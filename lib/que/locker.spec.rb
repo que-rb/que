@@ -110,13 +110,14 @@ describe Que::Locker do
     it "should clear invalid lockers from the table" do
       # Bogus locker from a nonexistent connection.
       DB[:que_lockers].insert(
-        pid:               0,
-        ruby_pid:          0,
-        ruby_hostname:     'blah2',
-        worker_count:      4,
-        worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
-        queues:            Sequel.pg_array(['']),
-        listening:         true,
+        pid:                0,
+        ruby_pid:           0,
+        ruby_hostname:      'blah2',
+        worker_count:       4,
+        worker_priorities:  Sequel.pg_array([1, 2, 3, 4], :integer),
+        queues:             Sequel.pg_array(['']),
+        listening:          true,
+        job_schema_version: Que.job_schema_version,
       )
 
       locker
@@ -245,8 +246,8 @@ describe Que::Locker do
       sleep_until_equal(1) { DB[:que_lockers].count }
 
       Que.execute <<~SQL
-        INSERT INTO que_jobs (job_class, priority)
-        SELECT 'Que::Job', 1
+        INSERT INTO que_jobs (job_class, priority, job_schema_version)
+        SELECT 'Que::Job', 1, #{Que.job_schema_version}
         FROM generate_series(1, 10) AS i;
       SQL
 
@@ -258,8 +259,8 @@ describe Que::Locker do
 
     it "should repeat batch polls until there are no more available jobs" do
       Que.execute <<-SQL
-        INSERT INTO que_jobs (job_class, priority)
-        SELECT 'Que::Job', 1
+        INSERT INTO que_jobs (job_class, priority, job_schema_version)
+        SELECT 'Que::Job', 1, #{Que.job_schema_version}
         FROM generate_series(1, 100) AS i;
       SQL
 
@@ -358,12 +359,12 @@ describe Que::Locker do
       skip
 
       Que.execute <<-SQL
-        INSERT INTO que_jobs (job_class, priority, queue)
-        SELECT 'BlockJob', 60, 'queue_1'
+        INSERT INTO que_jobs (job_class, priority, queue, job_schema_version)
+        SELECT 'BlockJob', 60, 'queue_1', #{Que.job_schema_version}
         FROM generate_series(1, 100) AS i;
 
-        INSERT INTO que_jobs (job_class, priority, queue)
-        SELECT 'BlockJob', 10, 'queue_2'
+        INSERT INTO que_jobs (job_class, priority, queue, job_schema_version)
+        SELECT 'BlockJob', 10, 'queue_2', #{Que.job_schema_version}
         FROM generate_series(1, 100) AS i;
       SQL
 
@@ -431,7 +432,7 @@ describe Que::Locker do
       sleep_until_equal(1) { DB[:que_lockers].count }
 
       DB.transaction do
-        id = jobs_dataset.insert(job_class: "BlockJob")
+        id = jobs_dataset.insert(job_class: "BlockJob", job_schema_version: Que.job_schema_version)
         assert_equal 1, jobs_dataset.where(id: id).delete
       end
 
@@ -445,7 +446,7 @@ describe Que::Locker do
       sleep_until_equal(1) { DB[:que_lockers].count }
 
       DB.transaction do
-        id = jobs_dataset.insert(job_class: "BlockJob")
+        id = jobs_dataset.insert(job_class: "BlockJob", job_schema_version: Que.job_schema_version)
         assert_equal 1, jobs_dataset.where(id: id).update(finished_at: Time.now)
       end
 
@@ -458,7 +459,7 @@ describe Que::Locker do
       sleep_until_equal(1) { DB[:que_lockers].count }
 
       DB.transaction do
-        id = jobs_dataset.insert(job_class: "BlockJob")
+        id = jobs_dataset.insert(job_class: "BlockJob", job_schema_version: Que.job_schema_version)
         assert_equal 1, jobs_dataset.where(id: id).update(expired_at: Time.now)
       end
 
@@ -595,6 +596,42 @@ describe Que::Locker do
     end
   end
 
+  describe "when receiving jobs enqueued with versions of Que which have different job schema versions, it should only lock jobs with a matching job schema version" do
+    it "with polling only" do
+      locker_settings.clear
+      locker_settings.merge!(poll: true, listen: false, poll_interval: 0.01)
+      locker
+      sleep_until_equal(1) { DB[:que_lockers].count }
+
+      id_other = jobs_dataset.insert(job_class: "BlockJob", job_schema_version: 999_999)
+      id_current = jobs_dataset.insert(job_class: "BlockJob", job_schema_version: Que.job_schema_version)
+
+      sleep_until { locked_ids.include?(id_current) }
+
+      refute_includes locked_ids, id_other
+
+      locked_ids.each { $q1.pop; $q2.push nil }
+      locker.stop!
+    end
+
+    it "with listen only" do
+      locker_settings.clear
+      locker_settings.merge!(poll: false, listen: true)
+      locker
+      sleep_until_equal(1) { DB[:que_lockers].count }
+
+      id_other = jobs_dataset.insert(job_class: "BlockJob", job_schema_version: 999_999)
+      id_current = jobs_dataset.insert(job_class: "BlockJob", job_schema_version: Que.job_schema_version)
+
+      sleep_until { locked_ids.include?(id_current) }
+
+      refute_includes locked_ids, id_other
+
+      locked_ids.each { $q1.pop; $q2.push nil }
+      locker.stop!
+    end
+  end
+
   describe "when told to shut down" do
     it "with #stop should inform its workers to stop" do
       BlockJob.enqueue
@@ -694,7 +731,7 @@ describe Que::Locker do
 
               if runs < 10
                 delay = rand > 0.5 ? 1 : 0
-                conn.execute(%(INSERT INTO que_jobs (job_class, args, run_at) VALUES ('QueSpec::RunOnceTestJob', '[{"runs":#{runs + 1},"index":#{index}}]', now() + '#{delay} microseconds')))
+                conn.execute(%(INSERT INTO que_jobs (job_class, args, run_at, job_schema_version) VALUES ('QueSpec::RunOnceTestJob', '[{"runs":#{runs + 1},"index":#{index}}]', now() + '#{delay} microseconds', #{Que.job_schema_version})))
               end
 
               finish

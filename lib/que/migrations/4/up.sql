@@ -146,7 +146,9 @@ CREATE FUNCTION que_job_notify() RETURNS trigger AS $$
         FROM (
           SELECT *
           FROM public.que_lockers ql, generate_series(1, ql.worker_count) AS id
-          WHERE listening AND queues @> ARRAY[NEW.queue]
+          WHERE
+            listening AND
+            queues @> ARRAY[NEW.queue]
           ORDER BY md5(pid::text || id::text)
         ) t1
       ) t2

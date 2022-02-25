@@ -2,4 +2,8 @@
 
 module Que
   VERSION = '1.2.0'
+
+  def self.job_schema_version
+    1
+  end
 end

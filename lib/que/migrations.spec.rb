@@ -104,6 +104,15 @@ describe Que::Migrations do
   end
 
   describe "migration #4" do
+    before do
+      Que::Migrations.migrate!(version: 4)
+    end
+
+    after do
+      # DB[:que_jobs].delete
+      Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
+    end
+
     def version_3
       Que::Migrations.migrate! version: 3
       yield
@@ -218,7 +227,9 @@ describe Que::Migrations do
     end
 
     it "when migrating down should remove finished and expired jobs so that they aren't run repeatedly" do
-      a, b, c = 3.times.map { Que::Job.enqueue.que_attrs[:id] }
+      a, b, c = 3.times.map do
+        DB[:que_jobs].returning(:id).insert(job_class: 'Que::Job').first[:id]
+      end
 
       jobs_dataset.where(id: a).update(finished_at: Time.now)
       jobs_dataset.where(id: b).update(finished_at: Time.now)

@@ -1,3 +1,36 @@
+### Unreleased
+
+**ACTION REQUIRED**
+
+This release will allow you to safely upgrade to Que 2 when it comes out, without first needing to empty your `que_jobs` table.
+
+**You will need to first update to this version, apply the Que schema migration, and deploy, before you can safely begin the process of upgrading to Que 2.**
+
+Que 2 will bring Ruby 3 support, but to do that, the job arguments in the `que_jobs` table will need to be split into two columns - repurposing the existing one for positional arguments only (`args`), and adding a new one for keyword arguments (`kwargs`). This is so that Que running in Ruby 3, when reading job arguments stored in the database, can disambiguate between keyword arguments and a last positional argument hash.
+
+The args split hasn't happened yet, but when it does, we still need to be able to successfully process all the existing queued jobs which have their keyword arguments in the `args` column still. Our solution is for you to have both Que 1 workers and Que 2 workers operating simultaneously during the upgrade, each processing only the jobs enqueued from that version. Once all the Que 1 jobs are processed, the Que 1 workers can be retired.
+
+To allow the different worker versions to tell which jobs belong to which, we've added a new column to the `que_jobs` table in this version, `job_schema_version`. Jobs enqueued with Que 1 will have a `1` here, and jobs from Que 2 will have a `2`. Que schema migration 5 will default the job schema version of all existing jobs to `1`.
+
+You will need to migrate Que to the latest Que schema version (5). For instance, on ActiveRecord and Rails 6:
+
+```ruby
+class UpdateQueTablesToVersion5 < ActiveRecord::Migration[6.0]
+  def up
+    Que.migrate!(version: 5)
+  end
+  def down
+    Que.migrate!(version: 4)
+  end
+end
+```
+
+You must apply the schema migration and deploy to upgrade all workers.
+
+No further action is required from you at this stage. The Que 2 release changelog will provide full upgrade instructions for the process briefly described above of simultaneously running both Que 1 & 2 workers. Note that you won't be required to upgrade from Ruby 2.7 to Ruby 3 at the same time as upgrading to Que 2.
+
+If you use any Que plugins or custom code that interacts with the `que_jobs` table, before you can upgrade to Que 2, you will need to make sure they are updated for compatibility with Que 2: They'll need to make use of the `kwargs` column, and when inserting jobs, put the result of `Que.job_schema_version` into the `job_schema_version` column rather than continue to rely on its default of `1`.
+
 ### 1.2.0 (2022-02-23)
 
 - **Deprecated**

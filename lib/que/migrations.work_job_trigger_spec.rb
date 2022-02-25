@@ -5,13 +5,14 @@ require 'spec_helper'
 describe Que::Migrations, "job_available trigger" do
   let :locker_attrs do
     {
-      pid:               1,
-      worker_count:      4,
-      worker_priorities: Sequel.pg_array([1, 2, 3, 4], :integer),
-      ruby_pid:          Process.pid,
-      ruby_hostname:     Socket.gethostname,
-      queues:            Sequel.pg_array(['default']),
-      listening:         true,
+      pid:                1,
+      worker_count:       4,
+      worker_priorities:  Sequel.pg_array([1, 2, 3, 4], :integer),
+      ruby_pid:           Process.pid,
+      ruby_hostname:      Socket.gethostname,
+      queues:             Sequel.pg_array(['default']),
+      listening:          true,
+      job_schema_version: Que.job_schema_version,
     }
   end
 

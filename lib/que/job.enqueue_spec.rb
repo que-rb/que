@@ -11,7 +11,8 @@ describe Que::Job, '.enqueue' do
     expected_job_class: Que::Job,
     expected_result_class: nil,
     expected_args: [],
-    expected_tags: nil
+    expected_tags: nil,
+    expected_job_schema_version: Que.job_schema_version
   )
 
     assert_equal 0, jobs_dataset.count
@@ -43,6 +44,7 @@ describe Que::Job, '.enqueue' do
     assert_in_delta job[:run_at], expected_run_at, QueSpec::TIME_SKEW
     assert_equal expected_job_class.to_s, job[:job_class]
     assert_equal expected_args, job[:args]
+    assert_equal expected_job_schema_version, job[:job_schema_version]
 
     jobs_dataset.delete
   end
