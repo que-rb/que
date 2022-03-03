@@ -269,27 +269,25 @@ module Que
     private
 
     def any_priority_satisfied?(priorities, jobs)
-      worker_jobs = allocate_jobs_to_workers(priorities, jobs)
+      worker_job_counts = workers_jobs_allocation_counts(priorities, jobs)
       priorities.any? do |worker_priority, waiting_workers_count|
-        worker_jobs[worker_priority].length == waiting_workers_count
+        worker_job_counts[worker_priority] == waiting_workers_count
       end
     end
 
-    def allocate_jobs_to_workers(priorities, jobs)
-      jobs = jobs.sort_by { |job| job.fetch(:priority) }
-      worker_jobs = {}
+    def workers_jobs_allocation_counts(priorities, jobs)
+      job_priorities = jobs.map { |job| job.fetch(:priority) }.sort
+      worker_job_counts = Hash.new(0)
       priorities.each do |worker_priority, waiting_workers_count|
-        worker_jobs[worker_priority] = []
         waiting_workers_count.times do
-          next if jobs.empty?
-          if jobs.first.fetch(:priority) <= worker_priority
-            job = jobs.shift
-            worker_jobs[worker_priority] ||= []
-            worker_jobs[worker_priority] << { id: job.fetch(:id), priority: job.fetch(:priority) }
+          next if job_priorities.empty?
+          if job_priorities.first <= worker_priority
+            job_priorities.shift
+            worker_job_counts[worker_priority] += 1
           end
         end
       end
-      worker_jobs
+      worker_job_counts
     end
   end
 end
