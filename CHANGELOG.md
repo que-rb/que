@@ -50,7 +50,6 @@
 
 <!-- /MarkdownTOC -->
 
-
 ## 1.3.1 (2022-02-25)
 
 Unfortunately, v1.3.0 was broken. Follow its upgrade instructions, but use this version instead.
@@ -122,10 +121,8 @@ _This release does not add any changes on top of 1.0.0.beta5._
     * Fix lock leak on PostgreSQL 12 and later by [@jasoncodes](https://github.com/jasoncodes) in [#298](https://github.com/que-rb/que/pull/298)
     * Fix deadlock issue [#318](https://github.com/que-rb/que/pull/318)
     * Fix thread attrition issue [#321](https://github.com/que-rb/que/pull/321)
-
 * **Rails fixes:**
     * Set schema in table_name for ActiveRecord model by [@nikitug](https://github.com/nikitug) in [#274](https://github.com/que-rb/que/pull/274)
-
 * **Documentation:**
     * Add link to que-locks for exclusive job locking by [@airhorns](https://github.com/airhorns) in [#263](https://github.com/que-rb/que/pull/263)
     [`5259303`](https://github.com/que-rb/que/commit/52593031a7eef2d52ac38eceb2d8df776ec74090)
@@ -134,14 +131,11 @@ _This release does not add any changes on top of 1.0.0.beta5._
     * Fix ToC links in docs by [@swrobel](https://github.com/swrobel) in [#287](https://github.com/que-rb/que/pull/287)
     * Note all Rails queue names that must be changed by [@swrobel](https://github.com/swrobel) in [#296](https://github.com/que-rb/que/pull/296)
     * Add instructions for how to start Que by [@xcskier56](https://github.com/xcskier56) in [#292](https://github.com/que-rb/que/pull/292)
-
 * **CI/tests**
     * Fix CI failure from Docker Postgres image by [@jonathanhefner](https://github.com/jonathanhefner) in [#275](https://github.com/que-rb/que/pull/275)
     * Test with Ruby 2.7 by [@jonathanhefner](https://github.com/jonathanhefner) in [#276](https://github.com/que-rb/que/pull/276)
     * Run GitHub build workflow on push by [@jonathanhefner](https://github.com/jonathanhefner) in [#277](https://github.com/que-rb/que/pull/277)
-
 **Full Changelog**: [`v1.0.0.beta4...v1.0.0.beta5`](https://github.com/que-rb/que/compare/v1.0.0.beta4...v1.0.0.beta5)
-
 **Unless an issue is found we intend for this release to become v1.0.0 proper.**
 
 ## 1.0.0.beta4 (2020-01-17)
@@ -153,253 +147,137 @@ _This release does not add any changes on top of 1.0.0.beta5._
 ## 1.0.0.beta3 (2018-05-18)
 
 *   Added support for customizing log levels for `job_worked` events (#217).
-
 *   Began logging all `job_errored` events at the `ERROR` log level.
-
 *   Fixed the Railtie when running in test mode (#214).
-
 *   Tweaked the meanings of worker-priorities and worker-count options in the CLI, to better support use cases with low worker counts (#216).
 
 ## 1.0.0.beta2 (2018-04-13)
 
 *   **A schema upgrade to version 4 will be required for this release.** See [the migration doc](https://github.com/que-rb/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
-
     *   Please note that this migration requires a rewrite of the jobs table, which makes it O(n) with the size of the table. If you have a very large backlog of jobs you may want to schedule downtime for this migration.
-
 *   Que's implementation has been changed from one in which worker threads hold their own PG connections and lock their own jobs to one in which a single thread (and PG connection) locks jobs through LISTEN/NOTIFY and batch polling, and passes jobs along to worker threads. This has many benefits, including:
-
     *   Jobs queued for immediate processing can be actively distributed to workers with LISTEN/NOTIFY, which is more efficient than having workers repeatedly poll for new jobs.
-
     *   When polling is necessary (to pick up jobs that are scheduled for the future or that need to be retried due to errors), jobs can be locked and fetched in batches, rather than one at a time.
-
     *   Individual workers no longer need to monopolize their own (usually idle) connections while working jobs, so Ruby processes will require fewer Postgres connections.
-
     *   PgBouncer or another external connection pool can be used for workers' connections (though not for the connection used to lock and listen for jobs).
-
 *   Other features introduced in this version include:
-
     *   Much better support for all versions of ActiveJob.
-
         *   In particular, you may (optionally) include `Que::ActiveJob::JobExtensions` into `ApplicationJob` to get support for all of Que's job helper methods.
-
     *   Custom middleware that wrap running jobs and executing SQL statements are now supported.
-
     *   Support for categorizing jobs with tags.
-
     *   Support for configuring a `maximum_retry_count` on individual job classes.
-
     *   Job configuration options are now inheritable, so job class hierarchies are more useful.
-
     *   There are now built-in models for ActiveRecord and Sequel to allow inspecting the queue easily.
-
     *   Jobs that have finished working may optionally be retained in the database indefinitely.
-
         *   To keep a job record, replace the `destroy` calls in your jobs with `finish`. `destroy` will still delete records entirely, for jobs that you don't want to keep.
-
         *   If you don't resolve a job yourself one way or another, Que will still `destroy` the job for you by default.
-
         *   Finished jobs have a timestamp set in the finished_at column.
-
     *   Jobs that have errored too many times will now be marked as expired, and won't be retried again.
-
         *   You can configure a maximum_retry_count in your job classes, to set the threshold at which a job will be marked expired. The default is 15.
-
         *   To manually mark a job as expired (and keep it in the database but not try to run it again) you can call `expire` helper in your job.
-
     *   You can now set job priority thresholds for individual workers, to ensure that there will always be space available for high-priority jobs.
-
     *   `Que.job_states` returns a list of locked jobs and the hostname/pid of the Ruby processes that have locked them.
-
     *   `Que.connection_proc=` has been added, to allow for the easy integration of custom connection pools.
-
 *   In keeping with semantic versioning, the major version is being bumped since the new implementation requires some backwards-incompatible changes. These changes include:
-
     *   Support for MRI Rubies before 2.2 has been dropped.
-
     *   Support for Postgres versions before 9.5 has been dropped (JSONB and upsert support is required).
-
     *   JRuby support has been dropped. It will be reintroduced whenever the jruby-pg gem is production-ready.
-
     *   The `que:work` rake task has been removed. Use the `que` executable instead.
-
         *   Therefore, configuring workers using QUE_* environment variables is no longer supported. Please pass the appropriate options to the `que` executable instead.
-
     *   The `mode` setter has been removed.
-
         *   To run jobs synchronously when they are enqueued (the old `:sync` behavior) you can set `Que.run_synchronously = true`.
-
         *   To start up the worker pool (the old :async behavior) you should use the `que` executable to start up a worker process. There's no longer a supported API for running workers outside of the `que` executable.
-
     *   The following methods are not meaningful under the new implementation and have been removed:
-
         *   The `Que.wake_interval` getter and setter.
-
         *   The `Que.worker_count` getter and setter.
-
         *   `Que.wake!`
-
         *   `Que.wake_all!`
-
     *   Since Que needs a dedicated Postgres connection to manage job locks, running Que through a single PG connection is no longer supported.
-
         *   It's not clear that anyone ever actually did this.
-
     *   `Que.worker_states` has been removed, as the connection that locks a job is no longer the one that the job is using to run. Its functionality has been partially replaced with `Que.job_states`.
-
     *   When using Rails, for simplicity, job attributes and keys in argument hashes are now converted to symbols when retrieved from the database, rather than being converted to instances of HashWithIndifferentAccess.
-
     *   Arguments passed to jobs are now deep-frozen, to prevent unexpected behavior when the args are mutated and the job is reenqueued.
-
     *   Since JSONB is now used to store arguments, the order of argument hashes is no longer maintained.
-
         *   It wouldn't have been a good idea to rely on this anyway.
-
     *   Calling Que.log() directly is no longer supported/recommended.
-
     *   Features marked as deprecated in the final 0.x releases have been removed.
-
 *   Finally, if you've built up your own tooling and customizations around Que, you may need to be aware of some DB schema changes made in the migration to schema version #4.
-
     *   The `job_id` column has been renamed `id` and is now the primary key. This makes it easier to manage the queue using an ActiveRecord model.
-
     *   Finished jobs are now kept in the DB, unless you explicitly call `destroy`. If you want to query the DB for only jobs that haven't finished yet, add a `WHERE finished_at IS NULL` condition to your query, or use the not_finished scope on one of the provided ORM models.
-
     *   There is now an `expired_at` timestamp column, which is set when a job reaches its maximum number of retries and will not be attempted again.
-
     *   Due to popular demand, the default queue name is now "default" rather than an empty string. The migration will move pending jobs under the "" queue to the "default" queue.
-
     *   The `last_error` column has been split in two, to `last_error_message` and `last_error_backtrace`. These two columns are now limited to 500 and 10,000 characters, respectively. The migration will split old error data correctly, and truncate it if necessary.
-
     *   Names for queues and job classes are now limited to 500 characters, which is still far longer than either of these values should reasonably be.
-
     *   There is now a `data` JSONB column which is used to support various ways of organizing jobs (setting tags on them, etc).
 
 ## 1.0.0.beta (2017-10-25)
 
 *   **A schema upgrade to version 4 will be required for this release.** See [the migration doc](https://github.com/que-rb/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
-
     *   Please note that this migration requires a rewrite of the jobs table, which makes it O(n) with the size of the table. If you have a very large backlog of jobs you may want to schedule downtime for this migration.
-
 *   Que's implementation has been changed from one in which worker threads hold their own PG connections and lock their own jobs to one in which a single thread (and PG connection) locks jobs through LISTEN/NOTIFY and batch polling, and passes jobs along to worker threads. This has many benefits, including:
-
     *   Jobs queued for immediate processing can be actively distributed to workers with LISTEN/NOTIFY, which is more efficient than having workers repeatedly poll for new jobs.
-
     *   When polling is necessary (to pick up jobs that are scheduled for the future or that need to be retried due to errors), jobs can be locked and fetched in batches, rather than one at a time.
-
     *   Individual workers no longer need to monopolize their own (usually idle) connections while working jobs, so Ruby processes will require fewer Postgres connections.
-
     *   PgBouncer or another external connection pool can be used for workers' connections (though not for the connection used to lock and listen for jobs).
-
 *   Other features introduced in this version include:
-
     *   Much better support for all versions of ActiveJob.
-
         *   In particular, you may (optionally) include `Que::ActiveJob::JobExtensions` into `ApplicationJob` to get support for all of Que's job helper methods.
-
     *   Custom middleware that wrap running jobs are now supported.
-
     *   Support for categorizing jobs with tags.
-
     *   Support for configuring a `maximum_retry_count` on individual job classes.
-
     *   Job configuration options are now inheritable, so job class hierarchies are more useful.
-
     *   There are now built-in models for ActiveRecord and Sequel to allow inspecting the queue easily.
-
     *   Jobs that have finished working may optionally be retained in the database indefinitely.
-
         *   To keep a job record, replace the `destroy` calls in your jobs with `finish`. `destroy` will still delete records entirely, for jobs that you don't want to keep.
-
         *   If you don't resolve a job yourself one way or another, Que will still `destroy` the job for you by default.
-
         *   Finished jobs have a timestamp set in the finished_at column.
-
     *   Jobs that have errored too many times will now be marked as expired, and won't be retried again.
-
         *   You can configure a maximum_retry_count in your job classes, to set the threshold at which a job will be marked expired. The default is 15.
-
         *   To manually mark a job as expired (and keep it in the database but not try to run it again) you can call `expire` helper in your job.
-
     *   You can now set job priority thresholds for individual workers, to ensure that there will always be space available for high-priority jobs.
-
     *   `Que.job_states` returns a list of locked jobs and the hostname/pid of the Ruby processes that have locked them.
-
     *   `Que.connection_proc=` has been added, to allow for the easy integration of custom connection pools.
-
 *   In keeping with semantic versioning, the major version is being bumped since the new implementation requires some backwards-incompatible changes. These changes include:
-
     *   Support for MRI Rubies before 2.2 has been dropped.
-
     *   Support for Postgres versions before 9.5 has been dropped (JSONB and upsert support is required).
-
     *   JRuby support has been dropped. It will be reintroduced whenever the jruby-pg gem is production-ready.
-
     *   The `que:work` rake task has been removed. Use the `que` executable instead.
-
         *   Therefore, configuring workers using QUE_* environment variables is no longer supported. Please pass the appropriate options to the `que` executable instead.
-
     *   The `mode` setter has been removed.
-
         *   To run jobs synchronously when they are enqueued (the old `:sync` behavior) you can set `Que.run_synchronously = true`.
-
         *   To start up the worker pool (the old :async behavior) you should use the `que` executable to start up a worker process. There's no longer a supported API for running workers outside of the `que` executable.
-
     *   The following methods are not meaningful under the new implementation and have been removed:
-
         *   The `Que.wake_interval` getter and setter.
-
         *   The `Que.worker_count` getter and setter.
-
         *   `Que.wake!`
-
         *   `Que.wake_all!`
-
     *   Since Que needs a dedicated Postgres connection to manage job locks, running Que through a single PG connection is no longer supported.
-
         *   It's not clear that anyone ever actually did this.
-
     *   `Que.worker_states` has been removed, as the connection that locks a job is no longer the one that the job is using to run. Its functionality has been partially replaced with `Que.job_states`.
-
     *   When using Rails, for simplicity, job attributes and keys in argument hashes are now converted to symbols when retrieved from the database, rather than being converted to instances of HashWithIndifferentAccess.
-
     *   Arguments passed to jobs are now deep-frozen, to prevent unexpected behavior when the args are mutated and the job is reenqueued.
-
     *   Since JSONB is now used to store arguments, the order of argument hashes is no longer maintained.
-
         *   It wouldn't have been a good idea to rely on this anyway.
-
     *   Calling Que.log() directly is no longer supported/recommended.
-
     *   Features marked as deprecated in the final 0.x releases have been removed.
-
 *   Finally, if you've built up your own tooling and customizations around Que, you may need to be aware of some DB schema changes made in the migration to schema version #4.
-
     *   The `job_id` column has been renamed `id` and is now the primary key. This makes it easier to manage the queue using an ActiveRecord model.
-
     *   Finished jobs are now kept in the DB, unless you explicitly call `destroy`. If you want to query the DB for only jobs that haven't finished yet, add a `WHERE finished_at IS NULL` condition to your query, or use the not_finished scope on one of the provided ORM models.
-
     *   There is now an `expired_at` timestamp column, which is set when a job reaches its maximum number of retries and will not be attempted again.
-
     *   Due to popular demand, the default queue name is now "default" rather than an empty string. The migration will move pending jobs under the "" queue to the "default" queue.
-
     *   The `last_error` column has been split in two, to `last_error_message` and `last_error_backtrace`. These two columns are now limited to 500 and 10,000 characters, respectively. The migration will split old error data correctly, and truncate it if necessary.
-
     *   Names for queues and job classes are now limited to 500 characters, which is still far longer than either of these values should reasonably be.
-
     *   There is now a `data` JSONB column which is used to support various ways of organizing jobs (setting tags on them, etc).
 
 ## 0.14.3 (2018-03-02)
 
 *   Recorded errors now always include the error class, so that empty error messages can still be helpful. (  joehorsnell)
-
 *   Recorded error messages are now truncated to the first 500 characters.
 
 ## 0.14.2 (2018-01-05)
 
 *   Deprecate the Que.disable_prepared_statements= accessors.
-
 *   Add Que.use_prepared_statements= configuration accessors.
-
 *   Update the generated Rails migration to declare a version. (NARKOZ)
 
 ## 0.14.1 (2017-12-14)
@@ -409,7 +287,6 @@ _This release does not add any changes on top of 1.0.0.beta5._
 ## 0.14.0 (2017-08-11)
 
 *   Fix incompatibility with Rails 5.1.
-
 *   Drop support for waking an in-process worker when an ActiveRecord transaction commits.
 
 ## 0.13.1 (2017-07-05)
@@ -435,7 +312,6 @@ _This release does not add any changes on top of 1.0.0.beta5._
 ## 0.12.0 (2016-09-09)
 
 *   The error_handler configuration option has been renamed to error_notifier, which is more descriptive of what it's actually supposed to do. You can still use error_handler for configuration, but you'll get a warning.
-
 *   Introduced a new framework for handling errors on a per-job basis. See the docs for more information. (#106, #147)
 
 ## 0.11.6 (2016-07-01)
@@ -453,11 +329,8 @@ _This release does not add any changes on top of 1.0.0.beta5._
 ## 0.11.3 (2016-02-26)
 
 *   Fixed bug with displaying the current version of the que executable. (#122) (hardbap)
-
 *   Output to STDOUT when running via the executable or rake task is no longer buffered. This prevented logging in some cases. (#129) (hmarr)
-
 *   Officially added support for Ruby 2.2 and 2.3.
-
 *   String literals are now frozen on Ruby 2.3.
 
 ## 0.11.2 (2015-09-09)
@@ -471,29 +344,21 @@ _This release does not add any changes on top of 1.0.0.beta5._
 ## 0.11.0 (2015-09-04)
 
 *   A command-line program has been added that can be used to work jobs in a more flexible manner than the previous rake task. Run `que -h` for more information.
-
 *   The worker pool will no longer start automatically in the same process when running the rails server - this behavior was too prone to breakage. If you'd like to recreate the old behavior, you can manually set `Que.mode = :async` in your app whenever conditions are appropriate (classes have loaded, a database connection has been established, and the process will not be forking).
-
 *   Add a Que.disable_prepared_transactions= configuration option, to make it easier to use tools like pgbouncer. (#110)
-
 *   Add a Que.json_converter= option, to configure how arguments are transformed before being passed to the job. By default this is set to the `Que::INDIFFERENTIATOR` proc, which provides simple indifferent access (via strings or symbols) to args hashes. If you're using Rails, the default is to convert the args to HashWithIndifferentAccess instead. You can also pass it the Que::SYMBOLIZER proc, which will destructively convert all keys in the args hash to symbols (this will probably be the default in Que 1.0). If you want to define a custom converter, you will usually want to pass this option a proc, and you'll probably want it to be recursive. See the implementations of Que::INDIFFERENTIATOR and Que::SYMBOLIZER for examples. (#113)
-
 *   When using Que with ActiveRecord, workers now call `ActiveRecord::Base.clear_active_connections!` between jobs. This cleans up connections that ActiveRecord leaks when it is used to access mutliple databases. (#116)
-
 *   If it exists, use String#constantize to constantize job classes, since ActiveSupport's constantize method behaves better with Rails' autoloading. (#115, #120) (joevandyk)
 
 ## 0.10.0 (2015-03-18)
 
 *   When working jobs via the rake task, Rails applications are now eager-loaded if present, to avoid problems with multithreading and autoloading. (#96) (hmarr)
-
 *   The que:work rake task now uses whatever logger Que is configured to use normally, rather than forcing the use of STDOUT. (#95)
-
 *   Add Que.transaction() helper method, to aid in transaction management in migrations or when the user's ORM doesn't provide one. (#81)
 
 ## 0.9.2 (2015-02-05)
 
 *   Fix a bug wherein the at_exit hook in the railtie wasn't waiting for jobs to finish before exiting.
-
 *   Fix a bug wherein the que:work rake task wasn't waiting for jobs to finish before exiting. (#85) (tycooon)
 
 ## 0.9.1 (2015-01-11)
@@ -515,9 +380,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 ## 0.8.0 (2014-07-12)
 
 *   A callable can now be set as the logger, like `Que.logger = proc { MyLogger.new }`. Que uses this in its Railtie for cleaner initialization, but it is also available for public use.
-
 *   `Que.mode=` and `Que.worker_count=` now function independently. That is, setting the worker_count to a nonzero number no longer sets mode = :async (triggering the pool to start working jobs), and setting it to zero no longer sets mode = :off. Similarly, setting the mode to :async no longer sets the worker_count to 4 from 0, and setting the mode to :off no longer sets the worker_count to 0. This behavior was changed because it was interfering with configuration during initialization of Rails applications, and because it was unexpected. (#47)
-
 *   Fixed a similar bug wherein setting a wake_interval during application startup would break worker awakening after the process was forked.
 
 ## 0.7.3 (2014-05-19)
@@ -531,55 +394,36 @@ _This release does not add any changes on top of 1.0.0.beta5._
 ## 0.7.1 (2014-04-29)
 
 *   Fix errors with prepared statements when ActiveRecord reconnects to the database. (dvrensk)
-
 *   Don't use prepared statements when inside a transaction. This negates the risk of a prepared statement error harming the entire transaction. The query that benefits the most from preparation is the job-lock CTE, which is never run in a transaction, so the performance impact should be negligible.
 
 ## 0.7.0 (2014-04-09)
 
 *   `JobClass.queue(*args)` has been deprecated and will be removed in version 1.0.0. Please use `JobClass.enqueue(*args)` instead.
-
 *   The `@default_priority` and `@default_run_at` variables have been deprecated and will be removed in version 1.0.0. Please use `@priority` and `@run_at` instead, respectively.
-
 *   Log lines now include the process pid - its omission in the previous release was an oversight.
-
 *   The [Pond gem](https://github.com/chanks/pond) is now supported as a connection. It is very similar to the ConnectionPool gem, but creates connections lazily and is dynamically resizable.
 
 ## 0.6.0 (2014-02-04)
 
 *   **A schema upgrade to version 3 is required for this release.** See [the migration doc](https://github.com/que-rb/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
-
 *   You can now run a job's logic directly (without enqueueing it) like `MyJob.run(arg1, arg2, other_arg: arg3)`. This is useful when a job class encapsulates logic that you want to invoke without involving the entire queue.
-
 *   You can now check the current version of Que's database schema with `Que.db_version`.
-
 *   The method for enqueuing a job has been renamed from `MyJob.queue` to `MyJob.enqueue`, since we were beginning to use the word 'queue' in a LOT of places. `MyJob.queue` still works, but it may be removed at some point.
-
 *   The variables for setting the defaults for a given job class have been changed from `@default_priority` to `@priority` and `@default_run_at` to `@run_at`. The old variables still work, but like `Job.queue`, they may be removed at some point.
-
 *   Log lines now include the machine's hostname, since a pid alone may not uniquely identify a process.
-
 *   Multiple queues are now supported. See [the docs](https://github.com/que-rb/que/blob/master/docs/multiple_queues.md) for details. (chanks, joevandyk)
-
 *   Rubinius 2.2 is now supported. (brixen)
-
 *   Job classes may now define their own logic for determining the retry interval when a job raises an error. See [error handling](https://github.com/que-rb/que/blob/master/docs/error_handling.md) for more information.
 
 ## 0.5.0 (2014-01-14)
 
 *   When running a worker pool inside your web process on ActiveRecord, Que will now wake a worker once a transaction containing a queued job is committed. (joevandyk, chanks)
-
 *   The `que:work` rake task now has a default wake_interval of 0.1 seconds, since it relies exclusively on polling to pick up jobs. You can set a QUE_WAKE_INTERVAL environment variable to change this. The environment variable to set a size for the worker pool in the rake task has also been changed from WORKER_COUNT to QUE_WORKER_COUNT.
-
 *   Officially support Ruby 1.9.3. Note that due to the Thread#kill problems (see "Remove Que.stop!" below) there's a danger of data corruption when running under 1.9, though.
-
 *   The default priority for jobs is now 100 (it was 1 before). Like always (and like delayed_job), a lower priority means it's more important. You can migrate the schema version to 2 to set the new default value on the que_jobs table, though it's only necessary if you're doing your own INSERTs - if you use `MyJob.queue`, it's already taken care of.
-
 *   Added a migration system to make it easier to change the schema when updating Que. You can now write, for example, `Que.migrate!(version: 2)` in your migrations. Migrations are run transactionally.
-
 *   The logging format has changed to be more easily machine-readable. You can also now customize the logging format by assigning a callable to Que.log_formatter=. See the new doc on [logging](https://github.com/que-rb/que/blob/master/docs/logging.md)) for details. The default logger level is INFO - for less critical information (such as when no jobs were found to be available or when a job-lock race condition has been detected and avoided) you can set the QUE_LOG_LEVEL environment variable to DEBUG.
-
 *   MultiJson is now a soft dependency. Que will use it if it is available, but it is not required.
-
 *   Remove Que.stop!.
 
     Using Thread#raise to kill workers is a bad idea - the results are unpredictable and nearly impossible to spec reliably. Its purpose was to prevent premature commits in ActiveRecord/Sequel when a thread is killed during shutdown, but it's possible to detect that situation on Ruby 2.0+, so this is really better handled by the ORMs directly. See the pull requests for [Sequel](https://github.com/jeremyevans/sequel/pull/752) and [ActiveRecord](https://github.com/rails/rails/pull/13656).
@@ -589,21 +433,15 @@ _This release does not add any changes on top of 1.0.0.beta5._
 ## 0.4.0 (2014-01-05)
 
 *   Que.wake_all! was added, as a simple way to wake up all workers in the pool.
-
 *   Que.sleep_period was renamed to the more descriptive Que.wake_interval.
-
 *   When queueing a job, Que will wait until the current transaction commits and then wake a background worker, if possible. This allows newly queued jobs to be started immediately instead of waiting for a worker to wake up and poll, which may be up to `Que.wake_interval` seconds.
 
     This feature currently only works with Sequel, since there doesn't seem to be a clean way to do it on ActiveRecord (if anyone can figure one out, please let me know). Note that if you're using ActiveRecord, you can always manually trigger a single worker to wake up and check for work by manually calling Que.wake! after your transaction completes.
 
 *   Add Que.job_stats, which queries the database and returns statistics on the different job classes - for each class, how many are queued, how many are currently being worked, what is the highest error_count, and so on.
-
 *   Add Que.worker_states, which queries the database and returns all currently-locked jobs and info on their workers' connections - what and when was the last query they ran, are they waiting on locks, and so on.
-
 *   Have Que only clear advisory locks that it has taken when locking jobs, and not touch any that may have been taken by other code using the same connection.
-
 *   Add Que.worker_count, to retrieve the current number of workers in the pool of the current process.
-
 *   Much more internal cleanup.
 
 ## 0.3.0 (2013-12-21)
@@ -625,19 +463,14 @@ _This release does not add any changes on top of 1.0.0.beta5._
     JRuby support requires the use of the `jruby-pg` gem, though that gem seems to currently be incompatible with ActiveRecord, so the ActiveRecord adapter specs don't pass (or even run). It works fine with Sequel and the other adapters, though.
 
 *   Officially support Rubinius 2.1.1+. Earlier versions may work.
-
 *   Use `multi_json` so we always use the fastest JSON parser available. (BukhariH)
-
 *   :sync mode now ignores scheduled jobs (jobs queued with a specific run_at).
 
 ## 0.1.0 (2013-11-18)
 
 *   Initial public release, after a test-driven rewrite.
-
 *   Officially support Ruby 2.0.0 and Postgres 9.2+.
-
 *   Also support ActiveRecord and bare PG::Connections, in or out of a ConnectionPool.
-
 *   Added a Railtie for easier setup with Rails, as well as a migration generator.
 
 ## 0.0.1 (2013-11-07)
