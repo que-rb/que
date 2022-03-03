@@ -146,10 +146,10 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ## 1.0.0.beta3 (2018-05-18)
 
-- Added support for customizing log levels for `job_worked` events (#217).
+- Added support for customizing log levels for `job_worked` events ([#217](https://github.com/que-rb/que/issues/217)).
 - Began logging all `job_errored` events at the `ERROR` log level.
-- Fixed the Railtie when running in test mode (#214).
-- Tweaked the meanings of worker-priorities and worker-count options in the CLI, to better support use cases with low worker counts (#216).
+- Fixed the Railtie when running in test mode ([#214](https://github.com/que-rb/que/issues/214)).
+- Tweaked the meanings of worker-priorities and worker-count options in the CLI, to better support use cases with low worker counts ([#216](https://github.com/que-rb/que/issues/216)).
 
 ## 1.0.0.beta2 (2018-04-13)
 
@@ -307,35 +307,35 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ## 0.12.1 (2017-01-22)
 
-- Fix incompatibility with Rails 5.0. (#166) (nbibler, thedarkone)
+- Fix incompatibility with Rails 5.0. ([#166](https://github.com/que-rb/que/issues/166)) (nbibler, thedarkone)
 
 ## 0.12.0 (2016-09-09)
 
 - The error_handler configuration option has been renamed to error_notifier, which is more descriptive of what it's actually supposed to do. You can still use error_handler for configuration, but you'll get a warning.
-- Introduced a new framework for handling errors on a per-job basis. See the docs for more information. (#106, #147)
+- Introduced a new framework for handling errors on a per-job basis. See the docs for more information. ([#106](https://github.com/que-rb/que/pull/106), [#147](https://github.com/que-rb/que/issues/147))
 
 ## 0.11.6 (2016-07-01)
 
-- Fix for operating in nested transactions in Rails 5.0. (#160) (greysteil)
+- Fix for operating in nested transactions in Rails 5.0. ([#160](https://github.com/que-rb/que/pull/160)) (greysteil)
 
 ## 0.11.5 (2016-05-13)
 
-- Fix error when running `que -v`. (#154) (hardbap)
+- Fix error when running `que -v`. ([#154](https://github.com/que-rb/que/pull/154)) (hardbap)
 
 ## 0.11.4 (2016-03-03)
 
-- Fix incompatibility with ActiveRecord 5.0.0.beta3. (#143, #144) (joevandyk)
+- Fix incompatibility with ActiveRecord 5.0.0.beta3. ([#143](https://github.com/que-rb/que/issues/143), [#144](https://github.com/que-rb/que/pull/144)) (joevandyk)
 
 ## 0.11.3 (2016-02-26)
 
-- Fixed bug with displaying the current version of the que executable. (#122) (hardbap)
-- Output to STDOUT when running via the executable or rake task is no longer buffered. This prevented logging in some cases. (#129) (hmarr)
+- Fixed bug with displaying the current version of the que executable. ([#122](https://github.com/que-rb/que/pull/122)) (hardbap)
+- Output to STDOUT when running via the executable or rake task is no longer buffered. This prevented logging in some cases. ([#129](https://github.com/que-rb/que/pull/129)) (hmarr)
 - Officially added support for Ruby 2.2 and 2.3.
 - String literals are now frozen on Ruby 2.3.
 
 ## 0.11.2 (2015-09-09)
 
-- Fix Job class constantizing when ActiveSupport isn't loaded. (#121) (godfat)
+- Fix Job class constantizing when ActiveSupport isn't loaded. ([#121](https://github.com/que-rb/que/pull/121)) (godfat)
 
 ## 0.11.1 (2015-09-04)
 
@@ -345,51 +345,51 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 - A command-line program has been added that can be used to work jobs in a more flexible manner than the previous rake task. Run `que -h` for more information.
 - The worker pool will no longer start automatically in the same process when running the rails server - this behavior was too prone to breakage. If you'd like to recreate the old behavior, you can manually set `Que.mode = :async` in your app whenever conditions are appropriate (classes have loaded, a database connection has been established, and the process will not be forking).
-- Add a Que.disable_prepared_transactions= configuration option, to make it easier to use tools like pgbouncer. (#110)
-- Add a Que.json_converter= option, to configure how arguments are transformed before being passed to the job. By default this is set to the `Que::INDIFFERENTIATOR` proc, which provides simple indifferent access (via strings or symbols) to args hashes. If you're using Rails, the default is to convert the args to HashWithIndifferentAccess instead. You can also pass it the Que::SYMBOLIZER proc, which will destructively convert all keys in the args hash to symbols (this will probably be the default in Que 1.0). If you want to define a custom converter, you will usually want to pass this option a proc, and you'll probably want it to be recursive. See the implementations of Que::INDIFFERENTIATOR and Que::SYMBOLIZER for examples. (#113)
-- When using Que with ActiveRecord, workers now call `ActiveRecord::Base.clear_active_connections!` between jobs. This cleans up connections that ActiveRecord leaks when it is used to access mutliple databases. (#116)
-- If it exists, use String#constantize to constantize job classes, since ActiveSupport's constantize method behaves better with Rails' autoloading. (#115, #120) (joevandyk)
+- Add a Que.disable_prepared_transactions= configuration option, to make it easier to use tools like pgbouncer. ([#110](https://github.com/que-rb/que/issues/110))
+- Add a Que.json_converter= option, to configure how arguments are transformed before being passed to the job. By default this is set to the `Que::INDIFFERENTIATOR` proc, which provides simple indifferent access (via strings or symbols) to args hashes. If you're using Rails, the default is to convert the args to HashWithIndifferentAccess instead. You can also pass it the Que::SYMBOLIZER proc, which will destructively convert all keys in the args hash to symbols (this will probably be the default in Que 1.0). If you want to define a custom converter, you will usually want to pass this option a proc, and you'll probably want it to be recursive. See the implementations of Que::INDIFFERENTIATOR and Que::SYMBOLIZER for examples. ([#113](https://github.com/que-rb/que/issues/113))
+- When using Que with ActiveRecord, workers now call `ActiveRecord::Base.clear_active_connections!` between jobs. This cleans up connections that ActiveRecord leaks when it is used to access mutliple databases. ([#116](https://github.com/que-rb/que/pull/116))
+- If it exists, use String#constantize to constantize job classes, since ActiveSupport's constantize method behaves better with Rails' autoloading. ([#115](https://github.com/que-rb/que/issues/115), [#120](https://github.com/que-rb/que/pull/120)) (joevandyk)
 
 ## 0.10.0 (2015-03-18)
 
-- When working jobs via the rake task, Rails applications are now eager-loaded if present, to avoid problems with multithreading and autoloading. (#96) (hmarr)
-- The que:work rake task now uses whatever logger Que is configured to use normally, rather than forcing the use of STDOUT. (#95)
-- Add Que.transaction() helper method, to aid in transaction management in migrations or when the user's ORM doesn't provide one. (#81)
+- When working jobs via the rake task, Rails applications are now eager-loaded if present, to avoid problems with multithreading and autoloading. ([#96](https://github.com/que-rb/que/pull/96)) (hmarr)
+- The que:work rake task now uses whatever logger Que is configured to use normally, rather than forcing the use of STDOUT. ([#95](https://github.com/que-rb/que/issues/95))
+- Add Que.transaction() helper method, to aid in transaction management in migrations or when the user's ORM doesn't provide one. ([#81](https://github.com/que-rb/que/issues/81))
 
 ## 0.9.2 (2015-02-05)
 
 - Fix a bug wherein the at_exit hook in the railtie wasn't waiting for jobs to finish before exiting.
-- Fix a bug wherein the que:work rake task wasn't waiting for jobs to finish before exiting. (#85) (tycooon)
+- Fix a bug wherein the que:work rake task wasn't waiting for jobs to finish before exiting. ([#85](https://github.com/que-rb/que/pull/85)) (tycooon)
 
 ## 0.9.1 (2015-01-11)
 
-- Use now() rather than 'now' when inserting jobs, to avoid using an old value as the default run_at in prepared statements. (#74) (bgentry)
+- Use now() rather than 'now' when inserting jobs, to avoid using an old value as the default run_at in prepared statements. ([#74](https://github.com/que-rb/que/pull/74)) (bgentry)
 
 ## 0.9.0 (2014-12-16)
 
-- The error_handler callable is now passed two objects, the error and the job that raised it. If your current error_handler is a proc, as recommended in the docs, you shouldn't need to make any code changes, unless you want to use the job in your error handling. If your error_handler is a lambda, or another callable with a strict arity requirement, you'll want to change it before upgrading. (#69) (statianzo)
+- The error_handler callable is now passed two objects, the error and the job that raised it. If your current error_handler is a proc, as recommended in the docs, you shouldn't need to make any code changes, unless you want to use the job in your error handling. If your error_handler is a lambda, or another callable with a strict arity requirement, you'll want to change it before upgrading. ([#69](https://github.com/que-rb/que/pull/69)) (statianzo)
 
 ## 0.8.2 (2014-10-12)
 
-- Fix errors raised during rollbacks in the ActiveRecord adapter, which remained silent until Rails 4.2. (#64, #65) (Strech)
+- Fix errors raised during rollbacks in the ActiveRecord adapter, which remained silent until Rails 4.2. ([#64](https://github.com/que-rb/que/pull/64), [#65](https://github.com/que-rb/que/pull/65)) (Strech)
 
 ## 0.8.1 (2014-07-28)
 
-- Fix regression introduced in the `que:work` rake task by the `mode` / `worker_count` disentangling in 0.8.0. (#50)
+- Fix regression introduced in the `que:work` rake task by the `mode` / `worker_count` disentangling in 0.8.0. ([#50](https://github.com/que-rb/que/issues/50))
 
 ## 0.8.0 (2014-07-12)
 
 - A callable can now be set as the logger, like `Que.logger = proc { MyLogger.new }`. Que uses this in its Railtie for cleaner initialization, but it is also available for public use.
-- `Que.mode=` and `Que.worker_count=` now function independently. That is, setting the worker_count to a nonzero number no longer sets mode = :async (triggering the pool to start working jobs), and setting it to zero no longer sets mode = :off. Similarly, setting the mode to :async no longer sets the worker_count to 4 from 0, and setting the mode to :off no longer sets the worker_count to 0. This behavior was changed because it was interfering with configuration during initialization of Rails applications, and because it was unexpected. (#47)
+- `Que.mode=` and `Que.worker_count=` now function independently. That is, setting the worker_count to a nonzero number no longer sets mode = :async (triggering the pool to start working jobs), and setting it to zero no longer sets mode = :off. Similarly, setting the mode to :async no longer sets the worker_count to 4 from 0, and setting the mode to :off no longer sets the worker_count to 0. This behavior was changed because it was interfering with configuration during initialization of Rails applications, and because it was unexpected. ([#47](https://github.com/que-rb/que/issues/47))
 - Fixed a similar bug wherein setting a wake_interval during application startup would break worker awakening after the process was forked.
 
 ## 0.7.3 (2014-05-19)
 
-- When mode = :sync, don't touch the database at all when running jobs inline. Needed for ActiveJob compatibility (#46).
+- When mode = :sync, don't touch the database at all when running jobs inline. Needed for ActiveJob compatibility ([#46](https://github.com/que-rb/que/issues/46)).
 
 ## 0.7.2 (2014-05-18)
 
-- Fix issue wherein intermittent worker wakeups would not work after forking (#44).
+- Fix issue wherein intermittent worker wakeups would not work after forking ([#44](https://github.com/que-rb/que/issues/44)).
 
 ## 0.7.1 (2014-04-29)
 
