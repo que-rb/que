@@ -89,20 +89,15 @@ _This release does not add any changes on top of 1.0.0.beta5._
     * Test with Ruby 2.7 by [@jonathanhefner](https://github.com/jonathanhefner) in [#276](https://github.com/que-rb/que/pull/276)
     * Run GitHub build workflow on push by [@jonathanhefner](https://github.com/jonathanhefner) in [#277](https://github.com/que-rb/que/pull/277)
 
-
 **Full Changelog**: [`v1.0.0.beta4...v1.0.0.beta5`](https://github.com/que-rb/que/compare/v1.0.0.beta4...v1.0.0.beta5)
 
 **Unless an issue is found we intend for this release to become v1.0.0 proper.**
-
----
 
 ## 1.0.0.beta4 (2020-01-17)
 
 - Rails 6 compatibility: Fix time parsing [#249](https://github.com/que-rb/que/pull/249) and [5ddddd5](https://github.com/que-rb/que/commit/5ddddd5ebac6153d7a683ef08c86bced8e03fb51)
 - Cleaner sequel usage, in [#257](https://github.com/que-rb/que/pull/257)
 - Documentation improvements: [#264](https://github.com/que-rb/que/pull/264), [#269](https://github.com/que-rb/que/pull/269), [#261](https://github.com/que-rb/que/pull/261), [#231](https://github.com/que-rb/que/pull/231)
-
----
 
 ## 1.0.0.beta3 (2018-05-18)
 
@@ -113,8 +108,6 @@ _This release does not add any changes on top of 1.0.0.beta5._
 *   Fixed the Railtie when running in test mode (#214).
 
 *   Tweaked the meanings of worker-priorities and worker-count options in the CLI, to better support use cases with low worker counts (#216).
-
----
 
 ## 1.0.0.beta2 (2018-04-13)
 
@@ -229,7 +222,6 @@ _This release does not add any changes on top of 1.0.0.beta5._
     *   Names for queues and job classes are now limited to 500 characters, which is still far longer than either of these values should reasonably be.
 
     *   There is now a `data` JSONB column which is used to support various ways of organizing jobs (setting tags on them, etc).
----
 
 ## 1.0.0.beta (2017-10-25)
 
@@ -345,15 +337,11 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
     *   There is now a `data` JSONB column which is used to support various ways of organizing jobs (setting tags on them, etc).
 
----
-
 ## 0.14.3 (2018-03-02)
 
 *   Recorded errors now always include the error class, so that empty error messages can still be helpful. (  joehorsnell)
 
 *   Recorded error messages are now truncated to the first 500 characters.
-
----
 
 ## 0.14.2 (2018-01-05)
 
@@ -363,13 +351,9 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 *   Update the generated Rails migration to declare a version. (NARKOZ)
 
----
-
 ## 0.14.1 (2017-12-14)
 
 *   Fix a bug with typecasting boolean values on Rails 5+.
-
----
 
 ## 0.14.0 (2017-08-11)
 
@@ -377,19 +361,13 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 *   Drop support for waking an in-process worker when an ActiveRecord transaction commits.
 
----
-
 ## 0.13.1 (2017-07-05)
 
 *   Fix issue that caused error stacktraces to not be persisted in most cases.
 
----
-
 ## 0.13.0 (2017-06-08)
 
 *   Fix recurring JSON issues by dropping MultiJson support. Previously MultiJson was detected and used automatically, and now it's just ignored and stdlib JSON used instead, so this shouldn't require any code changes.
-
----
 
 ## 0.12.3 (2017-06-01)
 
@@ -399,13 +377,9 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 *   Fix security vulnerability in parsing JSON from the DB (by specifying create_additions: false). This shouldn't be a concern unless you were passing untrusted user input in your job arguments. (hmac)
 
----
-
 ## 0.12.1 (2017-01-22)
 
 *   Fix incompatibility with Rails 5.0. (#166) (nbibler, thedarkone)
-
----
 
 ## 0.12.0 (2016-09-09)
 
@@ -413,25 +387,17 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 *   Introduced a new framework for handling errors on a per-job basis. See the docs for more information. (#106, #147)
 
----
-
 ## 0.11.6 (2016-07-01)
 
 *   Fix for operating in nested transactions in Rails 5.0. (#160) (greysteil)
-
----
 
 ## 0.11.5 (2016-05-13)
 
 *   Fix error when running `que -v`. (#154) (hardbap)
 
----
-
 ## 0.11.4 (2016-03-03)
 
 *   Fix incompatibility with ActiveRecord 5.0.0.beta3. (#143, #144) (joevandyk)
-
----
 
 ## 0.11.3 (2016-02-26)
 
@@ -443,19 +409,13 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 *   String literals are now frozen on Ruby 2.3.
 
----
-
 ## 0.11.2 (2015-09-09)
 
 *   Fix Job class constantizing when ActiveSupport isn't loaded. (#121) (godfat)
 
----
-
 ## 0.11.1 (2015-09-04)
 
 *   The `rake que:work` rake task that was specific to Rails has been deprecated and will be removed in Que 1.0. A deprecation warning will display when it is run.
-
----
 
 ## 0.11.0 (2015-09-04)
 
@@ -471,8 +431,6 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 *   If it exists, use String#constantize to constantize job classes, since ActiveSupport's constantize method behaves better with Rails' autoloading. (#115, #120) (joevandyk)
 
----
-
 ## 0.10.0 (2015-03-18)
 
 *   When working jobs via the rake task, Rails applications are now eager-loaded if present, to avoid problems with multithreading and autoloading. (#96) (hmarr)
@@ -481,39 +439,27 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 *   Add Que.transaction() helper method, to aid in transaction management in migrations or when the user's ORM doesn't provide one. (#81)
 
----
-
 ## 0.9.2 (2015-02-05)
 
 *   Fix a bug wherein the at_exit hook in the railtie wasn't waiting for jobs to finish before exiting.
 
 *   Fix a bug wherein the que:work rake task wasn't waiting for jobs to finish before exiting. (#85) (tycooon)
 
----
-
 ## 0.9.1 (2015-01-11)
 
 *   Use now() rather than 'now' when inserting jobs, to avoid using an old value as the default run_at in prepared statements. (#74) (bgentry)
-
----
 
 ## 0.9.0 (2014-12-16)
 
 *   The error_handler callable is now passed two objects, the error and the job that raised it. If your current error_handler is a proc, as recommended in the docs, you shouldn't need to make any code changes, unless you want to use the job in your error handling. If your error_handler is a lambda, or another callable with a strict arity requirement, you'll want to change it before upgrading. (#69) (statianzo)
 
----
-
 ## 0.8.2 (2014-10-12)
 
 *   Fix errors raised during rollbacks in the ActiveRecord adapter, which remained silent until Rails 4.2. (#64, #65) (Strech)
 
----
-
 ## 0.8.1 (2014-07-28)
 
 *   Fix regression introduced in the `que:work` rake task by the `mode` / `worker_count` disentangling in 0.8.0. (#50)
-
----
 
 ## 0.8.0 (2014-07-12)
 
@@ -523,27 +469,19 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 *   Fixed a similar bug wherein setting a wake_interval during application startup would break worker awakening after the process was forked.
 
----
-
 ## 0.7.3 (2014-05-19)
 
 *   When mode = :sync, don't touch the database at all when running jobs inline. Needed for ActiveJob compatibility (#46).
 
----
-
 ## 0.7.2 (2014-05-18)
 
 *   Fix issue wherein intermittent worker wakeups would not work after forking (#44).
-
----
 
 ## 0.7.1 (2014-04-29)
 
 *   Fix errors with prepared statements when ActiveRecord reconnects to the database. (dvrensk)
 
 *   Don't use prepared statements when inside a transaction. This negates the risk of a prepared statement error harming the entire transaction. The query that benefits the most from preparation is the job-lock CTE, which is never run in a transaction, so the performance impact should be negligible.
-
----
 
 ## 0.7.0 (2014-04-09)
 
@@ -554,8 +492,6 @@ _This release does not add any changes on top of 1.0.0.beta5._
 *   Log lines now include the process pid - its omission in the previous release was an oversight.
 
 *   The [Pond gem](https://github.com/chanks/pond) is now supported as a connection. It is very similar to the ConnectionPool gem, but creates connections lazily and is dynamically resizable.
-
----
 
 ## 0.6.0 (2014-02-04)
 
@@ -576,8 +512,6 @@ _This release does not add any changes on top of 1.0.0.beta5._
 *   Rubinius 2.2 is now supported. (brixen)
 
 *   Job classes may now define their own logic for determining the retry interval when a job raises an error. See [error handling](https://github.com/que-rb/que/blob/master/docs/error_handling.md) for more information.
-
----
 
 ## 0.5.0 (2014-01-14)
 
@@ -601,8 +535,6 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
     Now, when a process exits, if the worker pool is running (whether in a rake task or in a web process) the exit will be stalled until all workers have finished their current jobs. If you have long-running jobs, this may take a long time. If you need the process to exit immediately, you can SIGKILL without any threat of commiting prematurely.
 
----
-
 ## 0.4.0 (2014-01-05)
 
 *   Que.wake_all! was added, as a simple way to wake up all workers in the pool.
@@ -623,8 +555,6 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 *   Much more internal cleanup.
 
----
-
 ## 0.3.0 (2013-12-21)
 
 *   Add Que.stop!, which immediately kills all jobs being worked in the process.
@@ -636,8 +566,6 @@ _This release does not add any changes on top of 1.0.0.beta5._
     Previously, a job that was in the middle of a transaction when the process was killed with SIGINT or SIGTERM would have had its work committed prematurely.
 
 *   Clean up internals and hammer out several race conditions.
-
----
 
 ## 0.2.0 (2013-11-30)
 
@@ -651,8 +579,6 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 *   :sync mode now ignores scheduled jobs (jobs queued with a specific run_at).
 
----
-
 ## 0.1.0 (2013-11-18)
 
 *   Initial public release, after a test-driven rewrite.
@@ -662,8 +588,6 @@ _This release does not add any changes on top of 1.0.0.beta5._
     Also support ActiveRecord and bare PG::Connections, in or out of a ConnectionPool.
 
     Added a Railtie for easier setup with Rails, as well as a migration generator.
-
----
 
 ## 0.0.1 (2013-11-07)
 
