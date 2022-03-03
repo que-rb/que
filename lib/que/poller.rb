@@ -274,10 +274,9 @@ module Que
       priorities.any? do |worker_priority, waiting_workers_count|
         waiting_workers_count.times do
           return false if job_priorities.empty?
-          if job_priorities.first <= worker_priority
-            job_priorities.shift
-            worker_job_counts[worker_priority] += 1
-          end
+          break if job_priorities.first > worker_priority
+          job_priorities.shift
+          worker_job_counts[worker_priority] += 1
         end
         worker_job_counts[worker_priority] == waiting_workers_count
       end
