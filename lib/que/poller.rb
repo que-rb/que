@@ -146,8 +146,6 @@ module Que
 
       return unless should_poll?
 
-      expected_count = priorities.inject(0){|s,(_,c)| s + c}
-
       jobs =
         connection.execute_prepared(
           :poll_jobs,
