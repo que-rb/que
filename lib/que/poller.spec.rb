@@ -255,29 +255,61 @@ describe Que::Poller do
       assert poller.should_poll?
     end
 
-    it "should be true if the last poll returned a full complement of jobs" do
-      jobs = 5.times.map { Que::Job.enqueue }
+    it "should be true if the jobs returned from the last poll satisfied all given priorities" do
+      job_ids_p10 = 3.times.map { Que::Job.enqueue(job_options: { priority: 10 }).que_attrs[:id] }
+      job_ids_p20 = 2.times.map { Que::Job.enqueue(job_options: { priority: 20 }).que_attrs[:id] }
 
-      result = poller.poll(priorities: {500 => 3}, held_locks: Set.new)
-      assert_equal 3, result.length
+      result = poller.poll(priorities: { 10 => 3, 20 => 2 }, held_locks: Set.new)
+      assert_equal (job_ids_p10 + job_ids_p20), result.map(&:id)
 
       assert_equal true, poller.should_poll?
     end
 
-    it "should be false if the last poll didn't return a full complement of jobs" do
-      jobs = 5.times.map { Que::Job.enqueue }
+    it "should be true if the jobs returned from the last poll satisfied any given priority" do
+      job_ids_p10 = 2.times.map { Que::Job.enqueue(job_options: { priority: 10 }).que_attrs[:id] }
+      job_ids_p20 = 2.times.map { Que::Job.enqueue(job_options: { priority: 20 }).que_attrs[:id] }
 
-      result = poller.poll(priorities: {500 => 7}, held_locks: Set.new)
-      assert_equal 5, result.length
+      result = poller.poll(priorities: { 10 => 2, 20 => 1 }, held_locks: Set.new)
+      assert_equal (job_ids_p10 + [job_ids_p20.first]), result.map(&:id)
+
+      assert_equal true, poller.should_poll?
+    end
+
+    it "should be true if the jobs returned from the last poll satisfied any given priority and were slightly higher priority than each priority requested" do
+      job_ids_p10 = 2.times.map { Que::Job.enqueue(job_options: { priority: 10 }).que_attrs[:id] }
+      job_ids_p20 = 2.times.map { Que::Job.enqueue(job_options: { priority: 20 }).que_attrs[:id] }
+
+      result = poller.poll(priorities: { 11 => 2, 21 => 1 }, held_locks: Set.new)
+      assert_equal (job_ids_p10 + [job_ids_p20.first]), result.map(&:id)
+
+      assert_equal true, poller.should_poll?
+    end
+
+    it "should be true if the jobs returned from the last poll satisfied any given priority and a lower priority request was upgraded to high priority" do
+      job_ids_p10 = 5.times.map { Que::Job.enqueue(job_options: { priority: 10 }).que_attrs[:id] }
+      job_ids_p20 = 2.times.map { Que::Job.enqueue(job_options: { priority: 20 }).que_attrs[:id] }
+
+      result = poller.poll(priorities: { 10 => 3, 20 => 2 }, held_locks: Set.new)
+      assert_equal job_ids_p10, result.map(&:id)
+
+      assert_equal true, poller.should_poll?
+    end
+
+    it "should be false if the jobs returned from the last poll didn't return a full complement of jobs matching any given priority" do
+      job_ids_p10 = 5.times.map { Que::Job.enqueue(job_options: { priority: 10 }).que_attrs[:id] }
+      job_ids_p20 = 2.times.map { Que::Job.enqueue(job_options: { priority: 20 }).que_attrs[:id] }
+
+      result = poller.poll(priorities: { 10 => 6, 20 => 3 }, held_locks: Set.new)
+      assert_equal (job_ids_p10 + job_ids_p20), result.map(&:id)
 
       assert_equal false, poller.should_poll?
     end
 
-    it "should be true if the last poll didn't return a full complement of jobs, but the poll_interval has elapsed" do
-      jobs = 5.times.map { Que::Job.enqueue }
+    it "should be true if the jobs returned from the last poll didn't return a full complement of jobs, but the poll_interval has elapsed" do
+      job_ids = 5.times.map { Que::Job.enqueue.que_attrs[:id] }
 
-      result = poller.poll(priorities: {500 => 7}, held_locks: Set.new)
-      assert_equal 5, result.length
+      result = poller.poll(priorities: { 500 => 7 }, held_locks: Set.new)
+      assert_equal job_ids, result.map(&:id)
 
       poller.instance_variable_set(:@last_polled_at, Time.now - 30)
       assert_equal true, poller.should_poll?
