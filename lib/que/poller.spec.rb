@@ -255,7 +255,7 @@ describe Que::Poller do
       assert poller.should_poll?
     end
 
-    it "should be true if the jobs returned from the last poll satisfied all given priorities" do
+    it "should be true if the jobs returned from the last poll satisfied all priority requests" do
       job_ids_p10 = 3.times.map { Que::Job.enqueue(job_options: { priority: 10 }).que_attrs[:id] }
       job_ids_p20 = 2.times.map { Que::Job.enqueue(job_options: { priority: 20 }).que_attrs[:id] }
 
@@ -265,7 +265,7 @@ describe Que::Poller do
       assert_equal true, poller.should_poll?
     end
 
-    it "should be true if the jobs returned from the last poll satisfied any given priority" do
+    it "should be true if the jobs returned from the last poll satisfied any priority request" do
       job_ids_p10 = 2.times.map { Que::Job.enqueue(job_options: { priority: 10 }).que_attrs[:id] }
       job_ids_p20 = 2.times.map { Que::Job.enqueue(job_options: { priority: 20 }).que_attrs[:id] }
 
@@ -275,7 +275,7 @@ describe Que::Poller do
       assert_equal true, poller.should_poll?
     end
 
-    it "should be true if the jobs returned from the last poll satisfied any given priority and were slightly higher priority than each priority requested" do
+    it "should be true if the jobs returned from the last poll satisfied any priority request and were slightly higher priority than each priority requested" do
       job_ids_p10 = 2.times.map { Que::Job.enqueue(job_options: { priority: 10 }).que_attrs[:id] }
       job_ids_p20 = 2.times.map { Que::Job.enqueue(job_options: { priority: 20 }).que_attrs[:id] }
 
@@ -285,7 +285,7 @@ describe Que::Poller do
       assert_equal true, poller.should_poll?
     end
 
-    it "should be true if the jobs returned from the last poll satisfied any given priority and a lower priority request was upgraded to high priority" do
+    it "should be true if the jobs returned from the last poll satisfied any priority request and a lower priority request was upgraded to high priority" do
       job_ids_p10 = 5.times.map { Que::Job.enqueue(job_options: { priority: 10 }).que_attrs[:id] }
       job_ids_p20 = 2.times.map { Que::Job.enqueue(job_options: { priority: 20 }).que_attrs[:id] }
 
@@ -295,7 +295,7 @@ describe Que::Poller do
       assert_equal true, poller.should_poll?
     end
 
-    it "should be false if the jobs returned from the last poll didn't return a full complement of jobs matching any given priority" do
+    it "should be false if the jobs returned from the last poll didn't satisfy any priority request" do
       job_ids_p10 = 5.times.map { Que::Job.enqueue(job_options: { priority: 10 }).que_attrs[:id] }
       job_ids_p20 = 2.times.map { Que::Job.enqueue(job_options: { priority: 20 }).que_attrs[:id] }
 
@@ -305,7 +305,7 @@ describe Que::Poller do
       assert_equal false, poller.should_poll?
     end
 
-    it "should be true if the jobs returned from the last poll didn't return a full complement of jobs, but the poll_interval has elapsed" do
+    it "should be true if the jobs returned from the last poll didn't satisfy any priority request, but the poll_interval has elapsed" do
       job_ids = 5.times.map { Que::Job.enqueue.que_attrs[:id] }
 
       result = poller.poll(priorities: { 500 => 7 }, held_locks: Set.new)
