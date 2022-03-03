@@ -96,9 +96,9 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ### 1.0.0.beta4 (2020-01-17)
 
-- Rails 6 compatibility: Fix time parsing #249 and https://github.com/que-rb/que/commit/5ddddd5ebac6153d7a683ef08c86bced8e03fb51
-- Cleaner sequel usage #257
-- Documentation improvements #264 #269 #261 #231
+- Rails 6 compatibility: Fix time parsing [#249](https://github.com/que-rb/que/pull/249) and [5ddddd5](https://github.com/que-rb/que/commit/5ddddd5ebac6153d7a683ef08c86bced8e03fb51)
+- Cleaner sequel usage, in [#257](https://github.com/que-rb/que/pull/257)
+- Documentation improvements: [#264](https://github.com/que-rb/que/pull/264), [#269](https://github.com/que-rb/que/pull/269), [#261](https://github.com/que-rb/que/pull/261), [#231](https://github.com/que-rb/que/pull/231)
 
 ---
 
