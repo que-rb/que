@@ -1,11 +1,13 @@
-### 1.3.1 (2022-02-25)
+# Changelog
+
+## 1.3.1 (2022-02-25)
 
 Unfortunately, v1.3.0 was broken. Follow its upgrade instructions, but use this version instead.
 
 - **Fixed**
     + Fixed startup error: `undefined method 'job_schema_version' for Que:Module`, in [#343](https://github.com/que-rb/que/pull/343)
 
-### 1.3.0 (2022-02-25)
+## 1.3.0 (2022-02-25)
 
 **ACTION REQUIRED**
 
@@ -46,23 +48,23 @@ If you use any Que plugins or custom code that interacts with the `que_jobs` tab
     + Added Git pre-push hook, in [#338](https://github.com/que-rb/que/pull/338)
     + Documented our gem release process, in [#341](https://github.com/que-rb/que/pull/341)
 
-### 1.2.0 (2022-02-23)
+## 1.2.0 (2022-02-23)
 
 - **Deprecated**
     + Providing job options as top level keyword arguments to Job.enqueue is now deprecated. Support will be dropped in `2.0`. Job options should be nested under the `job_options` keyword arg instead. See [#336](https://github.com/que-rb/que/pull/336)
 
-### 1.1.0 (2022-02-21)
+## 1.1.0 (2022-02-21)
 
 - **Features**:
     + Add backtrace to errors, by [@trammel](https://github.com/trammel) in [#328](https://github.com/que-rb/que/pull/328)
 - **Internal**:
     + Add Dockerised development environment, in [#324](https://github.com/que-rb/que/pull/324)
 
-### 1.0.0 (2022-01-24)
+## 1.0.0 (2022-01-24)
 
 _This release does not add any changes on top of 1.0.0.beta5._
 
-### 1.0.0.beta5 (2021-12-23)
+## 1.0.0.beta5 (2021-12-23)
 
 * **Bug fixes and improvements**
     * Add more context to error message when config files fail to load. by [@trammel](https://github.com/trammel) in [#293](https://github.com/que-rb/que/pull/293)
@@ -94,7 +96,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 1.0.0.beta4 (2020-01-17)
+## 1.0.0.beta4 (2020-01-17)
 
 - Rails 6 compatibility: Fix time parsing [#249](https://github.com/que-rb/que/pull/249) and [5ddddd5](https://github.com/que-rb/que/commit/5ddddd5ebac6153d7a683ef08c86bced8e03fb51)
 - Cleaner sequel usage, in [#257](https://github.com/que-rb/que/pull/257)
@@ -102,7 +104,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 1.0.0.beta3 (2018-05-18)
+## 1.0.0.beta3 (2018-05-18)
 
 *   Added support for customizing log levels for `job_worked` events (#217).
 
@@ -114,7 +116,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 1.0.0.beta2 (2018-04-13)
+## 1.0.0.beta2 (2018-04-13)
 
 *   **A schema upgrade to version 4 will be required for this release.** See [the migration doc](https://github.com/que-rb/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
 
@@ -229,7 +231,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
     *   There is now a `data` JSONB column which is used to support various ways of organizing jobs (setting tags on them, etc).
 ---
 
-### 1.0.0.beta (2017-10-25)
+## 1.0.0.beta (2017-10-25)
 
 *   **A schema upgrade to version 4 will be required for this release.** See [the migration doc](https://github.com/que-rb/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
 
@@ -345,7 +347,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.14.3 (2018-03-02)
+## 0.14.3 (2018-03-02)
 
 *   Recorded errors now always include the error class, so that empty error messages can still be helpful. (  joehorsnell)
 
@@ -353,7 +355,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.14.2 (2018-01-05)
+## 0.14.2 (2018-01-05)
 
 *   Deprecate the Que.disable_prepared_statements= accessors.
 
@@ -363,13 +365,13 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.14.1 (2017-12-14)
+## 0.14.1 (2017-12-14)
 
 *   Fix a bug with typecasting boolean values on Rails 5+.
 
 ---
 
-### 0.14.0 (2017-08-11)
+## 0.14.0 (2017-08-11)
 
 *   Fix incompatibility with Rails 5.1.
 
@@ -377,35 +379,35 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.13.1 (2017-07-05)
+## 0.13.1 (2017-07-05)
 
 *   Fix issue that caused error stacktraces to not be persisted in most cases.
 
 ---
 
-### 0.13.0 (2017-06-08)
+## 0.13.0 (2017-06-08)
 
 *   Fix recurring JSON issues by dropping MultiJson support. Previously MultiJson was detected and used automatically, and now it's just ignored and stdlib JSON used instead, so this shouldn't require any code changes.
 
 ---
 
-### 0.12.3 (2017-06-01)
+## 0.12.3 (2017-06-01)
 
 *   Fix incompatibility with MultiJson introduced by the previous release.
 
-### 0.12.2 (2017-06-01)
+## 0.12.2 (2017-06-01)
 
 *   Fix security vulnerability in parsing JSON from the DB (by specifying create_additions: false). This shouldn't be a concern unless you were passing untrusted user input in your job arguments. (hmac)
 
 ---
 
-### 0.12.1 (2017-01-22)
+## 0.12.1 (2017-01-22)
 
 *   Fix incompatibility with Rails 5.0. (#166) (nbibler, thedarkone)
 
 ---
 
-### 0.12.0 (2016-09-09)
+## 0.12.0 (2016-09-09)
 
 *   The error_handler configuration option has been renamed to error_notifier, which is more descriptive of what it's actually supposed to do. You can still use error_handler for configuration, but you'll get a warning.
 
@@ -413,25 +415,25 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.11.6 (2016-07-01)
+## 0.11.6 (2016-07-01)
 
 *   Fix for operating in nested transactions in Rails 5.0. (#160) (greysteil)
 
 ---
 
-### 0.11.5 (2016-05-13)
+## 0.11.5 (2016-05-13)
 
 *   Fix error when running `que -v`. (#154) (hardbap)
 
 ---
 
-### 0.11.4 (2016-03-03)
+## 0.11.4 (2016-03-03)
 
 *   Fix incompatibility with ActiveRecord 5.0.0.beta3. (#143, #144) (joevandyk)
 
 ---
 
-### 0.11.3 (2016-02-26)
+## 0.11.3 (2016-02-26)
 
 *   Fixed bug with displaying the current version of the que executable. (#122) (hardbap)
 
@@ -443,19 +445,19 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.11.2 (2015-09-09)
+## 0.11.2 (2015-09-09)
 
 *   Fix Job class constantizing when ActiveSupport isn't loaded. (#121) (godfat)
 
 ---
 
-### 0.11.1 (2015-09-04)
+## 0.11.1 (2015-09-04)
 
 *   The `rake que:work` rake task that was specific to Rails has been deprecated and will be removed in Que 1.0. A deprecation warning will display when it is run.
 
 ---
 
-### 0.11.0 (2015-09-04)
+## 0.11.0 (2015-09-04)
 
 *   A command-line program has been added that can be used to work jobs in a more flexible manner than the previous rake task. Run `que -h` for more information.
 
@@ -471,7 +473,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.10.0 (2015-03-18)
+## 0.10.0 (2015-03-18)
 
 *   When working jobs via the rake task, Rails applications are now eager-loaded if present, to avoid problems with multithreading and autoloading. (#96) (hmarr)
 
@@ -481,7 +483,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.9.2 (2015-02-05)
+## 0.9.2 (2015-02-05)
 
 *   Fix a bug wherein the at_exit hook in the railtie wasn't waiting for jobs to finish before exiting.
 
@@ -489,31 +491,31 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.9.1 (2015-01-11)
+## 0.9.1 (2015-01-11)
 
 *   Use now() rather than 'now' when inserting jobs, to avoid using an old value as the default run_at in prepared statements. (#74) (bgentry)
 
 ---
 
-### 0.9.0 (2014-12-16)
+## 0.9.0 (2014-12-16)
 
 *   The error_handler callable is now passed two objects, the error and the job that raised it. If your current error_handler is a proc, as recommended in the docs, you shouldn't need to make any code changes, unless you want to use the job in your error handling. If your error_handler is a lambda, or another callable with a strict arity requirement, you'll want to change it before upgrading. (#69) (statianzo)
 
 ---
 
-### 0.8.2 (2014-10-12)
+## 0.8.2 (2014-10-12)
 
 *   Fix errors raised during rollbacks in the ActiveRecord adapter, which remained silent until Rails 4.2. (#64, #65) (Strech)
 
 ---
 
-### 0.8.1 (2014-07-28)
+## 0.8.1 (2014-07-28)
 
 *   Fix regression introduced in the `que:work` rake task by the `mode` / `worker_count` disentangling in 0.8.0. (#50)
 
 ---
 
-### 0.8.0 (2014-07-12)
+## 0.8.0 (2014-07-12)
 
 *   A callable can now be set as the logger, like `Que.logger = proc { MyLogger.new }`. Que uses this in its Railtie for cleaner initialization, but it is also available for public use.
 
@@ -523,19 +525,19 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.7.3 (2014-05-19)
+## 0.7.3 (2014-05-19)
 
 *   When mode = :sync, don't touch the database at all when running jobs inline. Needed for ActiveJob compatibility (#46).
 
 ---
 
-### 0.7.2 (2014-05-18)
+## 0.7.2 (2014-05-18)
 
 *   Fix issue wherein intermittent worker wakeups would not work after forking (#44).
 
 ---
 
-### 0.7.1 (2014-04-29)
+## 0.7.1 (2014-04-29)
 
 *   Fix errors with prepared statements when ActiveRecord reconnects to the database. (dvrensk)
 
@@ -543,7 +545,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.7.0 (2014-04-09)
+## 0.7.0 (2014-04-09)
 
 *   `JobClass.queue(*args)` has been deprecated and will be removed in version 1.0.0. Please use `JobClass.enqueue(*args)` instead.
 
@@ -555,7 +557,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.6.0 (2014-02-04)
+## 0.6.0 (2014-02-04)
 
 *   **A schema upgrade to version 3 is required for this release.** See [the migration doc](https://github.com/que-rb/que/blob/master/docs/migrating.md) for information if you're upgrading from a previous release.
 
@@ -577,7 +579,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.5.0 (2014-01-14)
+## 0.5.0 (2014-01-14)
 
 *   When running a worker pool inside your web process on ActiveRecord, Que will now wake a worker once a transaction containing a queued job is committed. (joevandyk, chanks)
 
@@ -601,7 +603,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.4.0 (2014-01-05)
+## 0.4.0 (2014-01-05)
 
 *   Que.wake_all! was added, as a simple way to wake up all workers in the pool.
 
@@ -623,7 +625,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.3.0 (2013-12-21)
+## 0.3.0 (2013-12-21)
 
 *   Add Que.stop!, which immediately kills all jobs being worked in the process.
 
@@ -637,7 +639,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.2.0 (2013-11-30)
+## 0.2.0 (2013-11-30)
 
 *   Officially support JRuby 1.7.5+. Earlier versions may work.
 
@@ -651,7 +653,7 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.1.0 (2013-11-18)
+## 0.1.0 (2013-11-18)
 
 *   Initial public release, after a test-driven rewrite.
 
@@ -663,6 +665,6 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 ---
 
-### 0.0.1 (2013-11-07)
+## 0.0.1 (2013-11-07)
 
 *   Copy-pasted from an app of mine. Very Sequel-specific. Nobody look at it, let's pretend it never happened.
