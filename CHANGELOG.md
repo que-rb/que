@@ -634,11 +634,11 @@ _This release does not add any changes on top of 1.0.0.beta5._
 
 *   Initial public release, after a test-driven rewrite.
 
-    Officially support Ruby 2.0.0 and Postgres 9.2+.
+*   Officially support Ruby 2.0.0 and Postgres 9.2+.
 
-    Also support ActiveRecord and bare PG::Connections, in or out of a ConnectionPool.
+*   Also support ActiveRecord and bare PG::Connections, in or out of a ConnectionPool.
 
-    Added a Railtie for easier setup with Rails, as well as a migration generator.
+*   Added a Railtie for easier setup with Rails, as well as a migration generator.
 
 ## 0.0.1 (2013-11-07)
 
