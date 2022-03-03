@@ -269,6 +269,13 @@ module Que
     private
 
     def any_priority_satisfied?(priorities, jobs)
+      worker_jobs = allocate_jobs_to_workers(priorities, jobs)
+      priorities.any? do |worker_priority, waiting_workers_count|
+        worker_jobs[worker_priority].length == waiting_workers_count
+      end
+    end
+
+    def allocate_jobs_to_workers(priorities, jobs)
       jobs = jobs.sort_by { |job| job.fetch(:priority) }
       worker_jobs = {}
       priorities.each do |worker_priority, waiting_workers_count|
@@ -282,9 +289,7 @@ module Que
           end
         end
       end
-      priorities.any? do |worker_priority, waiting_workers_count|
-        worker_jobs[worker_priority].length == waiting_workers_count
-      end
+      worker_jobs
     end
   end
 end
