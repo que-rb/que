@@ -136,6 +136,14 @@ module Que
             end
 
             opts.on(
+              '--minimum-buffer-size [SIZE]',
+              Integer,
+              "Unused (deprecated)",
+            ) do |s|
+              warn "The --minimum-buffer-size SIZE option has been deprecated and will be removed in v2.0 (it's actually been unused since v1.0.0.beta4)"
+            end
+
+            opts.on(
               '--wait-period [PERIOD]',
               Float,
               "Set maximum interval between checks of the in-memory job queue, " \
