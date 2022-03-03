@@ -6,7 +6,7 @@
 
 module Que
   class JobBuffer
-    attr_reader :maximum_size, :minimum_size, :priority_queues
+    attr_reader :maximum_size, :priority_queues
 
     # Since we use a mutex, which is not reentrant, we have to be a little
     # careful to not call a method that locks the mutex when we've already
@@ -17,19 +17,10 @@ module Que
 
     def initialize(
       maximum_size:,
-      minimum_size:,
       priorities:
     )
       @maximum_size = Que.assert(Integer, maximum_size)
       Que.assert(maximum_size >= 0) { "maximum_size for a JobBuffer must be at least zero!" }
-
-      @minimum_size = Que.assert(Integer, minimum_size)
-      Que.assert(minimum_size >= 0) { "minimum_size for a JobBuffer must be at least zero!" }
-
-      Que.assert(minimum_size <= maximum_size) do
-        "minimum buffer size (#{minimum_size}) is " \
-          "greater than the maximum buffer size (#{maximum_size})!"
-      end
 
       @stop  = false
       @array = []

@@ -9,7 +9,6 @@ describe Que::JobBuffer do
   let :job_buffer do
     Que::JobBuffer.new(
       maximum_size: maximum_size,
-      minimum_size: 0,
       priorities: [10, 30, 50, nil].shuffle,
     )
   end
@@ -36,26 +35,10 @@ describe Que::JobBuffer do
   describe "during instantiation" do
     it "should raise an error if passed a maximum buffer size less than zero" do
       error = assert_raises(Que::Error) do
-        Que::JobBuffer.new(minimum_size: 0, maximum_size: -1, priorities: [10])
+        Que::JobBuffer.new(maximum_size: -1, priorities: [10])
       end
 
       assert_equal "maximum_size for a JobBuffer must be at least zero!", error.message
-    end
-
-    it "should raise an error if passed a minimum buffer size less than zero" do
-      error = assert_raises(Que::Error) do
-        Que::JobBuffer.new(minimum_size: -1, maximum_size: 8, priorities: [10])
-      end
-
-      assert_equal "minimum_size for a JobBuffer must be at least zero!", error.message
-    end
-
-    it "should raise an error if passed a minimum buffer size larger than its maximum" do
-      error = assert_raises(Que::Error) do
-        Que::JobBuffer.new(minimum_size: 10, maximum_size: 8, priorities: [10])
-      end
-
-      assert_equal "minimum buffer size (10) is greater than the maximum buffer size (8)!", error.message
     end
   end
 
@@ -260,7 +243,6 @@ describe Que::JobBuffer do
         job_buffer =
           Que::JobBuffer.new(
             maximum_size: maximum_size,
-            minimum_size: 0,
             priorities: [10],
           )
 

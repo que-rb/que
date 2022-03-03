@@ -4,7 +4,7 @@ Docs Index
 - [Command Line Interface](#command-line-interface)
   * [worker-priorities and worker-count](#worker-priorities-and-worker-count)
   * [poll-interval](#poll-interval)
-  * [minimum-buffer-size and maximum-buffer-size](#minimum-buffer-size-and-maximum-buffer-size)
+  * [maximum-buffer-size](#maximum-buffer-size)
   * [connection-url](#connection-url)
   * [wait-period](#wait-period)
   * [log-internals](#log-internals)
@@ -62,7 +62,6 @@ usage: que [options] [file/to/require] ...
         --connection-url [URL]       Set a custom database url to connect to for locking purposes.
         --log-internals              Log verbosely about Que's internal state. Only recommended for debugging issues
         --maximum-buffer-size [SIZE] Set maximum number of jobs to be locked and held in this process awaiting a worker (default: 8)
-        --minimum-buffer-size [SIZE] Set minimum number of jobs to be locked and held in this process awaiting a worker (default: 2)
         --wait-period [PERIOD]       Set maximum interval between checks of the in-memory job queue, in milliseconds (default: 50)
 ```
 
@@ -82,9 +81,9 @@ If you pass both worker-count and worker-priorities, the count will trim or pad 
 
 This option sets the number of seconds the process will wait between polls of the job queue. Jobs that are ready to be worked immediately will be broadcast via the LISTEN/NOTIFY system, so polling is unnecessary for them - polling is only necessary for jobs that are scheduled in the future or which are being delayed due to errors. The default is 5 seconds.
 
-### minimum-buffer-size and maximum-buffer-size
+### maximum-buffer-size
 
-These options set the size of the internal buffer that Que uses to hold jobs until they're ready for workers. The default minimum is 2 and the maximum is 8, meaning that the process won't buffer more than 8 jobs that aren't yet ready to be worked, and will only resort to polling if the buffer dips below 2. If you don't want jobs to be buffered at all, you can set both of these values to zero.
+This option sets the size of the internal buffer that Que uses to hold jobs until they're ready for workers. The default maximum is 8, meaning that the process won't buffer more than 8 jobs that aren't yet ready to be worked. If you don't want jobs to be buffered at all, you can set this value to zero.
 
 ### connection-url
 

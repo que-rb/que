@@ -190,7 +190,6 @@ MSG
       poll_interval: 5,
       wait_period: 50,
       queues: ['default'],
-      minimum_buffer_size: 2,
       maximum_buffer_size: 8
     )
 
@@ -204,7 +203,6 @@ MSG
       assert_equal queues,              locker_instantiate[:queues]
       assert_equal poll_interval,       locker_instantiate[:poll_interval]
       assert_equal wait_period,         locker_instantiate[:wait_period]
-      assert_equal minimum_buffer_size, locker_instantiate[:minimum_buffer_size]
       assert_equal maximum_buffer_size, locker_instantiate[:maximum_buffer_size]
       assert_equal worker_priorities,   locker_instantiate[:worker_priorities]
     end
@@ -307,21 +305,11 @@ MSG
 
     it "with a configurable local queue size" do
       assert_successful_invocation \
-        "./#{filename} --minimum-buffer-size 8 --maximum-buffer-size 20"
+        "./#{filename} --maximum-buffer-size 20"
 
       assert_locker_instantiated(
-        minimum_buffer_size: 8,
         maximum_buffer_size: 20,
       )
-    end
-
-    it "should raise an error if the minimum_buffer_size is above the maximum_buffer_size" do
-      code = execute("./#{filename} --minimum-buffer-size 10")
-      assert_equal 1, code
-      assert_equal 1, output.messages.length
-      assert_equal \
-        "minimum buffer size (10) is greater than the maximum buffer size (8)!",
-        output.messages.first.to_s
     end
 
     it "with a configurable log level" do
@@ -437,7 +425,7 @@ MSG
     file_name = write_file
 
     assert_successful_invocation(
-      "./#{file_name} -w 6 -p 1,2,3,4 -i 1.2 -q a=10 -q b=20.05 -q c --minimum-buffer-size 0 --maximum-buffer-size 1",
+      "./#{file_name} -w 6 -p 1,2,3,4 -i 1.2 -q a=10 -q b=20.05 -q c --maximum-buffer-size 1",
       queue_name: 'a',
     )
 
@@ -447,7 +435,7 @@ MSG
           <<~STARTUP
             Que #{Que::VERSION} started worker process with:
               Worker threads: 6 (priorities: 1, 2, 3, 4, any, any)
-              Buffer size: 0-1
+              Buffer size: 1
               Queues:
                 - a (poll interval: 10.0s)
                 - b (poll interval: 20.05s)

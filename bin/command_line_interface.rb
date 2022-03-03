@@ -136,15 +136,6 @@ module Que
             end
 
             opts.on(
-              '--minimum-buffer-size [SIZE]',
-              Integer,
-              "Set minimum number of jobs to be locked and held in this " \
-                "process awaiting a worker (default: 2)",
-            ) do |s|
-              options[:minimum_buffer_size] = s
-            end
-
-            opts.on(
               '--wait-period [PERIOD]',
               Float,
               "Set maximum interval between checks of the in-memory job queue, " \
@@ -236,7 +227,7 @@ OUTPUT
           <<~STARTUP
             Que #{Que::VERSION} started worker process with:
               Worker threads: #{locker.workers.length} (priorities: #{locker.workers.map { |w| w.priority || 'any' }.join(', ')})
-              Buffer size: #{locker.job_buffer.minimum_size}-#{locker.job_buffer.maximum_size}
+              Buffer size: #{locker.job_buffer.maximum_size}
               Queues:
             #{locker.queues.map { |queue, interval| "    - #{queue} (poll interval: #{interval}s)" }.join("\n")}
             Que waiting for jobs...
