@@ -54,12 +54,12 @@ gem install que
 First, create the queue schema in a migration. For example:
 
 ```ruby
-class CreateQueSchema < ActiveRecord::Migration[5.0]
+class CreateQueSchema < ActiveRecord::Migration[6.0]
   def up
     # Whenever you use Que in a migration, always specify the version you're
     # migrating to. If you're unsure what the current version is, check the
     # changelog.
-    Que.migrate!(version: 5)
+    Que.migrate!(version: 6)
   end
 
   def down
@@ -120,7 +120,7 @@ You can also add options to run the job after a specific time, or with a specifi
 ChargeCreditCard.enqueue(card.id, user_id: current_user.id, job_options: { run_at: 1.day.from_now, priority: 5 })
 ```
 ## Running the Que Worker
-In order to process jobs, you must start a separate worker process outside of your main server. 
+In order to process jobs, you must start a separate worker process outside of your main server.
 
 ```bash
 bundle exec que
@@ -142,7 +142,7 @@ You may need to pass que a file path to require so that it can load your app. Qu
 
 If you're using ActiveRecord to dump your database's schema, please [set your schema_format to :sql](http://guides.rubyonrails.org/migrations.html#types-of-schema-dumps) so that Que's table structure is managed correctly. This is a good idea regardless, as the `:ruby` schema format doesn't support many of PostgreSQL's advanced features.
 
-Pre-1.0, the default queue name needed to be configured in order for Que to work out of the box with Rails. In 1.0 the default queue name is now 'default', as Rails expects, but when Rails enqueues some types of jobs it may try to use another queue name that isn't worked by default. You can either:
+Pre-1.0, the default queue name needed to be configured in order for Que to work out of the box with Rails. As of 1.0 the default queue name is now 'default', as Rails expects, but when Rails enqueues some types of jobs it may try to use another queue name that isn't worked by default. You can either:
 
 - [Configure Rails](https://guides.rubyonrails.org/configuring.html) to send all internal job types to the 'default' queue by adding the following to `config/application.rb`:
 
