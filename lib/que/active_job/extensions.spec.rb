@@ -44,6 +44,25 @@ if defined?(::ActiveJob)
       )
     end
 
+    it 'configures jobs with supported job options' do
+      run_at = Time.now.round + 60
+      attrs = execute do
+        TestJobClass.new.enqueue(
+          queue: 'test_queue',
+          priority: 10,
+          wait_until: run_at,
+        )
+      end
+      assert_equal(
+        {
+          queue: 'test_queue',
+          priority: 10,
+          run_at: run_at,
+        },
+        attrs.slice(:queue, :priority, :run_at),
+      )
+    end
+
     it "shouldn't disrupt the use of GlobalId arguments" do
       skip "GlobalID not found!" unless defined?(::GlobalID)
 
