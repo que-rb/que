@@ -146,8 +146,6 @@ module Que
 
       return unless should_poll?
 
-      expected_count = priorities.inject(0){|s,(_,c)| s + c}
-
       jobs =
         connection.execute_prepared(
           :poll_jobs,
@@ -159,7 +157,7 @@ module Que
         )
 
       @last_polled_at      = Time.now
-      @last_poll_satisfied = expected_count == jobs.count
+      @last_poll_satisfied = any_priority_satisfied?(priorities, jobs)
 
       Que.internal_log :poller_polled, self do
         {
@@ -263,6 +261,22 @@ module Que
           DROP FUNCTION pg_temp.lock_and_update_priorities(jsonb, que_jobs);
           DROP TYPE pg_temp.que_query_result;
         SQL
+      end
+    end
+
+    private
+
+    def any_priority_satisfied?(priorities, jobs)
+      job_priorities = jobs.map { |job| job.fetch(:priority) }.sort
+      worker_job_counts = Hash.new(0)
+      priorities.any? do |worker_priority, waiting_workers_count|
+        waiting_workers_count.times do
+          return false if job_priorities.empty?
+          break if job_priorities.first > worker_priority
+          job_priorities.shift
+          worker_job_counts[worker_priority] += 1
+        end
+        worker_job_counts[worker_priority] == waiting_workers_count
       end
     end
   end
