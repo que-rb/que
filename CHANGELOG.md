@@ -93,6 +93,15 @@ When using Que 2.x, a job enqueued with Ruby 2.7 will run as expected on Ruby 3.
 * If you were already running Ruby 2.7 and were not passing a hash literal as the last job argument, you *may* be able to upgrade a running system without draining the queue, though this is not recommended.
 * For all other cases, you will need to follow the recommended process above or first completely drain the queue (stop enqueuing new jobs and finish processing any jobs in the database, including cleaning out any expired jobs) before upgrading.
 
+**Deploying Que 1.x and 2.x workers simultaneously**:
+
+To run workers with two different versions of Que, you'll probably need to temporarily duplicate your gem bundle, with the Que version being the only difference. e.g.:
+
+- Copy your `Gemfile` and `Gemfile.lock` into a directory called `que-1-gemfile`
+- Set a suitable Que version in each `Gemfile`
+- Update the bundle at `que-1-gemfile/Gemfile.lock` using `BUNDLE_GEMFILE=que-1-gemfile/Gemfile bundle`
+- Create a second deployment of Que, but with your `que` command prefixed with `BUNDLE_GEMFILE=que-1-gemfile/Gemfile`
+
 ## 1.4.0 (2022-03-23)
 
 - **Fixed**
@@ -103,7 +112,7 @@ When using Que 2.x, a job enqueued with Ruby 2.7 will run as expected on Ruby 3.
         * It became used in 1.0.0.beta4, and that changelog entry has been updated to reflect this.
 - **Documentation**:
     + Reformatted the changelog to be more consistent, including adding links to all issue/PR numbers. [#347](https://github.com/que-rb/que/pull/347)
-
+    + 
 ## 1.3.1 (2022-02-25)
 
 Unfortunately, v1.3.0 was broken. Follow its upgrade instructions, but use this version instead.
