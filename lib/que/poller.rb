@@ -146,8 +146,6 @@ module Que
 
       return unless should_poll?
 
-      expected_count = priorities.inject(0){|s,(_,c)| s + c}
-
       jobs =
         connection.execute_prepared(
           :poll_jobs,
@@ -159,7 +157,7 @@ module Que
         )
 
       @last_polled_at      = Time.now
-      @last_poll_satisfied = expected_count == jobs.count
+      @last_poll_satisfied = poll_satisfied?(priorities, jobs)
 
       Que.internal_log :poller_polled, self do
         {
@@ -264,6 +262,13 @@ module Que
           DROP TYPE pg_temp.que_query_result;
         SQL
       end
+    end
+
+    private
+
+    def poll_satisfied?(priorities, jobs)
+      lowest_priority = priorities.keys.max
+      jobs.count >= priorities[lowest_priority]
     end
   end
 end
