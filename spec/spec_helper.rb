@@ -89,6 +89,9 @@ QUE_POOLS = {
   hash[name] = Que.pool
 end
 
+# TruffleRuby doesn't like Pond: undefined method `owned?' for #<Monitor:0x9c28>
+QUE_POOLS.delete(:pond) if RUBY_ENGINE == 'truffleruby'
+
 if ENV['GITHUB_ACTIONS']
   puts "\n" + [
          "Ruby: #{RUBY_VERSION}",
@@ -125,7 +128,7 @@ end
 
 QUE_POOLS.freeze
 
-Que.pool = DEFAULT_QUE_POOL = QUE_POOLS[:pond]
+Que.pool = DEFAULT_QUE_POOL = QUE_POOLS[:pond] || QUE_POOLS[:sequel]
 
 
 

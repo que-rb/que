@@ -80,6 +80,8 @@ describe Que do
     end
 
     it "should accept a Pond instance" do
+      skip if RUBY_ENGINE == 'truffleruby'
+
       pond = Pond.new(&NEW_PG_CONNECTION)
       Que.connection = pond
 
