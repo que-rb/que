@@ -2,6 +2,7 @@
 
 <!-- MarkdownTOC autolink=true -->
 
+- [1.4.0 \(2022-03-23\)](#140-2022-03-23)
 - [1.3.1 \(2022-02-25\)](#131-2022-02-25)
 - [1.3.0 \(2022-02-25\)](#130-2022-02-25)
 - [1.2.0 \(2022-02-23\)](#120-2022-02-23)
@@ -49,6 +50,17 @@
 - [0.0.1 \(2013-11-07\)](#001-2013-11-07)
 
 <!-- /MarkdownTOC -->
+
+## 1.4.0 (2022-03-23)
+
+- **Fixed**
+    + The poller will no longer sleep when jobs exist for only some of its priorities. It now skips sleeping when a poll returns more jobs than the lowest priority requested. [#349](https://github.com/que-rb/que/pull/349).
+        * An alternative was considered which skipped polling when only some of the waiting worker priorities would be fully utilised ([diagram explanation](https://github.com/que-rb/que/pull/348#discussion_r819213357)); but this was decided against for code complexity reasons. [#348](https://github.com/que-rb/que/pull/348)
+- **Deprecated**:
+    + Deprecated `--minimum-buffer-size` option. It was not actually used, and will be removed in v2.0.0. [#346](https://github.com/que-rb/que/pull/346)
+        * It became used in 1.0.0.beta4, and that changelog entry has been updated to reflect this.
+- **Documentation**:
+    + Reformatted the changelog to be more consistent, including adding links to all issue/PR numbers. [#347](https://github.com/que-rb/que/pull/347)
 
 ## 1.3.1 (2022-02-25)
 
