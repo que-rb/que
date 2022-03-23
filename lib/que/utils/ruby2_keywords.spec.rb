@@ -24,13 +24,15 @@ describe Que::Utils::Ruby2Keywords do
       end
     end
 
-    describe "when last argument is flagged as a ruby2 keywords hash" do
-      let(:args_splat) { ["string", Hash.ruby2_keywords_hash({ a: 1, b: 2})] }
+    unless defined?(JRUBY_VERSION)
+      describe "when last argument is flagged as a ruby2 keywords hash" do
+        let(:args_splat) { ["string", Hash.ruby2_keywords_hash({ a: 1, b: 2})] }
 
-      it "splits keywords out of arguments" do
-        args, kwargs = Que.split_out_ruby2_keywords(args_splat)
-        assert_equal(["string"], args)
-        assert_equal({ a: 1, b: 2}, kwargs)
+        it "splits keywords out of arguments" do
+          args, kwargs = Que.split_out_ruby2_keywords(args_splat)
+          assert_equal(["string"], args)
+          assert_equal({ a: 1, b: 2}, kwargs)
+        end
       end
     end
   end

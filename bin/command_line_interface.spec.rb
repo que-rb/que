@@ -164,7 +164,10 @@ MSG
       code = execute "./#{name} ./nonexistent_file"
       assert_equal 1, code
 
-      assert_equal ["Could not load file './nonexistent_file': cannot load such file -- ./nonexistent_file"], output.messages
+      assert_match(
+        "Could not load file './nonexistent_file': (cannot load such file|no such file to load) -- ./nonexistent_file",
+        output.messages.join("\n"),
+      )
 
       assert_equal(
         {name => true},

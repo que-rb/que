@@ -150,6 +150,7 @@ class QueSpec < Minitest::Spec
   SPEC_TIMEOUT        = (ENV['SPEC_TIMEOUT']       || (ENV['GITHUB_ACTIONS'] ? 10 : 600)).to_i
   TIME_SKEW           = (ENV['SPEC_TIME_SKEW']     || (ENV['GITHUB_ACTIONS'] ? 10 :   1)).to_i
   SLEEP_UNTIL_TIMEOUT = (ENV['SPEC_SLEEP_TIMEOUT'] || (ENV['GITHUB_ACTIONS'] ? 10 :   2)).to_i
+  CLI_SLEEP_UNTIL_TIMEOUT = (ENV['CLI_SLEEP_UNTIL_TIMEOUT'] || (10 if defined?(JRUBY_VERSION)) || (ENV['GITHUB_ACTIONS'] ? 10 : 2)).to_i
 
   register_spec_type(//, self)
 

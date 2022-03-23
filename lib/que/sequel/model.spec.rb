@@ -7,9 +7,10 @@ describe 'Que::Sequel::Model' do
     require "que/sequel/model"
   end
 
-  ruby2_keywords def enqueue_job(*args)
+  def enqueue_job(*args)
     Que::Job.enqueue(*args).que_attrs[:id]
   end
+  ruby2_keywords(:enqueue_job) if respond_to?(:ruby2_keywords, true)
 
   def assert_ids(*expected)
     actual = yield(Que::Sequel::Model).select_order_map(:id)

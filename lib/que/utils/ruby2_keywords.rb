@@ -10,7 +10,7 @@ module Que
   module Utils
     module Ruby2Keywords
       def split_out_ruby2_keywords(args)
-        return [args, {}] unless args.last&.is_a?(Hash) && Hash.ruby2_keywords_hash?(args.last)
+        return [args, {}] unless args.last&.is_a?(Hash) && Hash.respond_to?(:ruby2_keywords_hash?, true) && Hash.ruby2_keywords_hash?(args.last)
 
         [args[0..-2], args.last]
       end
