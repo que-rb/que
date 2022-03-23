@@ -83,13 +83,14 @@ end
 When using Que 2.x, a job enqueued with Ruby 2.7 will run as expected on Ruby 3. We recommend:
 
 1. Upgrade your project to Que 1.3.1
-  - IMPORTANT: adds support for zero downtime upgrade to Que 2.x, see changelog below
+    - IMPORTANT: adds support for zero downtime upgrade to Que 2.x, see changelog below
 2. Upgrade your project to Ruby 2.7 and Rails 6.x if it is not already
 3. Upgrade your project to Que 2.x but stay on Ruby 2.7
-  - IMPORTANT: You will need to continue to run Que 1.x workers until all jobs enqueued using Que 1.x (i.e. with a `job_schema_version` of `1`) have been finished.
+    - IMPORTANT: You will need to continue to run Que 1.x workers until all jobs enqueued using Que 1.x (i.e. with a `job_schema_version` of `1`) have been finished.
 4. Upgrade your project to Ruby 3
 
 *NOTES:*
+
 * If you were already running Ruby 2.7 and were not passing a hash literal as the last job argument, you *may* be able to upgrade a running system without draining the queue, though this is not recommended.
 * For all other cases, you will need to follow the recommended process above or first completely drain the queue (stop enqueuing new jobs and finish processing any jobs in the database, including cleaning out any expired jobs) before upgrading.
 
