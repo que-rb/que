@@ -18,6 +18,8 @@ jobs:
         - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '12' }
         - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '13' }
         - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '14' }
+        # Alternative rubies
+        - { ruby_version: jruby, rails_gemfile: '6.1', postgres_version: '14' }
         exclude: []
     services:
       db:

@@ -13,7 +13,8 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://github.com/que-rb/que'
   spec.license       = 'MIT'
 
-  spec.required_ruby_version = '>= 2.7.0'
+  # "JRuby 9.3.x is compatible with Ruby 2.6.x and stays in sync with C Ruby." - from https://www.jruby.org
+  spec.required_ruby_version = '>= 2.7.0' unless defined?(JRUBY_VERSION)
 
   files_to_exclude = [
     /\A\.circleci/,
