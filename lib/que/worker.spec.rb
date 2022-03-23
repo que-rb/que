@@ -183,7 +183,7 @@ describe Que::Worker do
       expected_error_message: "RuntimeError: Error!",
       expected_backtrace: /\A#{__FILE__}/
     )
-      jobs_dataset.insert(job_class: job_class)
+      jobs_dataset.insert(job_class: job_class, job_schema_version: Que.job_schema_version)
 
       error_count = 0
       delays.each do |delay|

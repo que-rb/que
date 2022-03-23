@@ -4,3 +4,4 @@ CREATE INDEX que_jobs_kwargs_gin_idx ON que_jobs USING gin (kwargs jsonb_path_op
 DROP INDEX que_poll_idx;
 
 ALTER TABLE que_jobs ALTER COLUMN job_schema_version DROP DEFAULT;
+ALTER TABLE que_jobs ALTER COLUMN job_schema_version SET NOT NULL;

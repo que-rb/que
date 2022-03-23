@@ -7,7 +7,7 @@ describe Que::Utils::Transactions do
     refute Que.in_transaction?
     Que.transaction do
       assert Que.in_transaction?
-      Que.execute "INSERT INTO que_jobs (job_class) VALUES ('MyJobClass');"
+      Que.execute "INSERT INTO que_jobs (job_class, job_schema_version) VALUES ('MyJobClass', #{Que.job_schema_version});"
       assert Que.in_transaction?
     end
     refute Que.in_transaction?

@@ -19,7 +19,7 @@ describe Que::Migrations, "current schema" do
       ].each do |args|
         assert_constraint_error 'valid_args' do
           DB[:que_jobs].
-            insert(job_class: 'Que::Job', args: JSON.generate(args, quirks_mode: true))
+            insert(job_class: 'Que::Job', job_schema_version: Que.job_schema_version, args: JSON.generate(args, quirks_mode: true))
         end
       end
     end
@@ -27,7 +27,7 @@ describe Que::Migrations, "current schema" do
     it "should make sure that a job has valid tags" do
       assert_constraint_error 'valid_data' do
         DB[:que_jobs].
-          insert(job_class: 'Que::Job', data: JSON.dump(tags: {}))
+          insert(job_class: 'Que::Job', job_schema_version: Que.job_schema_version, data: JSON.dump(tags: {}))
       end
 
       [
@@ -40,7 +40,7 @@ describe Que::Migrations, "current schema" do
       ].each do |tags|
         assert_constraint_error 'valid_data' do
           DB[:que_jobs].
-            insert(job_class: 'Que::Job', data: JSON.dump(tags: tags))
+            insert(job_class: 'Que::Job', job_schema_version: Que.job_schema_version, data: JSON.dump(tags: tags))
         end
       end
 
@@ -54,12 +54,12 @@ describe Que::Migrations, "current schema" do
       ].each do |tags|
         assert_constraint_error 'valid_data' do
           DB[:que_jobs].
-            insert(job_class: 'Que::Job', data: JSON.dump(tags: tags))
+            insert(job_class: 'Que::Job', job_schema_version: Que.job_schema_version, data: JSON.dump(tags: tags))
         end
 
         assert_constraint_error 'valid_data' do
           DB[:que_jobs].
-            insert(job_class: 'Que::Job', data: JSON.dump(tags: (tags << "valid_tag").shuffle))
+            insert(job_class: 'Que::Job', job_schema_version: Que.job_schema_version, data: JSON.dump(tags: (tags << "valid_tag").shuffle))
         end
       end
     end
@@ -67,7 +67,7 @@ describe Que::Migrations, "current schema" do
     it "should make sure that a job_class does not exceed 200 characters" do
       assert_constraint_error 'job_class_length' do
         DB[:que_jobs].
-          insert(job_class: 'a' * 201)
+          insert(job_class: 'a' * 201, job_schema_version: Que.job_schema_version)
       end
 
       # Make sure the check constraint also handles wrapped ActiveJob jobs.
@@ -75,7 +75,8 @@ describe Que::Migrations, "current schema" do
         DB[:que_jobs].
           insert(
             job_class: 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper',
-            args: JSON.dump([{job_class: '2' * 501}])
+            args: JSON.dump([{job_class: '2' * 501}]),
+            job_schema_version: Que.job_schema_version,
           )
       end
 
@@ -87,28 +88,29 @@ describe Que::Migrations, "current schema" do
           data: JSON.dump(
             args: [],
             tags: [],
-          )
+          ),
+          job_schema_version: Que.job_schema_version,
         )
     end
 
     it "should make sure that a queue does not exceed 100 characters" do
       assert_constraint_error 'queue_length' do
         DB[:que_jobs].
-          insert(job_class: 'Que::Job', queue: 'a' * 101)
+          insert(job_class: 'Que::Job', job_schema_version: Que.job_schema_version, queue: 'a' * 101)
       end
     end
 
     it "should make sure that a job error message does not exceed 500 characters" do
       assert_constraint_error 'error_length' do
         DB[:que_jobs].
-          insert(job_class: 'Que::Job', last_error_message: 'a' * 501)
+          insert(job_class: 'Que::Job', job_schema_version: Que.job_schema_version, last_error_message: 'a' * 501)
       end
     end
 
     it "should make sure that a job error backtrace does not exceed 10000 characters" do
       assert_constraint_error 'error_length' do
         DB[:que_jobs].
-          insert(job_class: 'Que::Job', last_error_backtrace: 'a' * 10001)
+          insert(job_class: 'Que::Job', job_schema_version: Que.job_schema_version, last_error_backtrace: 'a' * 10001)
       end
     end
   end
