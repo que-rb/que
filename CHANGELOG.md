@@ -82,7 +82,7 @@ end
 
 When using Que 2.x, a job enqueued with Ruby 2.7 will run as expected on Ruby 3. We recommend:
 
-1. Upgrade your project to Que 1.3.1
+1. Upgrade your project to the latest 1.x version of Que (1.3.1+)
     - IMPORTANT: adds support for zero downtime upgrade to Que 2.x, see changelog below
 2. Upgrade your project to Ruby 2.7 and Rails 6.x if it is not already
 3. Upgrade your project to Que 2.x but stay on Ruby 2.7
