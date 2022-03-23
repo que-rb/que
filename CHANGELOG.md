@@ -58,13 +58,15 @@
 
 **Notable changes**:
 
-* Database schema has changed to split job arguments into args and kwargs.
-* Support for providing job options as top-level keyword arguments to `Job.enqueue` has been removed. See the deprecation in the previous release.
+* Support for Ruby 3 introduced
+* Database schema has changed to split the job arguments `args` column into `args` and `kwargs` columns, for reliable args and kwargs splitting for Ruby 3.
+    - The job schema version is now 2. Note that job schema version is distinct from database schema version and Que version. The `job_schema_version` column of the `que_jobs` table no longer defaults and has a not null constraint, so when manually inserting jobs into the table, this must be specified as `2`. If you have a gem that needs to support multiple Que versions, best not to blindly use the value of `Que.job_schema_version`; instead have different code paths depending on the value of `Que.job_schema_version`. You could also use this to know whether keyword arguments are in `args` or `kwargs`.
 * Passing a hash literal as the last job argument to be splatted into job keyword arguments is no longer supported.
+* Dropped support for providing job options as top-level keyword arguments to `Job.enqueue`, i.e. `queue`, `priority`, `run_at`, `job_class`, and `tags`. Job options now need to be nested under the `job_options` keyword argument instead. See [#336](https://github.com/que-rb/que/pull/336)
 * Dropped support for Ruby < 2.7
 * Dropped support for Rails < 6.0
 * The `#by_args` method on the Job model (for both Sequel and ActiveRecord) now searches based on both args and kwargs, but it performs a subset match instead of an exact match. For instance, if your job was scheduled with `'a', 'b', 'c', foo: 'bar', baz: 1`, `by_args('a', 'b', baz: 1)` would find and return the job.
-* This release contains a database migration. You will need to migrate Que to the latest version (6). For instance, on ActiveRecord and Rails 6:
+* This release contains a database migration. You will need to migrate Que to the latest database schema version (6). For example, on ActiveRecord and Rails 6:
 
 ```ruby
 class UpdateQueTablesToVersion6 < ActiveRecord::Migration[6.0]
@@ -86,7 +88,7 @@ When using Que 2.x, a job enqueued with Ruby 2.7 will run as expected on Ruby 3.
     - IMPORTANT: adds support for zero downtime upgrade to Que 2.x, see changelog below
 2. Upgrade your project to Ruby 2.7 and Rails 6.x if it is not already
 3. Upgrade your project to Que 2.x but stay on Ruby 2.7
-    - IMPORTANT: You will need to continue to run Que 1.x workers until all jobs enqueued using Que 1.x (i.e. with a `job_schema_version` of `1`) have been finished.
+    - IMPORTANT: You will need to continue to run Que 1.x workers until all jobs enqueued using Que 1.x (i.e. with a `job_schema_version` of `1`) have been finished. See below
 4. Upgrade your project to Ruby 3
 
 *NOTES:*
