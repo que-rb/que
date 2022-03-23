@@ -138,10 +138,9 @@ module Que
             opts.on(
               '--minimum-buffer-size [SIZE]',
               Integer,
-              "Set minimum number of jobs to be locked and held in this " \
-                "process awaiting a worker (default: 2)",
+              "Unused (deprecated)",
             ) do |s|
-              options[:minimum_buffer_size] = s
+              warn "The --minimum-buffer-size SIZE option has been deprecated and will be removed in v2.0 (it's actually been unused since v1.0.0.beta4)"
             end
 
             opts.on(
@@ -236,7 +235,7 @@ OUTPUT
           <<~STARTUP
             Que #{Que::VERSION} started worker process with:
               Worker threads: #{locker.workers.length} (priorities: #{locker.workers.map { |w| w.priority || 'any' }.join(', ')})
-              Buffer size: #{locker.job_buffer.minimum_size}-#{locker.job_buffer.maximum_size}
+              Buffer size: #{locker.job_buffer.maximum_size}
               Queues:
             #{locker.queues.map { |queue, interval| "    - #{queue} (poll interval: #{interval}s)" }.join("\n")}
             Que waiting for jobs...

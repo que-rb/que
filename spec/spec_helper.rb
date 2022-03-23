@@ -162,7 +162,7 @@ class QueSpec < Minitest::Spec
   end
 
   let :job_buffer do
-    Que::JobBuffer.new(maximum_size: 20, minimum_size: 0, priorities: [10, 30, 50, nil])
+    Que::JobBuffer.new(maximum_size: 20, priorities: [10, 30, 50, nil])
   end
 
   let :result_queue do

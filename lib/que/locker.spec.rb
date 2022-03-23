@@ -36,7 +36,6 @@ describe Que::Locker do
       locker_settings.merge!(
         queues:              ['my_queue'],
         listen:              false,
-        minimum_buffer_size: 5,
         maximum_buffer_size: 45,
         wait_period:         200,
         poll_interval:       0.4,

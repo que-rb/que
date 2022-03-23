@@ -22,12 +22,10 @@ describe Que::JobBuffer, "available_priorities" do
   end
 
   let(:maximum_size) { 8 }
-  let(:minimum_size) { 2 }
 
   let :job_buffer do
     Que::JobBuffer.new(
       maximum_size: maximum_size,
-      minimum_size: minimum_size,
       priorities: worker_priorities.uniq,
     )
   end
@@ -116,7 +114,6 @@ describe Que::JobBuffer, "available_priorities" do
 
   describe "when the maximum buffer size is zero" do
     let(:maximum_size) { 0 }
-    let(:minimum_size) { 0 }
 
     describe "and all the workers are free" do
       it "should not include any buffer space in the available counts" do

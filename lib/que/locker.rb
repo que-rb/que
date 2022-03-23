@@ -45,7 +45,6 @@ module Que
 
     DEFAULT_POLL_INTERVAL       = 5.0
     DEFAULT_WAIT_PERIOD         = 50
-    DEFAULT_MINIMUM_BUFFER_SIZE = 2
     DEFAULT_MAXIMUM_BUFFER_SIZE = 8
     DEFAULT_WORKER_PRIORITIES   = [10, 30, 50, nil, nil, nil].freeze
 
@@ -57,7 +56,6 @@ module Que
       poll_interval:       DEFAULT_POLL_INTERVAL,
       wait_period:         DEFAULT_WAIT_PERIOD,
       maximum_buffer_size: DEFAULT_MAXIMUM_BUFFER_SIZE,
-      minimum_buffer_size: DEFAULT_MINIMUM_BUFFER_SIZE,
       worker_priorities:   DEFAULT_WORKER_PRIORITIES,
       on_worker_start:     nil
     )
@@ -77,7 +75,6 @@ module Que
       # ResultQueue to receive messages from workers.
       @job_buffer = JobBuffer.new(
         maximum_size: maximum_buffer_size,
-        minimum_size: minimum_buffer_size,
         priorities:   worker_priorities.uniq,
       )
 
@@ -93,7 +90,6 @@ module Que
           poll_interval:       poll_interval,
           wait_period:         wait_period,
           maximum_buffer_size: maximum_buffer_size,
-          minimum_buffer_size: minimum_buffer_size,
           worker_priorities:   worker_priorities,
         }
       end
