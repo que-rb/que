@@ -7,9 +7,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        ruby_version: ["2.7", "3.0", "3.1"]
-        rails_gemfile: ["6.0", "6.1"]
-        postgres_version: [9, 10, 11, 12, 13, 14]
+        ruby_version: ['2.7', '3.0', '3.1']
+        rails_gemfile: ['6.0', '6.1']
+        postgres_version: ['14']
+        include:
+        # Postgres versions
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '9' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '10' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '11' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '12' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '13' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '14' }
         exclude: []
     services:
       db:
