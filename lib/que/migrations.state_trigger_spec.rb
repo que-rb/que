@@ -77,6 +77,7 @@ describe Que::Migrations, "que_state trigger" do
           job_class: "CustomJobClass",
           queue: "custom_queue",
           data: JSON.dump(tags: ["tag_1", "tag_2"]),
+          job_schema_version: Que.job_schema_version,
         )
       end
     end
@@ -91,6 +92,7 @@ describe Que::Migrations, "que_state trigger" do
           DB[:que_jobs].insert(
             job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
             args: JSON.dump([{job_class: "WrappedJobClass"}]),
+            job_schema_version: Que.job_schema_version,
           )
         end
       end
@@ -112,6 +114,7 @@ describe Que::Migrations, "que_state trigger" do
             DB[:que_jobs].insert(
               job_class: "ActiveJob::QueueAdapters::QueAdapter::JobWrapper",
               args: JSON.dump(args),
+              job_schema_version: Que.job_schema_version,
             )
           end
         end
@@ -127,7 +130,7 @@ describe Que::Migrations, "que_state trigger" do
         previous_state: "nonexistent",
         current_state: "ready",
       ) do
-        DB[:que_jobs].insert(job_class: "MyJobClass")
+        DB[:que_jobs].insert(job_class: "MyJobClass", job_schema_version: Que.job_schema_version)
       end
     end
 
@@ -139,14 +142,14 @@ describe Que::Migrations, "que_state trigger" do
         current_state: "scheduled",
         run_at: future,
       ) do
-        DB[:que_jobs].insert(job_class: "MyJobClass", run_at: future)
+        DB[:que_jobs].insert(job_class: "MyJobClass", job_schema_version: Que.job_schema_version, run_at: future)
       end
     end
   end
 
   describe "when updating a job" do
     it "and marking it as finished should issue a notification containing the job's class, error count, etc." do
-      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass").first
+      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass", job_schema_version: Que.job_schema_version).first
       assert get_message
 
       assert_notification(
@@ -160,7 +163,7 @@ describe Que::Migrations, "que_state trigger" do
     end
 
     it "and marking it as errored" do
-      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass").first
+      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass", job_schema_version: Que.job_schema_version).first
       assert get_message
 
       assert_notification(
@@ -174,7 +177,7 @@ describe Que::Migrations, "que_state trigger" do
     end
 
     it "and marking it as scheduled for the future" do
-      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass").first
+      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass", job_schema_version: Que.job_schema_version).first
       assert get_message
 
       future = Time.now + 36000
@@ -190,7 +193,7 @@ describe Que::Migrations, "que_state trigger" do
     end
 
     it "and marking it as expired" do
-      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass").first
+      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass", job_schema_version: Que.job_schema_version).first
       assert get_message
 
       assert_notification(
@@ -204,7 +207,7 @@ describe Que::Migrations, "que_state trigger" do
     end
 
     it "and not changing the state should not emit a message" do
-      id = DB[:que_jobs].insert(job_class: "MyJobClass", run_at: Time.now + 36000)
+      id = DB[:que_jobs].insert(job_class: "MyJobClass", job_schema_version: Que.job_schema_version, run_at: Time.now + 36000)
 
       assert get_message
 
@@ -216,7 +219,7 @@ describe Que::Migrations, "que_state trigger" do
 
   describe "when deleting a job" do
     it "should issue a notification containing the job's class, queue, etc." do
-      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass").first
+      record = DB[:que_jobs].returning(:id, :run_at).insert(job_class: "MyJobClass", job_schema_version: Que.job_schema_version).first
       assert get_message
 
       assert_notification(

@@ -188,7 +188,7 @@ describe Que::Locker do
   describe "on startup" do
     it "should do batch polls for jobs in its specified queue" do
       job1, job2 = BlockJob.enqueue, BlockJob.enqueue
-      job3 = Que::Job.enqueue(queue: 'my_special_queue')
+      job3 = Que::Job.enqueue(job_options: { queue: 'my_special_queue' })
 
       locker_settings[:poll] = true
       locker
@@ -205,9 +205,9 @@ describe Que::Locker do
     end
 
     it "should do batch polls for jobs in its specified queues" do
-      job1 = BlockJob.enqueue(queue: 'queue1')
-      job2 = BlockJob.enqueue(queue: 'queue2')
-      job3 = Que::Job.enqueue(queue: 'my_special_queue')
+      job1 = BlockJob.enqueue(job_options: { queue: 'queue1' })
+      job2 = BlockJob.enqueue(job_options: { queue: 'queue2' })
+      job3 = Que::Job.enqueue(job_options: { queue: 'my_special_queue' })
 
       locker_settings[:queues] = ['queue1', 'queue2']
       locker
@@ -226,8 +226,8 @@ describe Que::Locker do
 
     it "should request only enough jobs to fill the buffer" do
       # Three BlockJobs will tie up the low-priority workers.
-      ids  = 3.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
-      ids += 9.times.map { Que::Job.enqueue(priority: 101).que_attrs[:id] }
+      ids  = 3.times.map { BlockJob.enqueue(job_options: { priority: 100 }).que_attrs[:id] }
+      ids += 9.times.map { Que::Job.enqueue(job_options: { priority: 101 }).que_attrs[:id] }
 
       locker
       3.times { $q1.pop }
@@ -308,8 +308,8 @@ describe Que::Locker do
 
     it "should request as many as necessary to reach the maximum_buffer_size" do
       # Three BlockJobs to tie up the low-priority workers.
-      ids  = 3.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
-      ids += [Que::Job.enqueue(priority: 101).que_attrs[:id]]
+      ids  = 3.times.map { BlockJob.enqueue(job_options: { priority: 100 }).que_attrs[:id] }
+      ids += [Que::Job.enqueue(job_options: { priority: 101 }).que_attrs[:id]]
 
       locker_settings.clear
       locker_settings[:poll_interval] = 0.01
@@ -324,7 +324,7 @@ describe Que::Locker do
       ids +=
         Que.transaction do
           8.times.map do
-            Que::Job.enqueue(priority: 101).que_attrs[:id]
+            Que::Job.enqueue(job_options: { priority: 101 }).que_attrs[:id]
           end
         end
 
@@ -388,7 +388,7 @@ describe Que::Locker do
     end
 
     it "should trigger a new poll when the buffer drops to the minimum size" do
-      ids = 12.times.map { BlockJob.enqueue(priority: 100).que_attrs[:id] }
+      ids = 12.times.map { BlockJob.enqueue(job_options: { priority: 100 }).que_attrs[:id] }
 
       locker_settings[:poll] = true
       locker_settings[:poll_interval] = 0.01
@@ -473,8 +473,8 @@ describe Que::Locker do
       sleep_until_equal(1) { DB[:que_lockers].count }
       assert_equal ['queue_1', 'queue_2'], DB[:que_lockers].get(:queues)
 
-      BlockJob.enqueue queue: 'queue_1'
-      BlockJob.enqueue queue: 'queue_2'
+      BlockJob.enqueue(job_options: { queue: 'queue_1' })
+      BlockJob.enqueue(job_options: { queue: 'queue_2' })
 
       $q1.pop; $q1.pop
 
@@ -559,12 +559,12 @@ describe Que::Locker do
 
       sleep_until_equal(1) { DB[:que_lockers].count }
 
-      BlockJob.enqueue(priority: 5)
+      BlockJob.enqueue(job_options: { priority: 5 })
       $q1.pop
-      ids = 3.times.map { Que::Job.enqueue(priority: 5).que_attrs[:id] }
+      ids = 3.times.map { Que::Job.enqueue(job_options: { priority: 5 }).que_attrs[:id] }
       sleep_until_equal(ids) { ids_in_local_queue }
 
-      id = Que::Job.enqueue(priority: 10).que_attrs[:id]
+      id = Que::Job.enqueue(job_options: { priority: 10 }).que_attrs[:id]
 
       sleep 0.05 # Hacky.
       refute_includes ids_in_local_queue, id
@@ -579,13 +579,13 @@ describe Que::Locker do
 
       sleep_until_equal(1) { DB[:que_lockers].count }
 
-      block_job_id = BlockJob.enqueue(priority: 5).que_attrs[:id]
+      block_job_id = BlockJob.enqueue(job_options: { priority: 5 }).que_attrs[:id]
       $q1.pop
-      ids = 3.times.map { Que::Job.enqueue(priority: 5).que_attrs[:id] }
+      ids = 3.times.map { Que::Job.enqueue(job_options: { priority: 5 }).que_attrs[:id] }
 
       sleep_until_equal(ids) { ids_in_local_queue }
 
-      id = Que::Job.enqueue(priority: 2).que_attrs[:id]
+      id = Que::Job.enqueue(job_options: { priority: 2 }).que_attrs[:id]
 
       sleep_until { ids_in_local_queue == [id] + ids[0..1] }
       sleep_until { locked_ids == (ids_in_local_queue + [block_job_id]).sort }
@@ -730,7 +730,7 @@ describe Que::Locker do
 
               if runs < 10
                 delay = rand > 0.5 ? 1 : 0
-                conn.execute(%(INSERT INTO que_jobs (job_class, args, run_at, job_schema_version) VALUES ('QueSpec::RunOnceTestJob', '[{"runs":#{runs + 1},"index":#{index}}]', now() + '#{delay} microseconds', #{Que.job_schema_version})))
+                conn.execute(%(INSERT INTO que_jobs (job_class, kwargs, run_at, job_schema_version) VALUES ('QueSpec::RunOnceTestJob', '{"runs":#{runs + 1},"index":#{index}}', now() + '#{delay} microseconds', #{Que.job_schema_version})))
               end
 
               finish
@@ -739,7 +739,7 @@ describe Que::Locker do
           end
         end
 
-        lockers = 4.times.map { Que::Locker.new(locker_settings) }
+        lockers = 4.times.map { Que::Locker.new(**locker_settings) }
 
         5.times { |i| QueSpec::RunOnceTestJob.enqueue(runs: 1, index: i) }
 
@@ -756,7 +756,7 @@ describe Que::Locker do
             job_ids: jobs_dataset.select_order_map(:id),
           },
           {
-            index_runs: jobs_dataset.exclude(finished_at: nil).select_map(:args).map{|a| [a.first[:index], a.first[:runs]]}.sort,
+            index_runs: jobs_dataset.exclude(finished_at: nil).select_map(:kwargs).map{ |a| [a[:index], a[:runs]]}.sort,
             job_ids: DB[:test_data].select_order_map(:job_id),
           }
         )

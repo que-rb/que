@@ -40,8 +40,11 @@ module Que
           where(QUALIFIED_TABLE[:data].pg_jsonb.contains(JSON.dump(tags: [tag])))
         end
 
-        def by_args(*args)
-          where(QUALIFIED_TABLE[:args].pg_jsonb.contains(JSON.dump(args)))
+        def by_args(*args, **kwargs)
+          where(
+            QUALIFIED_TABLE[:args].pg_jsonb.contains(JSON.dump(args)) &
+            QUALIFIED_TABLE[:kwargs].pg_jsonb.contains(JSON.dump(kwargs))
+          ) 
         end
       end
     end

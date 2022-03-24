@@ -128,8 +128,8 @@ There are other docs to read if you're using [Sequel](#using-sequel) or [plain P
 After you've connected Que to the database, you can manage the jobs table. You'll want to migrate to a specific version in a migration file, to ensure that they work the same way even when you upgrade Que in the future:
 
 ```ruby
-# Update the schema to version #5.
-Que.migrate!(version: 5)
+# Update the schema to version #6.
+Que.migrate!(version: 6)
 
 # Remove Que's jobs table entirely.
 Que.migrate!(version: 0)
@@ -441,7 +441,7 @@ que -q default -q credit_cards
 Then you can set jobs to be enqueued in that queue specifically:
 
 ```ruby
-ProcessCreditCard.enqueue current_user.id, queue: 'credit_cards'
+ProcessCreditCard.enqueue(current_user.id, job_options: { queue: 'credit_cards' })
 
 # Or:
 
@@ -455,7 +455,7 @@ end
 In some cases, the ProcessCreditCard class may not be defined in the application that is enqueueing the job. In that case, you can specify the job class as a string:
 
 ```ruby
-Que.enqueue current_user.id, job_class: 'ProcessCreditCard', queue: 'credit_cards'
+Que.enqueue(current_user.id, job_options: { job_class: 'ProcessCreditCard', queue: 'credit_cards' })
 ```
 
 ## Shutting Down Safely
@@ -549,7 +549,7 @@ require 'que'
 Sequel.migration do
   up do
     Que.connection = self
-    Que.migrate!(version: 5)
+    Que.migrate!(version: 6)
   end
   down do
     Que.connection = self
@@ -585,7 +585,7 @@ Sequel automatically wraps model persistance actions (create, update, destroy) i
 
 ## Using Que With ActiveJob
 
-You can include `Que::ActiveJob::JobExtensions` into your `ApplicationJob` subclass to get support for all of Que's 
+You can include `Que::ActiveJob::JobExtensions` into your `ApplicationJob` subclass to get support for all of Que's
 [helper methods](#job-helper-methods). These methods will become no-ops if you use a queue adapter that isn't Que, so if you like to use a different adapter in development they shouldn't interfere.
 
 Additionally, including `Que::ActiveJob::JobExtensions` lets you define a run() method that supports keyword arguments.

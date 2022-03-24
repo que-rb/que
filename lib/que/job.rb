@@ -12,7 +12,7 @@ module Que
     SQL[:insert_job] =
       %{
         INSERT INTO public.que_jobs
-        (queue, priority, run_at, job_class, args, data, job_schema_version)
+        (queue, priority, run_at, job_class, args, kwargs, data, job_schema_version)
         VALUES
         (
           coalesce($1, 'default')::text,
@@ -21,6 +21,7 @@ module Que
           $4::text,
           coalesce($5, '[]')::jsonb,
           coalesce($6, '{}')::jsonb,
+          coalesce($7, '{}')::jsonb,
           #{Que.job_schema_version}
         )
         RETURNING *
@@ -56,13 +57,10 @@ module Que
         :priority,
         :run_at
 
-      def enqueue(
-        *args,
-        job_options: {},
-        **arg_opts
-      )
-        arg_opts, job_options = _extract_job_options(arg_opts, job_options.dup)
-        args << arg_opts if arg_opts.any?
+      def enqueue(*args)
+        args, kwargs = Que.split_out_ruby2_keywords(args)
+
+        job_options = kwargs.delete(:job_options) || {}
 
         if job_options[:tags]
           if job_options[:tags].length > MAXIMUM_TAGS_COUNT
@@ -81,6 +79,7 @@ module Que
           priority: job_options[:priority] || resolve_que_setting(:priority),
           run_at:   job_options[:run_at]   || resolve_que_setting(:run_at),
           args:     Que.serialize_json(args),
+          kwargs:   Que.serialize_json(kwargs),
           data:     job_options[:tags] ? Que.serialize_json(tags: job_options[:tags]) : "{}",
           job_class: \
             job_options[:job_class] || name ||
@@ -89,27 +88,31 @@ module Que
 
         if attrs[:run_at].nil? && resolve_que_setting(:run_synchronously)
           attrs[:args] = Que.deserialize_json(attrs[:args])
+          attrs[:kwargs] = Que.deserialize_json(attrs[:kwargs])
           attrs[:data] = Que.deserialize_json(attrs[:data])
           _run_attrs(attrs)
         else
           values =
             Que.execute(
               :insert_job,
-              attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :data),
+              attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :kwargs, :data),
             ).first
-
           new(values)
         end
       end
+      ruby2_keywords(:enqueue) if respond_to?(:ruby2_keywords, true)
 
       def run(*args)
         # Make sure things behave the same as they would have with a round-trip
         # to the DB.
+        args, kwargs = Que.split_out_ruby2_keywords(args)
         args = Que.deserialize_json(Que.serialize_json(args))
+        kwargs = Que.deserialize_json(Que.serialize_json(kwargs))
 
         # Should not fail if there's no DB connection.
-        _run_attrs(args: args)
+        _run_attrs(args: args, kwargs: kwargs)
       end
+      ruby2_keywords(:run) if respond_to?(:ruby2_keywords, true)
 
       def resolve_que_setting(setting, *args)
         value = send(setting) if respond_to?(setting)
@@ -135,27 +138,6 @@ module Que
             job._run(reraise_errors: true)
           end
         end
-      end
-
-      def _extract_job_options(arg_opts, job_options)
-        deprecated_job_option_names = []
-
-        %i[queue priority run_at job_class tags].each do |option_name|
-          next unless arg_opts.key?(option_name) && job_options[option_name].nil?
-
-          job_options[option_name] = arg_opts.delete(option_name)
-          deprecated_job_option_names << option_name
-        end
-
-        _log_job_options_deprecation(deprecated_job_option_names)
-
-        [arg_opts, job_options]
-      end
-
-      def _log_job_options_deprecation(deprecated_job_option_names)
-        return unless deprecated_job_option_names.any?
-
-        warn "Passing job options like (#{deprecated_job_option_names.join(', ')}) to `JobClass.enqueue` as top level keyword args has been deprecated and will be removed in version 2.0. Please wrap job options in an explicit `job_options` keyword arg instead."
       end
     end
 

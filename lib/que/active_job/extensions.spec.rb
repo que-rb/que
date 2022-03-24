@@ -6,8 +6,9 @@ if defined?(::ActiveJob)
   describe "running jobs via ActiveJob" do
     before do
       class TestJobClass < ActiveJob::Base
-        def perform(*args)
+        def perform(*args, **kwargs)
           $args = args
+          $kwargs = kwargs
         end
       end
     end
@@ -17,13 +18,9 @@ if defined?(::ActiveJob)
       $args = nil
     end
 
-    def execute_raw(*args)
-      TestJobClass.perform_later(*args)
-    end
-
-    def execute(*args)
+    def execute(&perform_later_block)
       worker # Make sure worker is initialized.
-      execute_raw(*args)
+      perform_later_block.call
 
       assert_equal 1, active_jobs_dataset.count
       attrs = active_jobs_dataset.first!
@@ -35,15 +32,34 @@ if defined?(::ActiveJob)
     end
 
     it "should pass its arguments to the run method" do
-      execute(1, 2)
+      execute { TestJobClass.perform_later(1, 2) }
       assert_equal [1, 2], $args
     end
 
     it "should handle argument types appropriately" do
-      execute(symbol_arg: 1, "string_arg" => 2)
+      execute { TestJobClass.perform_later(symbol_arg: 1, "string_arg" => 2) }
       assert_equal(
-        [{symbol_arg: 1, "string_arg" => 2}],
-        $args,
+        {symbol_arg: 1, "string_arg" => 2},
+        $kwargs,
+      )
+    end
+
+    it 'configures jobs with supported job options' do
+      run_at = Time.now.round + 60
+      attrs = execute do
+        TestJobClass.new.enqueue(
+          queue: 'test_queue',
+          priority: 10,
+          wait_until: run_at,
+        )
+      end
+      assert_equal(
+        {
+          queue: 'test_queue',
+          priority: 10,
+          run_at: run_at,
+        },
+        attrs.slice(:queue, :priority, :run_at),
       )
     end
 
@@ -55,11 +71,11 @@ if defined?(::ActiveJob)
       job = QueJob.first
       job.update(finished_at: Time.now)
 
-      execute(job_object: job)
+      execute { TestJobClass.perform_later(job_object: job) }
 
       assert_equal(
-        [{job_object: job}],
-        $args,
+        {job_object: job},
+        $kwargs,
       )
     end
 
@@ -82,7 +98,7 @@ if defined?(::ActiveJob)
         }
       )
 
-      execute(5, 6)
+      execute { TestJobClass.perform_later(5, 6) }
       assert_equal [5, 6], $args
 
       assert_instance_of ActiveJob::QueueAdapters::QueAdapter::JobWrapper, passed_1
@@ -104,7 +120,9 @@ if defined?(::ActiveJob)
         end
       end
 
-      assert_raises(CustomExceptionSubclass) { execute(5, 6) }
+      assert_raises(CustomExceptionSubclass) do
+        execute { TestJobClass.perform_later(5, 6) }
+      end
 
       assert_equal 1, active_jobs_dataset.count
       assert_equal [5, 6], active_jobs_dataset.get(:args).first[:arguments]
@@ -127,7 +145,7 @@ if defined?(::ActiveJob)
             end
           end
 
-          execute_raw(3, 4)
+          TestJobClass.perform_later(3, 4)
           assert_equal [3, 4], $args
 
           assert_raises(PG::InFailedSqlTransaction) { Que.execute "SELECT 1" }
@@ -146,7 +164,9 @@ if defined?(::ActiveJob)
           end
         end
 
-        error = assert_raises(RuntimeError) { execute_raw(3, 4) }
+        error = assert_raises(RuntimeError) do
+          TestJobClass.perform_later(3, 4)
+        end
         assert_equal "Oopsie!", error.message
         assert_equal error, notified_error
       end

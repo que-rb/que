@@ -13,7 +13,7 @@ describe Que::Job, "run_synchronously=" do
     end
 
     it "should ignore jobs that are scheduled for a future date" do
-      assert_instance_of ArgsJob, ArgsJob.enqueue(1, 2, 3, run_at: Time.now + 3)
+      assert_instance_of ArgsJob, ArgsJob.enqueue(1, 2, 3, job_options: { run_at: Time.now + 3 })
       assert_nil $passed_args
     end
   end
@@ -31,7 +31,7 @@ describe Que::Job, "run_synchronously=" do
     end
 
     it "should ignore jobs that are scheduled for a future date" do
-      assert_instance_of ArgsJob, ArgsJob.enqueue(1, 2, 3, run_at: Time.now + 3)
+      assert_instance_of ArgsJob, ArgsJob.enqueue(1, 2, 3, job_options: { run_at: Time.now + 3 })
       assert_nil $passed_args
     end
   end

@@ -39,8 +39,8 @@ module Que
           where("que_jobs.data @> ?", JSON.dump(tags: [tag]))
         end
 
-        def by_args(*args)
-          where("que_jobs.args @> ?", JSON.dump(args))
+        def by_args(*args, **kwargs)
+          where("que_jobs.args @> ? AND que_jobs.kwargs @> ?", JSON.dump(args), JSON.dump(kwargs))
         end
       end
     end

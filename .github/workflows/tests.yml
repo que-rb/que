@@ -7,11 +7,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        ruby_version: [2.5.x, 2.6.x, 2.7.x]
-        gemfile: ["4.2", "5.2", "6.0"]
-        postgres_version: [9, 10, 11, 12]
-        exclude:
-          - { gemfile: "4.2", ruby_version: "2.7.x" }
+        ruby_version: ['2.7', '3.0', '3.1']
+        rails_gemfile: ['6.0', '6.1']
+        postgres_version: ['14']
+        include:
+        # Postgres versions
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '9' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '10' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '11' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '12' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '13' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '14' }
+        exclude: []
+    name: "Test: Ruby ${{ matrix.ruby_version }}, Rails ${{ matrix.rails_gemfile }}, PostgreSQL ${{ matrix.postgres_version }}"
     services:
       db:
         image: postgres:${{ matrix.postgres_version }}
@@ -24,16 +32,16 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Set up Ruby
-      uses: actions/setup-ruby@v1
+      uses: ruby/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby_version }}
     - name: Test with Rake
       env:
         PGHOST: 127.0.0.1
         PGUSER: postgres
-        BUNDLE_GEMFILE: spec/gemfiles/Gemfile.${{ matrix.gemfile }}
+        BUNDLE_GEMFILE: spec/gemfiles/Gemfile-rails-${{ matrix.rails_gemfile }}
       run: |
         sudo apt-get -yqq install libpq-dev postgresql-client
         createdb que-test

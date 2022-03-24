@@ -4,7 +4,7 @@ module Que
   module Migrations
     # In order to ship a schema change, add the relevant up and down sql files
     # to the migrations directory, and bump the version here.
-    CURRENT_VERSION = 5
+    CURRENT_VERSION = 6
 
     class << self
       def migrate!(version:)

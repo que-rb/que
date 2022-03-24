@@ -74,7 +74,7 @@ describe Que::Listener do
     end
 
     it "should return frozen messages" do
-      notify(message_type: 'type_1', value: 4)
+      notify({ message_type: 'type_1', value: 4 })
 
       result = listener.wait_for_grouped_messages(10)[:type_1].first
       assert_equal({value: 4}, result)
@@ -117,7 +117,7 @@ describe Que::Listener do
       q = Queue.new
       Que.error_notifier = proc { |e| q.push(e) }
 
-      notify(message_type: 'job_available', priority: 2, id: 4)
+      notify({ message_type: 'job_available', priority: 2, id: 4 })
       assert_equal({}, listener.wait_for_grouped_messages(10))
 
       error = q.pop
@@ -188,11 +188,11 @@ describe Que::Listener do
 
   describe "unlisten" do
     it "should stop listening for new messages" do
-      notify(message_type: 'type_1')
+      notify({ message_type: 'type_1' })
       connection.drain_notifications
 
       listener.unlisten
-      notify(message_type: 'type_1')
+      notify({ message_type: 'type_1' })
 
       # Execute a new query to fetch any new notifications.
       connection.execute "SELECT 1"
@@ -200,7 +200,7 @@ describe Que::Listener do
     end
 
     it "when unlistening should not leave any residual messages" do
-      5.times { notify(message_type: 'type_1') }
+      5.times { notify({ message_type: 'type_1' }) }
 
       listener.unlisten
       assert_nil connection.next_notification

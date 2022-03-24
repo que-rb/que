@@ -5,7 +5,7 @@ require 'spec_helper'
 describe Que::Utils::QueueManagement do
   describe "clear!" do
     it "should clear all jobs from the queue" do
-      jobs_dataset.insert job_class: "Que::Job"
+      jobs_dataset.insert(job_class: "Que::Job", job_schema_version: Que.job_schema_version)
       assert_equal 1, jobs_dataset.count
       Que.clear!
       assert_equal 0, jobs_dataset.count

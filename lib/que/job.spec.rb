@@ -9,8 +9,9 @@ describe Que::Job do
     Que.error_notifier = proc { |e| notified_errors << e }
 
     class TestJobClass < Que::Job
-      def run(*args)
+      def run(*args, **kwargs)
         $args = args
+        $kwargs = kwargs
       end
     end
   end
@@ -18,6 +19,7 @@ describe Que::Job do
   after do
     Object.send :remove_const, :TestJobClass
     $args = nil
+    $kwargs = nil
   end
 
   module ActsLikeAJob
@@ -28,43 +30,85 @@ describe Que::Job do
         end
 
         it "should pass its arguments to the run method" do
-          execute(1, 2)
-          assert_equal [1, 2], $args
+          enqueue_method.call(1, 2)
+          execute
+          assert_equal([1, 2], $args)
+        end
+
+        it "should pass its keyword arguments to the run method" do
+          enqueue_method.call(a: 1, b: 2)
+          execute
+          assert_equal({ a: 1, b: 2 }, $kwargs)
         end
 
         it "should deep-freeze its arguments" do
-          execute(array: [], hash: {}, string: 'blah'.dup)
+          enqueue_method.call([], {}, 'blah'.dup)
+          execute
 
-          assert_equal([{array: [], hash: {}, string: 'blah'.dup}], $args)
+          assert_equal([[], {}, 'blah'.dup], $args)
 
-          hash = $args.first
-          assert hash.frozen?
+          array = $args
+          assert array[0].frozen?
+          assert array[1].frozen?
+          assert array[2].frozen?
+        end
+
+        it "should deep-freeze its keyword arguments" do
+          enqueue_method.call(array: [], hash: {}, string: 'blah'.dup)
+          execute
+
+          assert_equal({array: [], hash: {}, string: 'blah'.dup}, $kwargs)
+
+          hash = $kwargs
           assert hash[:array].frozen?
           assert hash[:hash].frozen?
           assert hash[:string].frozen?
         end
 
-        it "should symbolize argument hashes" do
-          execute(a: 1, b: 2)
+        it "treats the last hash literal as a positional argument" do
+          enqueue_method.call({a: 1, b: 2})
+          execute
           assert_equal([{a: 1, b: 2}], $args)
         end
 
-        it "should symbolize argument hashes even if they were originally passed as strings" do
+        it "should symbolize hash argument keys" do
+          enqueue_method.call({a: 1, b: 2}, c: 3, d: 4)
+          execute
+          assert_equal([{a: 1, b: 2}], $args)
+        end
+
+        it "should symbolize hash argument keys even if they were originally passed as strings" do
           # The run() helper should convert these to symbols, just as if they'd
           # been passed through the DB.
-          execute('a' => 1, 'b' => 2)
+          enqueue_method.call({'a' => 1, 'b' => 2}, c: 3, d: 4)
+          execute
           assert_equal([{a: 1, b: 2}], $args)
+        end
+
+        it "should symbolize keyword argument keys" do
+          enqueue_method.call(a: 1, b: 2)
+          execute
+          assert_equal({a: 1, b: 2}, $kwargs)
+        end
+
+        it "should symbolize keyword argument keys even if they were originally passed as strings" do
+          # The run() helper should convert these to symbols, just as if they'd
+          # been passed through the DB.
+          enqueue_method.call('a' => 1, 'b' => 2)
+          execute
+          assert_equal({a: 1, b: 2}, $kwargs)
         end
 
         it "should handle keyword arguments just fine" do
           TestJobClass.class_eval do
             def run(a:, b: 4, c: 3)
-              $args = [a, b, c]
+              $kwargs = [a, b, c]
             end
           end
 
-          execute(a: 1, b: 2)
-          assert_equal [1, 2, 3], $args
+          enqueue_method.call(a: 1, b: 2)
+          execute
+          assert_equal [1, 2, 3], $kwargs
         end
 
         it "should handle keyword arguments even if they were originally passed as strings" do
@@ -76,7 +120,8 @@ describe Que::Job do
 
           # The run() helper should convert these to symbols, just as if they'd
           # been passed through the DB.
-          execute('a' => 1, 'b' => 2)
+          enqueue_method.call('a' => 1, 'b' => 2)
+          execute
           assert_equal [1, 2, 3], $args
         end
 
@@ -87,6 +132,7 @@ describe Que::Job do
             end
           end
 
+          enqueue_method.call
           execute
           assert_equal 0, $error_count
         end
@@ -98,6 +144,7 @@ describe Que::Job do
             end
           end
 
+          enqueue_method.call
           execute
           assert_empty jobs_dataset
         end
@@ -109,6 +156,7 @@ describe Que::Job do
             end
           end
 
+          enqueue_method.call
           execute
 
           if should_persist_job
@@ -126,6 +174,7 @@ describe Que::Job do
             end
           end
 
+          enqueue_method.call
           execute
 
           if should_persist_job
@@ -146,6 +195,7 @@ describe Que::Job do
             end
           end
 
+          enqueue_method.call
           execute
 
           if should_persist_job
@@ -175,7 +225,8 @@ describe Que::Job do
             }
           )
 
-          execute(5, 6)
+          enqueue_method.call(5, 6)
+          execute
 
           if defined?(ApplicationJob)
             assert_instance_of ActiveJob::QueueAdapters::QueAdapter::JobWrapper, passed_1
@@ -195,6 +246,7 @@ describe Que::Job do
             end
           end
 
+          enqueue_method.call
           job = execute
 
           assert_equal expected_job_count, active_jobs_dataset.count
@@ -219,7 +271,10 @@ describe Que::Job do
           end
 
           assert_empty jobs_dataset
-          assert_raises(error_class) { execute }
+          assert_raises(error_class) do
+            enqueue_method.call
+            execute
+          end
           assert_equal expected_job_count, jobs_dataset.count
         end
 
@@ -239,7 +294,10 @@ describe Que::Job do
               end
             end
 
-            error = assert_raises(RuntimeError) { execute }
+            error = assert_raises(RuntimeError) do
+              enqueue_method.call
+              execute
+            end
             assert_equal "Uh-oh!", error.message
 
             count, error_2 = $args
@@ -256,7 +314,10 @@ describe Que::Job do
               end
             end
 
-            error = assert_raises(RuntimeError) { execute }
+            error = assert_raises(RuntimeError) do
+              enqueue_method.call
+              execute
+            end
 
             assert_equal "Uh-oh!", error.message
             assert_equal "Uh-oh!", notified_errors.first.message
@@ -269,7 +330,10 @@ describe Que::Job do
               end
             end
 
-            assert_raises(RuntimeError) { execute }
+            assert_raises(RuntimeError) do
+              enqueue_method.call
+              execute
+            end
 
             assert_empty notified_errors
           end
@@ -281,7 +345,10 @@ describe Que::Job do
               end
             end
 
-            error = assert_raises(RuntimeError) { execute }
+            error = assert_raises(RuntimeError) do
+              enqueue_method.call
+              execute
+            end
             assert_equal "Uh-oh!", error.message
 
             assert_equal expected_job_count, jobs_dataset.count
@@ -298,7 +365,8 @@ describe Que::Job do
               job.update(finished_at: Time.now)
               gid = job.to_global_id(app: :test)
 
-              execute(job_object: gid.to_s)
+              enqueue_method.call(job_object: gid.to_s)
+              execute
 
               assert_equal(
                 [{job_object: job}],
@@ -330,7 +398,8 @@ describe Que::Job do
               end
             end
 
-            execute(3, 4)
+            enqueue_method.call(3, 4)
+            execute
             assert_equal [3, 4], $args
 
             Que.execute "ROLLBACK"
@@ -345,9 +414,9 @@ describe Que::Job do
     include ActsLikeASynchronousJob
 
     let(:should_persist_job) { false }
+    let(:enqueue_method) { TestJobClass.method(:run) }
 
-    def execute(*args)
-      TestJobClass.run(*args)
+    def execute
     end
   end
 
@@ -356,10 +425,13 @@ describe Que::Job do
     include ActsLikeASynchronousJob
 
     let(:should_persist_job) { false }
+    let(:enqueue_method) { TestJobClass.method(:enqueue) }
 
-    def execute(*args)
+    before do
       TestJobClass.run_synchronously = true
-      TestJobClass.enqueue(*args)
+    end
+
+    def execute
     end
   end
 
@@ -367,23 +439,26 @@ describe Que::Job do
     include ActsLikeAJob
 
     let(:should_persist_job) { true }
+    let(:enqueue_method) { TestJobClass.method(:enqueue) }
 
-    def execute(*args)
+    before do
       worker # Make sure worker is initialized.
+    end
 
-      job = TestJobClass.enqueue(*args)
-      attrs = job.que_attrs
+    def execute
+      assert_equal 1, jobs_dataset.count
+      attrs = jobs_dataset.first!
 
       job_buffer.push(Que::Metajob.new(attrs))
 
       sleep_until_equal([attrs[:id]]) { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} }
 
-      if m = jobs_dataset.where(id: job.que_attrs[:id]).get(:last_error_message)
+      if m = jobs_dataset.where(id: attrs[:id]).get(:last_error_message)
         klass, message = m.split(": ", 2)
         raise Que.constantize(klass), message
       end
 
-      job
+      TestJobClass.new(attrs)
     end
 
     it "should handle subclassed jobs" do
@@ -404,6 +479,7 @@ describe Que::Job do
       })
 
       $args = []
+      enqueue_method.call
       execute
 
       assert_equal [1, 2, 3], $args
@@ -415,6 +491,7 @@ describe Que::Job do
       include ActsLikeAJob
 
       let(:should_persist_job) { true }
+      let(:enqueue_method) { TestJobClass.method(:perform_later) }
 
       before do
         Object.send :remove_const, :TestJobClass
@@ -424,21 +501,20 @@ describe Que::Job do
         end
 
         class TestJobClass < ApplicationJob
-          def run(*args)
+          def run(*args, **kwargs)
             $args = args
+            $kwargs = kwargs
           end
         end
+
+        worker # Make sure worker is initialized.
       end
 
       after do
         Object.send :remove_const, :ApplicationJob
       end
 
-      def execute(*args)
-        worker # Make sure worker is initialized.
-
-        TestJobClass.perform_later(*args)
-
+      def execute
         assert_equal 1, jobs_dataset.count
         attrs = jobs_dataset.first!
 
@@ -464,7 +540,8 @@ describe Que::Job do
           end
         end
 
-        execute("arg1" => 1, "arg2" => 2)
+        enqueue_method.call("arg1" => 1, "arg2" => 2)
+        execute
         assert_equal([{'arg1' => 1, 'arg2' => 2}], $args)
       end
 
@@ -473,7 +550,10 @@ describe Que::Job do
 
         class TestJobClass < ApplicationJob; end
 
-        error = assert_raises(Que::Error) { execute(1, 2) }
+        error = assert_raises(Que::Error) do
+          enqueue_method.call(1, 2)
+          execute
+        end
         assert_equal "Job class TestJobClass didn't define a run() method!", error.message
         assert_equal expected_job_count, jobs_dataset.count
       end

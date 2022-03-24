@@ -2,6 +2,7 @@
 
 <!-- MarkdownTOC autolink=true -->
 
+- [2.0.0.beta1](#200beta1)
 - [1.4.0 \(2022-03-23\)](#140-2022-03-23)
 - [1.3.1 \(2022-02-25\)](#131-2022-02-25)
 - [1.3.0 \(2022-02-25\)](#130-2022-02-25)
@@ -51,6 +52,59 @@
 
 <!-- /MarkdownTOC -->
 
+## 2.0.0.beta1
+
+**Preliminary release of Ruby 3 support**
+
+**Notable changes**:
+
+* Support for Ruby 3 introduced
+* Database schema has changed to split the job arguments `args` column into `args` and `kwargs` columns, for reliable args and kwargs splitting for Ruby 3.
+    - The job schema version is now 2. Note that job schema version is distinct from database schema version and Que version. The `job_schema_version` column of the `que_jobs` table no longer defaults and has a not null constraint, so when manually inserting jobs into the table, this must be specified as `2`. If you have a gem that needs to support multiple Que versions, best not to blindly use the value of `Que.job_schema_version`; instead have different code paths depending on the value of `Que.job_schema_version`. You could also use this to know whether keyword arguments are in `args` or `kwargs`.
+* Passing a hash literal as the last job argument to be splatted into job keyword arguments is no longer supported.
+* Dropped support for providing job options as top-level keyword arguments to `Job.enqueue`, i.e. `queue`, `priority`, `run_at`, `job_class`, and `tags`. Job options now need to be nested under the `job_options` keyword argument instead. See [#336](https://github.com/que-rb/que/pull/336)
+* Dropped support for Ruby < 2.7
+* Dropped support for Rails < 6.0
+* The `#by_args` method on the Job model (for both Sequel and ActiveRecord) now searches based on both args and kwargs, but it performs a subset match instead of an exact match. For instance, if your job was scheduled with `'a', 'b', 'c', foo: 'bar', baz: 1`, `by_args('a', 'b', baz: 1)` would find and return the job.
+* This release contains a database migration. You will need to migrate Que to the latest database schema version (6). For example, on ActiveRecord and Rails 6:
+
+```ruby
+class UpdateQueTablesToVersion6 < ActiveRecord::Migration[6.0]
+  def up
+    Que.migrate!(version: 6)
+  end
+
+  def down
+    Que.migrate!(version: 5)
+  end
+end
+```
+
+**Recommended upgrade process**:
+
+When using Que 2.x, a job enqueued with Ruby 2.7 will run as expected on Ruby 3. We recommend:
+
+1. Upgrade your project to the latest 1.x version of Que (1.3.1+)
+    - IMPORTANT: adds support for zero downtime upgrade to Que 2.x, see changelog below
+2. Upgrade your project to Ruby 2.7 and Rails 6.x if it is not already
+3. Upgrade your project to Que 2.x but stay on Ruby 2.7
+    - IMPORTANT: You will need to continue to run Que 1.x workers until all jobs enqueued using Que 1.x (i.e. with a `job_schema_version` of `1`) have been finished. See below
+4. Upgrade your project to Ruby 3
+
+*NOTES:*
+
+* If you were already running Ruby 2.7 and were not passing a hash literal as the last job argument, you *may* be able to upgrade a running system without draining the queue, though this is not recommended.
+* For all other cases, you will need to follow the recommended process above or first completely drain the queue (stop enqueuing new jobs and finish processing any jobs in the database, including cleaning out any expired jobs) before upgrading.
+
+**Deploying Que 1.x and 2.x workers simultaneously**:
+
+To run workers with two different versions of Que, you'll probably need to temporarily duplicate your gem bundle, with the Que version being the only difference. e.g.:
+
+- Copy your `Gemfile` and `Gemfile.lock` into a directory called `que-1-gemfile`
+- Set a suitable Que version in each `Gemfile`
+- Update the bundle at `que-1-gemfile/Gemfile.lock` using `BUNDLE_GEMFILE=que-1-gemfile/Gemfile bundle`
+- Create a second deployment of Que, but with your `que` command prefixed with `BUNDLE_GEMFILE=que-1-gemfile/Gemfile`
+
 ## 1.4.0 (2022-03-23)
 
 - **Fixed**
@@ -61,7 +115,7 @@
         * It became used in 1.0.0.beta4, and that changelog entry has been updated to reflect this.
 - **Documentation**:
     + Reformatted the changelog to be more consistent, including adding links to all issue/PR numbers. [#347](https://github.com/que-rb/que/pull/347)
-
+    + 
 ## 1.3.1 (2022-02-25)
 
 Unfortunately, v1.3.0 was broken. Follow its upgrade instructions, but use this version instead.

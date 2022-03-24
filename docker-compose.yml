@@ -10,13 +10,14 @@ services:
       - db
     volumes:
       - .:/work
-      - ruby-2.7.5-gem-cache:/usr/local/bundle
+      - ruby-3.1.1-gem-cache:/usr/local/bundle
       - ~/.docker-rc.d/:/.docker-rc.d/:ro
     working_dir: /work
     entrypoint: /work/scripts/docker-entrypoint
     command: bash
     environment:
       DATABASE_URL: postgres://que:que@db/que-test
+      USE_RAILS: ~
 
   db:
     image: "postgres:${POSTGRES_VERSION-13}"
@@ -43,4 +44,4 @@ services:
 
 volumes:
   db-data: ~
-  ruby-2.7.5-gem-cache: ~
+  ruby-3.1.1-gem-cache: ~

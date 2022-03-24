@@ -67,7 +67,7 @@ describe Que::Migrations, "job_available trigger" do
 
       conn.async_exec "LISTEN que_listener_1"
 
-      Que::Job.enqueue run_at: Time.now + 60
+      Que::Job.enqueue(job_options: { run_at: Time.now + 60 })
 
       assert_nil conn.wait_for_notify(0.01)
     end

@@ -49,7 +49,7 @@ describe Que::Utils::Introspection do
 
   describe 'job_states' do
     it "should return a list of the jobs currently being run" do
-      BlockJob.enqueue priority: 2
+      BlockJob.enqueue(job_options: { priority: 2 })
 
       # Ensure that the portion of the SQL query that accounts for bigint
       # job_ids functions correctly.
@@ -67,7 +67,7 @@ describe Que::Utils::Introspection do
       state = states.first
       assert_equal \
         %i(priority run_at id job_class error_count last_error_message queue
-          last_error_backtrace finished_at expired_at args data job_schema_version ruby_hostname ruby_pid),
+          last_error_backtrace finished_at expired_at args data job_schema_version kwargs ruby_hostname ruby_pid),
         state.keys
 
       assert_equal 2, state[:priority]
