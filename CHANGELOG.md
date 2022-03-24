@@ -117,7 +117,7 @@ We'd appreciate feedback on your experience upgrading to and running Que 2. Feel
         * It became used in 1.0.0.beta4, and that changelog entry has been updated to reflect this.
 - **Documentation**:
     + Reformatted the changelog to be more consistent, including adding links to all issue/PR numbers. [#347](https://github.com/que-rb/que/pull/347)
-    + 
+
 ## 1.3.1 (2022-02-25)
 
 Unfortunately, v1.3.0 was broken. Follow its upgrade instructions, but use this version instead.
