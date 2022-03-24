@@ -105,6 +105,8 @@ To run workers with two different versions of Que, you'll probably need to tempo
 - Update the bundle at `que-1-gemfile/Gemfile.lock` using `BUNDLE_GEMFILE=que-1-gemfile/Gemfile bundle`
 - Create a second deployment of Que, but with your `que` command prefixed with `BUNDLE_GEMFILE=que-1-gemfile/Gemfile`
 
+We'd appreciate feedback on your experience upgrading to and running Que 2. Feel free to post on our Discord, or if you run into trouble, open an issue on GitHub.
+
 ## 1.4.0 (2022-03-23)
 
 - **Fixed**
