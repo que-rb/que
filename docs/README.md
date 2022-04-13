@@ -611,6 +611,8 @@ This method marks the current job as expired. It will be left in the table and w
 
 This method marks the current job to be retried later. You can pass a numeric to this method, in which case that is the number of seconds after which it can be retried (`retry_in(10)`, `retry_in(0.5)`), or, if you're using ActiveSupport, you can pass in a duration object (`retry_in(10.minutes)`). This automatically happens, with an exponentially-increasing interval, when the job encounters an error.
 
+Note that `retry_in` increments the job's `error_count`.
+
 ### `error_count`
 
 This method returns the total number of times the job has errored, in case you want to modify the job's behavior after it has failed a given number of times.
