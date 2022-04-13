@@ -54,6 +54,7 @@
   - [Defining Middleware For SQL statements](#defining-middleware-for-sql-statements)
 - [Vacuuming](#vacuuming)
 - [Expired jobs](#expired-jobs)
+- [Finished jobs](#finished-jobs)
 
 <!-- /MarkdownTOC -->
 
@@ -841,4 +842,16 @@ Expired jobs hang around in the `que_jobs` table. If necessary, you can get an e
 
 ```sql
 UPDATE que_jobs SET error_count = 0, expired_at = NULL WHERE id = 172340879;
+```
+
+## Finished jobs
+
+If you prefer to leave finished jobs in the database for a while, to performantly remove them periodically, you can use something like:
+
+```sql
+BEGIN;
+ALTER TABLE que_jobs DISABLE TRIGGER que_state_notify;
+DELETE FROM que_jobs WHERE finished_at < (select now() - interval '7 days');
+ALTER TABLE que_jobs ENABLE TRIGGER que_state_notify;
+COMMIT;
 ```
