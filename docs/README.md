@@ -1,5 +1,6 @@
-Docs Index
-===============
+# Que documentation
+
+<!-- MarkdownTOC autolink=true bullets="-,*,+" -->
 
 - [Command Line Interface](#command-line-interface)
   * [worker-priorities and worker-count](#worker-priorities-and-worker-count)
@@ -47,6 +48,7 @@ Docs Index
   * [Defining Middleware For SQL statements](#defining-middleware-for-sql-statements)
 - [Vacuuming](#vacuuming)
 
+<!-- /MarkdownTOC -->
 
 ## Command Line Interface
 
