@@ -53,6 +53,7 @@
   - [Defining Middleware For Jobs](#defining-middleware-for-jobs)
   - [Defining Middleware For SQL statements](#defining-middleware-for-sql-statements)
 - [Vacuuming](#vacuuming)
+- [Expired jobs](#expired-jobs)
 
 <!-- /MarkdownTOC -->
 
@@ -832,4 +833,12 @@ class ManualVacuumJob < CronJob
     DB.run "VACUUM VERBOSE ANALYZE que_jobs"
   end
 end
+```
+
+## Expired jobs
+
+Expired jobs hang around in the `que_jobs` table. If necessary, you can get an expired job to run again by clearing the `error_count` and `expired_at` columns, e.g.:
+
+```sql
+UPDATE que_jobs SET error_count = 0, expired_at = NULL WHERE id = 172340879;
 ```
