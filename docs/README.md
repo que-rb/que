@@ -3,12 +3,12 @@
 <!-- MarkdownTOC autolink=true -->
 
 - [Command Line Interface](#command-line-interface)
-  - [worker-priorities and worker-count](#worker-priorities-and-worker-count)
-  - [poll-interval](#poll-interval)
-  - [maximum-buffer-size](#maximum-buffer-size)
-  - [connection-url](#connection-url)
-  - [wait-period](#wait-period)
-  - [log-internals](#log-internals)
+  - [`worker-priorities` and `worker-count`](#worker-priorities-and-worker-count)
+  - [`poll-interval`](#poll-interval)
+  - [`maximum-buffer-size`](#maximum-buffer-size)
+  - [`connection-url`](#connection-url)
+  - [`wait-period`](#wait-period)
+  - [`log-internals`](#log-internals)
 - [Advanced Setup](#advanced-setup)
   - [Using ActiveRecord Without Rails](#using-activerecord-without-rails)
   - [Managing the Jobs Table](#managing-the-jobs-table)
@@ -35,12 +35,12 @@
 - [Using Sequel](#using-sequel)
 - [Using Que With ActiveJob](#using-que-with-activejob)
 - [Job Helper Methods](#job-helper-methods)
-  - [destroy](#destroy)
-  - [finish](#finish)
-  - [expire](#expire)
-  - [retry_in](#retry_in)
-  - [error_count](#error_count)
-  - [default_resolve_action](#default_resolve_action)
+  - [`destroy`](#destroy)
+  - [`finish`](#finish)
+  - [`expire`](#expire)
+  - [`retry_in`](#retry_in)
+  - [`error_count`](#error_count)
+  - [`default_resolve_action`](#default_resolve_action)
 - [Writing Reliable Jobs](#writing-reliable-jobs)
   - [Timeouts](#timeouts)
 - [Middleware](#middleware)
@@ -69,7 +69,7 @@ usage: que [options] [file/to/require] ...
 
 Some explanation of the more unusual options:
 
-### worker-priorities and worker-count
+### `worker-priorities` and `worker-count`
 
 These options dictate the size and priority distribution of the worker pool. The default worker-priorities is `10,30,50,any,any,any`. This means that the default worker pool will reserve one worker to only works jobs with priorities under 10, one for priorities under 30, and one for priorities under 50. Three more workers will work any job.
 
@@ -79,23 +79,23 @@ Instead of passing worker-priorities, you can pass a `worker-count` - this is a 
 
 If you pass both worker-count and worker-priorities, the count will trim or pad the priorities list with `any` workers. So, `--worker-priorities=20,30,40 --worker-count=6` would be the same as passing `--worker-priorities=20,30,40,any,any,any`.
 
-### poll-interval
+### `poll-interval`
 
 This option sets the number of seconds the process will wait between polls of the job queue. Jobs that are ready to be worked immediately will be broadcast via the LISTEN/NOTIFY system, so polling is unnecessary for them - polling is only necessary for jobs that are scheduled in the future or which are being delayed due to errors. The default is 5 seconds.
 
-### maximum-buffer-size
+### `maximum-buffer-size`
 
 This option sets the size of the internal buffer that Que uses to hold jobs until they're ready for workers. The default maximum is 8, meaning that the process won't buffer more than 8 jobs that aren't yet ready to be worked. If you don't want jobs to be buffered at all, you can set this value to zero.
 
-### connection-url
+### `connection-url`
 
 This option sets the URL to be used to open a connection to the database for locking purposes. By default, Que will simply use a connection from the connection pool for locking - this option is only useful if your application connections can't use advisory locks - for example, if they're passed through an external connection pool like PgBouncer. In that case, you'll need to use this option to specify your actual database URL so that Que can establish a direct connection.
 
-### wait-period
+### `wait-period`
 
 This option specifies (in milliseconds) how often the locking thread wakes up to check whether the workers have finished jobs, whether it's time to poll, etc. You shouldn't generally need to tweak this, but it may come in handy for some workloads. The default is 50 milliseconds.
 
-### log-internals
+### `log-internals`
 
 This option instructs Que to output a lot of information about its internal state to the logger. It should only be used if it becomes necessary to debug issues.
 
@@ -593,27 +593,27 @@ Additionally, including `Que::ActiveJob::JobExtensions` lets you define a run() 
 
 There are a number of instance methods on Que::Job that you can use in your jobs, preferably in transactions. See [Writing Reliable Jobs](#writing-reliable-jobs) for more information on where to use these methods.
 
-### destroy
+### `destroy`
 
 This method deletes the job from the queue table, ensuring that it won't be worked a second time.
 
-### finish
+### `finish`
 
 This method marks the current job as finished, ensuring that it won't be worked a second time. This is like destroy, in that it finalizes a job, but this method leaves the job in the table, in case you want to query it later.
 
-### expire
+### `expire`
 
 This method marks the current job as expired. It will be left in the table and won't be retried, but it will be easy to query for expired jobs. This method is called if the job exceeds its maximum_retry_count.
 
-### retry_in
+### `retry_in`
 
 This method marks the current job to be retried later. You can pass a numeric to this method, in which case that is the number of seconds after which it can be retried (`retry_in(10)`, `retry_in(0.5)`), or, if you're using ActiveSupport, you can pass in a duration object (`retry_in(10.minutes)`). This automatically happens, with an exponentially-increasing interval, when the job encounters an error.
 
-### error_count
+### `error_count`
 
 This method returns the total number of times the job has errored, in case you want to modify the job's behavior after it has failed a given number of times.
 
-### default_resolve_action
+### `default_resolve_action`
 
 If you don't perform a resolve action (destroy, finish, expire, retry_in) while the job is worked, Que will call this method for you. By default it simply calls `destroy`, but you can override it in your Job subclasses if you wish - for example, to call `finish`, or to invoke some more complicated logic.
 
