@@ -43,6 +43,12 @@
   - [`default_resolve_action`](#default_resolve_action)
 - [Writing Reliable Jobs](#writing-reliable-jobs)
   - [Timeouts](#timeouts)
+- [Job Options](#job-options)
+  - [`queue`](#queue)
+  - [`priority`](#priority)
+  - [`run_at`](#run_at)
+  - [`job_class`](#job_class)
+  - [`tags`](#tags)
 - [Middleware](#middleware)
   - [Defining Middleware For Jobs](#defining-middleware-for-jobs)
   - [Defining Middleware For SQL statements](#defining-middleware-for-sql-statements)
@@ -452,11 +458,7 @@ class ProcessCreditCard < Que::Job
 end
 ```
 
-In some cases, the ProcessCreditCard class may not be defined in the application that is enqueueing the job. In that case, you can specify the job class as a string:
-
-```ruby
-Que.enqueue(current_user.id, job_options: { job_class: 'ProcessCreditCard', queue: 'credit_cards' })
-```
+In some cases, the `ProcessCreditCard` class may not be defined in the application that is enqueueing the job. In that case, you can [specify the job class as a string](#job_class).
 
 ## Shutting Down Safely
 
@@ -725,6 +727,52 @@ end
 ```
 
 Now, if the request takes more than five seconds, an error will be raised (probably - check your library's documentation) and Que will just retry the job later.
+
+## Job Options
+
+When enqueueing a job, you can specify particular options for it in a `job_options` hash, e.g.:
+
+```ruby
+ChargeCreditCard.enqueue(card.id, user_id: current_user.id, job_options: { run_at: 1.day.from_now, priority: 5 })
+```
+
+### `queue`
+
+See [Multiple Queues](#multiple-queues).
+
+### `priority`
+
+Provide an integer to customise the priority level of the job.
+
+We use the Linux priority scale - a lower number is more important.
+
+### `run_at`
+
+Provide a `Time` as the `run_at` to make a job run at a later time (well, at some point after it, depending on how busy the workers are).
+
+It's best not to use `Time.now` here, as the current time in the Ruby process and the database won't be perfectly aligned. When the database considers the `run_at` to be in the past, the job will not be broadcast via the LISTEN/NOTIFY system, and it will need to wait for a poll. This introduces an unnecessary delay of probably a few seconds (depending on your configured [poll interval](#poll-interval)). So if you want the job to run ASAP, just omit the `run_at` option.
+
+### `job_class`
+
+Specifying `job_class` allows you to enqueue a job using `Que.enqueue`:
+
+```ruby
+Que.enqueue(current_user.id, job_options: { job_class: 'ProcessCreditCard' })
+```
+
+Rather than needing to use the job class (nor even have it defined in the enqueueing process):
+
+```ruby
+ProcessCreditCard.enqueue(current_user.id)
+```
+
+### `tags`
+
+You can provide an array of strings to give a job some tags. These are not used by Que and are completely custom.
+
+A job can have up to five tags, each one up to 100 characters long.
+
+Note that unlike the other job options, tags are stored within the `que_jobs.data` column, rather than a correspondingly-named column.
 
 ## Middleware
 

@@ -120,6 +120,8 @@ You can also add options to run the job after a specific time, or with a specifi
 ChargeCreditCard.enqueue(card.id, user_id: current_user.id, job_options: { run_at: 1.day.from_now, priority: 5 })
 ```
 
+[Learn more about job options](docs/README.md#job-options).
+
 ## Running the Que Worker
 
 In order to process jobs, you must start a separate worker process outside of your main server.
