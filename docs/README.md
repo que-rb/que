@@ -1,52 +1,62 @@
-Docs Index
-===============
+# Que documentation
+
+<!-- MarkdownTOC autolink=true -->
 
 - [Command Line Interface](#command-line-interface)
-  * [worker-priorities and worker-count](#worker-priorities-and-worker-count)
-  * [poll-interval](#poll-interval)
-  * [maximum-buffer-size](#maximum-buffer-size)
-  * [connection-url](#connection-url)
-  * [wait-period](#wait-period)
-  * [log-internals](#log-internals)
+  - [`worker-priorities` and `worker-count`](#worker-priorities-and-worker-count)
+  - [`poll-interval`](#poll-interval)
+  - [`maximum-buffer-size`](#maximum-buffer-size)
+  - [`connection-url`](#connection-url)
+  - [`wait-period`](#wait-period)
+  - [`log-internals`](#log-internals)
 - [Advanced Setup](#advanced-setup)
-  * [Using ActiveRecord Without Rails](#using-activerecord-without-rails)
-  * [Managing the Jobs Table](#managing-the-jobs-table)
-  * [Other Setup](#other-setup)
+  - [Using ActiveRecord Without Rails](#using-activerecord-without-rails)
+  - [Managing the Jobs Table](#managing-the-jobs-table)
+  - [Other Setup](#other-setup)
 - [Error Handling](#error-handling)
-  * [Error Notifications](#error-notifications)
-  * [Error-Specific Handling](#error-specific-handling)
+  - [Error Notifications](#error-notifications)
+  - [Error-Specific Handling](#error-specific-handling)
 - [Inspecting the Queue](#inspecting-the-queue)
-  * [Job Stats](#job-stats)
-  * [Custom Queries](#custom-queries)
-    + [ActiveRecord Example](#activerecord-example)
-    + [Sequel Example](#sequel-example)
+  - [Job Stats](#job-stats)
+  - [Custom Queries](#custom-queries)
+    - [ActiveRecord Example](#activerecord-example)
+    - [Sequel Example](#sequel-example)
 - [Managing Workers](#managing-workers)
-  * [Working Jobs Via Executable](#working-jobs-via-executable)
-  * [Thread-Unsafe Application Code](#thread-unsafe-application-code)
+  - [Working Jobs Via Executable](#working-jobs-via-executable)
+  - [Thread-Unsafe Application Code](#thread-unsafe-application-code)
 - [Logging](#logging)
-  * [Logging Job Completion](#logging-job-completion)
+  - [Logging Job Completion](#logging-job-completion)
 - [Migrating](#migrating)
 - [Multiple Queues](#multiple-queues)
 - [Shutting Down Safely](#shutting-down-safely)
 - [Using Plain Postgres Connections](#using-plain-postgres-connections)
-  * [Using ConnectionPool or Pond](#using-connectionpool-or-pond)
-  * [Using Any Other Connection Pool](#using-any-other-connection-pool)
+  - [Using ConnectionPool or Pond](#using-connectionpool-or-pond)
+  - [Using Any Other Connection Pool](#using-any-other-connection-pool)
 - [Using Sequel](#using-sequel)
 - [Using Que With ActiveJob](#using-que-with-activejob)
 - [Job Helper Methods](#job-helper-methods)
-  * [destroy](#destroy)
-  * [finish](#finish)
-  * [expire](#expire)
-  * [retry_in](#retry_in)
-  * [error_count](#error_count)
-  * [default_resolve_action](#default_resolve_action)
+  - [`destroy`](#destroy)
+  - [`finish`](#finish)
+  - [`expire`](#expire)
+  - [`retry_in`](#retry_in)
+  - [`error_count`](#error_count)
+  - [`default_resolve_action`](#default_resolve_action)
 - [Writing Reliable Jobs](#writing-reliable-jobs)
-  * [Timeouts](#timeouts)
+  - [Timeouts](#timeouts)
+- [Job Options](#job-options)
+  - [`queue`](#queue)
+  - [`priority`](#priority)
+  - [`run_at`](#run_at)
+  - [`job_class`](#job_class)
+  - [`tags`](#tags)
 - [Middleware](#middleware)
-  * [Defining Middleware For Jobs](#defining-middleware-for-jobs)
-  * [Defining Middleware For SQL statements](#defining-middleware-for-sql-statements)
+  - [Defining Middleware For Jobs](#defining-middleware-for-jobs)
+  - [Defining Middleware For SQL statements](#defining-middleware-for-sql-statements)
 - [Vacuuming](#vacuuming)
+- [Expired jobs](#expired-jobs)
+- [Finished jobs](#finished-jobs)
 
+<!-- /MarkdownTOC -->
 
 ## Command Line Interface
 
@@ -67,7 +77,7 @@ usage: que [options] [file/to/require] ...
 
 Some explanation of the more unusual options:
 
-### worker-priorities and worker-count
+### `worker-priorities` and `worker-count`
 
 These options dictate the size and priority distribution of the worker pool. The default worker-priorities is `10,30,50,any,any,any`. This means that the default worker pool will reserve one worker to only works jobs with priorities under 10, one for priorities under 30, and one for priorities under 50. Three more workers will work any job.
 
@@ -77,23 +87,23 @@ Instead of passing worker-priorities, you can pass a `worker-count` - this is a 
 
 If you pass both worker-count and worker-priorities, the count will trim or pad the priorities list with `any` workers. So, `--worker-priorities=20,30,40 --worker-count=6` would be the same as passing `--worker-priorities=20,30,40,any,any,any`.
 
-### poll-interval
+### `poll-interval`
 
 This option sets the number of seconds the process will wait between polls of the job queue. Jobs that are ready to be worked immediately will be broadcast via the LISTEN/NOTIFY system, so polling is unnecessary for them - polling is only necessary for jobs that are scheduled in the future or which are being delayed due to errors. The default is 5 seconds.
 
-### maximum-buffer-size
+### `maximum-buffer-size`
 
 This option sets the size of the internal buffer that Que uses to hold jobs until they're ready for workers. The default maximum is 8, meaning that the process won't buffer more than 8 jobs that aren't yet ready to be worked. If you don't want jobs to be buffered at all, you can set this value to zero.
 
-### connection-url
+### `connection-url`
 
 This option sets the URL to be used to open a connection to the database for locking purposes. By default, Que will simply use a connection from the connection pool for locking - this option is only useful if your application connections can't use advisory locks - for example, if they're passed through an external connection pool like PgBouncer. In that case, you'll need to use this option to specify your actual database URL so that Que can establish a direct connection.
 
-### wait-period
+### `wait-period`
 
 This option specifies (in milliseconds) how often the locking thread wakes up to check whether the workers have finished jobs, whether it's time to poll, etc. You shouldn't generally need to tweak this, but it may come in handy for some workloads. The default is 50 milliseconds.
 
-### log-internals
+### `log-internals`
 
 This option instructs Que to output a lot of information about its internal state to the logger. It should only be used if it becomes necessary to debug issues.
 
@@ -146,7 +156,6 @@ Que.clear!
 Be sure to read the docs on [managing workers](#managing-workers) for more information on using the worker pool.
 
 You'll also want to set up [logging](#logging) and an [error handler](#error-handling) to track errors raised by jobs.
-
 
 ## Error Handling
 
@@ -425,7 +434,6 @@ Que.db_version #=> 3
 
 Note that you can remove Que from your database completely by migrating to version 0.
 
-
 ## Multiple Queues
 
 Que supports the use of multiple queues in a single job table. Please note that this feature is intended to support the case where multiple codebases are sharing the same job queue - if you want to support jobs of differing priorities, the numeric priority system offers better flexibility and performance.
@@ -452,11 +460,7 @@ class ProcessCreditCard < Que::Job
 end
 ```
 
-In some cases, the ProcessCreditCard class may not be defined in the application that is enqueueing the job. In that case, you can specify the job class as a string:
-
-```ruby
-Que.enqueue(current_user.id, job_options: { job_class: 'ProcessCreditCard', queue: 'credit_cards' })
-```
+In some cases, the `ProcessCreditCard` class may not be defined in the application that is enqueueing the job. In that case, you can [specify the job class as a string](#job_class).
 
 ## Shutting Down Safely
 
@@ -465,7 +469,6 @@ To ensure safe operation, Que needs to be very careful in how it shuts down. Whe
 To prevent this, Que will block the worker process from exiting until all jobs it is working have completed normally. Unfortunately, if you have long-running jobs, this may take a very long time (and if something goes wrong with a job's logic, it may never happen). The solution in this case is SIGKILL - luckily, Ruby processes that are killed via SIGKILL will end without using Thread#kill on its running threads. This is safer than exiting normally - when PostgreSQL loses the connection it will simply roll back the open transaction, if any, and unlock the job so it can be retried later by another worker. Be sure to read [Writing Reliable Jobs](#writing-reliable-jobs) for information on how to design your jobs to fail safely.
 
 So, be prepared to use SIGKILL on your Ruby processes if they run for too long. For example, Heroku takes a good approach to this - when Heroku's platform is shutting down a process, it sends SIGTERM, waits ten seconds, then sends SIGKILL if the process still hasn't exited. This is a nice compromise - it will give each of your currently running jobs ten seconds to complete, and any jobs that haven't finished by then will be interrupted and retried later.
-
 
 ## Using Plain Postgres Connections
 
@@ -594,27 +597,29 @@ Additionally, including `Que::ActiveJob::JobExtensions` lets you define a run() 
 
 There are a number of instance methods on Que::Job that you can use in your jobs, preferably in transactions. See [Writing Reliable Jobs](#writing-reliable-jobs) for more information on where to use these methods.
 
-### destroy
+### `destroy`
 
 This method deletes the job from the queue table, ensuring that it won't be worked a second time.
 
-### finish
+### `finish`
 
 This method marks the current job as finished, ensuring that it won't be worked a second time. This is like destroy, in that it finalizes a job, but this method leaves the job in the table, in case you want to query it later.
 
-### expire
+### `expire`
 
 This method marks the current job as expired. It will be left in the table and won't be retried, but it will be easy to query for expired jobs. This method is called if the job exceeds its maximum_retry_count.
 
-### retry_in
+### `retry_in`
 
 This method marks the current job to be retried later. You can pass a numeric to this method, in which case that is the number of seconds after which it can be retried (`retry_in(10)`, `retry_in(0.5)`), or, if you're using ActiveSupport, you can pass in a duration object (`retry_in(10.minutes)`). This automatically happens, with an exponentially-increasing interval, when the job encounters an error.
 
-### error_count
+Note that `retry_in` increments the job's `error_count`.
+
+### `error_count`
 
 This method returns the total number of times the job has errored, in case you want to modify the job's behavior after it has failed a given number of times.
 
-### default_resolve_action
+### `default_resolve_action`
 
 If you don't perform a resolve action (destroy, finish, expire, retry_in) while the job is worked, Que will call this method for you. By default it simply calls `destroy`, but you can override it in your Job subclasses if you wish - for example, to call `finish`, or to invoke some more complicated logic.
 
@@ -727,6 +732,51 @@ end
 
 Now, if the request takes more than five seconds, an error will be raised (probably - check your library's documentation) and Que will just retry the job later.
 
+## Job Options
+
+When enqueueing a job, you can specify particular options for it in a `job_options` hash, e.g.:
+
+```ruby
+ChargeCreditCard.enqueue(card.id, user_id: current_user.id, job_options: { run_at: 1.day.from_now, priority: 5 })
+```
+
+### `queue`
+
+See [Multiple Queues](#multiple-queues).
+
+### `priority`
+
+Provide an integer to customise the priority level of the job.
+
+We use the Linux priority scale - a lower number is more important.
+
+### `run_at`
+
+Provide a `Time` as the `run_at` to make a job run at a later time (well, at some point after it, depending on how busy the workers are).
+
+It's best not to use `Time.now` here, as the current time in the Ruby process and the database won't be perfectly aligned. When the database considers the `run_at` to be in the past, the job will not be broadcast via the LISTEN/NOTIFY system, and it will need to wait for a poll. This introduces an unnecessary delay of probably a few seconds (depending on your configured [poll interval](#poll-interval)). So if you want the job to run ASAP, just omit the `run_at` option.
+
+### `job_class`
+
+Specifying `job_class` allows you to enqueue a job using `Que.enqueue`:
+
+```ruby
+Que.enqueue(current_user.id, job_options: { job_class: 'ProcessCreditCard' })
+```
+
+Rather than needing to use the job class (nor even have it defined in the enqueueing process):
+
+```ruby
+ProcessCreditCard.enqueue(current_user.id)
+```
+
+### `tags`
+
+You can provide an array of strings to give a job some tags. These are not used by Que and are completely custom.
+
+A job can have up to five tags, each one up to 100 characters long.
+
+Note that unlike the other job options, tags are stored within the `que_jobs.data` column, rather than a correspondingly-named column.
 
 ## Middleware
 
@@ -784,4 +834,24 @@ class ManualVacuumJob < CronJob
     DB.run "VACUUM VERBOSE ANALYZE que_jobs"
   end
 end
+```
+
+## Expired jobs
+
+Expired jobs hang around in the `que_jobs` table. If necessary, you can get an expired job to run again by clearing the `error_count` and `expired_at` columns, e.g.:
+
+```sql
+UPDATE que_jobs SET error_count = 0, expired_at = NULL WHERE id = 172340879;
+```
+
+## Finished jobs
+
+If you prefer to leave finished jobs in the database for a while, to performantly remove them periodically, you can use something like:
+
+```sql
+BEGIN;
+ALTER TABLE que_jobs DISABLE TRIGGER que_state_notify;
+DELETE FROM que_jobs WHERE finished_at < (select now() - interval '7 days');
+ALTER TABLE que_jobs ENABLE TRIGGER que_state_notify;
+COMMIT;
 ```
