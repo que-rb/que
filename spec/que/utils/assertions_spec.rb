@@ -25,14 +25,14 @@ describe Que::Utils::Assertions do
     error = assert_assertion_fails(false)
 
     assert_equal "Assertion failed!", error.message
-    assert_match /lib\/que\/utils\/assertions.spec.rb:20/, error.backtrace.first
+    assert_match /spec\/que\/utils\/assertions_spec.rb:20/, error.backtrace.first
   end
 
   it "should handle failures with a block" do
     error = assert_assertion_fails(false) { "custom message!" }
 
     assert_equal "custom message!", error.message
-    assert_match /lib\/que\/utils\/assertions.spec.rb:20/, error.backtrace.first
+    assert_match /spec\/que\/utils\/assertions_spec.rb:20/, error.backtrace.first
   end
 
   it "should return the argument if it is truthy" do
