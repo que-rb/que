@@ -18,7 +18,7 @@ module Que
           "que_job.worked",
           started,
           Process.clock_gettime(Process::CLOCK_MONOTONIC),
-          labels.merge(error: !!job.que_error.present?),
+          labels.merge(error: job.que_error.present?),
         )
       end
     end
