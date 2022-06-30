@@ -4,6 +4,7 @@ require 'spec_helper'
 
 describe Que::Job do
   let(:notified_errors) { [] }
+  let(:job_schema_version) { Que.job_schema_version }
 
   before do
     Que.error_notifier = proc { |e| notified_errors << e }
@@ -66,6 +67,8 @@ describe Que::Job do
         end
 
         it "treats the last hash literal as a positional argument" do
+          skip "not valid for job_schema_version 1" if job_schema_version == 1
+
           enqueue_method.call({a: 1, b: 2})
           execute
           assert_equal([{a: 1, b: 2}], $args)
@@ -483,6 +486,44 @@ describe Que::Job do
       execute
 
       assert_equal [1, 2, 3], $args
+    end
+  end
+
+  describe "running jobs from the DB enqueued with job_schema_version 1 on Ruby 2" do
+    include ActsLikeAJob
+
+    let(:should_persist_job) { true }
+    let(:enqueue_method) { TestJobClass.method(:enqueue) }
+    let(:job_schema_version) { 1 }
+
+    before do
+      skip "only valid for Ruby 2" unless RUBY_VERSION.start_with?("2")
+
+      worker # Make sure worker is initialized.
+    end
+
+    def execute
+      assert_equal 1, jobs_dataset.count
+      attrs = jobs_dataset.first!
+
+      # Simulate jobs being enqueued with Que 1.
+      # Change `job_schema_version` to 1 and add `kwargs` to the end of `args`.
+      attrs[:job_schema_version] = 1
+      unless attrs[:kwargs] == {}
+        attrs[:args] << attrs[:kwargs]
+        attrs[:kwargs] = {}
+      end
+
+      job_buffer.push(Que::Metajob.new(attrs))
+
+      sleep_until_equal([attrs[:id]]) { results(message_type: :job_finished).map{|m| m.fetch(:metajob).id} }
+
+      if m = jobs_dataset.where(id: attrs[:id]).get(:last_error_message)
+        klass, message = m.split(": ", 2)
+        raise Que.constantize(klass), message
+      end
+
+      TestJobClass.new(attrs)
     end
   end
 

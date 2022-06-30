@@ -118,6 +118,17 @@ describe Que::Poller do
     assert_equal [one], poll(priorities: {7 => 5})
   end
 
+  it "should skip jobs enqueued with incompatible job_schema_version" do
+    one = DB[:que_jobs].returning(:id).insert(job_class: "Que::Job", job_schema_version: 1).first[:id]
+    two = DB[:que_jobs].returning(:id).insert(job_class: "Que::Job", job_schema_version: Que.job_schema_version).first[:id]
+
+    if RUBY_VERSION.start_with?("2")
+      assert_equal [one, two], poll
+    else
+      assert_equal [two], poll
+    end
+  end
+
   describe "when passed a set of priority requirements" do
     before do
       priorities = []

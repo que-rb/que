@@ -68,7 +68,7 @@ module Que
             SELECT j
             FROM public.que_jobs AS j
             WHERE queue = $1::text
-              AND job_schema_version = #{Que.job_schema_version}
+              AND job_schema_version IN (#{Que.supported_job_schema_versions.join(', ')})
               AND NOT id = ANY($2::bigint[])
               AND priority <= pg_temp.que_highest_remaining_priority($3::jsonb)
               AND run_at <= now()
@@ -89,7 +89,7 @@ module Que
                   SELECT j
                   FROM public.que_jobs AS j
                   WHERE queue = $1::text
-                    AND job_schema_version = #{Que.job_schema_version}
+                    AND job_schema_version IN (#{Que.supported_job_schema_versions.join(', ')})
                     AND NOT id = ANY($2::bigint[])
                     AND priority <= pg_temp.que_highest_remaining_priority(jobs.remaining_priorities)
                     AND run_at <= now()

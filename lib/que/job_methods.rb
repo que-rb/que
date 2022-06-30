@@ -48,7 +48,12 @@ module Que
         kwargs = que_target.que_attrs.fetch(:kwargs)
       end
 
-      run(*args, **kwargs)
+      if que_target&.que_attrs&.fetch(:job_schema_version, Que.job_schema_version) == 1
+        run(*args)
+      else
+        run(*args, **kwargs)
+      end
+
       default_resolve_action if que_target && !que_target.que_resolved
     rescue => error
       raise error unless que_target
