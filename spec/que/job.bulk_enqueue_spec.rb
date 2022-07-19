@@ -94,6 +94,93 @@ describe Que::Job, '.bulk_enqueue' do
     end
   end
 
+  describe "when bulk_enqueue args/kwargs are empty/omitted" do
+    it "can enqueue jobs with empty args" do
+      assert_enqueue(
+        expected_count: 2,
+        expected_args: [[], []],
+        expected_kwargs: [{ one: '2' }, {three: '4' }],
+      ) do
+        Que.bulk_enqueue(
+          [
+            { args: [], kwargs: { one: '2' } },
+            { args: [], kwargs: { three: '4' } },
+          ],
+        )
+      end
+    end
+
+    it "can enqueue jobs where args is omitted" do
+      assert_enqueue(
+        expected_count: 2,
+        expected_args: [[], []],
+        expected_kwargs: [{ one: '2' }, { three: '4' }],
+      ) do
+        Que.bulk_enqueue(
+          [
+            { kwargs: { one: '2' } },
+            { kwargs: { three: '4' } },
+          ],
+        )
+      end
+    end
+
+    it "can enqueue jobs where kwargs is omitted" do
+      assert_enqueue(
+        expected_count: 2,
+        expected_args: [[1], [2]],
+        expected_kwargs: [{}, {}],
+      ) do
+        Que.bulk_enqueue(
+          [
+            { args: [1] },
+            { args: [2] },
+          ],
+        )
+      end
+    end
+
+    it "can enqueue jobs where args and kwargs is omitted" do
+      assert_enqueue(
+        expected_count: 2,
+        expected_args: [[], []],
+        expected_kwargs: [{}, {}],
+      ) do
+        Que.bulk_enqueue([{}, {}])
+      end
+    end
+
+    it "can enqueue jobs with empty args" do
+      assert_enqueue(
+        expected_count: 2,
+        expected_args: [[], []],
+        expected_kwargs: [{ one: '2' }, { three: '4' }],
+      ) do
+        Que.bulk_enqueue(
+          [
+            { args: [], kwargs: { one: '2' } },
+            { args: [], kwargs: { three: '4' } },
+          ],
+        )
+      end
+    end
+
+    it "can enqueue jobs with empty kwargs" do
+      assert_enqueue(
+        expected_count: 2,
+        expected_args: [[1], [2]],
+        expected_kwargs: [{}, {}]
+      ) do
+        Que.bulk_enqueue(
+          [
+            { args: [1], kwargs: {} },
+            { args: [2], kwargs: {} },
+          ],
+        )
+      end
+    end
+  end
+
   it "should be able to handle a namespaced job class" do
     assert_enqueue(
       expected_count: 2,
