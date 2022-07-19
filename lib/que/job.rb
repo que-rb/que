@@ -137,6 +137,13 @@ module Que
           end
         end
 
+        args_and_kwargs_array = args_and_kwargs_array.map do |args_and_kwargs|
+          args_and_kwargs.merge(
+            args: args_and_kwargs.fetch(:args, []),
+            kwargs: args_and_kwargs.fetch(:kwargs, {}),
+          )
+        end
+
         attrs = {
           queue:    job_options[:queue]    || resolve_que_setting(:queue) || Que.default_queue,
           priority: job_options[:priority] || resolve_que_setting(:priority),
