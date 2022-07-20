@@ -37,7 +37,7 @@ describe Que::Job, '.bulk_enqueue' do
       end
     end
 
-    jobs_dataset.each_with_index do |job, i|
+    jobs_dataset.order(:id).each_with_index do |job, i|
       assert_equal expected_queue, job[:queue]
       assert_equal expected_priority, job[:priority]
       assert_in_delta job[:run_at], expected_run_at, QueSpec::TIME_SKEW
