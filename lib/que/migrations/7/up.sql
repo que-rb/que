@@ -3,4 +3,4 @@ CREATE TRIGGER que_job_notify
   AFTER INSERT ON que_jobs
   FOR EACH ROW
   WHEN (NOT coalesce(current_setting('que.skip_notify', true), '') = 'true')
-  EXECUTE FUNCTION public.que_job_notify();
+  EXECUTE PROCEDURE public.que_job_notify();
