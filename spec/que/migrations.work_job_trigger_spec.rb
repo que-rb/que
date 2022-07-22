@@ -130,4 +130,18 @@ describe Que::Migrations, "job_available trigger" do
       assert_nil conn.wait_for_notify(0.01)
     end
   end
+
+  it "should not notify a locker when using bulk_enqueue" do
+    listen_connection do |conn|
+      DB[:que_lockers].insert(locker_attrs)
+      conn.async_exec "LISTEN que_listener_1"
+      Que::Job.bulk_enqueue(
+        [
+          { args: ['job1_arg1'], kwargs: { job1_kwarg1: 'x' } },
+          { args: ['job2_arg1'], kwargs: { job2_kwarg1: 'x' } },
+        ],
+      )
+      assert_nil conn.wait_for_notify(0.01)
+    end
+  end
 end

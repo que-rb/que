@@ -162,10 +162,13 @@ module Que
           _run_attrs(attrs)
         else
           values_array =
-            Que.execute(
-              :bulk_insert_jobs,
-              attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :data),
-            )
+            Que.transaction do
+              Que.execute('SET LOCAL que.skip_notify TO true')
+              Que.execute(
+                :bulk_insert_jobs,
+                attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :data),
+              )
+            end
           values_array.map(&method(:new))
         end
       end
