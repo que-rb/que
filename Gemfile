@@ -20,6 +20,7 @@ group :test do
   gem 'minitest',         '~> 5.10.1'
   gem 'minitest-profile', '0.0.2'
   gem 'minitest-hooks',   '1.4.0'
+  gem 'minitest-fail-fast', '0.1.0'
 
   gem 'm'
 
