@@ -129,7 +129,7 @@ module Que
       end
       ruby2_keywords(:enqueue) if respond_to?(:ruby2_keywords, true)
 
-      def bulk_enqueue(job_options: {})
+      def bulk_enqueue(job_options: {}, notify: false)
         raise Que::Error, "Can't nest .bulk_enqueue" unless Thread.current[:que_jobs_to_bulk_insert].nil?
         Thread.current[:que_jobs_to_bulk_insert] = { jobs_attrs: [], job_options: job_options }
         yield
@@ -143,12 +143,12 @@ module Que
           }
         end
         klass = job_options[:job_class] ? Que::Job : Que.constantize(jobs_attrs.first[:job_class])
-        klass._bulk_enqueue_insert(args_and_kwargs_array, job_options: job_options)
+        klass._bulk_enqueue_insert(args_and_kwargs_array, job_options: job_options, notify: notify)
       ensure
         Thread.current[:que_jobs_to_bulk_insert] = nil
       end
 
-      def _bulk_enqueue_insert(args_and_kwargs_array, job_options: {})
+      def _bulk_enqueue_insert(args_and_kwargs_array, job_options: {}, notify:)
         raise 'Unexpected bulk args format' if !args_and_kwargs_array.is_a?(Array) || !args_and_kwargs_array.all? { |a| a.is_a?(Hash) }
 
         if job_options[:tags]
@@ -189,7 +189,7 @@ module Que
         else
           values_array =
             Que.transaction do
-              Que.execute('SET LOCAL que.skip_notify TO true')
+              Que.execute('SET LOCAL que.skip_notify TO true') unless notify
               Que.execute(
                 :bulk_insert_jobs,
                 attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :data),
