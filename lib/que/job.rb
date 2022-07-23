@@ -120,7 +120,6 @@ module Que
               ).first
             else
               raise Que::Error, "When using .bulk_enqueue, job_options must be passed to that method rather than .enqueue" unless job_options == {}
-              Thread.current[:que_jobs_to_bulk_insert][:job_options]
               Thread.current[:que_jobs_to_bulk_insert][:jobs_attrs] << attrs
               {}
             end
