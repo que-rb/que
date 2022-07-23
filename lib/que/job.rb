@@ -113,16 +113,42 @@ module Que
           _run_attrs(attrs)
         else
           values =
-            Que.execute(
-              :insert_job,
-              attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :kwargs, :data),
-            ).first
+            if Thread.current[:jobs_to_bulk_insert].nil?
+              Que.execute(
+                :insert_job,
+                attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :kwargs, :data),
+              ).first
+            else
+              raise Que::Error, "When using .bulk_enqueue, job_options must be passed to that method rather than .enqueue" unless job_options == {}
+              Thread.current[:jobs_to_bulk_insert][:job_options]
+              Thread.current[:jobs_to_bulk_insert][:jobs_attrs] << attrs
+              {}
+            end
           new(values)
         end
       end
       ruby2_keywords(:enqueue) if respond_to?(:ruby2_keywords, true)
 
-      def bulk_enqueue(args_and_kwargs_array, job_options: {})
+      def bulk_enqueue(job_options: {})
+        raise Que::Error, "Can't nest .bulk_enqueue" unless Thread.current[:jobs_to_bulk_insert].nil?
+        Thread.current[:jobs_to_bulk_insert] = { jobs_attrs: [], job_options: job_options }
+        yield
+        jobs_attrs = Thread.current[:jobs_to_bulk_insert][:jobs_attrs]
+        job_options = Thread.current[:jobs_to_bulk_insert][:job_options]
+        raise Que::Error, "When using .bulk_enqueue, all jobs enqueued must be of the same job class" unless jobs_attrs.map { |attrs| attrs[:job_class] }.uniq.one?
+        args_and_kwargs_array = jobs_attrs.map do |attrs|
+          {
+            args: Que.deserialize_json(attrs[:args]),
+            kwargs: Que.deserialize_json(attrs[:kwargs]),
+          }
+        end
+        klass = job_options[:job_class] ? Que::Job : Que.constantize(jobs_attrs.first[:job_class])
+        klass._bulk_enqueue_insert(args_and_kwargs_array, job_options: job_options)
+      ensure
+        Thread.current[:jobs_to_bulk_insert] = nil
+      end
+
+      def _bulk_enqueue_insert(args_and_kwargs_array, job_options: {})
         raise 'Unexpected bulk args format' if !args_and_kwargs_array.is_a?(Array) || !args_and_kwargs_array.all? { |a| a.is_a?(Hash) }
 
         if job_options[:tags]

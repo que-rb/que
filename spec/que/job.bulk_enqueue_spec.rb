@@ -55,9 +55,9 @@ describe Que::Job, '.bulk_enqueue' do
       expected_args: Array.new(3) { [] },
       expected_kwargs: Array.new(3) { {} },
     ) do
-      Que.bulk_enqueue(
-        Array.new(3) { { args: [], kwargs: {} } }
-      )
+      Que.bulk_enqueue do
+        3.times { Que.enqueue }
+      end
     end
   end
 
@@ -67,12 +67,10 @@ describe Que::Job, '.bulk_enqueue' do
       expected_args: [[1], [4]],
       expected_kwargs: [{ two: '3' }, { five: '6' }],
     ) do
-      Que.bulk_enqueue(
-        [
-          { args: [1], kwargs: { two: '3' } },
-          { args: [4], kwargs: { five: '6' } },
-        ]
-      )
+      Que.bulk_enqueue do
+        Que.enqueue(1, two: '3')
+        Que.enqueue(4, five: '6')
+      end
     end
   end
 
@@ -85,12 +83,10 @@ describe Que::Job, '.bulk_enqueue' do
         { hash: { one: 1, two: 'two', three: [3] } },
       ],
     ) do
-      Que.bulk_enqueue(
-        [
-          { args: [1, 'two'], kwargs: { string: 'string', integer: 5, array: [1, 'two', { three: 3 }] } },
-          { args: ['3', 4], kwargs: { hash: { one: 1, two: 'two', three: [3] } } },
-        ],
-      )
+      Que.bulk_enqueue do
+        Que.enqueue(1, 'two', string: 'string', integer: 5, array: [1, 'two', { three: 3 }])
+        Que.enqueue('3', 4, hash: { one: 1, two: 'two', three: [3] })
+      end
     end
   end
 
@@ -101,12 +97,10 @@ describe Que::Job, '.bulk_enqueue' do
         expected_args: [[], []],
         expected_kwargs: [{ one: '2' }, {three: '4' }],
       ) do
-        Que.bulk_enqueue(
-          [
-            { args: [], kwargs: { one: '2' } },
-            { args: [], kwargs: { three: '4' } },
-          ],
-        )
+        Que.bulk_enqueue do
+          Que.enqueue(one: '2')
+          Que.enqueue(three: '4')
+        end
       end
     end
 
@@ -116,12 +110,10 @@ describe Que::Job, '.bulk_enqueue' do
         expected_args: [[], []],
         expected_kwargs: [{ one: '2' }, { three: '4' }],
       ) do
-        Que.bulk_enqueue(
-          [
-            { kwargs: { one: '2' } },
-            { kwargs: { three: '4' } },
-          ],
-        )
+        Que.bulk_enqueue do
+          Que.enqueue(one: '2')
+          Que.enqueue(three: '4')
+        end
       end
     end
 
@@ -131,12 +123,10 @@ describe Que::Job, '.bulk_enqueue' do
         expected_args: [[1], [2]],
         expected_kwargs: [{}, {}],
       ) do
-        Que.bulk_enqueue(
-          [
-            { args: [1] },
-            { args: [2] },
-          ],
-        )
+        Que.bulk_enqueue do
+          Que.enqueue(1)
+          Que.enqueue(2)
+        end
       end
     end
 
@@ -146,7 +136,10 @@ describe Que::Job, '.bulk_enqueue' do
         expected_args: [[], []],
         expected_kwargs: [{}, {}],
       ) do
-        Que.bulk_enqueue([{}, {}])
+        Que.bulk_enqueue do
+          Que.enqueue
+          Que.enqueue
+        end
       end
     end
 
@@ -156,12 +149,10 @@ describe Que::Job, '.bulk_enqueue' do
         expected_args: [[], []],
         expected_kwargs: [{ one: '2' }, { three: '4' }],
       ) do
-        Que.bulk_enqueue(
-          [
-            { args: [], kwargs: { one: '2' } },
-            { args: [], kwargs: { three: '4' } },
-          ],
-        )
+        Que.bulk_enqueue do
+          Que.enqueue(one: '2')
+          Que.enqueue(three: '4')
+        end
       end
     end
 
@@ -171,12 +162,10 @@ describe Que::Job, '.bulk_enqueue' do
         expected_args: [[1], [2]],
         expected_kwargs: [{}, {}]
       ) do
-        Que.bulk_enqueue(
-          [
-            { args: [1], kwargs: {} },
-            { args: [2], kwargs: {} },
-          ],
-        )
+        Que.bulk_enqueue do
+          Que.enqueue(1)
+          Que.enqueue(2)
+        end
       end
     end
   end
@@ -188,18 +177,16 @@ describe Que::Job, '.bulk_enqueue' do
       expected_kwargs: [{ two: '3' }, { five: '6' }],
       expected_job_class: NamespacedJobNamespace::NamespacedJob,
     ) do
-      NamespacedJobNamespace::NamespacedJob.bulk_enqueue(
-        [
-          { args: [1], kwargs: { two: '3' } },
-          { args: [4], kwargs: { five: '6' } },
-        ],
-      )
+      Que.bulk_enqueue do
+        NamespacedJobNamespace::NamespacedJob.enqueue(1, two: '3')
+        NamespacedJobNamespace::NamespacedJob.enqueue(4, five: '6')
+      end
     end
   end
 
   it "should error appropriately on an anonymous job subclass" do
     klass = Class.new(Que::Job)
-    error = assert_raises(Que::Error) { klass.bulk_enqueue([{ args: [], kwargs: {} }, { args: [], kwargs: {} }]) }
+    error = assert_raises(Que::Error) { Que.bulk_enqueue { klass.enqueue } }
     assert_equal \
       "Can't enqueue an anonymous subclass of Que::Job",
       error.message
@@ -212,13 +199,10 @@ describe Que::Job, '.bulk_enqueue' do
       expected_kwargs: [{ two: '3' }, { five: 'six' }],
       expected_queue: 'special_queue_name',
     ) do
-      Que.bulk_enqueue(
-        [
-          { args: [1], kwargs: { two: '3' } },
-          { args: [4], kwargs: { five: 'six' } }
-        ],
-        job_options: { queue: 'special_queue_name' },
-      )
+      Que.bulk_enqueue(job_options: { queue: 'special_queue_name' }) do
+        Que.enqueue(1, two: '3')
+        Que.enqueue(4, five: 'six')
+      end
     end
   end
 
@@ -228,12 +212,12 @@ describe Que::Job, '.bulk_enqueue' do
       expected_count: 2,
       expected_args: [[1], [2]],
       expected_kwargs: [{}, {}],
-      expected_run_at: Time.now + 60
+      expected_run_at: Time.now + 60,
     ) do
-      Que.bulk_enqueue(
-        [{ args: [1], kwargs: {} }, { args: [2], kwargs: {} }],
-        job_options: { run_at: Time.now + 60 },
-      )
+      Que.bulk_enqueue(job_options: { run_at: Time.now + 60 }) do
+        Que.enqueue(1)
+        Que.enqueue(2)
+      end
     end
   end
 
@@ -244,10 +228,10 @@ describe Que::Job, '.bulk_enqueue' do
       expected_kwargs: [{}, {}],
       expected_priority: 4
     ) do
-      Que.bulk_enqueue(
-        [{ args: [1], kwargs: {} }, { args: [2], kwargs: {} }],
-        job_options: { priority: 4 },
-      )
+      Que.bulk_enqueue(job_options: { priority: 4 }) do
+        Que.enqueue(1)
+        Que.enqueue(2)
+      end
     end
   end
 
@@ -259,13 +243,10 @@ describe Que::Job, '.bulk_enqueue' do
       expected_run_at: Time.now + 60,
       expected_priority: 4,
     ) do
-      Que.bulk_enqueue(
-        [
-          { args: [1], kwargs: { two: "3" } },
-          { args: [4], kwargs: { five: "six" } },
-        ],
-        job_options: { run_at: Time.now + 60, priority: 4 },
-      )
+      Que.bulk_enqueue(job_options: { run_at: Time.now + 60, priority: 4 }) do
+        Que.enqueue(1, two: "3")
+        Que.enqueue(4, five: "six")
+      end
     end
   end
 
@@ -280,13 +261,10 @@ describe Que::Job, '.bulk_enqueue' do
       expected_run_at: Time.now,
       expected_priority: 15,
     ) do
-      Que.bulk_enqueue(
-        [
-          { args: [1], kwargs: { two: "3", run_at: Time.utc(2050), priority: 10 } },
-          { args: [4], kwargs: { five: "six" } },
-        ],
-        job_options: { priority: 15 },
-      )
+      Que.bulk_enqueue(job_options: { priority: 15 }) do
+        Que.enqueue(1, two: "3", run_at: Time.utc(2050), priority: 10)
+        Que.enqueue(4, five: "six")
+      end
     end
   end
 
@@ -298,13 +276,10 @@ describe Que::Job, '.bulk_enqueue' do
         expected_kwargs: [{ two: "3" }, { five: "six" }],
         expected_tags: ["tag_1", "tag_2"],
       ) do
-        Que.bulk_enqueue(
-          [
-            { args: [1], kwargs: { two: "3" } },
-            { args: [4], kwargs: { five: "six" } },
-          ],
-          job_options: { tags: ["tag_1", "tag_2"] },
-        )
+        Que.bulk_enqueue(job_options: { tags: ["tag_1", "tag_2"] }) do
+          Que.enqueue(1, two: "3")
+          Que.enqueue(4, five: "six")
+        end
       end
     end
 
@@ -318,25 +293,20 @@ describe Que::Job, '.bulk_enqueue' do
         ],
         expected_tags: nil,
       ) do
-        Que.bulk_enqueue(
-          [
-            { args: [1], kwargs: { two: "3", tags: ["tag_1", "tag_2"] } },
-            { args: [4], kwargs: { five: "six" } },
-          ],
-        )
+        Que.bulk_enqueue do
+          Que.enqueue(1, two: "3", tags: ["tag_1", "tag_2"])
+          Que.enqueue(4, five: "six")
+        end
       end
     end
 
     it "should raise an error if passing too many tags" do
       error =
         assert_raises(Que::Error) do
-          Que::Job.bulk_enqueue(
-            [
-              { args: [1], kwargs: { two: "3" } },
-              { args: [4], kwargs: { five: "six" } },
-            ],
-            job_options: { tags: %w[a b c d e f] },
-          )
+          Que.bulk_enqueue(job_options: { tags: %w[a b c d e f] }) do
+            Que::Job.enqueue(1, two: "3")
+            Que::Job.enqueue(4, five: "six")
+          end
         end
 
       assert_equal \
@@ -347,13 +317,10 @@ describe Que::Job, '.bulk_enqueue' do
     it "should raise an error if any of the tags are too long" do
       error =
         assert_raises(Que::Error) do
-          Que::Job.bulk_enqueue(
-            [
-              { args: [1], kwargs: { two: "3" } },
-              { args: [4], kwargs: { five: "six" } },
-            ],
-            job_options: { tags: ["a" * 101] },
-          )
+          Que.bulk_enqueue(job_options: { tags: ["a" * 101] }) do
+            Que::Job.enqueue(1, two: "3")
+            Que::Job.enqueue(4, five: "six")
+          end
         end
 
       assert_equal \
@@ -372,13 +339,10 @@ describe Que::Job, '.bulk_enqueue' do
       expected_job_class: MyJobClass,
       expected_result_class: Que::Job,
     ) do
-      Que.bulk_enqueue(
-        [
-          { args: [1], kwargs: { two: "3" } },
-          { args: [4], kwargs: { five: "six" } },
-        ],
-        job_options: { job_class: 'MyJobClass' },
-      )
+      Que.bulk_enqueue(job_options: { job_class: 'MyJobClass' }) do
+        Que.enqueue(1, two: "3")
+        Que.enqueue(4, five: "six")
+      end
     end
   end
 
@@ -413,12 +377,10 @@ describe Que::Job, '.bulk_enqueue' do
           expected_priority: 3,
           expected_job_class: PriorityDefaultJob,
         ) do
-          PriorityDefaultJob.bulk_enqueue(
-            [
-              { args: [1], kwargs: { two: "3" } },
-              { args: [4], kwargs: { five: "six" } },
-            ],
-          )
+          Que.bulk_enqueue do
+            PriorityDefaultJob.enqueue(1, two: "3")
+            PriorityDefaultJob.enqueue(4, five: "six")
+          end
         end
 
         assert_enqueue(
@@ -428,13 +390,10 @@ describe Que::Job, '.bulk_enqueue' do
           expected_priority: 4,
           expected_job_class: PriorityDefaultJob,
         ) do
-          PriorityDefaultJob.bulk_enqueue(
-            [
-              { args: [1], kwargs: { two: "3" } },
-              { args: [4], kwargs: { five: "six" } },
-            ],
-            job_options: { priority: 4 },
-          )
+          Que.bulk_enqueue(job_options: { priority: 4 }) do
+            PriorityDefaultJob.enqueue(1, two: "3")
+            PriorityDefaultJob.enqueue(4, five: "six")
+          end
         end
       end
 
@@ -446,12 +405,10 @@ describe Que::Job, '.bulk_enqueue' do
           expected_priority: 3,
           expected_job_class: PrioritySubclassJob
         ) do
-          PrioritySubclassJob.bulk_enqueue(
-            [
-              { args: [1], kwargs: { two: "3" } },
-              { args: [4], kwargs: { five: "six" } },
-            ],
-          )
+          Que.bulk_enqueue do
+            PrioritySubclassJob.enqueue(1, two: "3")
+            PrioritySubclassJob.enqueue(4, five: "six")
+          end
         end
 
         assert_enqueue(
@@ -461,13 +418,10 @@ describe Que::Job, '.bulk_enqueue' do
           expected_priority: 4,
           expected_job_class: PrioritySubclassJob
         ) do
-          PrioritySubclassJob.bulk_enqueue(
-            [
-              { args: [1], kwargs: { two: "3" } },
-              { args: [4], kwargs: { five: "six" } },
-            ],
-            job_options: { priority: 4 },
-          )
+          Que.bulk_enqueue(job_options: { priority: 4 }) do
+            PrioritySubclassJob.enqueue(1, two: "3")
+            PrioritySubclassJob.enqueue(4, five: "six")
+          end
         end
       end
 
@@ -482,12 +436,10 @@ describe Que::Job, '.bulk_enqueue' do
             expected_priority: 60,
             expected_job_class: PrioritySubclassJob
           ) do
-            PrioritySubclassJob.bulk_enqueue(
-              [
-                { args: [1], kwargs: { two: "3" } },
-                { args: [4], kwargs: { five: "six" } },
-              ],
-            )
+            Que.bulk_enqueue do
+              PrioritySubclassJob.enqueue(1, two: "3")
+              PrioritySubclassJob.enqueue(4, five: "six")
+            end
           end
 
           assert_enqueue(
@@ -497,13 +449,10 @@ describe Que::Job, '.bulk_enqueue' do
             expected_priority: 4,
             expected_job_class: PrioritySubclassJob
           ) do
-            PrioritySubclassJob.bulk_enqueue(
-              [
-                { args: [1], kwargs: { two: "3" } },
-                { args: [4], kwargs: { five: "six" } },
-              ],
-              job_options: { priority: 4 },
-            )
+            Que.bulk_enqueue(job_options: { priority: 4 }) do
+              PrioritySubclassJob.enqueue(1, two: "3")
+              PrioritySubclassJob.enqueue(4, five: "six")
+            end
           end
         ensure
           PrioritySubclassJob.remove_instance_variable(:@priority)
@@ -520,12 +469,10 @@ describe Que::Job, '.bulk_enqueue' do
           expected_run_at: Time.now + 30,
           expected_job_class: RunAtDefaultJob
         ) do
-          RunAtDefaultJob.bulk_enqueue(
-            [
-              { args: [1], kwargs: { two: "3" } },
-              { args: [4], kwargs: { five: "six" } },
-            ],
-          )
+          Que.bulk_enqueue do
+            RunAtDefaultJob.enqueue(1, two: "3")
+            RunAtDefaultJob.enqueue(4, five: "six")
+          end
         end
 
         assert_enqueue(
@@ -535,13 +482,10 @@ describe Que::Job, '.bulk_enqueue' do
           expected_run_at: Time.now + 60,
           expected_job_class: RunAtDefaultJob
         ) do
-          RunAtDefaultJob.bulk_enqueue(
-            [
-              { args: [1], kwargs: { two: "3" } },
-              { args: [4], kwargs: { five: "six" } },
-            ],
-            job_options: { run_at: Time.now + 60 },
-          )
+          Que.bulk_enqueue(job_options: { run_at: Time.now + 60 }) do
+            RunAtDefaultJob.enqueue(1, two: "3")
+            RunAtDefaultJob.enqueue(4, five: "six")
+          end
         end
       end
 
@@ -553,12 +497,10 @@ describe Que::Job, '.bulk_enqueue' do
           expected_run_at: Time.now + 30,
           expected_job_class: RunAtDefaultJob
         ) do
-          RunAtDefaultJob.bulk_enqueue(
-            [
-              { args: [1], kwargs: { two: "3" } },
-              { args: [4], kwargs: { five: "six" } },
-            ],
-          )
+          Que.bulk_enqueue do
+            RunAtDefaultJob.enqueue(1, two: "3")
+            RunAtDefaultJob.enqueue(4, five: "six")
+          end
         end
 
         assert_enqueue(
@@ -568,13 +510,10 @@ describe Que::Job, '.bulk_enqueue' do
           expected_run_at: Time.now + 60,
           expected_job_class: RunAtDefaultJob
         ) do
-          RunAtDefaultJob.bulk_enqueue(
-            [
-              { args: [1], kwargs: { two: "3" } },
-              { args: [4], kwargs: { five: "six" } },
-            ],
-            job_options: { run_at: Time.now + 60 },
-          )
+          Que.bulk_enqueue(job_options: { run_at: Time.now + 60 }) do
+            RunAtDefaultJob.enqueue(1, two: "3")
+            RunAtDefaultJob.enqueue(4, five: "six")
+          end
         end
       end
 
@@ -589,12 +528,10 @@ describe Que::Job, '.bulk_enqueue' do
             expected_run_at: Time.now + 90,
             expected_job_class: RunAtSubclassJob
           ) do
-            RunAtSubclassJob.bulk_enqueue(
-              [
-                { args: [1], kwargs: { two: "3" } },
-                { args: [4], kwargs: { five: "six" } },
-              ],
-            )
+            Que.bulk_enqueue do
+              RunAtSubclassJob.enqueue(1, two: "3")
+              RunAtSubclassJob.enqueue(4, five: "six")
+            end
           end
 
           assert_enqueue(
@@ -604,13 +541,10 @@ describe Que::Job, '.bulk_enqueue' do
             expected_run_at: Time.now + 60,
             expected_job_class: RunAtSubclassJob
           ) do
-            RunAtSubclassJob.bulk_enqueue(
-              [
-                { args: [1], kwargs: { two: "3" } },
-                { args: [4], kwargs: { five: "six" } },
-              ],
-              job_options: { run_at: Time.now + 60 },
-            )
+            Que.bulk_enqueue(job_options: { run_at: Time.now + 60 }) do
+              RunAtSubclassJob.enqueue(1, two: "3")
+              RunAtSubclassJob.enqueue(4, five: "six")
+            end
           end
         ensure
           RunAtSubclassJob.remove_instance_variable(:@run_at)
@@ -627,12 +561,10 @@ describe Que::Job, '.bulk_enqueue' do
           expected_queue: 'queue_1',
           expected_job_class: QueueDefaultJob
         ) do
-          QueueDefaultJob.bulk_enqueue(
-            [
-              { args: [1], kwargs: { two: "3" } },
-              { args: [4], kwargs: { five: "six" } },
-            ],
-          )
+          Que.bulk_enqueue do
+            QueueDefaultJob.enqueue(1, two: "3")
+            QueueDefaultJob.enqueue(4, five: "six")
+          end
         end
 
         assert_enqueue(
@@ -642,13 +574,10 @@ describe Que::Job, '.bulk_enqueue' do
           expected_queue: 'queue_3',
           expected_job_class: QueueDefaultJob
         ) do
-          QueueDefaultJob.bulk_enqueue(
-            [
-              { args: [1], kwargs: { two: "3" } },
-              { args: [4], kwargs: { five: "six" } },
-            ],
-            job_options: { queue: 'queue_3' },
-          )
+          Que.bulk_enqueue(job_options: { queue: 'queue_3' }) do
+            QueueDefaultJob.enqueue(1, two: "3")
+            QueueDefaultJob.enqueue(4, five: "six")
+          end
         end
       end
 
@@ -660,12 +589,10 @@ describe Que::Job, '.bulk_enqueue' do
           expected_queue: 'queue_1',
           expected_job_class: QueueSubclassJob
         ) do
-          QueueSubclassJob.bulk_enqueue(
-            [
-              { args: [1], kwargs: { two: "3" } },
-              { args: [4], kwargs: { five: "six" } },
-            ],
-          )
+          Que.bulk_enqueue do
+            QueueSubclassJob.enqueue(1, two: "3")
+            QueueSubclassJob.enqueue(4, five: "six")
+          end
         end
 
         assert_enqueue(
@@ -675,13 +602,10 @@ describe Que::Job, '.bulk_enqueue' do
           expected_queue: 'queue_3',
           expected_job_class: QueueSubclassJob
         ) do
-          QueueSubclassJob.bulk_enqueue(
-            [
-              { args: [1], kwargs: { two: "3" } },
-              { args: [4], kwargs: { five: "six" } },
-            ],
-            job_options: { queue: 'queue_3' },
-          )
+          Que.bulk_enqueue(job_options: { queue: 'queue_3' }) do
+            QueueSubclassJob.enqueue(1, two: "3")
+            QueueSubclassJob.enqueue(4, five: "six")
+          end
         end
       end
 
@@ -696,12 +620,10 @@ describe Que::Job, '.bulk_enqueue' do
             expected_queue: 'queue_2',
             expected_job_class: QueueSubclassJob
           ) do
-            QueueSubclassJob.bulk_enqueue(
-              [
-                { args: [1], kwargs: { two: "3" } },
-                { args: [4], kwargs: { five: "six" } },
-              ],
-            )
+            Que.bulk_enqueue do
+              QueueSubclassJob.enqueue(1, two: "3")
+              QueueSubclassJob.enqueue(4, five: "six")
+            end
           end
 
           assert_enqueue(
@@ -711,13 +633,10 @@ describe Que::Job, '.bulk_enqueue' do
             expected_queue: 'queue_3',
             expected_job_class: QueueSubclassJob
           ) do
-            QueueSubclassJob.bulk_enqueue(
-              [
-                { args: [1], kwargs: { two: "3" } },
-                { args: [4], kwargs: { five: "six" } },
-              ],
-              job_options: { queue: 'queue_3' },
-            )
+            Que.bulk_enqueue(job_options: { queue: 'queue_3' }) do
+              QueueSubclassJob.enqueue(1, two: "3")
+              QueueSubclassJob.enqueue(4, five: "six")
+            end
           end
         ensure
           QueueSubclassJob.remove_instance_variable(:@queue)

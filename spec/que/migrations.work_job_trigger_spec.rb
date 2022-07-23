@@ -135,12 +135,10 @@ describe Que::Migrations, "job_available trigger" do
     listen_connection do |conn|
       DB[:que_lockers].insert(locker_attrs)
       conn.async_exec "LISTEN que_listener_1"
-      Que::Job.bulk_enqueue(
-        [
-          { args: ['job1_arg1'], kwargs: { job1_kwarg1: 'x' } },
-          { args: ['job2_arg1'], kwargs: { job2_kwarg1: 'x' } },
-        ],
-      )
+      Que.bulk_enqueue do
+        Que::Job.enqueue('job1_arg1', job1_kwarg1: 'x')
+        Que::Job.enqueue('job2_arg1', job2_kwarg1: 'x')
+      end
       assert_nil conn.wait_for_notify(0.01)
     end
   end
