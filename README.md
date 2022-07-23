@@ -23,7 +23,7 @@ Que's secondary goal is performance. The worker process is multithreaded, so tha
 
 Compatibility:
 
-- MRI Ruby 2.7+
+- MRI Ruby 2.7+ (for Ruby 3, Que 2+ is required)
 - PostgreSQL 9.5+
 - Rails 6.0+ (optional)
 
