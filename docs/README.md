@@ -874,8 +874,7 @@ If you prefer to leave finished jobs in the database for a while, to performantl
 
 ```sql
 BEGIN;
-ALTER TABLE que_jobs DISABLE TRIGGER que_state_notify;
+SET LOCAL que.skip_notify TO true;
 DELETE FROM que_jobs WHERE finished_at < (select now() - interval '7 days');
-ALTER TABLE que_jobs ENABLE TRIGGER que_state_notify;
 COMMIT;
 ```
