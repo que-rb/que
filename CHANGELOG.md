@@ -2,6 +2,7 @@
 
 <!-- MarkdownTOC autolink=true -->
 
+- [1.4.1 \(2022-07-24\)](#141-2022-07-24)
 - [2.0.0.beta1 \(2022-03-24\)](#200beta1-2022-03-24)
 - [1.4.0 \(2022-03-23\)](#140-2022-03-23)
 - [1.3.1 \(2022-02-25\)](#131-2022-02-25)
@@ -51,6 +52,11 @@
 - [0.0.1 \(2013-11-07\)](#001-2013-11-07)
 
 <!-- /MarkdownTOC -->
+
+## 1.4.1 (2022-07-24)
+
+- **Added**
+    + Added Ruby version requirement of < 3. For Ruby 3 compatibility, upgrade to Que 2 - [upgrade process](https://github.com/que-rb/que/blob/master/CHANGELOG.md#200beta1-2022-03-24)
 
 ## 2.0.0.beta1 (2022-03-24)
 
