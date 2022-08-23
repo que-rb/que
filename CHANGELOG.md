@@ -2,6 +2,7 @@
 
 <!-- MarkdownTOC autolink=true -->
 
+- [Unreleased](#unreleased)
 - [2.0.0 \(2022-08-25\)](#200-2022-08-25)
 - [1.4.1 \(2022-07-24\)](#141-2022-07-24)
 - [2.0.0.beta1 \(2022-03-24\)](#200beta1-2022-03-24)
@@ -53,6 +54,13 @@
 - [0.0.1 \(2013-11-07\)](#001-2013-11-07)
 
 <!-- /MarkdownTOC -->
+
+## Unreleased
+
+- **Added**:
+    + Added bulk enqueue interface for performance when enqueuing a large number of jobs at once - [docs](docs#enqueueing-jobs-in-bulk).
+- **Deprecated**:
+    + Deprecated `que_state_notify` trigger (`que_state` notification channel / `job_change` notification message). See [#372](https://github.com/que-rb/que/issues/372). We plan to remove this in a future release - let us know on the issue if you desire otherwise.
 
 ## 2.0.0 (2022-08-25)
 
