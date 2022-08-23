@@ -106,23 +106,20 @@ module Que
               raise(Error, "Can't enqueue an anonymous subclass of Que::Job"),
         }
 
-        if attrs[:run_at].nil? && resolve_que_setting(:run_synchronously)
+        if Thread.current[:que_jobs_to_bulk_insert]
+          raise Que::Error, "When using .bulk_enqueue, job_options must be passed to that method rather than .enqueue" unless job_options == {}
+          Thread.current[:que_jobs_to_bulk_insert][:jobs_attrs] << attrs
+          new({})
+        elsif attrs[:run_at].nil? && resolve_que_setting(:run_synchronously)
           attrs[:args] = Que.deserialize_json(attrs[:args])
           attrs[:kwargs] = Que.deserialize_json(attrs[:kwargs])
           attrs[:data] = Que.deserialize_json(attrs[:data])
           _run_attrs(attrs)
         else
-          values =
-            if Thread.current[:que_jobs_to_bulk_insert].nil?
-              Que.execute(
-                :insert_job,
-                attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :kwargs, :data),
-              ).first
-            else
-              raise Que::Error, "When using .bulk_enqueue, job_options must be passed to that method rather than .enqueue" unless job_options == {}
-              Thread.current[:que_jobs_to_bulk_insert][:jobs_attrs] << attrs
-              {}
-            end
+          values = Que.execute(
+            :insert_job,
+            attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :kwargs, :data),
+          ).first
           new(values)
         end
       end
@@ -174,7 +171,7 @@ module Que
           queue:    job_options[:queue]    || resolve_que_setting(:queue) || Que.default_queue,
           priority: job_options[:priority] || resolve_que_setting(:priority),
           run_at:   job_options[:run_at]   || resolve_que_setting(:run_at),
-          args:     Que.serialize_json(args_and_kwargs_array),
+          args_and_kwargs_array: Que.serialize_json(args_and_kwargs_array),
           data:     job_options[:tags] ? Que.serialize_json(tags: job_options[:tags]) : "{}",
           job_class: \
             job_options[:job_class] || name ||
@@ -182,17 +179,23 @@ module Que
         }
 
         if attrs[:run_at].nil? && resolve_que_setting(:run_synchronously)
-          attrs[:args] = Que.deserialize_json(attrs[:args])
-          attrs[:kwargs] = Que.deserialize_json(attrs[:kwargs])
+          args_and_kwargs_array = Que.deserialize_json(attrs.delete(:args_and_kwargs_array))
           attrs[:data] = Que.deserialize_json(attrs[:data])
-          _run_attrs(attrs)
+          args_and_kwargs_array.map do |args_and_kwargs|
+            _run_attrs(
+              attrs.merge(
+                args: args_and_kwargs.fetch(:args),
+                kwargs: args_and_kwargs.fetch(:kwargs),
+              ),
+            )
+          end
         else
           values_array =
             Que.transaction do
               Que.execute('SET LOCAL que.skip_notify TO true') unless notify
               Que.execute(
                 :bulk_insert_jobs,
-                attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :data),
+                attrs.values_at(:queue, :priority, :run_at, :job_class, :args_and_kwargs_array, :data),
               )
             end
           values_array.map(&method(:new))

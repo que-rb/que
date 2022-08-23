@@ -662,4 +662,50 @@ describe Que::Job, '.bulk_enqueue' do
       end
     end
   end
+
+  describe "when run in synchronous mode" do
+    before do
+      Que::Job.run_synchronously = true
+
+      Object.send(:remove_const, "SynchronousJob") if Object.const_defined?("SynchronousJob")
+
+      class SynchronousJob < Que::Job
+        @@ran_args_and_kwargs = []
+
+        def self.ran_args_and_kwargs
+          @@ran_args_and_kwargs
+        end
+
+        def run(*args, **kwargs)
+          @@ran_args_and_kwargs << [args, kwargs]
+        end
+      end
+    end
+
+    after do
+      Que::Job.remove_instance_variable(:@run_synchronously)
+      Object.send(:remove_const, "SynchronousJob")
+    end
+
+    it "runs each job synchronously at the end of the block with the correct args & kwargs" do
+      Que.bulk_enqueue do
+        SynchronousJob.enqueue('a1', a2: 'a3')
+        SynchronousJob.enqueue('b1', b2: 'b3')
+        SynchronousJob.enqueue('c1')
+        SynchronousJob.enqueue(d1: 'd2')
+        SynchronousJob.enqueue
+        assert_equal [], SynchronousJob.ran_args_and_kwargs
+      end
+      assert_equal(
+        [
+          [['a1'], { a2: 'a3' }],
+          [['b1'], { b2: 'b3' }],
+          [['c1'], {}],
+          [[], { d1: 'd2' }],
+          [[], {}],
+        ],
+        SynchronousJob.ran_args_and_kwargs,
+      )
+    end
+  end
 end
