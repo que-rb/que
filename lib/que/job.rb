@@ -98,9 +98,9 @@ module Que
           queue:    job_options[:queue]    || resolve_que_setting(:queue) || Que.default_queue,
           priority: job_options[:priority] || resolve_que_setting(:priority),
           run_at:   job_options[:run_at]   || resolve_que_setting(:run_at),
-          args:     Que.serialize_json(args),
-          kwargs:   Que.serialize_json(kwargs),
-          data:     job_options[:tags] ? Que.serialize_json(tags: job_options[:tags]) : "{}",
+          args:     args,
+          kwargs:   kwargs,
+          data:     job_options[:tags] ? { tags: job_options[:tags] } : {},
           job_class: \
             job_options[:job_class] || name ||
               raise(Error, "Can't enqueue an anonymous subclass of Que::Job"),
@@ -111,11 +111,18 @@ module Que
           Thread.current[:que_jobs_to_bulk_insert][:jobs_attrs] << attrs
           new({})
         elsif attrs[:run_at].nil? && resolve_que_setting(:run_synchronously)
-          attrs[:args] = Que.deserialize_json(attrs[:args])
-          attrs[:kwargs] = Que.deserialize_json(attrs[:kwargs])
-          attrs[:data] = Que.deserialize_json(attrs[:data])
+          attrs.merge!(
+            args: Que.deserialize_json(Que.serialize_json(attrs[:args])),
+            kwargs: Que.deserialize_json(Que.serialize_json(attrs[:kwargs])),
+            data: Que.deserialize_json(Que.serialize_json(attrs[:data])),
+          )
           _run_attrs(attrs)
         else
+          attrs.merge!(
+            args: Que.serialize_json(attrs[:args]),
+            kwargs: Que.serialize_json(attrs[:kwargs]),
+            data: Que.serialize_json(attrs[:data]),
+          )
           values = Que.execute(
             :insert_job,
             attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :kwargs, :data),
@@ -133,12 +140,7 @@ module Que
         job_options = Thread.current[:que_jobs_to_bulk_insert][:job_options]
         return [] if jobs_attrs.empty?
         raise Que::Error, "When using .bulk_enqueue, all jobs enqueued must be of the same job class" unless jobs_attrs.map { |attrs| attrs[:job_class] }.uniq.one?
-        args_and_kwargs_array = jobs_attrs.map do |attrs|
-          {
-            args: Que.deserialize_json(attrs[:args]),
-            kwargs: Que.deserialize_json(attrs[:kwargs]),
-          }
-        end
+        args_and_kwargs_array = jobs_attrs.map { |attrs| attrs.slice(:args, :kwargs) }
         klass = job_options[:job_class] ? Que::Job : Que.constantize(jobs_attrs.first[:job_class])
         klass._bulk_enqueue_insert(args_and_kwargs_array, job_options: job_options, notify: notify)
       ensure
@@ -171,16 +173,15 @@ module Que
           queue:    job_options[:queue]    || resolve_que_setting(:queue) || Que.default_queue,
           priority: job_options[:priority] || resolve_que_setting(:priority),
           run_at:   job_options[:run_at]   || resolve_que_setting(:run_at),
-          args_and_kwargs_array: Que.serialize_json(args_and_kwargs_array),
-          data:     job_options[:tags] ? Que.serialize_json(tags: job_options[:tags]) : "{}",
+          args_and_kwargs_array: args_and_kwargs_array,
+          data:     job_options[:tags] ? { tags: job_options[:tags] } : {},
           job_class: \
             job_options[:job_class] || name ||
               raise(Error, "Can't enqueue an anonymous subclass of Que::Job"),
         }
 
         if attrs[:run_at].nil? && resolve_que_setting(:run_synchronously)
-          args_and_kwargs_array = Que.deserialize_json(attrs.delete(:args_and_kwargs_array))
-          attrs[:data] = Que.deserialize_json(attrs[:data])
+          args_and_kwargs_array = Que.deserialize_json(Que.serialize_json(attrs.delete(:args_and_kwargs_array)))
           args_and_kwargs_array.map do |args_and_kwargs|
             _run_attrs(
               attrs.merge(
@@ -190,6 +191,10 @@ module Que
             )
           end
         else
+          attrs.merge!(
+            args_and_kwargs_array: Que.serialize_json(attrs[:args_and_kwargs_array]),
+            data: Que.serialize_json(attrs[:data]),
+          )
           values_array =
             Que.transaction do
               Que.execute('SET LOCAL que.skip_notify TO true') unless notify
