@@ -49,6 +49,16 @@ describe Que::Job, '.bulk_enqueue' do
     jobs_dataset.delete
   end
 
+  it "should be able to queue zero jobs without error" do
+    assert_enqueue(
+      expected_count: 0,
+      expected_args: [],
+      expected_kwargs: [],
+    ) do
+      Que.bulk_enqueue {}
+    end
+  end
+
   it "should be able to queue multiple jobs" do
     assert_enqueue(
       expected_count: 3,

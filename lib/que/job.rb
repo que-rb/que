@@ -134,6 +134,7 @@ module Que
         yield
         jobs_attrs = Thread.current[:que_jobs_to_bulk_insert][:jobs_attrs]
         job_options = Thread.current[:que_jobs_to_bulk_insert][:job_options]
+        return [] if jobs_attrs.empty?
         raise Que::Error, "When using .bulk_enqueue, all jobs enqueued must be of the same job class" unless jobs_attrs.map { |attrs| attrs[:job_class] }.uniq.one?
         args_and_kwargs_array = jobs_attrs.map do |attrs|
           {
