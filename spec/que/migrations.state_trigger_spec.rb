@@ -232,4 +232,18 @@ describe Que::Migrations, "que_state trigger" do
       end
     end
   end
+
+  it "should not notify when using bulk_enqueue" do
+    Que.bulk_enqueue do
+      Que.enqueue(job_class: "MyJobClass")
+    end
+    assert_nil get_message(timeout: 0.1, expect_nothing: true)
+  end
+
+  it "should notify when using bulk_enqueue with 'notify: true'" do
+    Que.bulk_enqueue(notify: true) do
+      Que.enqueue(job_class: "MyJobClass")
+    end
+    assert get_message
+  end
 end
