@@ -278,6 +278,14 @@ describe Que::Job, '.bulk_enqueue' do
     end
   end
 
+  it "should raise when job_options are passed to .enqueue rather than .bulk_enqueue" do
+    assert_raises_with_message(Que::Error, "When using .bulk_enqueue, job_options must be passed to that method rather than .enqueue") do
+      Que.bulk_enqueue do
+        Que.enqueue(1, two: "3", job_options: { priority: 15 })
+      end
+    end
+  end
+
   describe "when enqueuing jobs with tags" do
     it "should be able to specify tags on a case-by-case basis" do
       assert_enqueue(
