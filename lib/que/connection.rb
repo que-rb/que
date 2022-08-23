@@ -62,7 +62,7 @@ module Que
           if params.empty?
             wrapped_connection.async_exec(sql)
           else
-            wrapped_connection.async_exec(sql, params)
+            wrapped_connection.async_exec_params(sql, params)
           end
         end
 
