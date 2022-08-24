@@ -107,7 +107,12 @@ module Que
         }
 
         if Thread.current[:que_jobs_to_bulk_insert]
+          if self.name == 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper'
+            raise Que::Error, "Que.bulk_enqueue does not support ActiveJob. Instead use: Que.enqueue(job_options: { job_class: 'MyJob' })"
+          end
+
           raise Que::Error, "When using .bulk_enqueue, job_options must be passed to that method rather than .enqueue" unless job_options == {}
+
           Thread.current[:que_jobs_to_bulk_insert][:jobs_attrs] << attrs
           new({})
         elsif attrs[:run_at].nil? && resolve_que_setting(:run_synchronously)
