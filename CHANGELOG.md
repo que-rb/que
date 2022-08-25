@@ -64,6 +64,8 @@
 
 ## 2.0.0 (2022-08-25)
 
+**Important: Do not upgrade straight to Que 2.** You will need to first update to the latest 1.x version, apply the Que database schema migration, and deploy, before you can safely begin the process of upgrading to Que 2. See the [2.0.0.beta1 changelog entry](#200beta1-2022-03-24) for details.
+
 See beta 2.0.0.beta1, plus:
 
 - **Fixed**:
