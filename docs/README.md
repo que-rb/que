@@ -853,6 +853,7 @@ The jobs are only actually enqueued at the end of the block, at which point they
 
 Limitations:
 
+- ActiveJob is not supported
 - All jobs must use the same job class
 - All jobs must use the same `job_options` (`job_options` must be provided to `.bulk_enqueue` instead of `.enqueue`)
 - The `que_attrs` of a job instance returned from `.enqueue` is empty (`{}`)
