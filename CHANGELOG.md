@@ -2,6 +2,7 @@
 
 <!-- MarkdownTOC autolink=true -->
 
+- [2.0.0 \(2022-08-25\)](#200-2022-08-25)
 - [1.4.1 \(2022-07-24\)](#141-2022-07-24)
 - [2.0.0.beta1 \(2022-03-24\)](#200beta1-2022-03-24)
 - [1.4.0 \(2022-03-23\)](#140-2022-03-23)
@@ -52,6 +53,15 @@
 - [0.0.1 \(2013-11-07\)](#001-2013-11-07)
 
 <!-- /MarkdownTOC -->
+
+## 2.0.0 (2022-08-25)
+
+See beta 2.0.0.beta1, plus:
+
+- **Fixed**:
+    + Updated to use non-deprecated method from PG when params are passed (`#async_exec_params`). [#374](https://github.com/que-rb/que/pull/374)
+
+Note that @dtcristo submitted a PR proposing an easier upgrade path to Que 2 and Ruby 3 - [#365](https://github.com/que-rb/que/pull/365). We are yet to properly consider this, but a later release which includes this feature would mean you don't need to simultaneously deploy Que 1.x and 2.x workers during the upgrade.
 
 ## 1.4.1 (2022-07-24)
 
