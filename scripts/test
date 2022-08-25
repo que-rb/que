@@ -3,3 +3,4 @@
 set -Eeuo pipefail
 
 bundle exec rake spec "$@"
+USE_RAILS=true bundle exec rake spec "$@"

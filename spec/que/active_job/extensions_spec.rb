@@ -16,6 +16,7 @@ if defined?(::ActiveJob)
     after do
       Object.send :remove_const, :TestJobClass
       $args = nil
+      $kwargs = nil
     end
 
     def execute(&perform_later_block)
@@ -169,6 +170,30 @@ if defined?(::ActiveJob)
         end
         assert_equal "Oopsie!", error.message
         assert_equal error, notified_error
+      end
+    end
+
+    describe 'with bulk_enqueue' do
+      describe 'ActiveJobClass.perform_later' do
+        it "is not supported" do
+          assert_raises_with_message(
+            Que::Error,
+            /Que\.bulk_enqueue does not support ActiveJob\./
+          ) do
+            Que.bulk_enqueue { TestJobClass.perform_later(1, 2) }
+          end
+        end
+      end
+
+      describe 'active_job#enqueue' do
+        it "is not supported" do
+          assert_raises_with_message(
+            Que::Error,
+            /Que\.bulk_enqueue does not support ActiveJob\./
+          ) do
+            Que.bulk_enqueue { TestJobClass.new.enqueue }
+          end
+        end
       end
     end
   end

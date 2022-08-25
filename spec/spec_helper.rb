@@ -211,6 +211,11 @@ class QueSpec < Minitest::Spec
     end
   end
 
+  def assert_raises_with_message(expected_error_class, expected_message, &block)
+    e = assert_raises(expected_error_class, &block)
+    assert_match(expected_message, e.message, "#{mu_pp(expected_error_class)} error was raised but without the expected message")
+  end
+
   class << self
     # More easily hammer a certain spec.
     def hit(*args, &block)

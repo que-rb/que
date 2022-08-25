@@ -53,6 +53,7 @@
   - [Defining Middleware For Jobs](#defining-middleware-for-jobs)
   - [Defining Middleware For SQL statements](#defining-middleware-for-sql-statements)
 - [Vacuuming](#vacuuming)
+- [Enqueueing jobs in bulk](#enqueueing-jobs-in-bulk)
 - [Expired jobs](#expired-jobs)
 - [Finished jobs](#finished-jobs)
 
@@ -836,6 +837,30 @@ class ManualVacuumJob < CronJob
 end
 ```
 
+## Enqueueing jobs in bulk
+
+If you need to enqueue a large number of jobs at once, enqueueing each one separately (and running the notify trigger for each) can become a performance bottleneck. To mitigate this, there is a bulk enqueue interface:
+
+```ruby
+Que.bulk_enqueue do
+  MyJob.enqueue(user_id: 1)
+  MyJob.enqueue(user_id: 2)
+  # ...
+end
+```
+
+The jobs are only actually enqueued at the end of the block, at which point they are inserted into the database in one big query.
+
+Limitations:
+
+- ActiveJob is not supported
+- All jobs must use the same job class
+- All jobs must use the same `job_options` (`job_options` must be provided to `.bulk_enqueue` instead of `.enqueue`)
+- The `que_attrs` of a job instance returned from `.enqueue` is empty (`{}`)
+- The notify trigger is not run by default, so jobs will only be picked up by a worker upon its next poll
+
+If you still want the notify trigger to run for each job, use `Que.bulk_enqueue(notify: true) { ... }`.
+
 ## Expired jobs
 
 Expired jobs hang around in the `que_jobs` table. If necessary, you can get an expired job to run again by clearing the `error_count` and `expired_at` columns, e.g.:
@@ -850,8 +875,7 @@ If you prefer to leave finished jobs in the database for a while, to performantl
 
 ```sql
 BEGIN;
-ALTER TABLE que_jobs DISABLE TRIGGER que_state_notify;
+SET LOCAL que.skip_notify TO true;
 DELETE FROM que_jobs WHERE finished_at < (select now() - interval '7 days');
-ALTER TABLE que_jobs ENABLE TRIGGER que_state_notify;
 COMMIT;
 ```
