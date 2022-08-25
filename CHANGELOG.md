@@ -2,7 +2,7 @@
 
 <!-- MarkdownTOC autolink=true -->
 
-- [Unreleased](#unreleased)
+- [2.1.0 \(2022-08-25\)](#210-2022-08-25)
 - [2.0.0 \(2022-08-25\)](#200-2022-08-25)
 - [1.4.1 \(2022-07-24\)](#141-2022-07-24)
 - [2.0.0.beta1 \(2022-03-24\)](#200beta1-2022-03-24)
@@ -55,7 +55,7 @@
 
 <!-- /MarkdownTOC -->
 
-## Unreleased
+## 2.1.0 (2022-08-25)
 
 - **Added**:
     + Added bulk enqueue interface for performance when enqueuing a large number of jobs at once - [docs](docs#enqueueing-jobs-in-bulk).
