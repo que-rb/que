@@ -77,7 +77,7 @@ module Que
         raise Error, <<~ERROR
           Cannot determine Que DB schema version.
 
-          The que_jobs table is abnormally missing its comment recording the Que DB schema version. This is likely due to a bug in Rails schema dump in Rails 7 versions prior to 7.0.3, omitting comments - see https://github.com/que-rb/que/issues/377. Please determine the appropriate schema version from your migrations and record it manually by running the following SQL (replacing version as appropriate):
+          The que_jobs table is abnormally missing its comment recording the Que DB schema version. This is likely due to a bug in Rails schema dump in Rails 7 versions prior to 7.0.3, omitting comments - see https://github.com/que-rb/que/issues/363. Please determine the appropriate schema version from your migrations and record it manually by running the following SQL (replacing version as appropriate):
 
           COMMENT ON TABLE que_jobs IS 'version';
         ERROR
