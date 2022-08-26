@@ -63,14 +63,6 @@ describe Que::Migrations do
     assert DB.table_exists?(:que_jobs)
   end
 
-  it "should be able to recognize a que_jobs table at version 0" do
-    Que.migrate! version: 0
-    DB.create_table(:que_jobs){serial :id} # Dummy Table.
-    assert_equal 1, Que::Migrations.db_version
-    DB.drop_table(:que_jobs)
-    Que.migrate!(version: Que::Migrations::CURRENT_VERSION)
-  end
-
   it "should be able to honor the original behavior of Que.create!" do
     Que.migrate! version: 0
     Que.create!
@@ -80,6 +72,30 @@ describe Que::Migrations do
     # Clean up.
     Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
     assert DB.table_exists?(:que_jobs)
+  end
+
+  it "should be able to determine the db version when the que_jobs table was created prior to the existence of the migrations system" do
+    Que.migrate!(version: 0)
+    Que.create!
+    Que.execute("COMMENT ON TABLE que_jobs IS NULL") # Simulate migrations system not existing yet
+    assert_equal 1, Que::Migrations.db_version
+
+    # Clean up.
+    Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
+    assert DB.table_exists?(:que_jobs)
+  end
+
+  it "should raise if the db version comment is missing abnormally due to a bug in Rails schema dump" do
+    Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
+    Que.execute("COMMENT ON TABLE que_jobs IS NULL") # Simulate bug in Rails schema dump
+
+    assert_raises_with_message(Que::Error, /^Cannot determine Que DB schema version./) do
+      Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
+    end
+
+    # Clean up.
+    Que.execute("COMMENT ON TABLE que_jobs IS '#{Que::Migrations::CURRENT_VERSION}'")
+    assert_equal Que::Migrations::CURRENT_VERSION, Que::Migrations.db_version
   end
 
   it "down migrations should precisely undo what the up migrations did" do
