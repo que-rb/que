@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require_relative 'command_line_interface'
+require 'que/command_line_interface'
 
 $stdout.sync = true
 
