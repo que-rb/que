@@ -65,7 +65,7 @@
 This release contains a database migration. You will need to migrate Que to the latest database schema version (7). For example, on ActiveRecord and Rails 6:
 
 ```ruby
-class UpdateQueTablesToVersion6 < ActiveRecord::Migration[6.0]
+class UpdateQueTablesToVersion7 < ActiveRecord::Migration[6.0]
   def up
     Que.migrate!(version: 7)
   end
