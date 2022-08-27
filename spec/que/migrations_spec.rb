@@ -74,18 +74,7 @@ describe Que::Migrations do
     assert DB.table_exists?(:que_jobs)
   end
 
-  it "should be able to determine the db version when the que_jobs table was created prior to the existence of the migrations system" do
-    Que.migrate!(version: 0)
-    Que.create!
-    Que.execute("COMMENT ON TABLE que_jobs IS NULL") # Simulate migrations system not existing yet
-    assert_equal 1, Que::Migrations.db_version
-
-    # Clean up.
-    Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
-    assert DB.table_exists?(:que_jobs)
-  end
-
-  it "should raise if the db version comment is missing abnormally due to a bug in Rails schema dump" do
+  it "should raise if the db version comment is missing, likely due to a bug in Rails schema dump" do
     Que::Migrations.migrate!(version: Que::Migrations::CURRENT_VERSION)
     Que.execute("COMMENT ON TABLE que_jobs IS NULL") # Simulate bug in Rails schema dump
 
