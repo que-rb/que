@@ -59,7 +59,7 @@
 ## Unreleased
 
 - **Changed**:
-    + Raises an exception when the Que DB schema version is missing from the database. The migrations system records this version in a comment on the `que_jobs` table. [#379](https://github.com/que-rb/que/pull/379)
+    + When migrating, now raises an exception when the Que DB schema version is missing from the database. The migrations system records this version in a comment on the `que_jobs` table. [#379](https://github.com/que-rb/que/pull/379)
         *   > Que::Error: Cannot determine Que DB schema version.
             >
             > The que_jobs table is missing its comment recording the Que DB schema version. This is likely due to a bug in Rails schema dump in Rails 7 versions prior to 7.0.3, omitting comments - see https://github.com/que-rb/que/issues/363. Please determine the appropriate schema version from your migrations and record it manually by running the following SQL (replacing version as appropriate):
