@@ -48,12 +48,25 @@ module Que
           # No table in the database at all.
           0
         elsif (d = result.first[:description]).nil?
-          # There's a table, it was just created before the migration system
-          # existed.
-          1
+          # The table exists but the version comment is missing
+          _raise_db_version_comment_missing_error
         else
           d.to_i
         end
+      end
+
+      # The que_jobs table could be missing the schema version comment either due to:
+      # - Being created before the migration system existed; or
+      # - A bug in Rails schema dump in some versions of Rails
+      # The former is the case on Que versions prior to v0.5.0 (2014-01-14). Upgrading directly from there is unsupported, so we just raise in all cases of the comment being missing
+      def _raise_db_version_comment_missing_error
+        raise Error, <<~ERROR
+          Cannot determine Que DB schema version.
+
+          The que_jobs table is missing its comment recording the Que DB schema version. This is likely due to a bug in Rails schema dump in Rails 7 versions prior to 7.0.3, omitting comments - see https://github.com/que-rb/que/issues/363. Please determine the appropriate schema version from your migrations and record it manually by running the following SQL (replacing version as appropriate):
+
+          COMMENT ON TABLE que_jobs IS 'version';
+        ERROR
       end
 
       def set_db_version(version)
