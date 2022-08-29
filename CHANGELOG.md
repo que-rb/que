@@ -2,7 +2,7 @@
 
 <!-- MarkdownTOC autolink=true -->
 
-- [Unreleased](#unreleased)
+- [2.2.0 \(2022-08-29\)](#220-2022-08-29)
 - [2.1.0 \(2022-08-25\)](#210-2022-08-25)
 - [2.0.0 \(2022-08-25\)](#200-2022-08-25)
 - [1.4.1 \(2022-07-24\)](#141-2022-07-24)
@@ -56,7 +56,7 @@
 
 <!-- /MarkdownTOC -->
 
-## Unreleased
+## 2.2.0 (2022-08-29)
 
 - **Changed**:
     + When migrating, now raises an exception when the Que DB schema version is missing from the database. The migrations system records this version in a comment on the `que_jobs` table. [#379](https://github.com/que-rb/que/pull/379)
