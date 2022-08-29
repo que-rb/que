@@ -67,6 +67,8 @@
             > COMMENT ON TABLE que_jobs IS 'version';
 - **Removed**:
     + Removed support for upgrading directly from a version of Que prior to v0.5.0 (released on 2014-01-14), which introduced the migrations system. It's too difficult to handle the different DB schemas from prior to this.
+- **Internal**:
+    + Moved `command_line_interface.rb` from `bin/` to `lib/`. [#378](https://github.com/que-rb/que/pull/378)
 
 ## 2.1.0 (2022-08-25)
 
