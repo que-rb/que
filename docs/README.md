@@ -799,6 +799,32 @@ Que.job_middleware.push(
 )
 ```
 
+#### Existing Middleware
+
+Que ships with middleware to expose job metrics using ActiveSupport notifications to subscribe to it you can implelent the following
+
+```ruby
+::ActiveSupport::Notifications.subscribe("que_job.worked") do |message, started, finished, labels|
+  # do something with notification.
+end
+```
+
+`started` and `finished` are numeric values representing a monotonic clock so can 
+be used for timing calculations without concerning ourselves with the system clock.
+
+`labels` is a hash containing the following keys
+
+* `job_class` - the class of the job.
+* `queue` - the queue this job was queued into.
+* `priority` - the priority of this job.
+* `latency` - the amount of time this job was waiting in the queue for.
+
+To use this middleware you will have to initialize it with Que
+
+```ruby
+Que.job_middleware.push(Que::ActiveSupport::JobMiddleware)
+```
+
 ### Defining Middleware For SQL statements
 
 SQL middleware wraps queries that Que executes, or which you might decide to execute via Que.execute(). You can use hook this into NewRelic or a similar service to instrument how long SQL queries take, for example.

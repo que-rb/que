@@ -63,6 +63,7 @@ module Que
           SELECT
             (j).*,
             l.locked,
+            extract(epoch from (now() - (j).run_at)) as latency,
             l.remaining_priorities
           FROM (
             SELECT j
@@ -81,6 +82,7 @@ module Que
             SELECT
               (j).*,
               l.locked,
+              extract(epoch from (now() - (j).run_at)) as latency,
               l.remaining_priorities
             FROM (
               SELECT
