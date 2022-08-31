@@ -7,6 +7,10 @@
 require 'set'
 
 module Que
+  class << self
+    attr_accessor :locker
+  end
+
   Listener::MESSAGE_FORMATS[:job_available] =
     {
       queue:    String,
@@ -70,6 +74,11 @@ module Que
 
       Que.assert Array, worker_priorities
       worker_priorities.each { |p| Que.assert([Integer, NilClass], p) }
+
+      # We assign this globally because we only ever expect one locker to be
+      # created per worker process. This can be used by middleware or external
+      # code to access the locker during runtime.
+      Que.locker = self
 
       # We use a JobBuffer to track jobs and pass them to workers, and a
       # ResultQueue to receive messages from workers.
