@@ -79,6 +79,10 @@ module Que
       @default_queue || DEFAULT_QUEUE
     end
 
+    def server?
+      defined?(Que::CommandLineInterface).nil?
+    end
+
     # Support simple integration with many common connection pools.
     def connection=(conn)
       self.connection_proc =
