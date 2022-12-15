@@ -191,6 +191,7 @@ These projects are tested to be compatible with Que 1.x:
 - [que-web](https://github.com/statianzo/que-web) is a Sinatra-based UI for inspecting your job queue.
 - [que-scheduler](https://github.com/hlascelles/que-scheduler) lets you schedule tasks using a cron style config file.
 - [que-locks](https://github.com/airhorns/que-locks) lets you lock around job execution for so only one job runs at once for a set of arguments.
+- [que-unique](https://github.com/bambooengineering/que-unique) provides fast in-memory `enqueue` deduping. 
 
 If you have a project that uses or relates to Que, feel free to submit a PR adding it to the list!
 
