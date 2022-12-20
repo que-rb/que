@@ -139,8 +139,8 @@ There are other docs to read if you're using [Sequel](#using-sequel) or [plain P
 After you've connected Que to the database, you can manage the jobs table. You'll want to migrate to a specific version in a migration file, to ensure that they work the same way even when you upgrade Que in the future:
 
 ```ruby
-# Update the schema to version #6.
-Que.migrate!(version: 6)
+# Update the schema to version #7.
+Que.migrate!(version: 7)
 
 # Remove Que's jobs table entirely.
 Que.migrate!(version: 0)
@@ -553,7 +553,7 @@ require 'que'
 Sequel.migration do
   up do
     Que.connection = self
-    Que.migrate!(version: 6)
+    Que.migrate!(version: 7)
   end
   down do
     Que.connection = self
