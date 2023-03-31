@@ -246,6 +246,7 @@ module Que
         new(attrs).tap do |job|
           Que.run_job_middleware(job) do
             job._run(reraise_errors: true)
+            job
           end
         end
       end
