@@ -250,7 +250,7 @@ describe Que::Locker do
         FROM generate_series(1, 10) AS i;
       SQL
 
-      sleep_until_equal(2) { active_jobs_dataset.count }
+      sleep_until_equal(4) { active_jobs_dataset.count }
       sleep_until_equal(0) { locked_ids.size }
 
       locker.stop!
