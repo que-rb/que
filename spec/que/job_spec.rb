@@ -33,11 +33,13 @@ describe Que::Job do
           enqueue_method.call(1, 2)
           execute
           assert_equal([1, 2], $args)
+          assert_equal({}, $kwargs)
         end
 
         it "should pass its keyword arguments to the run method" do
           enqueue_method.call(a: 1, b: 2)
           execute
+          assert_equal([], $args)
           assert_equal({ a: 1, b: 2 }, $kwargs)
         end
 
@@ -46,6 +48,7 @@ describe Que::Job do
           execute
 
           assert_equal([[], {}, 'blah'.dup], $args)
+          assert_equal({}, $kwargs)
 
           array = $args
           assert array[0].frozen?
@@ -57,6 +60,7 @@ describe Que::Job do
           enqueue_method.call(array: [], hash: {}, string: 'blah'.dup)
           execute
 
+          assert_equal([], $args)
           assert_equal({array: [], hash: {}, string: 'blah'.dup}, $kwargs)
 
           hash = $kwargs
@@ -69,12 +73,14 @@ describe Que::Job do
           enqueue_method.call({a: 1, b: 2})
           execute
           assert_equal([{a: 1, b: 2}], $args)
+          assert_equal({}, $kwargs)
         end
 
         it "should symbolize hash argument keys" do
           enqueue_method.call({a: 1, b: 2}, c: 3, d: 4)
           execute
           assert_equal([{a: 1, b: 2}], $args)
+          assert_equal({c: 3, d: 4}, $kwargs)
         end
 
         it "should symbolize hash argument keys even if they were originally passed as strings" do
@@ -83,11 +89,13 @@ describe Que::Job do
           enqueue_method.call({'a' => 1, 'b' => 2}, c: 3, d: 4)
           execute
           assert_equal([{a: 1, b: 2}], $args)
+          assert_equal({:c=>3, :d=>4}, $kwargs)
         end
 
         it "should symbolize keyword argument keys" do
           enqueue_method.call(a: 1, b: 2)
           execute
+          assert_equal([], $args)
           assert_equal({a: 1, b: 2}, $kwargs)
         end
 
@@ -96,6 +104,7 @@ describe Que::Job do
           # been passed through the DB.
           enqueue_method.call('a' => 1, 'b' => 2)
           execute
+          assert_equal([], $args)
           assert_equal({a: 1, b: 2}, $kwargs)
         end
 
