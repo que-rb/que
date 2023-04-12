@@ -12,12 +12,12 @@ jobs:
         postgres_version: ['14']
         include:
         # Postgres versions
-        - { ruby_version: '3.2', rails_gemfile: '6.1', postgres_version: '9' }
-        - { ruby_version: '3.2', rails_gemfile: '6.1', postgres_version: '10' }
-        - { ruby_version: '3.2', rails_gemfile: '6.1', postgres_version: '11' }
-        - { ruby_version: '3.2', rails_gemfile: '6.1', postgres_version: '12' }
-        - { ruby_version: '3.2', rails_gemfile: '6.1', postgres_version: '13' }
-        - { ruby_version: '3.2', rails_gemfile: '6.1', postgres_version: '14' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '9' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '10' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '11' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '12' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '13' }
+        - { ruby_version: '3.1', rails_gemfile: '6.1', postgres_version: '14' }
         exclude: []
     name: "Test: Ruby ${{ matrix.ruby_version }}, Rails ${{ matrix.rails_gemfile }}, PostgreSQL ${{ matrix.postgres_version }}"
     services:
