@@ -89,7 +89,7 @@ describe Que::Job do
           enqueue_method.call({'a' => 1, 'b' => 2}, c: 3, d: 4)
           execute
           assert_equal([{a: 1, b: 2}], $args)
-          assert_equal({:c=>3, :d=>4}, $kwargs)
+          assert_equal({c: 3, d: 4}, $kwargs)
         end
 
         it "should symbolize keyword argument keys" do
