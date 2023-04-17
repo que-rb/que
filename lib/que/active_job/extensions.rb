@@ -10,6 +10,7 @@ module Que
       def run(*args)
         raise Error, "Job class #{self.class} didn't define a run() method!"
       end
+      ruby2_keywords(:run) if respond_to?(:ruby2_keywords, true)
 
       def perform(*args)
         args, kwargs = Que.split_out_ruby2_keywords(args)
@@ -31,6 +32,7 @@ module Que
           ),
         )
       end
+      ruby2_keywords(:perform) if respond_to?(:ruby2_keywords, true)
 
       private
 
