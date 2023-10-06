@@ -12,11 +12,12 @@ module Que
     SQL[:insert_job] =
       %{
         INSERT INTO public.que_jobs
-        (queue, priority, run_at, job_class, args, kwargs, data, job_schema_version)
+        (queue, priority, run_at, first_run_at, job_class, args, kwargs, data, job_schema_version)
         VALUES
         (
           coalesce($1, 'default')::text,
           coalesce($2, 100)::smallint,
+          coalesce($3, now())::timestamptz,
           coalesce($3, now())::timestamptz,
           $4::text,
           coalesce($5, '[]')::jsonb,
@@ -33,10 +34,11 @@ module Que
           SELECT * from json_to_recordset(coalesce($5, '[{args:{},kwargs:{}}]')::json) as x(args jsonb, kwargs jsonb)
         )
         INSERT INTO public.que_jobs
-        (queue, priority, run_at, job_class, args, kwargs, data, job_schema_version)
+        (queue, priority, run_at, first_run_at job_class, args, kwargs, data, job_schema_version)
         SELECT
           coalesce($1, 'default')::text,
           coalesce($2, 100)::smallint,
+          coalesce($3, now())::timestamptz,
           coalesce($3, now())::timestamptz,
           $4::text,
           args_and_kwargs.args,
@@ -75,7 +77,8 @@ module Que
         :maximum_retry_count,
         :queue,
         :priority,
-        :run_at
+        :run_at,
+        :first_run_at
 
       def enqueue(*args)
         args, kwargs = Que.split_out_ruby2_keywords(args)
@@ -98,6 +101,7 @@ module Que
           queue:    job_options[:queue]    || resolve_que_setting(:queue) || Que.default_queue,
           priority: job_options[:priority] || resolve_que_setting(:priority),
           run_at:   job_options[:run_at]   || resolve_que_setting(:run_at),
+          first_run_at:   job_options[:run_at]   || resolve_que_setting(:run_at),
           args:     args,
           kwargs:   kwargs,
           data:     job_options[:tags] ? { tags: job_options[:tags] } : {},
@@ -130,7 +134,7 @@ module Que
           )
           values = Que.execute(
             :insert_job,
-            attrs.values_at(:queue, :priority, :run_at, :job_class, :args, :kwargs, :data),
+            attrs.values_at(:queue, :priority, :run_at, :first_run_at, :job_class, :args, :kwargs, :data),
           ).first
           new(values)
         end
@@ -178,6 +182,7 @@ module Que
           queue:    job_options[:queue]    || resolve_que_setting(:queue) || Que.default_queue,
           priority: job_options[:priority] || resolve_que_setting(:priority),
           run_at:   job_options[:run_at]   || resolve_que_setting(:run_at),
+          first_run_at:   job_options[:run_at]   || resolve_que_setting(:run_at),
           args_and_kwargs_array: args_and_kwargs_array,
           data:     job_options[:tags] ? { tags: job_options[:tags] } : {},
           job_class: \
@@ -205,7 +210,7 @@ module Que
               Que.execute('SET LOCAL que.skip_notify TO true') unless notify
               Que.execute(
                 :bulk_insert_jobs,
-                attrs.values_at(:queue, :priority, :run_at, :job_class, :args_and_kwargs_array, :data),
+                attrs.values_at(:queue, :priority, :run_at, :first_run_at, :job_class, :args_and_kwargs_array, :data),
               )
             end
           values_array.map(&method(:new))
