@@ -119,38 +119,19 @@ if ActiveJob.gem_version >= Gem::Version.new('7.1')
       class QueAdapter
         def enqueue(job)
           job_options = { priority: job.priority, queue: job.queue_name }
-          que_job = nil
-
-          if require_job_options_kwarg?
-            que_job = JobWrapper.enqueue job.serialize, job_options: job_options
-          else
-            que_job = JobWrapper.enqueue job.serialize, **job_options
-          end
-
+          que_job = JobWrapper.enqueue job.serialize, **job_options
           job.provider_job_id = que_job.attrs["job_id"]
           que_job
         end
 
         def enqueue_at(job, timestamp)
           job_options = { priority: job.priority, queue: job.queue_name, run_at: Time.at(timestamp) }
-          que_job = nil
-
-          if require_job_options_kwarg?
-            que_job = JobWrapper.enqueue job.serialize, job_options: job_options
-          else
-            que_job = JobWrapper.enqueue job.serialize, **job_options
-          end
-
+          que_job = JobWrapper.enqueue job.serialize, **job_options
           job.provider_job_id = que_job.attrs["job_id"]
           que_job
         end
 
         private
-
-        def require_job_options_kwarg?
-          @require_job_options_kwarg ||=
-            JobWrapper.method(:enqueue).parameters.any? { |ptype, pname| ptype == :key && pname == :job_options }
-        end
 
         class JobWrapper < Que::Job
           def run(job_data)
