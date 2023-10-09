@@ -125,4 +125,9 @@ end
 
 # Load Rails features as appropriate.
 require_relative 'que/rails/railtie'         if defined?(::Rails::Railtie)
-require_relative 'que/active_job/extensions' if defined?(::ActiveJob)
+
+if defined?(::ActiveJob)
+  unless ActiveJob::VERSION::MAJOR == 7 && ActiveJob::VERSION::MINOR >= 1
+    require_relative 'que/active_job/extensions'
+  end
+end
