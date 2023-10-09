@@ -108,6 +108,53 @@ module Que
   end
 end
 
+module ActiveJob
+  module QueueAdapters
+    class QueAdapter
+      def enqueue(job)
+        job_options = { priority: job.priority, queue: job.queue_name }
+        que_job = nil
+
+        if require_job_options_kwarg?
+          que_job = JobWrapper.enqueue job.serialize, job_options: job_options
+        else
+          que_job = JobWrapper.enqueue job.serialize, **job_options
+        end
+
+        job.provider_job_id = que_job.attrs["job_id"]
+        que_job
+      end
+
+      def enqueue_at(job, timestamp)
+        job_options = { priority: job.priority, queue: job.queue_name, run_at: Time.at(timestamp) }
+        que_job = nil
+
+        if require_job_options_kwarg?
+          que_job = JobWrapper.enqueue job.serialize, job_options: job_options
+        else
+          que_job = JobWrapper.enqueue job.serialize, **job_options
+        end
+
+        job.provider_job_id = que_job.attrs["job_id"]
+        que_job
+      end
+
+      private
+
+      def require_job_options_kwarg?
+        @require_job_options_kwarg ||=
+          JobWrapper.method(:enqueue).parameters.any? { |ptype, pname| ptype == :key && pname == :job_options }
+      end
+
+      class JobWrapper < Que::Job
+        def run(job_data)
+          Base.execute job_data
+        end
+      end
+    end
+  end
+end
+
 class ActiveJob::QueueAdapters::QueAdapter
   class JobWrapper < Que::Job
     extend Que::ActiveJob::WrapperExtensions::ClassMethods
