@@ -5,8 +5,8 @@ gem 'que', path: '../..'
 group :development, :test do
   gem 'rake'
 
-  gem 'activerecord',    '~> 7.0', require: nil
-  gem 'activejob',       '~> 7.0', require: nil
+  gem 'activerecord',    '~> 7.0.0', require: nil
+  gem 'activejob',       '~> 7.0.0', require: nil
   gem 'sequel',          require: nil
   gem 'connection_pool', require: nil
   gem 'pond',            require: nil
