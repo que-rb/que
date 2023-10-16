@@ -108,6 +108,41 @@ module Que
   end
 end
 
+# This is the ActiveJob Que adapter for Rails 7.1+, given ActiveJob::QueueAdapters::QueAdapter has been removed from ActiveJob.
+# For backwards compatibility, the class name of ActiveJob::QueueAdapters::QueAdapter::JobWrapper must remain the same, given this string would be in old job records in the database
+if ActiveJob.gem_version >= Gem::Version.new('7.1')
+  module ActiveJob
+    module QueueAdapters
+      # Work around `autoload QueAdapter` being left over in ActiveJob after the adapter was removed
+      remove_const(:QueAdapter) if const_defined?(:QueAdapter)
+
+      class QueAdapter
+        def enqueue(job)
+          job_options = { priority: job.priority, queue: job.queue_name }
+          que_job = JobWrapper.enqueue job.serialize, **job_options
+          job.provider_job_id = que_job.attrs["job_id"]
+          que_job
+        end
+
+        def enqueue_at(job, timestamp)
+          job_options = { priority: job.priority, queue: job.queue_name, run_at: Time.at(timestamp) }
+          que_job = JobWrapper.enqueue job.serialize, **job_options
+          job.provider_job_id = que_job.attrs["job_id"]
+          que_job
+        end
+
+        private
+
+        class JobWrapper < Que::Job
+          def run(job_data)
+            Base.execute job_data
+          end
+        end
+      end
+    end
+  end
+end
+
 class ActiveJob::QueueAdapters::QueAdapter
   class JobWrapper < Que::Job
     extend Que::ActiveJob::WrapperExtensions::ClassMethods

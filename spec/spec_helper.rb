@@ -3,6 +3,8 @@
 # Silence Ruby warnings.
 $VERBOSE = nil
 
+require 'que'
+
 # ActiveRecord and ActiveJob require ActiveSupport, which affects a bunch of
 # core classes and may change some behavior that we rely on, so only bring it in
 # in some spec runs.
@@ -10,13 +12,11 @@ if ENV['USE_RAILS'] == 'true'
   require 'active_record'
   require 'active_job'
 
+  require 'que/active_job/extensions'
+
   ActiveJob::Base.queue_adapter = :que
   ActiveJob::Base.logger = nil
-
-  # require 'que/active_job/extensions'
 end
-
-require 'que'
 
 # Libraries necessary for tests.
 require 'uri'
