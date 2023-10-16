@@ -34,9 +34,7 @@ if defined?(::ActiveRecord)
   describe Que::ActiveRecord::Connection::JobMiddleware do
     before do
       Que.connection = ::ActiveRecord
-    end
 
-    it "should clear connections to secondary DBs between jobs" do
       class SecondDatabaseModel < ActiveRecord::Base
         establish_connection(QUE_URL)
       end
@@ -49,10 +47,20 @@ if defined?(::ActiveRecord)
           SecondDatabaseModel.connection.execute("SELECT 1")
         end
       end
+    end
 
+    it "should clear connections to secondary DBs between jobs" do
       SecondDatabaseModelJob.run
 
       refute SecondDatabaseModel.connection_handler.active_connections?
+    end
+
+
+    it "shouldn't clear connections to secondary DBs between jobs if run_synchronously is enabled " do
+      Que::Job.run_synchronously = true
+      SecondDatabaseModelJob.run
+
+      assert SecondDatabaseModel.connection_handler.active_connections?
     end
   end
 end
