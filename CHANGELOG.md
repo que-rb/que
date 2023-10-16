@@ -2,6 +2,7 @@
 
 <!-- MarkdownTOC autolink=true -->
 
+- [2.3.0 \(2023-10-10\)](#230-2023-10-16)
 - [2.2.1 \(2023-04-28\)](#221-2023-04-28)
 - [2.2.0 \(2022-08-29\)](#220-2022-08-29)
 - [2.1.0 \(2022-08-25\)](#210-2022-08-25)
@@ -56,6 +57,17 @@
 - [0.0.1 \(2013-11-07\)](#001-2013-11-07)
 
 <!-- /MarkdownTOC -->
+
+## 2.3.0 (2023-10-16)
+- **Fixed**:
+    + Don't clear `ActiveRecord` connections when `run_synchronously` is enabled [#393](https://github.com/que-rb/que/pull/393)
+
+- **Changed**
+    + Improve performance of query used by `QueJob#by_job_class` for jobs wrapped by `ActiveJob` [#394](https://github.com/que-rb/que/pull/394)
+
+- **Added**
+    + Allow `que` to be started without listen/notify [#395](https://github.com/que-rb/que/pull/395)
+    + Support Rails 7.1+ [#403](https://github.com/que-rb/que/pull/403)
 
 ## 2.2.1 (2023-04-28)
 
