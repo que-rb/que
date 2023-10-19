@@ -185,6 +185,30 @@ describe Que::Locker do
     locker.stop!
   end
 
+  describe "with pidfile" do
+    it "should create and delete pid file, if not exist" do
+      pidfile = "./spec/temp/pidfile_#{Time.new.to_i}.pid"
+      locker_settings[:pidfile] = pidfile
+      locker
+      assert File.exist?(pidfile)
+
+      locker.stop!
+      refute File.exist?(pidfile)
+    end
+
+    it "should create and delete pid file, if exist" do
+      pidfile = "./spec/temp/pidfile_#{Time.new.to_i}.pid"
+      File.open(pidfile, "w+") { |f| f.write "test" }
+
+      locker_settings[:pidfile] = pidfile
+      locker
+      assert File.exist?(pidfile)
+
+      locker.stop!
+      refute File.exist?(pidfile)
+    end
+  end
+
   describe "on startup" do
     it "should do batch polls for jobs in its specified queue" do
       job1, job2 = BlockJob.enqueue, BlockJob.enqueue
