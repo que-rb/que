@@ -159,6 +159,14 @@ module Que
             ) do |p|
               options[:wait_period] = p
             end
+
+            opts.on(
+              '--pidfile [PATH]',
+              String,
+              "Write the PID of this process to the specified file.",
+              ) do |p|
+              options[:pidfile] = File.expand_path(p)
+            end
           end
 
         parser.parse!(args)

@@ -61,7 +61,8 @@ module Que
       wait_period:         DEFAULT_WAIT_PERIOD,
       maximum_buffer_size: DEFAULT_MAXIMUM_BUFFER_SIZE,
       worker_priorities:   DEFAULT_WORKER_PRIORITIES,
-      on_worker_start:     nil
+      on_worker_start:     nil,
+      pidfile:             nil
     )
 
       # Sanity-check all our arguments, since some users may instantiate Locker
@@ -215,10 +216,16 @@ module Que
             @connection.wrapped_connection.close
           end
         end
+
+      @pidfile = pidfile
+      at_exit { delete_pid }
+      write_pid
     end
 
     def stop!
-      stop; wait_for_stop
+      stop
+      wait_for_stop
+      delete_pid
     end
 
     def stop
@@ -511,6 +518,20 @@ module Que
       Que.assert(@locks.add?(id)) do
         "Tried to lock a job that was already locked: #{id}"
       end
+    end
+
+    def write_pid
+      return unless @pidfile
+
+      File.open(@pidfile, "w+") do |f|
+        f.write(Process.pid.to_s)
+      end
+    end
+
+    def delete_pid
+      return unless @pidfile
+
+      File.delete(@pidfile) if File.exist?(@pidfile)
     end
   end
 end
