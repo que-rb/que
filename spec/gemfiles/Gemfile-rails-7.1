@@ -5,8 +5,8 @@ gem 'que', path: '../..'
 group :development, :test do
   gem 'rake'
 
-  gem 'activerecord',    '7.1.0', require: nil # 7.1.1 breaks pg 9.x support, change this when 7.1.2 is released
-  gem 'activejob',       '7.1.0', require: nil # 7.1.1 breaks pg 9.x support, change this when 7.1.2 is released
+  gem 'activerecord',    '~> 7.1.0', require: nil
+  gem 'activejob',       '~> 7.1.0', require: nil
   gem 'sequel',          require: nil
   gem 'connection_pool', require: nil
   gem 'pond',            require: nil
