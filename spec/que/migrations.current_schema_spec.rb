@@ -115,6 +115,19 @@ describe Que::Migrations, "current schema" do
     end
   end
 
+  describe "que_jobs table column defaults" do
+    it "should make sure that the default of run_at is clock_timestamp()" do
+      results = Que.execute (<<~SQL)
+        SELECT column_default
+        FROM information_schema.columns
+        WHERE table_name = 'que_jobs' AND column_name = 'run_at';
+      SQL
+      column_default = results.to_a.first.fetch(:column_default)
+
+      assert_equal column_default, "clock_timestamp()"
+    end
+  end
+
   describe "que_lockers table constraints" do
     let :locker_attrs do
       {

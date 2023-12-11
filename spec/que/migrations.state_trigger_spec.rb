@@ -43,7 +43,7 @@ describe Que::Migrations, "que_state trigger" do
 
     DB.transaction do
       result = yield
-      current_time = DB.get{now.function}
+      current_time = DB.get{clock_timestamp.function}
 
       id     ||= result
       run_at ||= current_time
