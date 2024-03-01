@@ -8,3 +8,5 @@ service:
   tags:
   - key: type
     value: service
+  -key: fork
+    value: true
