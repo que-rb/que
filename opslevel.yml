@@ -7,3 +7,4 @@ service:
   lifecycle: pre-release
   tags:
   - key: type
+    value: service
