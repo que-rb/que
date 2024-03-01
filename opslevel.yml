@@ -1,0 +1,9 @@
+service:
+  name: que
+  owner: back_office_experience_box
+  description: High-performance job queue.
+  language: Ruby
+  tier: tier_1
+  lifecycle: pre-release
+  tags:
+  - key: type
