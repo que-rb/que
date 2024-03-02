@@ -1,3 +1,4 @@
+version: 1
 service:
   name: que
   owner: back_office_experience_box
