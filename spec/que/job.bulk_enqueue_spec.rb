@@ -194,6 +194,24 @@ describe Que::Job, '.bulk_enqueue' do
     end
   end
 
+  it "should be able to handle multiple different job classes" do
+    class MyJobClass < Que::Job; end
+    class MyJobOtherClass < Que::Job; end
+
+    assert_enqueue(
+      expected_count: 3,
+      expected_args: [[1], [4], []],
+      expected_kwargs: [{ two: '3' }, { five: '6' }, {}],
+      expected_job_classes: [MyJobClass, MyJobOtherClass, Que::Job],
+    ) do
+      Que.bulk_enqueue do
+        MyJobClass.enqueue(1, two: '3')
+        MyJobOtherClass.enqueue(4, five: '6')
+        Que.enqueue
+      end
+    end
+  end
+
   it "should error appropriately on an anonymous job subclass" do
     klass = Class.new(Que::Job)
     error = assert_raises(Que::Error) { Que.bulk_enqueue { klass.enqueue } }
@@ -278,14 +296,6 @@ describe Que::Job, '.bulk_enqueue' do
     end
   end
 
-  it "should raise when job_options are passed to .enqueue rather than .bulk_enqueue" do
-    assert_raises_with_message(Que::Error, "When using .bulk_enqueue, job_options must be passed to that method rather than .enqueue") do
-      Que.bulk_enqueue do
-        Que.enqueue(1, two: "3", job_options: { priority: 15 })
-      end
-    end
-  end
-
   describe "when enqueuing jobs with tags" do
     it "should be able to specify tags on a case-by-case basis" do
       assert_enqueue(
@@ -296,6 +306,20 @@ describe Que::Job, '.bulk_enqueue' do
       ) do
         Que.bulk_enqueue(job_options: { tags: ["tag_1", "tag_2"] }) do
           Que.enqueue(1, two: "3")
+          Que.enqueue(4, five: "six")
+        end
+      end
+    end
+
+    it "should be respect tags passed to .enqueue" do
+      assert_enqueue(
+        expected_count: 2,
+        expected_args: [[1], [4]],
+        expected_kwargs: [{ two: "3" }, { five: "six" }],
+        expected_tags: [["tag_3", "tag_4"], ["tag_1", "tag_2"]],
+      ) do
+        Que.bulk_enqueue(job_options: { tags: ["tag_1", "tag_2"] }) do
+          Que.enqueue(1, two: "3", job_options: { tags: ["tag_3", "tag_4"] })
           Que.enqueue(4, five: "six")
         end
       end
@@ -347,19 +371,39 @@ describe Que::Job, '.bulk_enqueue' do
     end
   end
 
-  it "should respect a job class defined as a string" do
-    class MyJobClass < Que::Job; end
+  describe "job class string" do
+    it "should respect a job class defined as a string" do
+      class MyJobClass < Que::Job; end
 
-    assert_enqueue(
-      expected_count: 2,
-      expected_args: [[1], [4]],
-      expected_kwargs: [{ two: "3" }, { five: "six" }],
-      expected_job_classes: [MyJobClass, MyJobClass],
-      expected_result_classes: [Que::Job, Que::Job],
-    ) do
-      Que.bulk_enqueue(job_options: { job_class: 'MyJobClass' }) do
-        Que.enqueue(1, two: "3")
-        Que.enqueue(4, five: "six")
+      assert_enqueue(
+        expected_count: 2,
+        expected_args: [[1], [4]],
+        expected_kwargs: [{ two: "3" }, { five: "six" }],
+        expected_job_classes: [MyJobClass, MyJobClass],
+        expected_result_classes: [Que::Job, Que::Job],
+      ) do
+        Que.bulk_enqueue(job_options: { job_class: 'MyJobClass' }) do
+          Que.enqueue(1, two: "3")
+          Que.enqueue(4, five: "six")
+        end
+      end
+    end
+
+    it "should respect a job class defined as a string passed to .enqueue" do
+      class MyJobClass < Que::Job; end
+      class MyJobOtherClass < Que::Job; end
+
+      assert_enqueue(
+        expected_count: 2,
+        expected_args: [[1], [4]],
+        expected_kwargs: [{ two: "3" }, { five: "six" }],
+        expected_job_classes: [MyJobOtherClass, MyJobClass],
+        expected_result_classes: [Que::Job, Que::Job],
+      ) do
+        Que.bulk_enqueue(job_options: { job_class: 'MyJobClass' }) do
+          Que.enqueue(1, two: "3", job_options: { job_class: 'MyJobOtherClass' })
+          Que.enqueue(4, five: "six")
+        end
       end
     end
   end
@@ -438,6 +482,34 @@ describe Que::Job, '.bulk_enqueue' do
         ) do
           Que.bulk_enqueue(job_options: { priority: 4 }) do
             PrioritySubclassJob.enqueue(1, two: "3")
+            PrioritySubclassJob.enqueue(4, five: "six")
+          end
+        end
+      end
+
+      it "should respect a priority passed to .enqueue" do
+        assert_enqueue(
+          expected_count: 2,
+          expected_args: [[1], [4]],
+          expected_kwargs: [{ two: "3" }, { five: "six" }],
+          expected_priorities: [2, 3],
+          expected_job_classes: [PrioritySubclassJob, PrioritySubclassJob]
+        ) do
+          Que.bulk_enqueue do
+            PrioritySubclassJob.enqueue(1, two: "3", job_options: { priority: 2 })
+            PrioritySubclassJob.enqueue(4, five: "six")
+          end
+        end
+
+        assert_enqueue(
+          expected_count: 2,
+          expected_args: [[1], [4]],
+          expected_kwargs: [{ two: "3" }, { five: "six" }],
+          expected_priorities: [2, 4],
+          expected_job_classes: [PrioritySubclassJob, PrioritySubclassJob]
+        ) do
+          Que.bulk_enqueue(job_options: { priority: 4 }) do
+            PrioritySubclassJob.enqueue(1, two: "3", job_options: { priority: 2 })
             PrioritySubclassJob.enqueue(4, five: "six")
           end
         end
@@ -535,6 +607,34 @@ describe Que::Job, '.bulk_enqueue' do
         end
       end
 
+      it "should respect a run_at passed to .enqueue" do
+        assert_enqueue(
+          expected_count: 2,
+          expected_args: [[1], [4]],
+          expected_kwargs: [{ two: "3" }, { five: "six" }],
+          expected_run_ats: [Time.now + 10, Time.now + 30],
+          expected_job_classes: [RunAtDefaultJob, RunAtDefaultJob]
+        ) do
+          Que.bulk_enqueue do
+            RunAtDefaultJob.enqueue(1, two: "3", job_options: { run_at: Time.now + 10 })
+            RunAtDefaultJob.enqueue(4, five: "six")
+          end
+        end
+
+        assert_enqueue(
+          expected_count: 2,
+          expected_args: [[1], [4]],
+          expected_kwargs: [{ two: "3" }, { five: "six" }],
+          expected_run_ats: [Time.now + 10, Time.now + 60],
+          expected_job_classes: [RunAtDefaultJob, RunAtDefaultJob]
+        ) do
+          Que.bulk_enqueue(job_options: { run_at: Time.now + 60 }) do
+            RunAtDefaultJob.enqueue(1, two: "3", job_options: { run_at: Time.now + 10 })
+            RunAtDefaultJob.enqueue(4, five: "six")
+          end
+        end
+      end
+
       it "should respect an overridden run_at in a job class" do
         begin
           RunAtSubclassJob.run_at = -> {Time.now + 90}
@@ -622,6 +722,34 @@ describe Que::Job, '.bulk_enqueue' do
         ) do
           Que.bulk_enqueue(job_options: { queue: 'queue_3' }) do
             QueueSubclassJob.enqueue(1, two: "3")
+            QueueSubclassJob.enqueue(4, five: "six")
+          end
+        end
+      end
+
+      it "should respect a queue passed to .enqueue" do
+        assert_enqueue(
+          expected_count: 2,
+          expected_args: [[1], [4]],
+          expected_kwargs: [{ two: "3" }, { five: "six" }],
+          expected_queues: ['queue_4', 'queue_1'],
+          expected_job_classes: [QueueSubclassJob, QueueSubclassJob]
+        ) do
+          Que.bulk_enqueue do
+            QueueSubclassJob.enqueue(1, two: "3", job_options: { queue: 'queue_4' })
+            QueueSubclassJob.enqueue(4, five: "six")
+          end
+        end
+
+        assert_enqueue(
+          expected_count: 2,
+          expected_args: [[1], [4]],
+          expected_kwargs: [{ two: "3" }, { five: "six" }],
+          expected_queues: ['queue_4', 'queue_3'],
+          expected_job_classes: [QueueSubclassJob, QueueSubclassJob]
+        ) do
+          Que.bulk_enqueue(job_options: { queue: 'queue_3' }) do
+            QueueSubclassJob.enqueue(1, two: "3", job_options: { queue: 'queue_4' })
             QueueSubclassJob.enqueue(4, five: "six")
           end
         end
