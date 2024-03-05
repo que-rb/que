@@ -5,7 +5,7 @@ RUN apt-get update \
   && apt-get install -y libpq-dev \
   && rm -rf /var/lib/apt/lists/*
 
-ENV RUBY_BUNDLER_VERSION 2.3.7
+ENV RUBY_BUNDLER_VERSION 2.4.22
 RUN gem install bundler -v $RUBY_BUNDLER_VERSION
 
 ENV BUNDLE_PATH /usr/local/bundle
