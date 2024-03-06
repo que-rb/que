@@ -109,10 +109,6 @@ module Que
             klass:     self,
           }
 
-          if self.name == 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper'
-            raise Que::Error, "Que.bulk_enqueue does not support ActiveJob."
-          end
-
           Thread.current[:que_jobs_to_bulk_insert][:jobs_attrs] << attrs
           return new({})
         end

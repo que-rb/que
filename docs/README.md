@@ -853,7 +853,6 @@ The jobs are only actually enqueued at the end of the block, at which point they
 
 Limitations:
 
-- ActiveJob is not supported
 - The `que_attrs` of a job instance returned from `.enqueue` is empty (`{}`)
 - The notify trigger is not run by default, so jobs will only be picked up by a worker upon its next poll
 
