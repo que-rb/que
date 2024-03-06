@@ -45,7 +45,7 @@ jobs:
       run: |
         sudo apt-get -yqq install libpq-dev postgresql-client
         createdb que-test
-        gem install bundler
+        gem install bundler --version '~> 2.4.22'
         bundle install --jobs 4 --retry 3
         USE_RAILS=true bundle exec rake test
         bundle exec rake test
