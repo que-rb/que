@@ -42,6 +42,7 @@ module Que
             FROM pg_class
             LEFT JOIN pg_description ON pg_description.objoid = pg_class.oid
             WHERE relname = 'que_jobs'
+            ORDER BY pg_class.oid
           SQL
 
         if result.none?
