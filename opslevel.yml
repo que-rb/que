@@ -6,6 +6,27 @@ service:
   language: Ruby
   tier: tier_1
   lifecycle: pre-release
+  tools:
+    - name: Jira
+      category: incidents
+      url: https://lendinghome.atlassian.net/jira/software/c/projects/BOX/boards/385
+      environment: Production
+    - name: Jira
+      category: issue_tracking
+      url: https://lendinghome.atlassian.net/jira/software/c/projects/BOX/issues
+      environment:
+    - name: Confluence
+      category: wiki
+      url: https://lendinghome.atlassian.net/wiki/spaces/IT/pages/40435891/Rainmaker
+      environment:
+    - name: Splunk
+      category: logging
+      url: https://lendinghome.splunkcloud.com/en-US/app/search/search?q=search%20%22lh-prod-rainmaker-0-que-*%22&display.page.search.mode=smart&dispatch.sample_ratio=1&workload_pool=standard_perf&earliest=-30m%40m&latest=now
+      environment: Production
+    - name: Runbooks
+      category: runbooks
+      url: https://app.datadoghq.com/apm/services/lh-prod-rainmaker-0-que-postgres/operations/postgres.query/resources?dependencyMap=qson%3A%28data%3A%28telemetrySelection%3Aall_sources%29%2Cversion%3A%210%29&env=lh-prod-0&fromUser=false&groupMapByOperation=null&panels=qson%3A%28data%3A%28%29%2Cversion%3A%210%29&resources=qson%3A%28data%3A%28visible%3A%21t%2Chits%3A%28selected%3Atotal%29%2Cerrors%3A%28selected%3Atotal%29%2Clatency%3A%28selected%3Ap95%29%2CtopN%3A%215%29%2Cversion%3A%211%29&s3BucketDetails=qson%3A%28data%3A%28%29%2Cversion%3A%210%29&summary=qson%3A%28data%3A%28visible%3A%21t%2Cerrors%3A%28selected%3Acount%29%2Chits%3A%28selected%3Acount%29%2Clatency%3A%28selected%3Alatency%2Cslot%3A%28agg%3A95%29%2Cdistribution%3A%28isLogScale%3A%21f%29%2CshowTraceOutliers%3A%21t%29%2Csublayer%3A%28slot%3A%28layers%3Aservice%29%2Cselected%3Apercentage%29%29%2Cversion%3A%211%29&view=spans&start=1712089938889&end=1712093538889&paused=false
+      environment: Production
   tags:
   - key: type
     value: service
