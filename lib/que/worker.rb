@@ -114,7 +114,7 @@ module Que
       if VALID_LOG_LEVELS.include?(log_level)
         log_message = {
           level: log_level,
-          job_id: metajob.id,
+          job: metajob.job,
           elapsed: elapsed,
         }
 
@@ -133,7 +133,7 @@ module Que
       Que.log(
         level: :debug,
         event: :job_errored,
-        job_id: metajob.id,
+        job: metajob.job,
         error: {
           class:   error.class.to_s,
           message: error.message,

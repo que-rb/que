@@ -74,7 +74,8 @@ describe Que::Worker do
 
     events = logged_messages.select{|m| m[:event] == 'job_worked'}
     assert_equal 3, events.count
-    assert_equal job_ids, events.map{|m| m[:job_id]}
+    assert_equal [1, 2, 3], events.map{|m| m.dig(:job, :priority) }
+    assert_equal job_ids, events.map{|m| m.dig(:job, :id) }
   end
 
   it "should handle namespaced job subclasses" do
@@ -228,7 +229,7 @@ describe Que::Worker do
 
       # Error should be logged.
       event = events.first
-      assert_equal job_ids.first, event[:job_id]
+      assert_equal job_ids.first, event.dig(:job, :id)
       assert_equal "RuntimeError: Error!", event[:error]
 
       # Errored job should still be in the DB.

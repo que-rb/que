@@ -349,7 +349,7 @@ que --worker-count 1
 By default, Que logs important information in JSON to either Rails' logger (when running in a Rails web process) or STDOUT (when running via the `que` executable). So, your logs will look something like:
 
 ```
-I, [2017-08-12T05:07:31.094201 #4687]  INFO -- : {"lib":"que","hostname":"lovelace","pid":21626,"thread":21471100,"event":"job_worked","job_id":6157665,"elapsed":0.531411}
+I, [2017-08-12T05:07:31.094201 #4687]  INFO -- : {"lib":"que","hostname":"lovelace","pid":98240,"thread":42660,"event":"job_worked","job":{"priority":1,"run_at":"2024-07-24T11:07:10.056514Z","id":2869885284504751564,"job_class":"WorkerJob","error_count":0,"last_error_message":null,"queue":"default","last_error_backtrace":null,"finished_at":null,"expired_at":null,"args":[1],"data":{},"job_schema_version":2,"kwargs":{}},"elapsed":0.001356}
 ```
 
 Of course you can have it log wherever you like:
