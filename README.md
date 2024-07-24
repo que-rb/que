@@ -92,7 +92,7 @@ class ChargeCreditCard < Que::Job
 
       # It's best to destroy the job in the same transaction as any other
       # changes you make. Que will mark the job as destroyed for you after the
-      # run method if you don't do it yourself, but if your job writes to the DB
+      # run method if you don't do it yourself; however if your job writes to the DB
       # but doesn't destroy the job in the same transaction, it's possible that
       # the job could be repeated in the event of a crash.
       destroy
