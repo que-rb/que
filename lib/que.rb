@@ -80,7 +80,7 @@ module Que
     end
 
     def server?
-      defined?(Que::CommandLineInterface).nil?
+      !defined?(Que::CommandLineInterface).nil?
     end
 
     # Support simple integration with many common connection pools.
