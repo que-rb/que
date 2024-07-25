@@ -39,7 +39,11 @@ if defined?(::ActiveRecord)
         establish_connection(QUE_URL)
       end
 
-      SecondDatabaseModel.clear_active_connections!
+      if ::ActiveRecord.version >= Gem::Version.new('7.1')
+        SecondDatabaseModel.connection_handler.clear_active_connections!(:all)
+      else
+        SecondDatabaseModel.clear_active_connections!
+      end
       refute SecondDatabaseModel.connection_handler.active_connections?
 
       class SecondDatabaseModelJob < Que::Job
