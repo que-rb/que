@@ -94,13 +94,17 @@ module Que
           end
         end
 
+        tags = job_options[:tags] || []
+        data = { tags: tags }.merge(job_options[:data] || {})
+        # TODO: some protection about overall data size
+
         attrs = {
           queue:    job_options[:queue]    || resolve_que_setting(:queue) || Que.default_queue,
           priority: job_options[:priority] || resolve_que_setting(:priority),
           run_at:   job_options[:run_at]   || resolve_que_setting(:run_at),
           args:     args,
           kwargs:   kwargs,
-          data:     job_options[:tags] ? { tags: job_options[:tags] } : {},
+          data:     data,
           job_class: \
             job_options[:job_class] || name ||
               raise(Error, "Can't enqueue an anonymous subclass of Que::Job"),
