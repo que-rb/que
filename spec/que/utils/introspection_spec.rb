@@ -65,10 +65,10 @@ describe Que::Utils::Introspection do
       locker.stop!
 
       state = states.first
-      assert_equal \
-        %i(priority run_at id job_class error_count last_error_message queue
-          last_error_backtrace finished_at expired_at args data job_schema_version kwargs ruby_hostname ruby_pid),
-        state.keys
+      expected_keys = %i(priority run_at id job_class error_count last_error_message queue
+      last_error_backtrace finished_at expired_at args data job_schema_version kwargs ruby_hostname ruby_pid first_run_at)
+
+      assert_equal expected_keys.sort, state.keys.sort
 
       assert_equal 2, state[:priority]
       assert_in_delta state[:run_at], Time.now, QueSpec::TIME_SKEW
