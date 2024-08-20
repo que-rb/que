@@ -849,13 +849,11 @@ Que.bulk_enqueue do
 end
 ```
 
-The jobs are only actually enqueued at the end of the block, at which point they are inserted into the database in one big query.
+The jobs are only actually enqueued at the end of the block, at which point they are inserted into the database in one big query. `job_options` may be provided to `.bulk_enqueue` as defaults for the entire block. Alternatively, `job_options` may be individually provided to `.enqueue` and will take priority over block options.
 
 Limitations:
 
 - ActiveJob is not supported
-- All jobs must use the same job class
-- All jobs must use the same `job_options` (`job_options` must be provided to `.bulk_enqueue` instead of `.enqueue`)
 - The `que_attrs` of a job instance returned from `.enqueue` is empty (`{}`)
 - The notify trigger is not run by default, so jobs will only be picked up by a worker upon its next poll
 
