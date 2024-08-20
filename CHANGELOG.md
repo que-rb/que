@@ -2,7 +2,8 @@
 
 <!-- MarkdownTOC autolink=true -->
 
-- [2.3.0 \(2023-10-10\)](#230-2023-10-16)
+- [2.4.0 \(2024-08-21\)](#240-2024-08-21)
+- [2.3.0 \(2023-10-16\)](#230-2023-10-16)
 - [2.2.1 \(2023-04-28\)](#221-2023-04-28)
 - [2.2.0 \(2022-08-29\)](#220-2022-08-29)
 - [2.1.0 \(2022-08-25\)](#210-2022-08-25)
@@ -58,7 +59,18 @@
 
 <!-- /MarkdownTOC -->
 
+## 2.4.0 (2024-08-21)
+
+- **Fixed**:
+    + Fixed `Que.server?` method returning the inverse of what was intended. This method can be used to determine whether Que is running as a server process (run from the Que CLI). [#426](https://github.com/que-rb/que/pull/426), context in [#382](https://github.com/que-rb/que/pull/382)
+- **Added**:
+    + Added logging of full job details rather than just `job_id`. Note that the hash `Que.log_formatter` is called with no longer contains `:job_id`; instead it now has a `:job` hash including `:id`. [#428](https://github.com/que-rb/que/pull/428)
+- **Documentation**:
+    + Improved wording of transaction recommendation in the readme for destroying a job. [#417](https://github.com/que-rb/que/pull/417)
+    + Added [que-view](https://github.com/kortirso/que-view) to the list of Que-compatible projects in the readme: "A Rails engine-based UI for inspecting your job queue". [#418](https://github.com/que-rb/que/pull/418)
+
 ## 2.3.0 (2023-10-16)
+
 - **Fixed**:
     + Don't clear `ActiveRecord` connections when `run_synchronously` is enabled [#393](https://github.com/que-rb/que/pull/393)
 
