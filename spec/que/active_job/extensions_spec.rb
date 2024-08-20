@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 if defined?(::ActiveJob)
-  describe "running jobs via ActiveJob" do
+  describe "enqueueing/running jobs via ActiveJob" do
     before do
       class TestJobClass < ActiveJob::Base
         def perform(*args, **kwargs)
@@ -11,12 +11,14 @@ if defined?(::ActiveJob)
           $kwargs = kwargs
         end
       end
+      class OtherTestJobClass < ActiveJob::Base; end
     end
 
     after do
       Object.send :remove_const, :TestJobClass
       $args = nil
       $kwargs = nil
+      Object.send :remove_const, :OtherTestJobClass
     end
 
     def execute(&perform_later_block)
@@ -173,26 +175,95 @@ if defined?(::ActiveJob)
       end
     end
 
-    describe 'with bulk_enqueue' do
-      describe 'ActiveJobClass.perform_later' do
-        it "is not supported" do
-          assert_raises_with_message(
-            Que::Error,
-            /Que\.bulk_enqueue does not support ActiveJob\./
-          ) do
-            Que.bulk_enqueue { TestJobClass.perform_later(1, 2) }
-          end
+    def assert_enqueue_active_job(
+      expected_queues:,
+      expected_priorities:,
+      expected_run_ats:,
+      expected_active_job_classes:,
+      expected_active_job_arguments:,
+      expected_count:,
+      assert_results:,
+      &enqueue_block
+    )
+
+      assert_equal 0, jobs_dataset.count
+
+      results = enqueue_block.call
+
+      assert_equal expected_count, jobs_dataset.count
+
+      if assert_results
+        results.each_with_index do |result, i|
+          assert_kind_of Que::Job, result
+          assert_instance_of ActiveJob::QueueAdapters::QueAdapter::JobWrapper, result
+
+          assert_equal expected_priorities[i], result.que_attrs[:priority]
+          assert_equal expected_active_job_classes[i], result.que_attrs[:args].first[:job_class]
+          assert_equal expected_active_job_arguments[i], result.que_attrs[:args].first[:arguments]
+          assert_equal ({}), result.que_attrs[:kwargs]
+          assert_equal ({}), result.que_attrs[:data]
         end
       end
 
-      describe 'active_job#enqueue' do
-        it "is not supported" do
-          assert_raises_with_message(
-            Que::Error,
-            /Que\.bulk_enqueue does not support ActiveJob\./
-          ) do
-            Que.bulk_enqueue { TestJobClass.new.enqueue }
+      jobs_dataset.order(:id).each_with_index do |job, i|
+        assert_equal expected_queues[i], job[:queue]
+        assert_equal expected_priorities[i], job[:priority]
+        assert_equal expected_active_job_classes[i], job[:args].first[:job_class]
+        assert_equal expected_active_job_arguments[i], job[:args].first[:arguments]
+        assert_in_delta job[:run_at], expected_run_ats[i], QueSpec::TIME_SKEW
+        assert_equal 'ActiveJob::QueueAdapters::QueAdapter::JobWrapper', job[:job_class]
+        assert_equal ({}), job[:kwargs]
+        assert_equal ({}), job[:data]
+      end
+
+      jobs_dataset.delete
+    end
+
+    describe "with Que.bulk_enqueue" do
+      it "should be able to queue multiple jobs with different classes and job options" do
+        assert_enqueue_active_job(
+          expected_count: 2,
+          expected_queues: ['default', 'custom'],
+          expected_priorities: [100, 200],
+          expected_run_ats: [Time.now, Time.now + 60],
+          expected_active_job_classes: ['TestJobClass', 'OtherTestJobClass'],
+          expected_active_job_arguments: [[1, 2], [3, 4]],
+          assert_results: true,
+        ) do
+          Que.bulk_enqueue do
+            TestJobClass.perform_later(1, 2)
+            OtherTestJobClass.set(wait: 1.minute, queue: 'custom', priority: 200).perform_later(3, 4)
           end
+        end
+      end
+    end
+
+    if ActiveJob.gem_version >= Gem::Version.new('7.1')
+      describe "with ActiveJob.perform_all_later" do
+        it "should be able to queue multiple jobs with different classes and job options" do
+          assert_enqueue_active_job(
+            expected_count: 2,
+            expected_queues: ['default', 'custom'],
+            expected_priorities: [100, 200],
+            expected_run_ats: [Time.now, Time.now + 60],
+            expected_active_job_classes: ['TestJobClass', 'OtherTestJobClass'],
+            expected_active_job_arguments: [[1, 2], [3, 4]],
+            assert_results: false,
+          ) do
+            ActiveJob.perform_all_later([
+              TestJobClass.new(1, 2),
+              OtherTestJobClass.new(3, 4).set(wait: 1.minute, queue: 'custom', priority: 200),
+            ])
+          end
+        end
+
+        it "should set provider_job_id on job instances" do
+          jobs = [TestJobClass.new, TestJobClass.new]
+          ActiveJob.perform_all_later(jobs)
+          que_jobs = jobs_dataset.order(:id).to_a
+
+          assert_equal jobs[0].provider_job_id, que_jobs[0][:id]
+          assert_equal jobs[1].provider_job_id, que_jobs[1][:id]
         end
       end
     end
