@@ -44,6 +44,7 @@ describe Que::Job, '.bulk_enqueue' do
       assert_equal expected_job_class.to_s, job[:job_class]
       assert_equal expected_args[i], job[:args]
       assert_equal expected_kwargs[i], job[:kwargs]
+      assert_equal job[:run_at], job[:first_run_at]
     end
 
     jobs_dataset.delete
