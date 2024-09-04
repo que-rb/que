@@ -42,7 +42,12 @@ module Que
             # feature to unknowingly leak connections to other databases. So,
             # take the additional step of telling ActiveRecord to check in all
             # of the current thread's connections after each job is run.
-            ::ActiveRecord::Base.clear_active_connections! unless job.class.resolve_que_setting(:run_synchronously)
+            return if job.class.resolve_que_setting(:run_synchronously)
+            if ::ActiveRecord.version >= Gem::Version.new('7.1')
+              ::ActiveRecord::Base.connection_handler.clear_active_connections!(:all)
+            else
+              ::ActiveRecord::Base.clear_active_connections!
+            end
           end
         end
       end
