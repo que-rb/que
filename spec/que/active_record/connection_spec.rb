@@ -62,5 +62,24 @@ if defined?(::ActiveRecord)
 
       assert SecondDatabaseModel.connection_handler.active_connections?
     end
+
+    it "shouldn't clear connections to secondary DBs if within an active rails executor" do
+      # This is a hacky spec, but it's better than requiring Rails.
+      rails, application, executor = 3.times.map { Object.new }
+      application.define_singleton_method(:executor) { executor }
+      rails.define_singleton_method(:application) { application }
+      executor.define_singleton_method(:wrap) { |&block| block.call }
+      executor.define_singleton_method(:active?) { true }
+
+      refute defined?(::Rails)
+      ::Rails = rails
+
+      SecondDatabaseModelJob.run
+
+      assert SecondDatabaseModel.connection_handler.active_connections?
+
+      Object.send :remove_const, :Rails
+      refute defined?(::Rails)
+    end
   end
 end
