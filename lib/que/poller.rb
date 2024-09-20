@@ -116,25 +116,32 @@ module Que
       :connection,
       :queue,
       :poll_interval,
+      :poll_interval_variance,
       :last_polled_at,
-      :last_poll_satisfied
+      :last_poll_satisfied,
+      :next_poll_at
 
     def initialize(
       connection:,
       queue:,
-      poll_interval:
+      poll_interval:,
+      poll_interval_variance:
     )
-      @connection          = connection
-      @queue               = queue
-      @poll_interval       = poll_interval
+      @connection             = connection
+      @queue                  = queue
+      @poll_interval          = poll_interval
+      @poll_interval_variance = poll_interval_variance
+
       @last_polled_at      = nil
       @last_poll_satisfied = nil
+      @next_poll_at        = Time.now
 
       Que.internal_log :poller_instantiate, self do
         {
-          backend_pid:   connection.backend_pid,
-          queue:         queue,
-          poll_interval: poll_interval,
+          backend_pid:            connection.backend_pid,
+          queue:                  queue,
+          poll_interval:          poll_interval,
+          poll_interval_variance: poll_interval_variance,
         }
       end
     end
@@ -158,14 +165,20 @@ module Que
 
       @last_polled_at      = Time.now
       @last_poll_satisfied = poll_satisfied?(priorities, jobs)
+      @next_poll_at        = last_polled_at +
+                               poll_interval +
+                               rand(-poll_interval_variance..poll_interval_variance)
 
       Que.internal_log :poller_polled, self do
         {
-          queue:        @queue,
-          locked:       jobs.count,
-          priorities:   priorities,
-          held_locks:   held_locks.to_a,
-          newly_locked: jobs.map { |key| key.fetch(:id) },
+          queue:               @queue,
+          locked:              jobs.count,
+          priorities:          priorities,
+          held_locks:          held_locks.to_a,
+          newly_locked:        jobs.map { |key| key.fetch(:id) },
+          last_polled_at:      last_polled_at,
+          last_poll_satisfied: last_poll_satisfied,
+          next_poll_at:        next_poll_at,
         }
       end
 
@@ -173,16 +186,15 @@ module Que
     end
 
     def should_poll?
+      # polling is disabled for this queue
+      return false if poll_interval.nil?
+
       # Never polled before?
       last_poll_satisfied.nil? ||
       # Plenty of jobs were available last time?
       last_poll_satisfied == true ||
-      poll_interval_elapsed?
-    end
-
-    def poll_interval_elapsed?
-      return unless interval = poll_interval
-      (Time.now - last_polled_at) > interval
+      # It's due time to poll again regardless of the last poll's results?
+      next_poll_at < Time.now
     end
 
     class << self
