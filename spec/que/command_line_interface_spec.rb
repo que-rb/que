@@ -188,6 +188,7 @@ MSG
     def assert_locker_instantiated(
       worker_priorities: [10, 30, 50, nil, nil, nil],
       poll_interval: 5,
+      poll_interval_variance: 0.0,
       listen: true,
       wait_period: 50,
       queues: ['default'],
@@ -199,13 +200,14 @@ MSG
 
       locker_instantiate = locker_instantiates.first
 
-      assert_equal listen,              locker_instantiate[:listen]
-      assert_equal true,                locker_instantiate[:poll]
-      assert_equal queues,              locker_instantiate[:queues]
-      assert_equal poll_interval,       locker_instantiate[:poll_interval]
-      assert_equal wait_period,         locker_instantiate[:wait_period]
-      assert_equal maximum_buffer_size, locker_instantiate[:maximum_buffer_size]
-      assert_equal worker_priorities,   locker_instantiate[:worker_priorities]
+      assert_equal listen,                 locker_instantiate[:listen]
+      assert_equal true,                   locker_instantiate[:poll]
+      assert_equal queues,                 locker_instantiate[:queues]
+      assert_equal poll_interval,          locker_instantiate[:poll_interval]
+      assert_equal poll_interval_variance, locker_instantiate[:poll_interval_variance]
+      assert_equal wait_period,            locker_instantiate[:wait_period]
+      assert_equal maximum_buffer_size,    locker_instantiate[:maximum_buffer_size]
+      assert_equal worker_priorities,      locker_instantiate[:worker_priorities]
     end
 
     def assert_locker_started(
@@ -254,6 +256,14 @@ MSG
       it "with #{command} to configure the poll interval" do
         assert_successful_invocation "./#{filename} #{command} 10"
         assert_locker_instantiated(poll_interval: 10)
+        assert_locker_started
+      end
+    end
+
+    ["-j", "--poll-interval-variance"].each do |command|
+      it "with #{command} to configure the poll interval variance" do
+        assert_successful_invocation "./#{filename} #{command} 5"
+        assert_locker_instantiated(poll_interval_variance: 5)
         assert_locker_started
       end
     end

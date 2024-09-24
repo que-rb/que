@@ -35,6 +35,10 @@ require 'minitest/pride'
 require 'minitest/hooks'
 require 'minitest/profile'
 
+# "time travel" capabilities.
+require 'timecop'
+Timecop.safe_mode = true
+
 # Other support stuff.
 Dir['./spec/support/**/*.rb'].sort.each(&method(:require))
 

@@ -33,7 +33,7 @@ module Que
     }
 
   class Locker
-    attr_reader :thread, :workers, :job_buffer, :locks, :queues, :poll_interval
+    attr_reader :thread, :workers, :job_buffer, :locks, :queues, :poll_interval, :poll_interval_variance
 
     MESSAGE_RESOLVERS = {}
     RESULT_RESOLVERS  = {}
@@ -47,22 +47,24 @@ module Que
     RESULT_RESOLVERS[:job_finished] =
       -> (messages) { finish_jobs(messages.map{|m| m.fetch(:metajob)}) }
 
-    DEFAULT_POLL_INTERVAL       = 5.0
-    DEFAULT_WAIT_PERIOD         = 50
-    DEFAULT_MAXIMUM_BUFFER_SIZE = 8
-    DEFAULT_WORKER_PRIORITIES   = [10, 30, 50, nil, nil, nil].freeze
+    DEFAULT_POLL_INTERVAL          = 5.0
+    DEFAULT_POLL_INTERVAL_VARIANCE = 0.0
+    DEFAULT_WAIT_PERIOD            = 50
+    DEFAULT_MAXIMUM_BUFFER_SIZE    = 8
+    DEFAULT_WORKER_PRIORITIES      = [10, 30, 50, nil, nil, nil].freeze
 
     def initialize(
-      queues:              [Que.default_queue],
-      connection_url:      nil,
-      listen:              true,
-      poll:                true,
-      poll_interval:       DEFAULT_POLL_INTERVAL,
-      wait_period:         DEFAULT_WAIT_PERIOD,
-      maximum_buffer_size: DEFAULT_MAXIMUM_BUFFER_SIZE,
-      worker_priorities:   DEFAULT_WORKER_PRIORITIES,
-      on_worker_start:     nil,
-      pidfile:             nil
+      queues:                 [Que.default_queue],
+      connection_url:         nil,
+      listen:                 true,
+      poll:                   true,
+      poll_interval:          DEFAULT_POLL_INTERVAL,
+      poll_interval_variance: DEFAULT_POLL_INTERVAL_VARIANCE,
+      wait_period:            DEFAULT_WAIT_PERIOD,
+      maximum_buffer_size:    DEFAULT_MAXIMUM_BUFFER_SIZE,
+      worker_priorities:      DEFAULT_WORKER_PRIORITIES,
+      on_worker_start:        nil,
+      pidfile:                nil
     )
 
       # Sanity-check all our arguments, since some users may instantiate Locker
@@ -71,6 +73,7 @@ module Que
       Que.assert [TrueClass, FalseClass], poll
 
       Que.assert Numeric, poll_interval
+      Que.assert Numeric, poll_interval_variance
       Que.assert Numeric, wait_period
 
       Que.assert Array, worker_priorities
@@ -94,13 +97,14 @@ module Que
 
       Que.internal_log :locker_instantiate, self do
         {
-          queues:              queues,
-          listen:              listen,
-          poll:                poll,
-          poll_interval:       poll_interval,
-          wait_period:         wait_period,
-          maximum_buffer_size: maximum_buffer_size,
-          worker_priorities:   worker_priorities,
+          queues:                 queues,
+          listen:                 listen,
+          poll:                   poll,
+          poll_interval:          poll_interval,
+          poll_interval_variance: poll_interval_variance,
+          wait_period:            wait_period,
+          maximum_buffer_size:    maximum_buffer_size,
+          worker_priorities:      worker_priorities,
         }
       end
 
@@ -108,6 +112,7 @@ module Que
       @locks = Set.new
 
       @poll_interval = poll_interval
+      @poll_interval_variance = poll_interval_variance
 
       if queues.is_a?(Hash)
         @queue_names = queues.keys
@@ -204,9 +209,10 @@ module Que
               if poll
                 @queues.map do |queue_name, interval|
                   Poller.new(
-                    connection:    @connection,
-                    queue:         queue_name,
-                    poll_interval: interval,
+                    connection:             @connection,
+                    queue:                  queue_name,
+                    poll_interval:          interval,
+                    poll_interval_variance: poll_interval_variance,
                   )
                 end
               end

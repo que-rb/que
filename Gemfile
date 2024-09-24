@@ -26,6 +26,8 @@ group :test do
 
   gem 'pry'
   gem 'pg_examiner', '~> 0.5.2'
+
+  gem 'timecop', '~> 0.9.10'
 end
 
 gemspec
