@@ -283,8 +283,9 @@ describe Que::Poller do
       result = poller.poll(priorities: { 500 => 7 }, held_locks: Set.new)
       assert_equal job_ids, result.map(&:id)
 
-      poller.instance_variable_set(:@next_poll_at, Time.now)
-      assert_equal true, poller.should_poll?
+      Timecop.freeze(Time.now + 30) do
+        assert_equal true, poller.should_poll?
+      end
     end
   end
 end
