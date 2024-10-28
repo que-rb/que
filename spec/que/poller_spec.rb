@@ -44,6 +44,7 @@ describe Que::Poller do
         connection: override_connection || connection,
         queue: queue_name,
         poll_interval: 5,
+        poll_interval_variance: 0,
       )
 
     Que::Poller.setup(override_connection || connection)
@@ -245,6 +246,7 @@ describe Que::Poller do
         connection: connection,
         queue: 'default',
         poll_interval: 5,
+        poll_interval_variance: 0,
       )
     end
 
@@ -275,14 +277,15 @@ describe Que::Poller do
       assert_equal false, poller.should_poll?
     end
 
-    it "should be false if the number of jobs returned from the last poll was less than the lowest priority request, but the poll_interval has elapsed" do
+    it "should be true if the number of jobs returned from the last poll was less than the lowest priority request, but the poll_interval has elapsed" do
       job_ids = 5.times.map { Que::Job.enqueue.que_attrs[:id] }
 
       result = poller.poll(priorities: { 500 => 7 }, held_locks: Set.new)
       assert_equal job_ids, result.map(&:id)
 
-      poller.instance_variable_set(:@last_polled_at, Time.now - 30)
-      assert_equal true, poller.should_poll?
+      Timecop.freeze(Time.now + 30) do
+        assert_equal true, poller.should_poll?
+      end
     end
   end
 end
