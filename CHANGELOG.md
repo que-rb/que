@@ -2,6 +2,7 @@
 
 <!-- MarkdownTOC autolink=true -->
 
+- [2.4.1 \(2024-10-28\)](#241-2024-10-28)
 - [2.4.0 \(2024-08-21\)](#240-2024-08-21)
 - [2.3.0 \(2023-10-16\)](#230-2023-10-16)
 - [2.2.1 \(2023-04-28\)](#221-2023-04-28)
@@ -58,6 +59,11 @@
 - [0.0.1 \(2013-11-07\)](#001-2013-11-07)
 
 <!-- /MarkdownTOC -->
+
+## 2.4.1 (2024-10-28)
+
+- **Fixed**:
+    + Fixed deprecated use of `ActiveRecord::Base.clear_active_connections!` method in [#423](https://github.com/que-rb/que/pull/423), to allow support for Rails 7.2
 
 ## 2.4.0 (2024-08-21)
 
