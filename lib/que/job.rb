@@ -12,7 +12,7 @@ module Que
     SQL[:insert_job] =
       %{
         INSERT INTO public.que_jobs
-        (queue, priority, run_at, job_class, args, kwargs, data, job_schema_version)
+        (queue, priority, run_at, job_class, args, kwargs, data, job_schema_version, first_run_at)
         VALUES
         (
           coalesce($1, 'default')::text,
@@ -22,7 +22,8 @@ module Que
           coalesce($5, '[]')::jsonb,
           coalesce($6, '{}')::jsonb,
           coalesce($7, '{}')::jsonb,
-          #{Que.job_schema_version}
+          #{Que.job_schema_version},
+          coalesce($3, now())::timestamptz
         )
         RETURNING *
       }
@@ -33,7 +34,7 @@ module Que
           SELECT * from json_to_recordset(coalesce($5, '[{args:{},kwargs:{}}]')::json) as x(args jsonb, kwargs jsonb)
         )
         INSERT INTO public.que_jobs
-        (queue, priority, run_at, job_class, args, kwargs, data, job_schema_version)
+        (queue, priority, run_at, job_class, args, kwargs, data, job_schema_version, first_run_at)
         SELECT
           coalesce($1, 'default')::text,
           coalesce($2, 100)::smallint,
@@ -42,7 +43,8 @@ module Que
           args_and_kwargs.args,
           args_and_kwargs.kwargs,
           coalesce($6, '{}')::jsonb,
-          #{Que.job_schema_version}
+          #{Que.job_schema_version},
+          coalesce($3, now())::timestamptz
         FROM args_and_kwargs
         RETURNING *
       }
@@ -75,7 +77,8 @@ module Que
         :maximum_retry_count,
         :queue,
         :priority,
-        :run_at
+        :run_at,
+        :first_run_at
 
       def enqueue(*args)
         args, kwargs = Que.split_out_ruby2_keywords(args)
