@@ -171,6 +171,22 @@ MSG
         LOADED_FILES
       )
     end
+
+    it "should raise an error if file is not leading with ./" do
+      name = write_file
+      code = execute "#{name}"
+      assert_equal 1, code
+
+      assert_equal [
+        "Could not load file '#{name}': cannot load such file -- #{name}",
+        "Your file path should look like you're running a script, e.g. `./path/to/file.rb`"
+      ], output.messages
+
+      assert_equal(
+        {},
+        LOADED_FILES
+      )
+    end
   end
 
   describe "should start up a locker" do
