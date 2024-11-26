@@ -113,7 +113,7 @@ if ENV['USE_RAILS'] == 'true'
     end
 
     class TestLocator
-      def locate(gid)
+      def locate(gid, _options = {})
         gid.model_name.constantize.find(gid.model_id)
       end
     end
