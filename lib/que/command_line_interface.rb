@@ -196,13 +196,7 @@ OUTPUT
         end
 
         args.each do |file|
-          begin
-            require file
-          rescue LoadError => e
-            output.puts "Could not load file '#{file}': #{e}"
-            output.puts "Your file path should look like you're running a script, e.g. `./path/to/file.rb`" unless file.start_with?('./')
-            return 1
-          end
+            require File.expand_path(file)
         end
 
         Que.logger ||= Logger.new(STDOUT)

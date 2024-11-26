@@ -121,7 +121,7 @@ describe Que::CommandLineInterface do
     it "should infer the default require file if it exists" do
       filename = write_file
 
-      assert_successful_invocation "", default_require_file: "./#{filename}.rb"
+      assert_successful_invocation "", default_require_file: "#{filename}.rb"
 
       assert_equal(
         {filename => true},
@@ -161,29 +161,10 @@ MSG
 
     it "should raise an error if any of the files don't exist" do
       name = write_file
-      code = execute "./#{name} ./nonexistent_file"
-      assert_equal 1, code
-
-      assert_equal ["Could not load file './nonexistent_file': cannot load such file -- ./nonexistent_file"], output.messages
+      assert_raises(LoadError) { execute "#{name} ./nonexistent_file" }
 
       assert_equal(
         {name => true},
-        LOADED_FILES
-      )
-    end
-
-    it "should raise an error if file is not leading with ./" do
-      name = write_file
-      code = execute "#{name}"
-      assert_equal 1, code
-
-      assert_equal [
-        "Could not load file '#{name}': cannot load such file -- #{name}",
-        "Your file path should look like you're running a script, e.g. `./path/to/file.rb`"
-      ], output.messages
-
-      assert_equal(
-        {},
         LOADED_FILES
       )
     end
