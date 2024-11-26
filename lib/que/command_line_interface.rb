@@ -196,12 +196,7 @@ OUTPUT
         end
 
         args.each do |file|
-          begin
-            require file
-          rescue LoadError => e
-            output.puts "Could not load file '#{file}': #{e}"
-            return 1
-          end
+            require File.expand_path(file)
         end
 
         Que.logger ||= Logger.new(STDOUT)
