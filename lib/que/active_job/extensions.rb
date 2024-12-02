@@ -84,11 +84,6 @@ module Que
           # option under the circumstances (doesn't require hacking ActiveJob in
           # any more extensive way).
 
-          # There's no reason this logic should ever nest, because it wouldn't
-          # make sense to run a worker inside of a job, but even so, assert that
-          # nothing absurd is going on.
-          Que.assert NilClass, Thread.current[:que_current_job]
-
           begin
             Thread.current[:que_current_job] = self
 
