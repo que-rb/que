@@ -310,7 +310,7 @@ describe Que::Worker do
           end
         end
 
-        it "should mark the job as expired" do
+        it "should mark the job as expired and store error" do
           job = WorkerJob.enqueue
 
           assert_equal 1, jobs_dataset.update(error_count: 14)
@@ -324,13 +324,15 @@ describe Que::Worker do
 
           run_jobs
 
-          a = jobs_dataset.select_map([:expired_at, :error_count])
+          a = jobs_dataset.select_map([:expired_at, :error_count, :last_error_message, :last_error_backtrace])
           assert_equal 1, a.length
 
-          expired_at, error_count = a.first
+          expired_at, error_count, last_error_message, last_error_backtrace = a.first
 
           assert_in_delta expired_at, Time.now, QueSpec::TIME_SKEW
           assert_equal 16, error_count
+          assert_equal last_error_message, "RuntimeError: Blah!"
+          assert_match(/\A#{__FILE__}/, last_error_backtrace)
         end
 
         describe "when that value is custom" do
@@ -376,9 +378,12 @@ describe Que::Worker do
           assert_equal 1, ds.update(error_count: 15)
           run_jobs
 
-          expired_at, error_count = ds.select_map([:expired_at, :error_count]).first
+          expired_at, error_count, last_error_message, last_error_backtrace =
+            ds.select_map([:expired_at, :error_count, :last_error_message, :last_error_backtrace]).first
           assert_in_delta expired_at, Time.now, QueSpec::TIME_SKEW
           assert_equal 16, error_count
+          assert_equal "NameError: uninitialized constant NonexistentJobClass", last_error_message
+          refute_empty last_error_backtrace
         end
       end
 

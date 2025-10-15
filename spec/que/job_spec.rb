@@ -194,6 +194,33 @@ describe Que::Job do
           end
         end
 
+        it "should store error when a job expires after maximum retry count is exceeded" do
+          TestJobClass.class_eval do
+            def run
+              raise "Uh-oh!"
+            end
+          end
+
+          TestJobClass.maximum_retry_count = 0
+
+          assert_raises(StandardError) do
+            enqueue_method.call
+            execute
+          end
+
+          if should_persist_job
+            assert_empty active_jobs_dataset
+            refute_empty expired_jobs_dataset
+
+            job = expired_jobs_dataset.first
+            assert_equal 1, job[:error_count]
+            assert_equal "RuntimeError: Uh-oh!", job[:last_error_message]
+            assert_match(/\A#{__FILE__}/, job[:last_error_backtrace].split("\n").first)
+          else
+            assert_empty jobs_dataset
+          end
+        end
+
         it "should make it easy to override the default resolution action" do
           TestJobClass.class_eval do
             def run
