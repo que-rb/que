@@ -118,17 +118,30 @@ if ActiveJob.gem_version >= Gem::Version.new('7.1')
 
       class QueAdapter
         def enqueue(job)
-          job_options = { priority: job.priority, queue: job.queue_name }
-          que_job = JobWrapper.enqueue job.serialize, **job_options
-          job.provider_job_id = que_job.attrs["job_id"]
-          que_job
+          enqueue_at(job, nil)
         end
 
         def enqueue_at(job, timestamp)
-          job_options = { priority: job.priority, queue: job.queue_name, run_at: Time.at(timestamp) }
+          job_options = {
+            priority: job.priority,
+            queue: job.queue_name,
+            run_at: timestamp && Time.at(timestamp)
+          }
           que_job = JobWrapper.enqueue job.serialize, **job_options
-          job.provider_job_id = que_job.attrs["job_id"]
+          job.provider_job_id = que_job.que_attrs[:id]
           que_job
+        end
+
+        def enqueue_all(jobs)
+          que_jobs = Que.bulk_enqueue do
+            jobs.each do |job|
+              enqueue_at(job, job.scheduled_at)
+            end
+          end
+          que_jobs.zip(jobs).each do |que_job, job|
+            job.provider_job_id = que_job.que_attrs[:id]
+          end
+          que_jobs
         end
 
         private
