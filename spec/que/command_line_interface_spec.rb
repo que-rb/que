@@ -2,7 +2,6 @@
 
 require 'spec_helper'
 
-require 'digest/md5'
 require 'que/command_line_interface'
 
 describe Que::CommandLineInterface do
@@ -93,7 +92,7 @@ describe Que::CommandLineInterface do
     # same files will result in spec failures. So instead just generate a new
     # file name for each spec to write/delete.
 
-    name = "spec/temp/file_#{Digest::MD5.hexdigest(rand.to_s)}"
+    name = "spec/temp/file_#{rand}"
     written_files << name
     File.open("#{name}.rb", 'w') { |f| f.puts %(LOADED_FILES["#{name}"] = true) }
     name

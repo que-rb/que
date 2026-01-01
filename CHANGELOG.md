@@ -2,6 +2,7 @@
 
 <!-- MarkdownTOC autolink=true -->
 
+- [Unreleased](#unreleased)
 - [2.4.1 \(2024-10-28\)](#241-2024-10-28)
 - [2.4.0 \(2024-08-21\)](#240-2024-08-21)
 - [2.3.0 \(2023-10-16\)](#230-2023-10-16)
@@ -59,6 +60,25 @@
 - [0.0.1 \(2013-11-07\)](#001-2013-11-07)
 
 <!-- /MarkdownTOC -->
+
+## Unreleased
+
+- **Changed**:
+    + Replaced `md5()` with `hashtext()` in `que_job_notify()` function for PostgreSQL server running in FIPS mode.
+
+This release contains a database migration. You will need to migrate Que to the latest database schema version (8):
+
+```ruby
+class UpdateQueTablesToVersion8 < ActiveRecord::Migration[7.0]
+  def up
+    Que.migrate!(version: 8)
+  end
+
+  def down
+    Que.migrate!(version: 7)
+  end
+end
+```
 
 ## 2.4.1 (2024-10-28)
 

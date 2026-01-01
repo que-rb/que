@@ -59,7 +59,7 @@ class CreateQueSchema < ActiveRecord::Migration[6.0]
     # Whenever you use Que in a migration, always specify the version you're
     # migrating to. If you're unsure what the current version is, check the
     # changelog.
-    Que.migrate!(version: 7)
+    Que.migrate!(version: 8)
   end
 
   def down
