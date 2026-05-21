@@ -354,6 +354,19 @@ describe Que::Worker do
             end
           end
         end
+
+        it "should record the error message and backtrace on the expired job" do
+          WorkerJob.maximum_retry_count = 0
+          job = WorkerJob.enqueue
+          ds = jobs_dataset.where(id: job.que_attrs[:id])
+
+          run_jobs
+
+          row = ds.first
+          assert_in_delta row[:expired_at], Time.now, QueSpec::TIME_SKEW
+          assert_equal "RuntimeError: Blah!", row[:last_error_message]
+          assert_match(/\A#{__FILE__}/, row[:last_error_backtrace].split("\n").first)
+        end
       end
     end
 
