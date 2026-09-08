@@ -33,7 +33,7 @@ module Que
     }
 
   class Locker
-    attr_reader :thread, :workers, :job_buffer, :locks, :queues, :poll_interval
+    attr_reader :thread, :workers, :job_buffer, :locks, :queues, :poll_interval, :skip_poll_when_buffer_above_threshold
 
     MESSAGE_RESOLVERS = {}
     RESULT_RESOLVERS  = {}
@@ -47,22 +47,24 @@ module Que
     RESULT_RESOLVERS[:job_finished] =
       -> (messages) { finish_jobs(messages.map{|m| m.fetch(:metajob)}) }
 
-    DEFAULT_POLL_INTERVAL       = 5.0
-    DEFAULT_WAIT_PERIOD         = 50
-    DEFAULT_MAXIMUM_BUFFER_SIZE = 8
-    DEFAULT_WORKER_PRIORITIES   = [10, 30, 50, nil, nil, nil].freeze
+    DEFAULT_POLL_INTERVAL                         = 5.0
+    DEFAULT_SKIP_POLL_WHEN_BUFFER_ABOVE_THRESHOLD = 1.0
+    DEFAULT_WAIT_PERIOD                           = 50
+    DEFAULT_MAXIMUM_BUFFER_SIZE                   = 8
+    DEFAULT_WORKER_PRIORITIES                     = [10, 30, 50, nil, nil, nil].freeze
 
     def initialize(
-      queues:              [Que.default_queue],
-      connection_url:      nil,
-      listen:              true,
-      poll:                true,
-      poll_interval:       DEFAULT_POLL_INTERVAL,
-      wait_period:         DEFAULT_WAIT_PERIOD,
-      maximum_buffer_size: DEFAULT_MAXIMUM_BUFFER_SIZE,
-      worker_priorities:   DEFAULT_WORKER_PRIORITIES,
-      on_worker_start:     nil,
-      pidfile:             nil
+      queues:                                [Que.default_queue],
+      connection_url:                        nil,
+      listen:                                true,
+      poll:                                  true,
+      poll_interval:                         DEFAULT_POLL_INTERVAL,
+      skip_poll_when_buffer_above_threshold: DEFAULT_SKIP_POLL_WHEN_BUFFER_ABOVE_THRESHOLD,
+      wait_period:                           DEFAULT_WAIT_PERIOD,
+      maximum_buffer_size:                   DEFAULT_MAXIMUM_BUFFER_SIZE,
+      worker_priorities:                     DEFAULT_WORKER_PRIORITIES,
+      on_worker_start:                       nil,
+      pidfile:                               nil
     )
 
       # Sanity-check all our arguments, since some users may instantiate Locker
@@ -94,13 +96,14 @@ module Que
 
       Que.internal_log :locker_instantiate, self do
         {
-          queues:              queues,
-          listen:              listen,
-          poll:                poll,
-          poll_interval:       poll_interval,
-          wait_period:         wait_period,
-          maximum_buffer_size: maximum_buffer_size,
-          worker_priorities:   worker_priorities,
+          queues:                                queues,
+          listen:                                listen,
+          poll:                                  poll,
+          poll_interval:                         poll_interval,
+          skip_poll_when_buffer_above_threshold: skip_poll_when_buffer_above_threshold,
+          wait_period:                           wait_period,
+          maximum_buffer_size:                   maximum_buffer_size,
+          worker_priorities:                     worker_priorities,
         }
       end
 
@@ -108,6 +111,7 @@ module Que
       @locks = Set.new
 
       @poll_interval = poll_interval
+      @skip_poll_when_buffer_above_threshold = skip_poll_when_buffer_above_threshold
 
       if queues.is_a?(Hash)
         @queue_names = queues.keys
@@ -330,11 +334,21 @@ module Que
       # enabled).
       return unless pollers
 
+      # Skip polling if the job buffer is sufficiently full.
+      if job_buffer.size >= job_buffer.maximum_size * skip_poll_when_buffer_above_threshold
+        Que.internal_log(:locker_polling_skipped, self) {
+          {            
+            current_buffer_size: job_buffer.size,
+            max_buffer_size: job_buffer.maximum_size,
+            skip_poll_when_buffer_above_threshold: skip_poll_when_buffer_above_threshold,
+          }  
+        }
+
+        return
+      end
+
       # Figure out what job priorities we have to fill.
       priorities = job_buffer.available_priorities
-
-      # Only poll when there are workers ready for jobs.
-      return if priorities.empty?
 
       all_metajobs = []
 

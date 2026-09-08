@@ -429,6 +429,39 @@ describe Que::Locker do
 
       locker.stop!
     end
+
+    it "should skip polling if the buffer is sufficiently full" do
+      ids = 12.times.map { BlockJob.enqueue(job_options: { priority: 100 }).que_attrs[:id] }
+      
+      locker_settings[:worker_priorities] = [100, 100, 100]
+      locker_settings[:maximum_buffer_size] = 8
+      locker_settings[:skip_poll_when_buffer_above_threshold] = 0.75
+
+      locker
+      3.times { $q1.pop }
+
+      # Should have polled once
+      locker_polled_events = internal_messages(event: 'poller_polled')
+      assert_equal 1, locker_polled_events.size
+
+      # Should have locked first 11 only because there are 8 buffer slots and 3 open workers
+      assert_equal ids[0...11], locked_ids
+
+      # Pretend to have worked 1 job to drop buffer to 7/8 full, should skip polling
+      $q2.push nil
+      sleep_until do 
+        locker_polling_skipped_events = internal_messages(event: 'locker_polling_skipped')
+        locker_polling_skipped_events.any?
+      end
+
+      # No new polling events should have occurred
+      locker_polled_events = internal_messages(event: 'poller_polled')
+      assert_equal 1, locker_polled_events.size
+
+      3.times { $q2.push nil }
+
+      locker.stop!
+    end
   end
 
   describe "when receiving a NOTIFY of a new job" do
