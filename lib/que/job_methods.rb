@@ -12,8 +12,10 @@ module Que
     %{
       UPDATE public.que_jobs
       SET error_count = error_count + 1,
-          expired_at = now()
-      WHERE id = $1::bigint
+          expired_at = now(),
+          last_error_message   = left($1::text, 500),
+          last_error_backtrace = left($2::text, 10000)
+      WHERE id = $3::bigint
     }
 
   SQL[:destroy_job] =
@@ -101,7 +103,15 @@ module Que
       return unless que_target
 
       if id = que_target.que_attrs[:id]
-        Que.execute :expire_job, [id]
+        values = []
+
+        if e = que_target.que_error
+          values << "#{e.class}: #{e.message}".slice(0, 500) << e.backtrace.join("\n").slice(0, 10000)
+        else
+          values << nil << nil
+        end
+
+        Que.execute :expire_job, values << id
       end
 
       que_target.que_resolved = true

@@ -152,8 +152,15 @@ module Que
 
         max_retry_count = job_class.resolve_que_setting(:maximum_retry_count)
 
+        last_error_message = "#{error.class}: #{error.message}".slice(0, 500)
+        last_error_backtrace = (error.backtrace || []).join("\n").slice(0, 10000)
+
         if max_retry_count && error_count > max_retry_count
-          Que.execute :expire_job, [job.fetch(:id)]
+          Que.execute :expire_job, [
+            last_error_message,
+            last_error_backtrace,
+            job.fetch(:id),
+          ]
         else
           delay =
             job_class.
@@ -164,8 +171,8 @@ module Que
 
           Que.execute :set_error, [
             delay,
-            "#{error.class}: #{error.message}".slice(0, 500),
-            (error.backtrace || []).join("\n").slice(0, 10000),
+            last_error_message,
+            last_error_backtrace,
             job.fetch(:id),
           ]
         end
