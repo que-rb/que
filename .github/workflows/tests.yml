@@ -18,6 +18,8 @@ jobs:
         - { ruby_version: '3.2', rails_gemfile: '7.2', postgres_version: '12' }
         - { ruby_version: '3.2', rails_gemfile: '7.2', postgres_version: '13' }
         - { ruby_version: '3.2', rails_gemfile: '7.2', postgres_version: '14' }
+        - { ruby_version: '3.3', rails_gemfile: '7.2', postgres_version: '14' }
+        - { ruby_version: '3.4', rails_gemfile: '7.2', postgres_version: '14' }
         exclude: # Rails 7.2 is not compatible with Ruby < 3.1
         - ruby_version: '2.7'
           rails_gemfile: '7.2'

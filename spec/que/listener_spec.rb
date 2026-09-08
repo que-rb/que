@@ -273,10 +273,13 @@ describe Que::Listener do
 
         assert_instance_of Que::Error, error
 
+        # Inspected rather than written out, so that the expectation holds on
+        # Rubies that inspect hashes differently - 3.4 prints {priority: 90}
+        # where earlier versions print {:priority=>90}.
         expected_message = [
           "Message of type 'job_available' doesn't match format!",
-          "Message: {:priority=>90, :queue=>\"queue_name\", :run_at=>\"2017-06-30T18:33:35.425307Z\"}",
-          "Format: {:id=>Integer, :priority=>Integer, :queue=>String, :run_at=>/\\A\\d{4}\\-\\d{2}\\-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{6}Z\\z/}",
+          "Message: #{{priority: 90, queue: "queue_name", run_at: "2017-06-30T18:33:35.425307Z"}.inspect}",
+          "Format: #{{id: Integer, priority: Integer, queue: String, run_at: /\A\d{4}\-\d{2}\-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}Z\z/}.inspect}",
         ].join("\n")
 
         assert_equal expected_message, error.message

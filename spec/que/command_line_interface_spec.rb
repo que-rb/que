@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-require 'digest/md5'
+require 'securerandom'
 require 'que/command_line_interface'
 
 describe Que::CommandLineInterface do
@@ -93,7 +93,13 @@ describe Que::CommandLineInterface do
     # same files will result in spec failures. So instead just generate a new
     # file name for each spec to write/delete.
 
-    name = "spec/temp/file_#{Digest::MD5.hexdigest(rand.to_s)}"
+    # This can't use Kernel#rand, because minitest 5.16 and up call
+    # `srand Minitest.seed` before shuffling each suite's methods, so the
+    # global PRNG replays the same sequence once per describe block. Two specs
+    # in different blocks would then be given the same file name, and the
+    # second `require` of it does nothing - the path is already in
+    # $LOADED_FEATURES - leaving LOADED_FILES without an entry for it.
+    name = "spec/temp/file_#{SecureRandom.hex(16)}"
     written_files << name
     File.open("#{name}.rb", 'w') { |f| f.puts %(LOADED_FILES["#{name}"] = true) }
     name
