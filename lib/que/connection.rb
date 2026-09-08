@@ -174,6 +174,8 @@ module Que
     CAST_PROCS.freeze
 
     def convert_result(result)
+      return if result.nil?
+
       output = result.to_a
 
       result.fields.each_with_index do |field, index|
