@@ -271,6 +271,98 @@ describe Que::JobBuffer do
 
       assert_equal [], job_buffer.accept?(job_array)
     end
+
+    describe "when the buffer has no spare space" do
+      let(:maximum_size) { 0 }
+
+      it "should not accept a job when no worker is waiting for one" do
+        assert_equal [], job_buffer.accept?([job_array[0]])
+      end
+
+      it "should accept no more jobs than there are workers waiting" do
+        job_buffer # Pre-initialize to avoid race conditions.
+
+        2.times { Thread.new { job_buffer.shift } }
+        sleep_until_equal(2) { job_buffer.waiting_count }
+
+        assert_equal job_array[0..1], job_buffer.accept?(job_array[0..2])
+      end
+
+      it "should pass an accepted job to the waiting worker without buffering it" do
+        job_buffer # Pre-initialize to avoid race conditions.
+
+        t = Thread.new { Thread.current[:job] = job_buffer.shift }
+        sleep_until_equal(1) { job_buffer.waiting_count }
+
+        assert_equal [job_array[0]], job_buffer.accept?([job_array[0]])
+        assert_nil job_buffer.push(job_array[0])
+        sleep_until_equal(false) { t.status }
+
+        assert_equal job_array[0], t[:job]
+        assert_equal [], job_buffer.to_a
+      end
+    end
+
+    describe "when the buffer has spare space" do
+      let(:maximum_size) { 2 }
+
+      it "should not accept more jobs than the buffer has space for, whatever workers are waiting" do
+        job_buffer # Pre-initialize to avoid race conditions.
+
+        4.times { Thread.new { job_buffer.shift } }
+        sleep_until_equal(4) { job_buffer.waiting_count }
+
+        assert_equal job_array[0..1], job_buffer.accept?(job_array[0..3])
+      end
+    end
+
+    describe "when the buffer is full" do
+      before do
+        job_buffer.push(*8.times.map { |i| new_metajob(priority: 30, run_at: old, id: i + 1) })
+
+        @waiter = Thread.new { job_buffer.shift(10) }
+        sleep_until_equal(1) { job_buffer.waiting_count }
+      end
+
+      after do
+        job_buffer.stop
+        @waiter.join
+      end
+
+      it "should accept a job for the waiting worker on top of the ones it can displace" do
+        jobs = 10.times.map { |i| new_metajob(priority: 5, run_at: now, id: i + 10) }
+
+        assert_equal 9, job_buffer.accept?(jobs).length
+      end
+    end
+
+    describe "when the only worker waiting has a priority threshold" do
+      let :job_buffer do
+        Que::JobBuffer.new(maximum_size: 0, priorities: [10])
+      end
+
+      before do
+        @waiter = Thread.new { job_buffer.shift(10) }
+        sleep_until_equal(1) { job_buffer.waiting_count }
+      end
+
+      after do
+        job_buffer.stop
+        @waiter.join
+      end
+
+      it "should accept a job the worker's priority admits" do
+        job = new_metajob(priority: 5, run_at: now, id: 1)
+
+        assert_equal [job], job_buffer.accept?([job])
+      end
+
+      it "should not accept a job the worker's priority does not admit" do
+        job = new_metajob(priority: 50, run_at: now, id: 1)
+
+        assert_equal [], job_buffer.accept?([job])
+      end
+    end
   end
 
   describe "buffer_space" do

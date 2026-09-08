@@ -77,7 +77,7 @@ module Que
       sync do
         return [] if _stopping?
 
-        start_index = _buffer_space
+        start_index = _free_capacity(metajobs)
         final_index = metajobs.length - 1
 
         return metajobs if start_index > final_index
@@ -155,6 +155,41 @@ module Que
 
     def _buffer_space
       maximum_size - _size
+    end
+
+    # How many of these metajobs can be taken on without evicting anything
+    # that's already buffered. That's the free buffer space, except when there
+    # is none at all, in which case it's the number of workers currently blocked
+    # waiting for a job they'd accept - push hands jobs straight to waiting
+    # workers before it trims the buffer to maximum_size, so a job claimed by an
+    # idle worker never occupies buffer space. Without falling back to them a
+    # buffer with maximum_size: 0 rejects every job offered, even when every
+    # worker is idle, leaving them to be found by polling.
+    #
+    # metajobs is sorted, and a worker's priority threshold admits every job at
+    # least as important as the ones it rejects, so the eligible worker count
+    # only falls as we advance and the first job we can't be sure of placing
+    # ends the run.
+    def _free_capacity(metajobs)
+      space = _buffer_space
+      return space if space > 0
+
+      thresholds = _waiting_priorities
+      index = 0
+
+      while index < metajobs.length && index < _sufficient_count(thresholds, metajobs[index])
+        index += 1
+      end
+
+      index
+    end
+
+    def _waiting_priorities
+      priority_queues.flat_map { |priority, pq| Array.new(pq.waiting_count, priority) }
+    end
+
+    def _sufficient_count(thresholds, metajob)
+      thresholds.count { |threshold| metajob.priority_sufficient?(threshold) }
     end
 
     def pop(count)
