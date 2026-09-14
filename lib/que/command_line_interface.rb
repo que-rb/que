@@ -18,14 +18,15 @@ module Que
         default_require_file: RAILS_ENVIRONMENT_FILE
       )
 
-        options           = {}
-        queues            = []
-        log_level         = 'info'
-        log_internals     = false
-        poll_interval     = 5
-        connection_url    = nil
-        worker_count      = nil
-        worker_priorities = nil
+        options                = {}
+        queues                 = []
+        log_level              = 'info'
+        log_internals          = false
+        poll_interval          = 5
+        poll_interval_variance = 0
+        connection_url         = nil
+        worker_count           = nil
+        worker_priorities      = nil
 
         parser =
           OptionParser.new do |opts|
@@ -48,6 +49,15 @@ module Que
                 "in seconds (default: 5)",
             ) do |i|
               poll_interval = i
+            end
+
+            opts.on(
+              '-j',
+              '--poll-interval-variance [INTERVAL]',
+              Float,
+              "Set maximum variance in poll interval, in seconds (default: 0)",
+            ) do |j|
+              poll_interval_variance = j.to_f
             end
 
             opts.on(
@@ -232,7 +242,8 @@ OUTPUT
           options[:queues] = queues_hash
         end
 
-        options[:poll_interval] = poll_interval
+        options[:poll_interval]          = poll_interval
+        options[:poll_interval_variance] = poll_interval_variance
 
         locker =
           begin
