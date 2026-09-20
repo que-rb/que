@@ -149,8 +149,8 @@ module Que
           opts =
             {
               host:     uri.host,
-              user:     uri.user,
-              password: uri.password,
+              user:     uri.user && URI.decode_www_form_component(uri.user),
+              password: uri.password && URI.decode_www_form_component(uri.password),
               port:     uri.port || 5432,
               dbname:   uri.path[1..-1],
             }
